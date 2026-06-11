@@ -1,0 +1,349 @@
+# =============================================================================
+# Fe El Seka — .gitignore
+# Stack: Next.js 14 + Python FastAPI + Python AI Service + Supabase + OSRM
+# =============================================================================
+
+
+# =============================================================================
+# Environment & Secrets
+# =============================================================================
+.env
+.env.local
+.env.*.local
+.env.development
+.env.staging
+.env.production
+.env.test
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+service-account.json
+google-credentials.json
+firebase-adminsdk*.json
+
+
+# =============================================================================
+# OS
+# =============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+
+
+# =============================================================================
+# IDEs & Editors
+# =============================================================================
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+*.code-workspace
+
+# JetBrains (PyCharm, WebStorm, IntelliJ)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Vim / Neovim
+*.swp
+*.swo
+*.swn
+Session.vim
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+.#*
+
+
+# =============================================================================
+# Node.js
+# =============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-store/
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.npm/
+package-lock.json
+# Keep yarn.lock and pnpm-lock.yaml — commit those
+
+
+# =============================================================================
+# Next.js
+# =============================================================================
+.next/
+out/
+build/
+.vercel/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+
+# =============================================================================
+# TypeScript
+# =============================================================================
+dist/
+*.js.map
+*.d.ts.map
+# Keep *.d.ts from packages — do not add *.d.ts globally
+
+
+# =============================================================================
+# Python
+# =============================================================================
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.env/
+.virtualenv/
+__pypackages__/
+
+# Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+
+# Distribution / packaging
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+wheels/
+sdist/
+.installed.cfg
+lib/
+lib64/
+MANIFEST
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+nosetests.xml
+pytest.xml
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+
+# IPython / Jupyter
+.ipython/
+.jupyter/
+*.ipynb_checkpoints/
+profile_default/
+ipython_config.py
+
+
+# =============================================================================
+# AI / Machine Learning
+# =============================================================================
+
+# Trained model artifacts (can be large — store in Supabase Storage or DVC)
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.hdf5
+*.pb
+*.onnx
+*.pt
+*.pth
+*.bin
+*.safetensors
+models/
+model_registry/
+checkpoints/
+
+# Datasets (never commit raw data)
+data/raw/
+data/processed/
+data/interim/
+data/external/
+datasets/
+*.csv
+*.parquet
+*.feather
+*.arrow
+*.jsonl
+*.ndjson
+
+# MLflow / experiment tracking
+mlruns/
+mlartifacts/
+.mlflow/
+
+# DVC
+.dvc/cache/
+.dvc/tmp/
+.dvc/plots/
+
+# Synthetic data output
+synthetic_data/
+generated_rides/
+
+
+# =============================================================================
+# OSRM Map Data
+# =============================================================================
+# OSRM graph and routing files are large binaries — do not commit
+*.osrm
+*.osrm.cell_metrics
+*.osrm.cells
+*.osrm.cnbg
+*.osrm.cnbg_to_ebg
+*.osrm.datasource_names
+*.osrm.ebg
+*.osrm.ebg_nodes
+*.osrm.edges
+*.osrm.enw
+*.osrm.fileIndex
+*.osrm.geometry
+*.osrm.icd
+*.osrm.level
+*.osrm.maneuver_overrides
+*.osrm.mldgr
+*.osrm.names
+*.osrm.nbg_nodes
+*.osrm.partition
+*.osrm.properties
+*.osrm.ramIndex
+*.osrm.restrictions
+*.osrm.timestamp
+*.osrm.tld
+*.osrm.tls
+*.osrm.turn_duration_penalties
+*.osrm.turn_penalties_index
+*.osrm.turn_weight_penalties
+
+# OpenStreetMap raw data
+*.osm
+*.osm.bz2
+*.osm.pbf
+*.o5m
+map_data/
+
+
+# =============================================================================
+# Supabase
+# =============================================================================
+supabase/.branches/
+supabase/.temp/
+supabase/functions/.cache/
+# Keep supabase/config.toml and supabase/migrations/ — commit those
+
+
+# =============================================================================
+# Docker
+# =============================================================================
+.docker/
+docker-compose.override.yml
+# Keep docker-compose.yml — commit that
+
+
+# =============================================================================
+# Logs
+# =============================================================================
+logs/
+*.log
+*.log.*
+log/
+npm-debug.log*
+pip-log.txt
+pip-delete-this-directory.txt
+
+
+# =============================================================================
+# Testing
+# =============================================================================
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+playwright/.cache/
+cypress/videos/
+cypress/screenshots/
+allure-results/
+allure-report/
+
+
+# =============================================================================
+# Build & Cache
+# =============================================================================
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.prettiercache
+.swc/
+storybook-static/
+
+
+# =============================================================================
+# CI / Deployment
+# =============================================================================
+.vercel/
+.netlify/
+.serverless/
+.sst/
+cdk.out/
+
+
+# =============================================================================
+# Miscellaneous
+# =============================================================================
+*.bak
+*.tmp
+*.temp
+*.orig
+*.rej
+*.patch
+tmp/
+temp/
+scratch/
