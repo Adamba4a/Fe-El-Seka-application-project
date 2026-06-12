@@ -1,0 +1,19 @@
+{
+  "name": "fe-el-seka",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently --names \"main,admin,api,ai\" --prefix-colors \"blue,green,yellow,magenta\" \"pnpm --filter @fe-el-seka/main dev\" \"pnpm --filter @fe-el-seka/admin dev\" \"cd services/api && uvicorn app.main:app --port 8000 --reload\" \"cd services/ai && uvicorn app.main:app --port 8001 --reload\"",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^8.2.2",
+    "eslint": "^10.5.0",
+    "eslint-config-next": "^16.2.9",
+    "turbo": "^2.0.9",
+    "typescript-eslint": "^8.61.0"
+  },
+  "packageManager": "pnpm@8.15.6"
+}

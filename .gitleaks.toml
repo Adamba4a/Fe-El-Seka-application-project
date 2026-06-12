@@ -1,0 +1,12 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlisted files and paths that contain example or documentation values"
+paths = [
+    '''\.env\.example$''',
+    '''specs/''',
+    '''docs/''',
+    '''README\.md$''',
+    '''CONTRIBUTING\.md$''',
+]
