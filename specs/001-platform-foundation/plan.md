@@ -1,0 +1,186 @@
+# Implementation Plan: Platform Foundation
+
+**Branch**: `001-platform-foundation` | **Date**: 2026-06-12 | **Spec**: [spec.md](spec.md)
+
+**Input**: Feature specification from `specs/001-platform-foundation/spec.md`
+
+---
+
+## Summary
+
+Establish the Fe El Seka monorepo — a pnpm + Turborepo workspace containing two Next.js 14 applications (`apps/main`, `apps/admin`), two Python FastAPI services (`services/api`, `services/ai`), two shared packages (`packages/ui`, `packages/shared`), and a Supabase migration foundation with PostGIS enabled and three base tables (`users`, `rides`, `bookings`). The GitHub Actions CI pipeline runs Gitleaks secret detection, TypeScript lint/type-check, Next.js builds, and Python lint/type-check on every pull request — all completing within 10 minutes.
+
+---
+
+## Technical Context
+
+**Language/Version**:
+- TypeScript 5.x (Next.js apps and shared packages)
+- Python 3.11+ (FastAPI services)
+
+**Primary Dependencies**:
+- Next.js 14, Tailwind CSS, shadcn/ui (frontend apps)
+- FastAPI, Pydantic v2, asyncpg (backend API)
+- FastAPI, Pydantic v2 (AI service scaffold — no ML dependencies in Phase 1)
+- pnpm 8+, Turborepo (monorepo tooling)
+- uv (Python dependency management per service)
+- Supabase CLI (database migrations)
+- Gitleaks v2 GitHub Action (secret detection)
+
+**Storage**: Supabase PostgreSQL with PostGIS extension; `GEOMETRY(POINT, 4326)` for spatial fields
+
+**Testing**:
+- TypeScript: Vitest configured (no tests written in Phase 1; framework in place)
+- Python: pytest configured (no tests written in Phase 1; framework in place)
+
+**Target Platform**: Linux server (Supabase-hosted DB); developer machines (macOS/Windows/Linux, 8 GB RAM+, modern CPU, SSD)
+
+**Project Type**: Monorepo — two web applications + two FastAPI services + two shared packages
+
+**Performance Goals**:
+- Local startup under 5 minutes post-install (NFR-001)
+- CI pipeline under 10 minutes total (NFR-003)
+- Health check response under 1 second at p95 (SC-006)
+
+**Constraints**:
+- All secrets outside version control (NFR-002); `.env.local` files gitignored; production via Supabase Vault
+- PostGIS `GEOMETRY(POINT, 4326)` with GIST indices for all spatial fields (NFR-005)
+- UUID primary keys via `gen_random_uuid()` for all entities (Constitution Data Standards)
+- RLS enabled on all tables from first migration; stub permissive policies until Phase 3
+
+**Scale/Scope**: 1,000 concurrent active users baseline (NFR-006); 6 workspace packages; 3 foundation tables
+
+---
+
+## Constitution Check
+
+*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+
+| Principle | Requirement | Status |
+|-----------|-------------|--------|
+| I — Driver-First Route Sharing | No on-demand dispatch logic introduced | ✅ Pass — Phase 1 has no matching or dispatch logic |
+| II — Route Intelligence | Spatial fields use PostGIS geometry, not straight-line distance | ✅ Pass — `GEOMETRY(POINT, 4326)` with GIST indices; OSRM deferred to Phase 5 |
+| III — Trust Before Transportation | No unverified users can access ride features | ✅ Pass — no ride features in Phase 1; verification added in Phase 3 |
+| IV — AI-Augmented Transportation | AI exists as a dedicated, independently deployable service | ✅ Pass — `services/ai` is a separate FastAPI service scaffold |
+| V — Mobile-First UX | Front-end prioritizes mobile-first interaction | ✅ Pass — Tailwind CSS mobile-first defaults; App Router enables fast server-rendered initial load |
+| VI — Modular Domain-Driven Architecture | Spec covers only platform foundation, no product features | ✅ Pass — zero domain business logic introduced; schema is a minimal bootstrap |
+| VII — Shared Foundations, Independent Applications | Apps share packages but deploy independently | ✅ Pass — `packages/ui` and `packages/shared` are workspace packages; `apps/main` and `apps/admin` build and deploy independently |
+
+**Architecture Standards**: Backend owns logic ✅ | Frontend is presentation only ✅ | DB is source of truth ✅ | AI as dedicated service ✅ | Services independently deployable ✅
+
+**Data Standards**: UUID PKs ✅ | PostGIS geometry types ✅ | RLS enabled from first migration ✅ | Secrets via env vars + Supabase Vault ✅
+
+**Result**: All gates pass. No violations. No complexity justification required.
+
+---
+
+## Project Structure
+
+### Documentation (this feature)
+
+```
+specs/001-platform-foundation/
+├── plan.md                    # This file
+├── research.md                # Phase 0 research decisions
+├── data-model.md              # Foundation entity definitions and SQL schema
+├── quickstart.md              # End-to-end validation guide
+├── checklists/
+│   └── requirements.md        # Spec quality checklist
+├── contracts/
+│   └── health-check.md        # GET /health endpoint contract (both services)
+└── tasks.md                   # Generated by /speckit-tasks (not yet created)
+```
+
+### Source Code (repository root)
+
+```
+apps/
+├── main/                          # Next.js 14 — passenger + driver (role-based routing post-login)
+│   ├── src/
+│   │   ├── app/                   # App Router: root layout, default landing page
+│   │   ├── components/            # App-specific components
+│   │   └── lib/                   # App-specific utilities and hooks
+│   ├── public/
+│   ├── package.json               # name: @fe-el-seka/main
+│   ├── next.config.ts
+│   ├── tailwind.config.ts
+│   ├── tsconfig.json
+│   └── .env.example
+└── admin/                         # Next.js 14 — platform admin panel (independent deployment)
+    ├── src/
+    │   ├── app/
+    │   ├── components/
+    │   └── lib/
+    ├── public/
+    ├── package.json               # name: @fe-el-seka/admin
+    ├── next.config.ts
+    ├── tailwind.config.ts
+    ├── tsconfig.json
+    └── .env.example
+
+packages/
+├── ui/                            # Shared shadcn/ui component library
+│   ├── src/
+│   │   └── components/            # Button, Input (Phase 1 minimum)
+│   ├── package.json               # name: @fe-el-seka/ui
+│   └── tsconfig.json
+└── shared/                        # Shared TypeScript types and utilities
+    ├── src/
+    │   ├── types/                 # User, Ride, Booking base types
+    │   └── utils/                 # Shared formatters and validators
+    ├── package.json               # name: @fe-el-seka/shared
+    └── tsconfig.json
+
+services/
+├── api/                           # FastAPI backend API service
+│   ├── app/
+│   │   ├── main.py                # FastAPI app instance, lifespan, startup validation
+│   │   ├── core/
+│   │   │   ├── config.py          # Pydantic Settings — all env vars validated at startup
+│   │   │   └── database.py        # asyncpg connection pool to Supabase PostgreSQL
+│   │   └── api/
+│   │       └── health.py          # GET /health — status + database + version
+│   ├── tests/                     # pytest configured; no tests in Phase 1
+│   ├── pyproject.toml             # uv-managed; FastAPI, asyncpg, pydantic, ruff, mypy
+│   └── .env.example
+└── ai/                            # AI service scaffold (Phase 2 trains and serves models)
+    ├── app/
+    │   ├── main.py
+    │   ├── core/
+    │   │   └── config.py
+    │   └── api/
+    │       └── health.py          # GET /health — identical contract to services/api
+    ├── tests/
+    ├── pyproject.toml             # uv-managed; FastAPI, pydantic, ruff, mypy
+    └── .env.example
+
+supabase/
+├── migrations/
+│   ├── 20260612000000_enable_extensions.sql    # PostGIS + uuid-ossp
+│   └── 20260612000001_foundation_schema.sql    # users, rides, bookings + RLS + indices
+└── config.toml                                 # Supabase CLI project config
+
+.github/
+└── workflows/
+    └── ci.yml                     # Jobs: secret-scan → [lint-ts, lint-py, build-ts, build-py] (parallel)
+
+package.json                       # Root workspace: scripts for dev, build, lint, typecheck
+pnpm-workspace.yaml                # Declares apps/*, packages/* as workspace packages
+turbo.json                         # Pipeline: lint, typecheck, build with dependency graph
+.gitignore                         # .env*, .env.local, node_modules, .next, __pycache__, .venv, dist
+.env.example                       # Root example documenting all required environment variable names
+```
+
+**Structure Decision**: Monorepo with pnpm workspaces + Turborepo. Python services (`services/api`, `services/ai`) are not part of the pnpm workspace — they are managed independently with uv per service. The `supabase/` directory sits at the repository root per Supabase CLI convention. The two Next.js apps build and deploy independently; Turborepo's pipeline ensures shared packages are built before their consumers.
+
+---
+
+## Post-Design Constitution Re-check
+
+All principles remain satisfied after Phase 1 design artifacts:
+
+- `GEOMETRY(POINT, 4326)` with GIST spatial indices — Principle II ✅
+- RLS enabled with stub permissive policies from first migration — Principle III ✅
+- `services/ai` runs as an independent FastAPI process on a separate port — Principle IV ✅
+- `apps/main` and `apps/admin` have separate `package.json`, `next.config.ts`, and `.env.example` — independently buildable and deployable — Principle VII ✅
+- No business logic in `packages/ui` or `packages/shared` — Architecture Standards ✅
