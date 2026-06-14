@@ -255,6 +255,29 @@ curl -X POST http://localhost:8000/api/rides \
 
 ---
 
+---
+
+## T079 Validation Record — 2026-06-14
+
+End-to-end validation performed against implemented code (not against a running environment — local Supabase + FastAPI services require actual runtime). Discrepancies and notes recorded below.
+
+### Schema alignment ✓
+- All 5 tables (`profiles`, `verification_submissions`, `vehicles`, `admin_audit_logs`, `platform_settings`) created in migration files with constraints matching contracts.
+- `is_submission_locked` column exists on `profiles`; `is_locked` column exists on `verification_submissions`. Both used correctly in verification_service and admin rejection flow.
+
+### Behavioral alignment ✓
+- Steps 1–3: OTP + profile + submission chain matches API contracts (request-otp → verify-otp → /setup → /submit).
+- Steps 4–5: Admin queue and approve endpoints implemented; `get_current_admin()` dependency enforced.
+- Step 6: 3-attempt cap enforced in `verification_service.py`; `is_third = attempt_number >= 3` triggers lock on reject; unlock resets both `profiles.is_submission_locked` and `verification_submissions.is_locked`.
+- Step 7: Driver 3-file submission uses same `/api/verification/submit` endpoint; vehicle registration blocked by `get_current_verified_driver()` dependency.
+- Step 8: Suspension writes `verification_status='suspended'` to profiles AND calls `auth_service.revoke_sessions(user_id)` (two-layer revocation). `get_current_user()` raises 401 on next request.
+- Step 9: `get_current_verified_driver()` / `get_current_verified_passenger()` return 403 `verification_required` for unverified users.
+
+### Known runtime prerequisites (not blocking)
+- Twilio credentials must be configured in `services/api/.env` for real SMS delivery.
+- Admin user must be seeded manually in Supabase Auth before Step 4 (no seed script included — out of scope for this phase).
+- Supabase Storage buckets are created via migration 007; `supabase db push` or `supabase migration up` must be run before file uploads work.
+
 ## Reference
 
 - API contracts: [contracts/auth-api.md](contracts/auth-api.md)

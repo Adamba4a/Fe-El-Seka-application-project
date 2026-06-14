@@ -12,9 +12,13 @@
   "dependencies": {
     "@fe-el-seka/shared": "workspace:*",
     "@fe-el-seka/ui": "workspace:*",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.108.1",
     "next": "14.2.3",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "react-hook-form": "^7.79.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^20",
