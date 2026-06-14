@@ -8,8 +8,15 @@ from app.services import vehicle_service
 router = APIRouter()
 
 
-@router.post("/register", response_model=VehicleResponse, status_code=status.HTTP_201_CREATED)
-def register_vehicle(body: VehicleRegister, profile: dict = Depends(get_current_verified_driver)) -> dict:
+@router.post(
+    "/register",
+    response_model=VehicleResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def register_vehicle(
+    body: VehicleRegister,
+    profile: dict = Depends(get_current_verified_driver),
+) -> dict:
     return vehicle_service.register_vehicle(profile["id"], body.model_dump())
 
 
@@ -19,5 +26,8 @@ def get_vehicle(profile: dict = Depends(get_current_driver)) -> dict:
 
 
 @router.put("/me", response_model=VehicleResponse)
-def update_vehicle(body: VehicleUpdate, profile: dict = Depends(get_current_verified_driver)) -> dict:
+def update_vehicle(
+    body: VehicleUpdate,
+    profile: dict = Depends(get_current_verified_driver),
+) -> dict:
     return vehicle_service.update_vehicle(profile["id"], body.color, body.seat_count)

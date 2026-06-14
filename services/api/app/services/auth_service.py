@@ -22,7 +22,10 @@ _RESEND_MAX = 3
 def _check_resend_rate(phone: str) -> None:
     now = time.time()
     with _resend_lock:
-        timestamps = [t for t in _resend_tracker[phone] if now - t < _RESEND_WINDOW_SECONDS]
+        timestamps = [
+            t for t in _resend_tracker[phone]
+            if now - t < _RESEND_WINDOW_SECONDS
+        ]
         if len(timestamps) >= _RESEND_MAX:
             raise HTTPException(
                 status_code=429,
@@ -46,7 +49,10 @@ def request_otp(phone_number: str) -> dict:
     try:
         sb.auth.sign_in_with_otp({"phone": phone_number})
     except Exception as exc:
-        raise HTTPException(status_code=500, detail={"error": "otp_send_failed", "message": str(exc)})
+        raise HTTPException(
+            status_code=500,
+            detail={"error": "otp_send_failed", "message": str(exc)},
+        )
     return {"message": "OTP sent", "expires_in_seconds": 300}
 
 
@@ -59,7 +65,10 @@ def verify_otp(phone_number: str, otp: str) -> dict:
         if "expired" in error_str:
             raise HTTPException(
                 status_code=410,
-                detail={"error": "otp_expired", "message": "Code has expired. Request a new one."},
+                detail={
+                    "error": "otp_expired",
+                    "message": "Code has expired. Request a new one.",
+                },
             )
         raise HTTPException(
             status_code=400,
@@ -67,7 +76,10 @@ def verify_otp(phone_number: str, otp: str) -> dict:
         )
 
     if not resp.session or not resp.user:
-        raise HTTPException(status_code=400, detail={"error": "otp_invalid", "message": "Verification failed"})
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "otp_invalid", "message": "Verification failed"},
+        )
 
     session = resp.session
     user = resp.user
@@ -78,7 +90,12 @@ def verify_otp(phone_number: str, otp: str) -> dict:
 
     # Update last_login_at for returning users
     if not is_new_user:
-        sb.table("profiles").update({"last_login_at": datetime.now(timezone.utc).isoformat()}).eq("id", user.id).execute()
+        (
+            sb.table("profiles")
+            .update({"last_login_at": datetime.now(timezone.utc).isoformat()})
+            .eq("id", user.id)
+            .execute()
+        )
 
     return {
         "access_token": session.access_token,
@@ -97,9 +114,18 @@ def refresh_session(refresh_token: str) -> dict:
     try:
         resp = sb.auth.refresh_session(refresh_token)
     except Exception as exc:
-        raise HTTPException(status_code=401, detail={"error": "unauthorized", "message": str(exc)})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": "unauthorized", "message": str(exc)},
+        )
     if not resp.session:
-        raise HTTPException(status_code=401, detail={"error": "unauthorized", "message": "Session could not be refreshed"})
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error": "unauthorized",
+                "message": "Session could not be refreshed",
+            },
+        )
     return {
         "access_token": resp.session.access_token,
         "expires_in": resp.session.expires_in or 3600,
@@ -127,5 +153,9 @@ def revoke_sessions(user_id: str) -> None:
         logger.error("Failed to revoke sessions for user %s: %s", user_id, exc)
         raise HTTPException(
             status_code=502,
-            detail={"error": "revocation_failed", "message": "User suspended in DB but session revocation failed. Retry the suspend action."},
+            detail={
+                "error": "revocation_failed",
+                "message": "User suspended in DB but session revocation"
+                " failed. Retry the suspend action.",
+            },
         )

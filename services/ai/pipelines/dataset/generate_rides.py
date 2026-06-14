@@ -54,7 +54,11 @@ def _assign_match_label(
     origin_dist = _euclidean_km(p_origin.centroid_lat, p_origin.centroid_lng,
                                  d_origin.centroid_lat, d_origin.centroid_lng)
     time_diff = abs(p_hour - d_hour) * 60  # minutes
-    if dest_dist <= _MATCH_DEST_THRESHOLD_KM and time_diff <= _MATCH_TIME_WINDOW_MIN and origin_dist <= _MATCH_DEST_THRESHOLD_KM:
+    if (
+        dest_dist <= _MATCH_DEST_THRESHOLD_KM
+        and time_diff <= _MATCH_TIME_WINDOW_MIN
+        and origin_dist <= _MATCH_DEST_THRESHOLD_KM
+    ):
         return 1
     return 0
 

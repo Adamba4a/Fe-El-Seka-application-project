@@ -66,15 +66,20 @@ def _estimate_overlap(p_origin: str, p_dest: str, d_origin: str, d_dest: str) ->
     Synthetic overlap estimate: zones that share origin/dest cluster get higher overlap.
     Used only during training — Phase 5 (route engine) provides real overlap values.
     """
-    from pipelines.dataset.zones import zone_by_name
     import math
+
+    from pipelines.dataset.zones import zone_by_name
 
     DEG_TO_KM = 111.0
 
     def dist(z1: str, z2: str) -> float:
         a, b = zone_by_name[z1], zone_by_name[z2]
         dlat = (a.centroid_lat - b.centroid_lat) * DEG_TO_KM
-        dlng = (a.centroid_lng - b.centroid_lng) * DEG_TO_KM * math.cos(math.radians(a.centroid_lat))
+        dlng = (
+            (a.centroid_lng - b.centroid_lng)
+            * DEG_TO_KM
+            * math.cos(math.radians(a.centroid_lat))
+        )
         return math.sqrt(dlat**2 + dlng**2)
 
     dest_dist = dist(p_dest, d_dest)
@@ -84,8 +89,9 @@ def _estimate_overlap(p_origin: str, p_dest: str, d_origin: str, d_dest: str) ->
 
 
 def _estimate_detour(zone1: str, zone2: str) -> float:
-    from pipelines.dataset.zones import zone_by_name
     import math
+
+    from pipelines.dataset.zones import zone_by_name
 
     DEG_TO_KM = 111.0
     a, b = zone_by_name[zone1], zone_by_name[zone2]

@@ -1,0 +1,4 @@
+# Override root .gitignore which excludes `lib/` for Python build artifacts.
+# The src/lib/ directory contains TypeScript source files that must be tracked.
+!src/lib/
+!src/lib/**

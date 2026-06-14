@@ -5,16 +5,15 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.admin.users_router import router as admin_users_router
+from app.api.admin.verification_router import router as admin_verification_router
+from app.api.auth.router import router as auth_router
+from app.api.health import router as health_router
+from app.api.profiles.router import router as profiles_router
+from app.api.vehicles.router import router as vehicles_router
+from app.api.verification.router import router as verification_router
 from app.core.config import settings
 from app.core.database import close_pool, create_pool
-
-from app.api.health import router as health_router
-from app.api.auth.router import router as auth_router
-from app.api.profiles.router import router as profiles_router
-from app.api.verification.router import router as verification_router
-from app.api.vehicles.router import router as vehicles_router
-from app.api.admin.verification_router import router as admin_verification_router
-from app.api.admin.users_router import router as admin_users_router
 
 
 @asynccontextmanager
@@ -43,18 +42,36 @@ app.add_middleware(
 
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc: Exception) -> JSONResponse:
-    return JSONResponse(status_code=404, content={"error": "not_found", "message": "Resource not found"})
+    return JSONResponse(
+        status_code=404,
+        content={"error": "not_found", "message": "Resource not found"},
+    )
 
 
 @app.exception_handler(422)
 async def validation_handler(request: Request, exc: Exception) -> JSONResponse:
-    return JSONResponse(status_code=422, content={"error": "validation_error", "message": str(exc)})
+    return JSONResponse(
+        status_code=422,
+        content={"error": "validation_error", "message": str(exc)},
+    )
 
 
 app.include_router(health_router)
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(profiles_router, prefix="/api/profiles", tags=["profiles"])
-app.include_router(verification_router, prefix="/api/verification", tags=["verification"])
+app.include_router(
+    verification_router,
+    prefix="/api/verification",
+    tags=["verification"],
+)
 app.include_router(vehicles_router, prefix="/api/vehicles", tags=["vehicles"])
-app.include_router(admin_verification_router, prefix="/api/admin/verification", tags=["admin"])
-app.include_router(admin_users_router, prefix="/api/admin/users", tags=["admin"])
+app.include_router(
+    admin_verification_router,
+    prefix="/api/admin/verification",
+    tags=["admin"],
+)
+app.include_router(
+    admin_users_router,
+    prefix="/api/admin/users",
+    tags=["admin"],
+)

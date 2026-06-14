@@ -66,7 +66,9 @@ class ModelRegistry:
                 remote, payload, {"content-type": "application/json"}
             )
         except Exception as exc:
-            raise RegistryError(f"Failed to upload metadata for {model_type} v{version}: {exc}") from exc
+            raise RegistryError(
+                f"Failed to upload metadata for {model_type} v{version}: {exc}"
+            ) from exc
 
     def write_latest(self, model_type: str, version: str) -> None:
         remote = f"{model_type}/latest.json"

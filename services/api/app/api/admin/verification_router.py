@@ -1,9 +1,15 @@
+import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from supabase import create_client
 
 from app.core.config import settings
 from app.dependencies.roles import get_current_admin
-from app.models.verification import AdminQueueResponse, AdminSubmissionDetail, RejectRequest
+from app.models.verification import (
+    AdminQueueResponse,
+    AdminSubmissionDetail,
+    RejectRequest,
+)
 from app.services import audit_service, storage_service
 
 router = APIRouter()
@@ -23,14 +29,21 @@ def get_queue(
     sb = _supabase()
     query = (
         sb.table("verification_submissions")
-        .select("id, user_id, submission_type, submitted_at, attempt_number, profiles(display_name, phone_number)")
+        .select(
+            "id, user_id, submission_type, submitted_at, attempt_number,"
+            " profiles(display_name, phone_number)"
+        )
         .eq("status", "pending_review")
         .order("submitted_at", desc=False)
     )
     if type:
         query = query.eq("submission_type", type)
 
-    count_resp = sb.table("verification_submissions").select("id", count="exact").eq("status", "pending_review")
+    count_resp = (
+        sb.table("verification_submissions")
+        .select("id", count="exact")
+        .eq("status", "pending_review")
+    )
     if type:
         count_resp = count_resp.eq("submission_type", type)
     total = count_resp.execute().count or 0
@@ -54,14 +67,20 @@ def get_queue(
 
 
 @router.get("/{submission_id}", response_model=AdminSubmissionDetail)
-def get_submission(submission_id: str, profile: dict = Depends(get_current_admin)) -> dict:
+def get_submission(
+    submission_id: str,
+    profile: dict = Depends(get_current_admin),
+) -> dict:
     sb = _supabase()
     resp = sb.table("verification_submissions").select(
         "*, profiles(display_name, phone_number)"
     ).eq("id", submission_id).single().execute()
 
     if not resp.data:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Submission not found"})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "not_found", "message": "Submission not found"},
+        )
 
     row = resp.data
     p = row.get("profiles") or {}
@@ -80,24 +99,50 @@ def get_submission(submission_id: str, profile: dict = Depends(get_current_admin
 
 
 @router.post("/{submission_id}/approve")
-def approve_submission(submission_id: str, profile: dict = Depends(get_current_admin)) -> dict:
+def approve_submission(
+    submission_id: str,
+    profile: dict = Depends(get_current_admin),
+) -> dict:
     sb = _supabase()
-    sub = sb.table("verification_submissions").select("status, user_id").eq("id", submission_id).single().execute()
+    sub = (
+        sb.table("verification_submissions")
+        .select("status, user_id")
+        .eq("id", submission_id)
+        .single()
+        .execute()
+    )
     if not sub.data:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Submission not found"})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "not_found", "message": "Submission not found"},
+        )
     if sub.data["status"] != "pending_review":
-        raise HTTPException(status_code=409, detail={"error": "conflict", "message": "Submission already processed"})
+        raise HTTPException(
+            status_code=409,
+            detail={"error": "conflict", "message": "Submission already processed"},
+        )
 
     user_id = sub.data["user_id"]
-    import datetime
     now = datetime.datetime.utcnow().isoformat()
     sb.table("verification_submissions").update({
         "status": "approved", "reviewer_id": profile["id"], "reviewed_at": now,
     }).eq("id", submission_id).execute()
-    sb.table("profiles").update({"verification_status": "verified"}).eq("id", user_id).execute()
+    (
+        sb.table("profiles")
+        .update({"verification_status": "verified"})
+        .eq("id", user_id)
+        .execute()
+    )
 
-    audit_id = audit_service.append_log(profile["id"], "approved", user_id, submission_id=submission_id)
-    return {"submission_id": submission_id, "user_id": user_id, "new_status": "verified", "audit_log_id": audit_id}
+    audit_id = audit_service.append_log(
+        profile["id"], "approved", user_id, submission_id=submission_id
+    )
+    return {
+        "submission_id": submission_id,
+        "user_id": user_id,
+        "new_status": "verified",
+        "audit_log_id": audit_id,
+    }
 
 
 @router.post("/{submission_id}/reject")
@@ -107,19 +152,36 @@ def reject_submission(
     profile: dict = Depends(get_current_admin),
 ) -> dict:
     if not body.reason or not body.reason.strip():
-        raise HTTPException(status_code=400, detail={"error": "validation_error", "message": "Rejection reason is required"})
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "validation_error",
+                "message": "Rejection reason is required",
+            },
+        )
 
     sb = _supabase()
-    sub = sb.table("verification_submissions").select("status, user_id, attempt_number").eq("id", submission_id).single().execute()
+    sub = (
+        sb.table("verification_submissions")
+        .select("status, user_id, attempt_number")
+        .eq("id", submission_id)
+        .single()
+        .execute()
+    )
     if not sub.data:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Submission not found"})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "not_found", "message": "Submission not found"},
+        )
     if sub.data["status"] != "pending_review":
-        raise HTTPException(status_code=409, detail={"error": "conflict", "message": "Submission already processed"})
+        raise HTTPException(
+            status_code=409,
+            detail={"error": "conflict", "message": "Submission already processed"},
+        )
 
     user_id = sub.data["user_id"]
     is_third = sub.data["attempt_number"] >= 3
 
-    import datetime
     now = datetime.datetime.utcnow().isoformat()
     sb.table("verification_submissions").update({
         "status": "rejected",
@@ -135,7 +197,11 @@ def reject_submission(
     sb.table("profiles").update(profile_update).eq("id", user_id).execute()
 
     audit_id = audit_service.append_log(
-        profile["id"], "rejected", user_id, submission_id=submission_id, reason=body.reason.strip()
+        profile["id"],
+        "rejected",
+        user_id,
+        submission_id=submission_id,
+        reason=body.reason.strip(),
     )
     return {
         "submission_id": submission_id,
@@ -147,31 +213,73 @@ def reject_submission(
 
 
 @router.post("/users/{user_id}/unlock")
-def unlock_user(user_id: str, profile: dict = Depends(get_current_admin)) -> dict:
+def unlock_user(
+    user_id: str,
+    profile: dict = Depends(get_current_admin),
+) -> dict:
     sb = _supabase()
-    p = sb.table("profiles").select("is_submission_locked").eq("id", user_id).single().execute()
+    p = (
+        sb.table("profiles")
+        .select("is_submission_locked")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
     if not p.data:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "User not found"})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "not_found", "message": "User not found"},
+        )
     if not p.data["is_submission_locked"]:
-        raise HTTPException(status_code=409, detail={"error": "conflict", "message": "User is not locked"})
+        raise HTTPException(
+            status_code=409,
+            detail={"error": "conflict", "message": "User is not locked"},
+        )
 
-    sb.table("profiles").update({"is_submission_locked": False}).eq("id", user_id).execute()
+    (
+        sb.table("profiles")
+        .update({"is_submission_locked": False})
+        .eq("id", user_id)
+        .execute()
+    )
     # Reset attempt_number on latest locked submission to allow one more
-    sb.table("verification_submissions").update({"is_locked": False}).eq("user_id", user_id).eq("is_locked", True).execute()
+    (
+        sb.table("verification_submissions")
+        .update({"is_locked": False})
+        .eq("user_id", user_id)
+        .eq("is_locked", True)
+        .execute()
+    )
 
     audit_id = audit_service.append_log(profile["id"], "unlocked", user_id)
     return {"user_id": user_id, "is_submission_locked": False, "audit_log_id": audit_id}
 
 
 @router.get("/history")
-def get_history(page: int = 1, limit: int = 20, profile: dict = Depends(get_current_admin)) -> dict:
+def get_history(
+    page: int = 1,
+    limit: int = 20,
+    profile: dict = Depends(get_current_admin),
+) -> dict:
     sb = _supabase()
     offset = (page - 1) * limit
-    resp = sb.table("verification_submissions").select(
-        "id, user_id, status, reviewed_at, reviewer_id, profiles(display_name)"
-    ).neq("status", "pending_review").order("reviewed_at", desc=True).range(offset, offset + limit - 1).execute()
+    resp = (
+        sb.table("verification_submissions")
+        .select(
+            "id, user_id, status, reviewed_at, reviewer_id, profiles(display_name)"
+        )
+        .neq("status", "pending_review")
+        .order("reviewed_at", desc=True)
+        .range(offset, offset + limit - 1)
+        .execute()
+    )
 
-    total_resp = sb.table("verification_submissions").select("id", count="exact").neq("status", "pending_review").execute()
+    total_resp = (
+        sb.table("verification_submissions")
+        .select("id", count="exact")
+        .neq("status", "pending_review")
+        .execute()
+    )
     total = total_resp.count or 0
 
     items = []

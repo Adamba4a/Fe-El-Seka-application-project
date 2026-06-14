@@ -7,7 +7,11 @@ from app.services import verification_service
 router = APIRouter()
 
 
-@router.post("/submit", response_model=SubmissionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/submit",
+    response_model=SubmissionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def submit_documents(
     front_id: UploadFile = File(...),
     back_id: UploadFile = File(...),

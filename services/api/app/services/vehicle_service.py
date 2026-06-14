@@ -12,7 +12,13 @@ def register_vehicle(driver_id: str, data: dict) -> dict:
     sb = _supabase()
     existing = sb.table("vehicles").select("id").eq("driver_id", driver_id).execute()
     if existing.data:
-        raise HTTPException(status_code=409, detail={"error": "already_exists", "message": "You already have a registered vehicle"})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "already_exists",
+                "message": "You already have a registered vehicle",
+            },
+        )
 
     resp = sb.table("vehicles").insert({
         "driver_id": driver_id,
@@ -30,7 +36,10 @@ def get_vehicle_me(driver_id: str) -> dict:
     sb = _supabase()
     resp = sb.table("vehicles").select("*").eq("driver_id", driver_id).execute()
     if not resp.data:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "No vehicle registered yet"})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "not_found", "message": "No vehicle registered yet"},
+        )
     return _format(resp.data[0])
 
 
@@ -46,7 +55,10 @@ def update_vehicle(driver_id: str, color: str | None, seat_count: int | None) ->
 
     existing = sb.table("vehicles").select("id").eq("driver_id", driver_id).execute()
     if not existing.data:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "No vehicle registered"})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "not_found", "message": "No vehicle registered"},
+        )
 
     resp = sb.table("vehicles").update(updates).eq("driver_id", driver_id).execute()
     return _format(resp.data[0])

@@ -35,7 +35,10 @@ def _generate_fare_labels(features_df: pd.DataFrame, rng: np.random.Generator) -
     # Reconstruct hour from sin (approximate) to detect peak
     hour_approx = np.arcsin(np.clip(hour_sin, -1, 1)) * 24 / (2 * np.pi)
     hour_approx = np.where(hour_approx < 0, hour_approx + 24, hour_approx)
-    is_peak = ((hour_approx >= 7) & (hour_approx <= 9)) | ((hour_approx >= 16) & (hour_approx <= 19))
+    is_peak = (
+        ((hour_approx >= 7) & (hour_approx <= 9))
+        | ((hour_approx >= 16) & (hour_approx <= 19))
+    )
     noise = rng.normal(0, 5, size=len(dist))
     fare = _BASE_FARE + _PER_KM_RATE * dist + _PEAK_SURCHARGE * is_peak.astype(float) + noise
     return np.maximum(fare, 10.0)

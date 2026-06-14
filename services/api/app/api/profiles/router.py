@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from supabase import create_client
 
@@ -18,29 +18,56 @@ def _auth_user(credentials: HTTPAuthorizationCredentials):
     try:
         user_resp = sb.auth.get_user(credentials.credentials)
     except Exception:
-        raise HTTPException(status_code=401, detail={"error": "unauthorized", "message": "Invalid token"})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": "unauthorized", "message": "Invalid token"},
+        )
     if not user_resp or not user_resp.user:
-        raise HTTPException(status_code=401, detail={"error": "unauthorized", "message": "Invalid token"})
+        raise HTTPException(
+            status_code=401,
+            detail={"error": "unauthorized", "message": "Invalid token"},
+        )
     # Check for suspension — a profile row may not exist yet, so tolerate no-data.
     # Wrapped in try/except so a transient DB error doesn't block profile creation.
     try:
-        profile_resp = sb.table("profiles").select("verification_status").eq("id", user_resp.user.id).maybe_single().execute()
-        if profile_resp.data and profile_resp.data.get("verification_status") == "suspended":
-            raise HTTPException(status_code=401, detail={"error": "account_suspended", "message": "Your account has been suspended."})
+        profile_resp = (
+            sb.table("profiles")
+            .select("verification_status")
+            .eq("id", user_resp.user.id)
+            .maybe_single()
+            .execute()
+        )
+        if (
+            profile_resp.data
+            and profile_resp.data.get("verification_status") == "suspended"
+        ):
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "error": "account_suspended",
+                    "message": "Your account has been suspended.",
+                },
+            )
     except HTTPException:
         raise
     except Exception:
-        pass  # No profile row yet or transient error — allow through; suspension cannot be checked.
+        pass  # No profile row yet — suspension check skipped; allow through.
     return user_resp.user
 
 
-@router.post("/setup", response_model=ProfileResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/setup",
+    response_model=ProfileResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def setup_profile(
     body: ProfileSetup,
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
 ) -> dict:
     user = _auth_user(credentials)
-    return profile_service.setup_profile(user.id, user.phone or "", body.role, body.display_name)
+    return profile_service.setup_profile(
+        user.id, user.phone or "", body.role, body.display_name
+    )
 
 
 @router.get("/me", response_model=ProfileResponse)
@@ -49,7 +76,10 @@ def get_profile(profile: dict = Depends(get_current_user)) -> dict:
 
 
 @router.put("/me", response_model=ProfileResponse)
-def update_profile(body: ProfileUpdate, profile: dict = Depends(get_current_user)) -> dict:
+def update_profile(
+    body: ProfileUpdate,
+    profile: dict = Depends(get_current_user),
+) -> dict:
     return profile_service.update_profile(profile["id"], body.display_name)
 
 

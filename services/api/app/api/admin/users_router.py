@@ -18,18 +18,45 @@ def _supabase():
 
 
 @router.post("/{user_id}/suspend")
-def suspend_user(user_id: str, body: SuspendRequest, profile: dict = Depends(get_current_admin)) -> dict:
+def suspend_user(
+    user_id: str,
+    body: SuspendRequest,
+    profile: dict = Depends(get_current_admin),
+) -> dict:
     if not body.reason or not body.reason.strip():
-        raise HTTPException(status_code=400, detail={"error": "validation_error", "message": "Suspension reason is required"})
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "validation_error",
+                "message": "Suspension reason is required",
+            },
+        )
 
     sb = _supabase()
-    p = sb.table("profiles").select("verification_status").eq("id", user_id).single().execute()
+    p = (
+        sb.table("profiles")
+        .select("verification_status")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
     if not p.data:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "User not found"})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "not_found", "message": "User not found"},
+        )
     if p.data["verification_status"] == "suspended":
-        raise HTTPException(status_code=409, detail={"error": "conflict", "message": "User is already suspended"})
+        raise HTTPException(
+            status_code=409,
+            detail={"error": "conflict", "message": "User is already suspended"},
+        )
 
-    sb.table("profiles").update({"verification_status": "suspended"}).eq("id", user_id).execute()
+    (
+        sb.table("profiles")
+        .update({"verification_status": "suspended"})
+        .eq("id", user_id)
+        .execute()
+    )
     # Revoke all refresh tokens immediately (two-layer revocation)
     auth_service.revoke_sessions(user_id)
 
@@ -40,14 +67,34 @@ def suspend_user(user_id: str, body: SuspendRequest, profile: dict = Depends(get
 
 
 @router.post("/{user_id}/reinstate")
-def reinstate_user(user_id: str, profile: dict = Depends(get_current_admin)) -> dict:
+def reinstate_user(
+    user_id: str,
+    profile: dict = Depends(get_current_admin),
+) -> dict:
     sb = _supabase()
-    p = sb.table("profiles").select("verification_status").eq("id", user_id).single().execute()
+    p = (
+        sb.table("profiles")
+        .select("verification_status")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
     if not p.data:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "User not found"})
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "not_found", "message": "User not found"},
+        )
     if p.data["verification_status"] != "suspended":
-        raise HTTPException(status_code=409, detail={"error": "conflict", "message": "User is not suspended"})
+        raise HTTPException(
+            status_code=409,
+            detail={"error": "conflict", "message": "User is not suspended"},
+        )
 
-    sb.table("profiles").update({"verification_status": "verified"}).eq("id", user_id).execute()
+    (
+        sb.table("profiles")
+        .update({"verification_status": "verified"})
+        .eq("id", user_id)
+        .execute()
+    )
     audit_id = audit_service.append_log(profile["id"], "reinstated", user_id)
     return {"user_id": user_id, "new_status": "verified", "audit_log_id": audit_id}

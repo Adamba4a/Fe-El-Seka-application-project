@@ -26,12 +26,15 @@ def validate(df: pd.DataFrame) -> None:
         raise ValueError(f"Expected >= {_MIN_ZONES} distinct origin zones, got {n_zones}")
     rate = df["match_label"].mean()
     if not (_POSITIVE_RATE_MIN <= rate <= _POSITIVE_RATE_MAX):
-        logger.warning("Match label positive rate %.1f%% is outside expected 25-55%% window", rate * 100)
+        logger.warning(
+            "Match label positive rate %.1f%% is outside expected 25-55%% window",
+            rate * 100,
+        )
 
 
 def main() -> None:
-    from pipelines.dataset.ingest_osm import download_cairo_graph
     from pipelines.dataset.generate_rides import generate_rides
+    from pipelines.dataset.ingest_osm import download_cairo_graph
 
     logger.info("=== Dataset Pipeline Start ===")
 

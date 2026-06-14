@@ -94,7 +94,9 @@ def build_feature_vector_from_coords(
     if overlap_ratio != clamped_overlap:
         logger.warning("overlap_ratio %s clamped to %s", overlap_ratio, clamped_overlap)
 
-    dest_dist_km = _euclidean_km(passenger_dest_lat, passenger_dest_lng, driver_dest_lat, driver_dest_lng)
+    dest_dist_km = _euclidean_km(
+        passenger_dest_lat, passenger_dest_lng, driver_dest_lat, driver_dest_lng
+    )
 
     hour = departure_at_utc.hour + departure_at_utc.minute / 60.0
     hour_sin = math.sin(2 * math.pi * hour / 24)

@@ -12,7 +12,6 @@ def download_cairo_graph():
     Caches to data/raw/cairo_graph.graphml — subsequent runs skip the download.
     Returns a NetworkX MultiDiGraph.
     """
-    import networkx as nx
     import osmnx as ox
 
     if _CACHE_PATH.exists():

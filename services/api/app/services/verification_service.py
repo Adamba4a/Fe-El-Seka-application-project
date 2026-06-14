@@ -14,16 +14,34 @@ def _supabase():
 
 def _get_support_email() -> str:
     sb = _supabase()
-    resp = sb.table("platform_settings").select("value").eq("key", "support_email").single().execute()
+    resp = (
+        sb.table("platform_settings")
+        .select("value")
+        .eq("key", "support_email")
+        .single()
+        .execute()
+    )
     return resp.data["value"] if resp.data else "support@felseka.com"
 
 
 async def _validate_and_read(file: UploadFile) -> bytes:
     if file.content_type not in _ALLOWED_TYPES:
-        raise HTTPException(status_code=415, detail={"error": "unsupported_media", "message": "Only JPEG and PNG accepted"})
+        raise HTTPException(
+            status_code=415,
+            detail={
+                "error": "unsupported_media",
+                "message": "Only JPEG and PNG accepted",
+            },
+        )
     data = await file.read()
     if len(data) > _MAX_DOC_BYTES:
-        raise HTTPException(status_code=413, detail={"error": "file_too_large", "message": "Document must be under 10 MB"})
+        raise HTTPException(
+            status_code=413,
+            detail={
+                "error": "file_too_large",
+                "message": "Document must be under 10 MB",
+            },
+        )
     return data
 
 
@@ -37,14 +55,24 @@ async def submit_documents(
     sb = _supabase()
 
     # Check lock
-    profile = sb.table("profiles").select("is_submission_locked").eq("id", user_id).single().execute().data
+    profile = (
+        sb.table("profiles")
+        .select("is_submission_locked")
+        .eq("id", user_id)
+        .single()
+        .execute()
+        .data
+    )
     if profile and profile["is_submission_locked"]:
         support_email = _get_support_email()
         raise HTTPException(
             status_code=403,
             detail={
                 "error": "submission_locked",
-                "message": f"You have exhausted all submission attempts. Please contact us at {support_email} for a manual review.",
+                "message": (
+                    f"You have exhausted all submission attempts."
+                    f" Please contact us at {support_email} for a manual review."
+                ),
                 "support_email": support_email,
             },
         )
@@ -58,7 +86,13 @@ async def submit_documents(
         .execute()
     )
     if pending.data:
-        raise HTTPException(status_code=409, detail={"error": "conflict", "message": "You already have a submission under review."})
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "conflict",
+                "message": "You already have a submission under review.",
+            },
+        )
 
     submission_type = "driver_id_license" if user_role == "driver" else "passenger_id"
 
@@ -110,25 +144,62 @@ async def submit_documents(
     try:
         sb.table("verification_submissions").insert(row).execute()
     except Exception as exc:
-        raise HTTPException(status_code=409, detail={"error": "conflict", "message": "Submission could not be recorded. Please try again."}) from exc
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "conflict",
+                "message": "Submission could not be recorded. Please try again.",
+            },
+        ) from exc
 
     # DB row committed — now upload. A storage failure here is recoverable:
     # the row exists so the admin queue will surface the submission; missing
     # files will appear as broken signed URLs, prompting an admin to request
     # a resubmission rather than silently losing data.
-    storage_service.upload_file("identity-documents", row["front_id_path"], front_data, front_id.content_type)
-    storage_service.upload_file("identity-documents", row["back_id_path"], back_data, back_id.content_type)
+    storage_service.upload_file(
+        "identity-documents",
+        row["front_id_path"],
+        front_data,
+        front_id.content_type,
+    )
+    storage_service.upload_file(
+        "identity-documents",
+        row["back_id_path"],
+        back_data,
+        back_id.content_type,
+    )
     if license_data:
-        storage_service.upload_file("identity-documents", row["license_path"], license_data, license.content_type)
+        storage_service.upload_file(
+            "identity-documents",
+            row["license_path"],
+            license_data,
+            license.content_type,
+        )
 
-    sb.table("profiles").update({"verification_status": "pending_review"}).eq("id", user_id).execute()
+    (
+        sb.table("profiles")
+        .update({"verification_status": "pending_review"})
+        .eq("id", user_id)
+        .execute()
+    )
 
-    return {"submission_id": submission_id, "status": "pending_review", "attempt_number": attempt_number}
+    return {
+        "submission_id": submission_id,
+        "status": "pending_review",
+        "attempt_number": attempt_number,
+    }
 
 
 def get_status(user_id: str) -> dict:
     sb = _supabase()
-    profile = sb.table("profiles").select("verification_status, is_submission_locked").eq("id", user_id).single().execute().data
+    profile = (
+        sb.table("profiles")
+        .select("verification_status, is_submission_locked")
+        .eq("id", user_id)
+        .single()
+        .execute()
+        .data
+    )
 
     latest = (
         sb.table("verification_submissions")
@@ -144,10 +215,15 @@ def get_status(user_id: str) -> dict:
 
     if profile and profile["is_submission_locked"]:
         support_email = _get_support_email()
-        lockout_message = f"You have exhausted all submission attempts. Contact {support_email} for manual review."
+        lockout_message = (
+            f"You have exhausted all submission attempts."
+            f" Contact {support_email} for manual review."
+        )
 
     return {
-        "verification_status": profile["verification_status"] if profile else "unverified",
+        "verification_status": (
+            profile["verification_status"] if profile else "unverified"
+        ),
         "attempt_number": sub["attempt_number"] if sub else None,
         "is_locked": profile["is_submission_locked"] if profile else False,
         "rejection_reason": sub["rejection_reason"] if sub else None,
