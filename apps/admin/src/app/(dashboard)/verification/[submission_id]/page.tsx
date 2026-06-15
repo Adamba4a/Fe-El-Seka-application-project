@@ -57,12 +57,12 @@ export default function SubmissionDetailPage({ params }: { params: { submission_
   if (error) return <main className="p-8 text-red-600">{error}</main>;
   if (!detail) return <main className="p-8 text-gray-400">Loading…</main>;
 
-  const docLabels: Record<string, string[]> = {
-    passenger_id: ["Front", "Back"],
-    driver_id: ["Front", "Back"],
-    vehicle: ["Registration", "Photo"],
-  };
-  const labels = docLabels[detail.submission_type] ?? [];
+  const { front_id, back_id, license } = detail.document_signed_urls;
+  const docUrls = [front_id, back_id, ...(license ? [license] : [])];
+  const labels =
+    detail.submission_type === "driver_id_license" && license
+      ? ["Front ID", "Back ID", "License"]
+      : ["Front ID", "Back ID"];
 
   return (
     <main className="p-8 space-y-6 max-w-2xl">
@@ -76,7 +76,7 @@ export default function SubmissionDetailPage({ params }: { params: { submission_
         <dt className="text-gray-500">Attempt</dt><dd>{detail.attempt_number}/3</dd>
       </dl>
 
-      <DocumentViewer signedUrls={detail.document_signed_urls} labels={labels} />
+      <DocumentViewer signedUrls={docUrls} labels={labels} />
 
       <div className="flex flex-wrap gap-3 pt-2">
         <ApproveButton onApprove={handleApprove} />
