@@ -26,7 +26,7 @@ export default async function Home() {
 
   const messages: Record<string, string> = {
     pending_review: "Your documents are under review. We'll notify you once a decision is made.",
-    approved: "Your identity is verified! The full app is coming soon.",
+    verified: "Your identity is verified! The full app is coming soon.",
     suspended: "Your account has been suspended. Please contact support.",
   };
 
