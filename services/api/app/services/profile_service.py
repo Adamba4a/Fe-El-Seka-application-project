@@ -13,7 +13,7 @@ def _supabase():
 
 
 def setup_profile(
-    user_id: str, phone_number: str, role: str, display_name: str
+    user_id: str, email: str, role: str, display_name: str
 ) -> dict:
     sb = _supabase()
     existing = sb.table("profiles").select("id").eq("id", user_id).execute()
@@ -24,7 +24,7 @@ def setup_profile(
         )
     resp = sb.table("profiles").insert({
         "id": user_id,
-        "phone_number": phone_number,
+        "email": email,
         "role": role,
         "display_name": display_name,
     }).execute()
@@ -102,7 +102,7 @@ def _format_profile(row: dict) -> dict:
         )
     return {
         "id": row["id"],
-        "phone_number": row["phone_number"],
+        "email": row["email"],
         "display_name": row["display_name"],
         "role": row["role"],
         "profile_photo_url": photo_url,

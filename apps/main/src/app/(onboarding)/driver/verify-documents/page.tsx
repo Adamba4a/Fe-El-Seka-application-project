@@ -1,23 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DocumentUpload } from "@/components/verification/DocumentUpload";
-import { VerificationStatusBadge } from "@/components/verification/VerificationStatus";
 import { LockoutMessage } from "@/components/verification/LockoutMessage";
-import { submitDocuments } from "@/lib/api/verification";
+import { submitDocuments, getStatus } from "@/lib/api/verification";
 import { createClient } from "@/lib/supabase/client";
-import type { VerificationStatus } from "@fe-el-seka/shared";
 
 export default function DriverVerifyDocumentsPage() {
   const router = useRouter();
+  const [initializing, setInitializing] = useState(true);
   const [frontId, setFrontId] = useState<File | null>(null);
   const [backId, setBackId] = useState<File | null>(null);
   const [license, setLicense] = useState<File | null>(null);
-  const [submitted, setSubmitted] = useState<VerificationStatus | null>(null);
+  const [submitted, setSubmitted] = useState(false);
   const [lockout, setLockout] = useState<{ message: string; support_email?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function checkStatus() {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { router.replace("/login"); return; }
+      try {
+        const status = await getStatus(session.access_token);
+        if (status.verification_status === "verified") {
+          router.replace("/");
+          return;
+        }
+        if (status.verification_status === "pending_review") {
+          setSubmitted(true);
+        }
+      } catch {
+        // no prior submission — show form
+      }
+      setInitializing(false);
+    }
+    checkStatus();
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,8 +51,8 @@ export default function DriverVerifyDocumentsPage() {
     if (!session) { router.replace("/login"); return; }
 
     try {
-      const result = await submitDocuments(session.access_token, frontId, backId, license);
-      setSubmitted({ verification_status: result.status, attempt_number: result.attempt_number, is_locked: false, rejection_reason: null, lockout_message: null });
+      await submitDocuments(session.access_token, frontId, backId, license);
+      setSubmitted(true);
     } catch (err: unknown) {
       const e = err as { error?: string; message?: string; support_email?: string };
       if (e?.error === "submission_locked") {
@@ -44,6 +65,14 @@ export default function DriverVerifyDocumentsPage() {
     }
   };
 
+  if (initializing) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-4">
+        <p className="text-gray-400">Loading…</p>
+      </main>
+    );
+  }
+
   if (lockout) return (
     <main className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
@@ -54,10 +83,12 @@ export default function DriverVerifyDocumentsPage() {
 
   if (submitted) return (
     <main className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-4">
+      <div className="w-full max-w-sm text-center space-y-4">
         <h1 className="text-xl font-bold">Documents submitted</h1>
-        <VerificationStatusBadge status={submitted} />
         <p className="text-sm text-gray-500">We will review your documents. Once approved you can register your vehicle.</p>
+        <button onClick={() => router.push("/")} className="text-blue-600 text-sm underline">
+          Go to home
+        </button>
       </div>
     </main>
   );

@@ -31,7 +31,7 @@ def get_queue(
         sb.table("verification_submissions")
         .select(
             "id, user_id, submission_type, submitted_at, attempt_number,"
-            " profiles(display_name, phone_number)"
+            " profiles(display_name, email)"
         )
         .eq("status", "pending_review")
         .order("submitted_at", desc=False)
@@ -58,7 +58,7 @@ def get_queue(
             "submission_id": row["id"],
             "user_id": row["user_id"],
             "user_name": p.get("display_name", ""),
-            "phone_number": p.get("phone_number", ""),
+            "email": p.get("email", ""),
             "submission_type": row["submission_type"],
             "submitted_at": str(row["submitted_at"]),
             "attempt_number": row["attempt_number"],
@@ -73,7 +73,7 @@ def get_submission(
 ) -> dict:
     sb = _supabase()
     resp = sb.table("verification_submissions").select(
-        "*, profiles(display_name, phone_number)"
+        "*, profiles(display_name, email)"
     ).eq("id", submission_id).single().execute()
 
     if not resp.data:
@@ -90,7 +90,7 @@ def get_submission(
         "submission_id": row["id"],
         "user_id": row["user_id"],
         "user_name": p.get("display_name", ""),
-        "phone_number": p.get("phone_number", ""),
+        "email": p.get("email", ""),
         "submission_type": row["submission_type"],
         "submitted_at": str(row["submitted_at"]),
         "attempt_number": row["attempt_number"],

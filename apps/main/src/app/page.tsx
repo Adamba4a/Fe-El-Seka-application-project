@@ -15,13 +15,9 @@ export default async function Home() {
 
   if (!profile) redirect("/role-select");
 
-  // Send users without approved docs back to the upload flow
+  // Send users who haven't submitted or were rejected back to the profile/docs flow
   if (profile.verification_status === "unverified" || profile.verification_status === "rejected") {
-    redirect(
-      profile.role === "driver"
-        ? "/driver/verify-documents"
-        : "/verify-id"
-    );
+    redirect("/profile");
   }
 
   const messages: Record<string, string> = {

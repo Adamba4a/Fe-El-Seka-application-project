@@ -8,15 +8,15 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function OtpPage() {
   const router = useRouter();
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [expiresAt] = useState(() => new Date(Date.now() + 5 * 60 * 1000));
 
   useEffect(() => {
-    const p = sessionStorage.getItem("otp_phone");
-    if (!p) router.replace("/login");
-    else setPhone(p);
+    const e = sessionStorage.getItem("otp_email");
+    if (!e) router.replace("/login");
+    else setEmail(e);
   }, [router]);
 
   const handleComplete = async (otp: string) => {
@@ -24,13 +24,13 @@ export default function OtpPage() {
     setLoading(true);
     setError("");
     try {
-      const session = await verifyOtp(phone, otp);
+      const session = await verifyOtp(email, otp);
       const supabase = createClient();
       await supabase.auth.setSession({
         access_token: session.access_token,
         refresh_token: session.refresh_token,
       });
-      sessionStorage.removeItem("otp_phone");
+      sessionStorage.removeItem("otp_email");
       if (session.user.is_new_user) {
         router.replace("/role-select");
       } else {
@@ -50,7 +50,7 @@ export default function OtpPage() {
 
   const handleResend = async () => {
     try {
-      await requestOtp(phone);
+      await requestOtp(email);
     } catch {
       setError("Could not resend code. Please wait before trying again.");
     }
@@ -60,9 +60,9 @@ export default function OtpPage() {
     <main className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Enter your code</h1>
+          <h1 className="text-2xl font-bold">Check your email</h1>
           <p className="text-gray-500 text-sm mt-1">
-            We sent a 6-digit code to <strong>{phone}</strong>
+            We sent a 6-digit code to <strong>{email}</strong>
           </p>
         </div>
 

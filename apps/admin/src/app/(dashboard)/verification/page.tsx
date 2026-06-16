@@ -15,7 +15,7 @@ export default async function VerificationQueuePage({ searchParams }: { searchPa
 
   let query = supabase
     .from("verification_submissions")
-    .select("id, user_id, submission_type, submitted_at, attempt_number, profiles(display_name, phone_number)")
+    .select("id, user_id, submission_type, submitted_at, attempt_number, profiles(display_name, email)")
     .eq("status", "pending_review")
     .order("submitted_at", { ascending: true })
     .range(offset, offset + limit - 1);
@@ -28,7 +28,7 @@ export default async function VerificationQueuePage({ searchParams }: { searchPa
     submission_id: row.id,
     user_id: row.user_id,
     user_name: row.profiles?.display_name ?? "",
-    phone_number: row.profiles?.phone_number ?? "",
+    email: row.profiles?.email ?? "",
     submission_type: row.submission_type,
     submitted_at: row.submitted_at,
     attempt_number: row.attempt_number,

@@ -9,7 +9,7 @@ export type VerificationStatus =
 
 export interface Profile {
   id: string;
-  phone_number: string;
+  email: string;
   display_name: string;
   role: Role;
   profile_photo_url: string | null;

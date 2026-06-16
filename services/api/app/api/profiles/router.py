@@ -66,7 +66,7 @@ def setup_profile(
 ) -> dict:
     user = _auth_user(credentials)
     return profile_service.setup_profile(
-        user.id, user.phone or "", body.role, body.display_name
+        user.id, user.email or "", body.role, body.display_name
     )
 
 
