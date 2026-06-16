@@ -15,13 +15,13 @@ router = APIRouter()
 
 @router.post("/request-otp", response_model=OtpSentResponse)
 def request_otp(body: OtpRequest) -> OtpSentResponse:
-    result = auth_service.request_otp(body.phone_number)
+    result = auth_service.request_otp(body.email)
     return OtpSentResponse(**result)
 
 
 @router.post("/verify-otp", response_model=SessionResponse)
 def verify_otp(body: OtpVerifyRequest) -> SessionResponse:
-    result = auth_service.verify_otp(body.phone_number, body.otp)
+    result = auth_service.verify_otp(body.email, body.otp)
     return result
 
 

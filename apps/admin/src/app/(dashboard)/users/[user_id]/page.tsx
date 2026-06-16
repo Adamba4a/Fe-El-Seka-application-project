@@ -13,7 +13,7 @@ const sb = createBrowserClient(
 interface Profile {
   id: string;
   display_name: string;
-  phone_number: string;
+  email: string;
   role: string;
   verification_status: string;
   is_submission_locked: boolean;
@@ -31,7 +31,7 @@ export default function UserDetailPage({ params }: { params: { user_id: string }
   async function load() {
     const { data, error: err } = await sb
       .from("profiles")
-      .select("id, display_name, phone_number, role, verification_status, is_submission_locked")
+      .select("id, display_name, email, role, verification_status, is_submission_locked")
       .eq("id", params.user_id)
       .single();
     if (err || !data) { setError("User not found"); return; }
@@ -61,7 +61,7 @@ export default function UserDetailPage({ params }: { params: { user_id: string }
 
       <dl className="grid grid-cols-2 gap-2 text-sm">
         <dt className="text-gray-500">Name</dt><dd>{profile.display_name}</dd>
-        <dt className="text-gray-500">Phone</dt><dd>{profile.phone_number}</dd>
+        <dt className="text-gray-500">Email</dt><dd>{profile.email}</dd>
         <dt className="text-gray-500">Role</dt><dd className="capitalize">{profile.role}</dd>
         <dt className="text-gray-500">Status</dt>
         <dd>

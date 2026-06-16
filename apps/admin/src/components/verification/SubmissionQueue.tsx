@@ -17,7 +17,7 @@ export function SubmissionQueue({ items }: SubmissionQueueProps) {
       <thead>
         <tr className="border-b text-left text-gray-500">
           <th className="pb-2 pr-4 font-medium">Name</th>
-          <th className="pb-2 pr-4 font-medium">Phone</th>
+          <th className="pb-2 pr-4 font-medium">Email</th>
           <th className="pb-2 pr-4 font-medium">Submitted</th>
           <th className="pb-2 font-medium">Attempt</th>
         </tr>
@@ -30,7 +30,7 @@ export function SubmissionQueue({ items }: SubmissionQueueProps) {
             className="border-b hover:bg-gray-50 cursor-pointer"
           >
             <td className="py-3 pr-4">{item.user_name}</td>
-            <td className="py-3 pr-4 text-gray-500">{item.phone_number}</td>
+            <td className="py-3 pr-4 text-gray-500">{item.email}</td>
             <td className="py-3 pr-4 text-gray-500">{new Date(item.submitted_at).toLocaleString()}</td>
             <td className="py-3">
               <span className="px-2 py-0.5 bg-gray-100 rounded text-xs">{item.attempt_number}/3</span>

@@ -20,7 +20,7 @@ export interface AdminQueueItem {
   submission_id: string;
   user_id: string;
   user_name: string;
-  phone_number: string;
+  email: string;
   submission_type: SubmissionType;
   submitted_at: string;
   attempt_number: number;

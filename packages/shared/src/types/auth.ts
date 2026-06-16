@@ -1,15 +1,15 @@
 export interface OtpRequest {
-  phone_number: string;
+  email: string;
 }
 
 export interface OtpVerifyRequest {
-  phone_number: string;
+  email: string;
   otp: string;
 }
 
 export interface SessionUser {
   id: string;
-  phone_number: string;
+  email: string;
   is_new_user: boolean;
 }
 

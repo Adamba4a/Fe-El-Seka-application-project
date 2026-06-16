@@ -11,7 +11,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# In-memory rate limiter: {phone: [(timestamp, count)]}
+# In-memory rate limiter keyed by email
 _resend_tracker: dict[str, list[float]] = defaultdict(list)
 _resend_lock = Lock()
 
@@ -19,11 +19,11 @@ _RESEND_WINDOW_SECONDS = 900  # 15 minutes
 _RESEND_MAX = 3
 
 
-def _check_resend_rate(phone: str) -> None:
+def _check_resend_rate(email: str) -> None:
     now = time.time()
     with _resend_lock:
         timestamps = [
-            t for t in _resend_tracker[phone]
+            t for t in _resend_tracker[email]
             if now - t < _RESEND_WINDOW_SECONDS
         ]
         if len(timestamps) >= _RESEND_MAX:
@@ -36,18 +36,18 @@ def _check_resend_rate(phone: str) -> None:
                 },
             )
         timestamps.append(now)
-        _resend_tracker[phone] = timestamps
+        _resend_tracker[email] = timestamps
 
 
 def _supabase():
     return create_client(settings.supabase_url, settings.supabase_service_role_key)
 
 
-def request_otp(phone_number: str) -> dict:
-    _check_resend_rate(phone_number)
+def request_otp(email: str) -> dict:
+    _check_resend_rate(email)
     sb = _supabase()
     try:
-        sb.auth.sign_in_with_otp({"phone": phone_number})
+        sb.auth.sign_in_with_otp({"email": email})
     except Exception as exc:
         raise HTTPException(
             status_code=500,
@@ -56,10 +56,10 @@ def request_otp(phone_number: str) -> dict:
     return {"message": "OTP sent", "expires_in_seconds": 300}
 
 
-def verify_otp(phone_number: str, otp: str) -> dict:
+def verify_otp(email: str, otp: str) -> dict:
     sb = _supabase()
     try:
-        resp = sb.auth.verify_otp({"phone": phone_number, "token": otp, "type": "sms"})
+        resp = sb.auth.verify_otp({"email": email, "token": otp, "type": "email"})
     except Exception as exc:
         error_str = str(exc).lower()
         if "expired" in error_str:
@@ -84,11 +84,9 @@ def verify_otp(phone_number: str, otp: str) -> dict:
     session = resp.session
     user = resp.user
 
-    # Determine if new user by checking if profile exists
     profile_resp = sb.table("profiles").select("id").eq("id", user.id).execute()
     is_new_user = not bool(profile_resp.data)
 
-    # Update last_login_at for returning users
     if not is_new_user:
         (
             sb.table("profiles")
@@ -103,7 +101,7 @@ def verify_otp(phone_number: str, otp: str) -> dict:
         "expires_in": session.expires_in or 3600,
         "user": {
             "id": user.id,
-            "phone_number": user.phone or phone_number,
+            "email": user.email or email,
             "is_new_user": is_new_user,
         },
     }
@@ -135,10 +133,9 @@ def refresh_session(refresh_token: str) -> dict:
 def sign_out(user_id: str, token: str) -> None:
     sb = _supabase()
     try:
-        # Revoke all refresh tokens for the user globally
         sb.auth.admin.sign_out(user_id)
     except Exception:
-        pass  # Best-effort; local session is already invalidated
+        pass
 
 
 def revoke_sessions(user_id: str) -> None:
@@ -147,9 +144,6 @@ def revoke_sessions(user_id: str) -> None:
     try:
         sb.auth.admin.sign_out(user_id)
     except Exception as exc:
-        # Log but re-raise so the caller knows revocation failed.
-        # The profile is already marked 'suspended' in the DB; the caller
-        # should surface this failure so an operator can retry manually.
         logger.error("Failed to revoke sessions for user %s: %s", user_id, exc)
         raise HTTPException(
             status_code=502,

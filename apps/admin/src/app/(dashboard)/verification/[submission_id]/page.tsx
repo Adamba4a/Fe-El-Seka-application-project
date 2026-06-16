@@ -70,7 +70,7 @@ export default function SubmissionDetailPage({ params }: { params: { submission_
 
       <dl className="grid grid-cols-2 gap-2 text-sm">
         <dt className="text-gray-500">User</dt><dd>{detail.user_name}</dd>
-        <dt className="text-gray-500">Phone</dt><dd>{detail.phone_number}</dd>
+        <dt className="text-gray-500">Email</dt><dd>{detail.email}</dd>
         <dt className="text-gray-500">Type</dt><dd className="capitalize">{detail.submission_type.replace(/_/g, " ")}</dd>
         <dt className="text-gray-500">Submitted</dt><dd>{new Date(detail.submitted_at).toLocaleString()}</dd>
         <dt className="text-gray-500">Attempt</dt><dd>{detail.attempt_number}/3</dd>
