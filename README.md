@@ -1,4 +1,4 @@
-# Fe El Seka — فى السكة
+# Fe El Seka
 
 > AI-powered route-sharing and carpooling platform for Egypt.
 
