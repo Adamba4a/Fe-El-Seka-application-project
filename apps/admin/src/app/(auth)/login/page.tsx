@@ -1,16 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createBrowserClient } from "@supabase/ssr";
-
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createAdminBrowserClient } from "@/lib/supabase/browser-client";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,13 +13,15 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    const supabase = createAdminBrowserClient();
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
     if (authError) {
       setError(authError.message);
       setLoading(false);
       return;
     }
-    router.replace("/");
+    // Hard redirect so the browser sends fresh cookies and middleware gets a clean request.
+    window.location.replace("/");
   };
 
   return (

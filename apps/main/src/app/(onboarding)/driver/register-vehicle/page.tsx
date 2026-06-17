@@ -29,6 +29,15 @@ export default function RegisterVehiclePage() {
         <p className="text-4xl">🎉</p>
         <h1 className="text-2xl font-bold">Ready to post rides!</h1>
         <p className="text-gray-500 text-sm">Your vehicle has been registered. You can now create ride listings.</p>
+        <a
+          href="/rides/new"
+          className="block w-full bg-blue-600 text-white text-sm font-medium px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Post Your First Ride
+        </a>
+        <a href="/rides" className="block text-sm text-gray-400 hover:text-gray-600">
+          Go to My Rides
+        </a>
       </div>
     </main>
   );

@@ -10,7 +10,10 @@ const schema = z.object({
   plate_number: z
     .string()
     .min(1, "Required")
-    .regex(/^[A-Za-z]{1,3}\s?\d{1,4}$|^\d{1,4}\s?[A-Za-z]{1,3}$|^\d{1,5}$/, "Invalid Egyptian plate format"),
+    .regex(
+      /^[؀-ۿa-zA-Z]{1,3}\s?\d{1,4}$|^\d{1,4}\s?[؀-ۿa-zA-Z]{1,3}$|^\d{1,5}$/,
+      "Invalid plate format"
+    ),
   make: z.string().min(1, "Required"),
   model: z.string().min(1, "Required"),
   year: z.coerce.number().int().min(2000, "Min year 2000").max(currentYear, `Max year ${currentYear}`),
@@ -30,7 +33,7 @@ export function VehicleRegistrationForm({ onSubmit }: VehicleRegistrationFormPro
   });
 
   const fields: { key: keyof FormValues; label: string; type?: string; placeholder: string }[] = [
-    { key: "plate_number", label: "Plate Number", placeholder: "e.g. ABC 1234" },
+    { key: "plate_number", label: "Plate Number", placeholder: "e.g. أ ب ج 1234 or ABC 1234" },
     { key: "make", label: "Make (Brand)", placeholder: "e.g. Toyota" },
     { key: "model", label: "Model", placeholder: "e.g. Corolla" },
     { key: "year", label: "Year", type: "number", placeholder: "e.g. 2021" },

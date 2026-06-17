@@ -1,48 +1,56 @@
-"use client";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { env } from "@/lib/env";
+import { ProfileEditor } from "./ProfileEditor";
+import type { Profile, Vehicle, VehicleUpdateRequestRecord } from "@fe-el-seka/shared";
 
-import { useEffect, useState } from "react";
-import { ProfileForm } from "@/components/profile/ProfileForm";
-import { getMe, updateMe, uploadPhoto } from "@/lib/api/profiles";
-import { createClient } from "@/lib/supabase/client";
-import type { Profile } from "@fe-el-seka/shared";
+export const dynamic = "force-dynamic";
 
-export default function SettingsProfilePage() {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [saved, setSaved] = useState(false);
+async function apiFetch<T>(path: string, token: string): Promise<T | null> {
+  try {
+    const res = await fetch(`${env.apiUrl}${path}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) return null;
+    return res.json() as Promise<T>;
+  } catch {
+    return null;
+  }
+}
 
-  useEffect(() => {
-    const load = async () => {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const p = await getMe(session.access_token);
-      setProfile(p);
-    };
-    load();
-  }, []);
+export default async function SettingsProfilePage() {
+  const supabase = createClient();
 
-  const handleSubmit = async ({ display_name }: { display_name: string }, photo: File | null) => {
-    const supabase = createClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    const updated = await updateMe(session.access_token, { display_name });
-    if (photo) await uploadPhoto(session.access_token, photo);
-    setProfile(updated);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  };
+  // getUser() validates with the auth server — uses cookie session, never localStorage
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
-  if (!profile) return <div className="p-8 text-center text-gray-400">Loading…</div>;
+  // getSession() returns the (possibly just-refreshed) in-memory session
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) redirect("/login");
+
+  // FastAPI uses service-role key (bypasses RLS) and generates signed photo URLs
+  const profile = await apiFetch<Profile>("/api/profiles/me", token);
+  if (!profile) redirect("/");
+
+  let vehicle: Vehicle | null = null;
+  let pendingUpdate: VehicleUpdateRequestRecord | null = null;
+
+  if (profile.role === "driver") {
+    [vehicle, pendingUpdate] = await Promise.all([
+      apiFetch<Vehicle>("/api/vehicles/me", token),
+      apiFetch<VehicleUpdateRequestRecord>("/api/vehicles/me/update-request", token),
+    ]);
+  }
 
   return (
-    <main className="max-w-sm mx-auto p-6 space-y-6">
-      <h1 className="text-xl font-bold">Edit Profile</h1>
-      {saved && <p className="text-green-600 text-sm">Profile saved!</p>}
-      <ProfileForm
-        defaultValues={{ display_name: profile.display_name, profile_photo_url: profile.profile_photo_url }}
-        onSubmit={handleSubmit}
-        submitLabel="Save Changes"
-      />
-    </main>
+    <ProfileEditor
+      initialProfile={profile}
+      initialVehicle={vehicle}
+      initialPendingUpdate={pendingUpdate}
+    />
   );
 }

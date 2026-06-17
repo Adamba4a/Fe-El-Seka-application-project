@@ -10,6 +10,8 @@ dependencies = [
     "supabase>=2.4.0",
     "python-multipart>=0.0.9",
     "python-jose[cryptography]>=3.3.0",
+    "GeoAlchemy2>=0.15.0",
+    "resend>=1.0.0",
 ]
 
 [build-system]
