@@ -5,6 +5,7 @@ services:
   api:
     build:
       context: services/api
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     env_file: services/api/.env
     volumes:
       - ./services/api/app:/app/app
@@ -14,6 +15,7 @@ services:
   ai:
     build:
       context: services/ai
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     env_file: services/ai/.env
     volumes:
       - ./services/ai/app:/app/app
@@ -24,10 +26,13 @@ services:
     build:
       context: .
       dockerfile: apps/main/Dockerfile
+      target: deps
+    command: ["pnpm", "--filter", "@fe-el-seka/main", "dev"]
     env_file: apps/main/.env
     volumes:
       - ./apps/main/src:/app/apps/main/src
       - ./apps/main/public:/app/apps/main/public
+      - ./packages:/app/packages
     networks:
       - fe-el-seka-dev
 
