@@ -48,7 +48,7 @@ export default function MyRidesPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">My Rides</h1>
         <Link
-          href="/driver/rides/new"
+          href="/rides/new"
           className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
         >
           + Post a Ride
@@ -85,7 +85,7 @@ export default function MyRidesPage() {
       {!loading && !error && rides.length === 0 && (
         <div className="text-center py-12 space-y-3">
           <p className="text-gray-400">No rides found.</p>
-          <Link href="/driver/rides/new" className="text-blue-600 text-sm font-medium underline">
+          <Link href="/rides/new" className="text-blue-600 text-sm font-medium underline">
             Post your first ride
           </Link>
         </div>

@@ -14,7 +14,7 @@ function formatDate(iso: string) {
 
 export function RideCard({ ride }: { ride: Ride }) {
   return (
-    <Link href={`/driver/rides/${ride.id}`} className="block">
+    <Link href={`/rides/${ride.id}`} className="block">
       <div className="border border-gray-200 rounded-xl p-4 space-y-3 hover:border-gray-400 transition-colors bg-white">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">

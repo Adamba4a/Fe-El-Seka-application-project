@@ -22,11 +22,6 @@ export default async function Home() {
     redirect("/profile");
   }
 
-  // Verified drivers go straight to the ride dashboard
-  if (profile.role === "driver" && profile.verification_status === "verified") {
-    redirect("/driver/rides");
-  }
-
   if (profile.verification_status === "suspended") {
     return (
       <main className="min-h-screen flex items-center justify-center p-4">
@@ -36,6 +31,14 @@ export default async function Home() {
         </div>
       </main>
     );
+  }
+
+  if (profile.verification_status === "verified") {
+    if (profile.role === "driver") redirect("/rides");
+    if (profile.role === "passenger") redirect("/settings/profile");
+    // Any other role (e.g. "admin") has no place in the main app.
+    // This happens locally when the admin panel session bleeds in via shared cookies.
+    redirect("/signout");
   }
 
   // pending_review — show a waiting screen that auto-refreshes

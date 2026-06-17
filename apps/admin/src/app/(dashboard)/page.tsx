@@ -6,8 +6,9 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const supabase = createAdminClient();
 
-  const [pending, total] = await Promise.all([
+  const [pending, pendingVehicleUpdates, total] = await Promise.all([
     supabase.from("verification_submissions").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
+    supabase.from("vehicle_update_requests").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
     supabase.from("profiles").select("id", { count: "exact", head: true }),
   ]);
 
@@ -18,6 +19,10 @@ export default async function DashboardPage() {
         <Link href="/verification" className="block border rounded-lg p-5 hover:bg-gray-50">
           <p className="text-3xl font-bold">{pending.count ?? 0}</p>
           <p className="text-sm text-gray-500 mt-1">Pending verifications</p>
+        </Link>
+        <Link href="/vehicles" className="block border rounded-lg p-5 hover:bg-gray-50">
+          <p className="text-3xl font-bold">{pendingVehicleUpdates.count ?? 0}</p>
+          <p className="text-sm text-gray-500 mt-1">Pending vehicle updates</p>
         </Link>
         <div className="border rounded-lg p-5">
           <p className="text-3xl font-bold">{total.count ?? 0}</p>

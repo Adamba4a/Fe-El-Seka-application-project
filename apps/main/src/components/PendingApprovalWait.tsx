@@ -16,8 +16,9 @@ export function PendingApprovalWait() {
         .eq("id", user.id)
         .maybeSingle();
       if (profile?.verification_status === "verified") {
-        // Hard redirect — bypasses Next.js router cache entirely
-        window.location.href = profile.role === "driver" ? "/driver/rides" : "/";
+        // (driver) is a route group — real URL is /rides, not /driver/rides.
+        // Non-drivers go to settings until a passenger dashboard exists.
+        window.location.href = profile.role === "driver" ? "/rides" : "/settings/profile";
       }
     };
 

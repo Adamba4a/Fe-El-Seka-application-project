@@ -38,7 +38,7 @@ export default function EditRidePage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push("/login"); return; }
       await editRide(session.access_token, id, payload);
-      router.push(`/driver/rides/${id}`);
+      router.push(`/rides/${id}`);
     } catch (err: any) {
       const detail = err?.detail ?? err;
       setSubmitError(detail?.message ?? "Failed to save changes.");

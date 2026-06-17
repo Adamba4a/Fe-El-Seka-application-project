@@ -51,5 +51,8 @@ export type {
 export type {
   VehicleRegistration,
   VehicleUpdate,
+  VehicleStructuralUpdate,
+  VehicleUpdateRequestRecord,
+  VehicleUpdateRequestStatus,
   Vehicle,
 } from "./types/vehicle";

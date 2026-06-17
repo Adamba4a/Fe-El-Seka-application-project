@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.admin.users_router import router as admin_users_router
+from app.api.admin.vehicle_updates_router import router as admin_vehicle_updates_router
 from app.api.admin.verification_router import router as admin_verification_router
 from app.api.auth.router import router as auth_router
 from app.api.health import router as health_router
@@ -79,6 +80,11 @@ app.include_router(
 app.include_router(
     admin_users_router,
     prefix="/api/admin/users",
+    tags=["admin"],
+)
+app.include_router(
+    admin_vehicle_updates_router,
+    prefix="/api/admin/vehicle-updates",
     tags=["admin"],
 )
 app.include_router(rides_router, prefix="/api/v1/rides", tags=["rides"])

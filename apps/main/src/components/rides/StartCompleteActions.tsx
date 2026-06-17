@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Ride } from "@fe-el-seka/shared";
 import { createClient } from "@/lib/supabase/client";
-import { cancelRide, startRide, completeRide } from "@/lib/api/rides";
+import { cancelRide, startRide, completeRide, getRide } from "@/lib/api/rides";
 
 async function getToken(): Promise<string> {
   const supabase = createClient();
@@ -42,6 +42,18 @@ function CancelRideModal({
       const updated = await cancelRide(token, rideId, { reason: reason.trim() });
       onCancelled(updated);
     } catch (err: any) {
+      // Network errors can fire even when the server already processed the request.
+      // Re-fetch the ride to confirm whether the cancellation actually went through.
+      try {
+        const token = await getToken();
+        const detail = await getRide(token, rideId);
+        if (detail.ride.status === "cancelled") {
+          onCancelled(detail.ride);
+          return;
+        }
+      } catch {
+        // can't verify — fall through to show original error
+      }
       setError(err?.detail?.message ?? err?.message ?? "Failed to cancel ride.");
     } finally {
       setLoading(false);

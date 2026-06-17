@@ -58,7 +58,7 @@ export default function RideDetailPage() {
     return (
       <div className="text-center py-12 space-y-3">
         <p className="text-gray-600">{error ?? "Ride not found."}</p>
-        <Link href="/driver/rides" className="text-blue-600 text-sm underline">← Back to My Rides</Link>
+        <Link href="/rides" className="text-blue-600 text-sm underline">← Back to My Rides</Link>
       </div>
     );
   }
@@ -66,7 +66,7 @@ export default function RideDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/driver/rides" className="text-gray-500 hover:text-gray-700">←</Link>
+        <Link href="/rides" className="text-gray-500 hover:text-gray-700">←</Link>
         <h1 className="text-xl font-bold text-gray-900">Ride Detail</h1>
       </div>
 
@@ -76,7 +76,7 @@ export default function RideDetailPage() {
           <RideStatusBadge status={ride.status} />
           {ride.status === "scheduled" && (
             <Link
-              href={`/driver/rides/${ride.id}/edit`}
+              href={`/rides/${ride.id}/edit`}
               className="text-sm text-blue-600 font-medium hover:underline"
             >
               Edit
