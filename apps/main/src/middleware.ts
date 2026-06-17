@@ -2,6 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/login", "/otp", "/signout"];
+// /signout must work even when a user IS authenticated (it clears a bad session).
+// Do NOT redirect authenticated users away from it.
+const ALLOW_AUTHENTICATED = ["/signout"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -37,7 +40,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (user && isPublic) {
+  const canPassThrough = ALLOW_AUTHENTICATED.some((p) => pathname.startsWith(p));
+  if (user && isPublic && !canPassThrough) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 

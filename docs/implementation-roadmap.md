@@ -236,6 +236,53 @@ This document defines two tracks:
 
 ---
 
+## Phase 4.1 — Dockerization
+
+**Goal:** Containerize all services for reproducible local development and production deployment. This phase is a prerequisite for all subsequent phases — every team member runs an identical environment from here forward.
+
+**Specifications:**
+
+| ID | Name |
+|---|---|
+| 004-D | dockerization |
+
+**Deliverables:**
+- `backend/Dockerfile` (Python 3.11-slim, multi-stage, uvicorn)
+- `apps/main/Dockerfile` (Node 20-alpine, multi-stage, Next.js standalone output)
+- `nginx/nginx.conf` (reverse proxy: `/api/*` → FastAPI, `/*` → Next.js)
+- `docker-compose.yml` (development: hot-reload volumes, Supabase CLI for local DB)
+- `docker-compose.prod.yml` (production: pre-built images, restart policies)
+- `.dockerignore` files for backend and frontend
+- Docker-specific environment variable documentation
+
+**Dependencies:** Phase 4
+
+---
+
+## Phase 4.2 — Frontend Design (Stitch MCP)
+
+**Goal:** Generate polished, mobile-first UI designs for all existing screens using Google Stitch MCP, and establish the design system that all future phases will follow.
+
+> Doing this now (after ride management, before route intelligence) means Phases 5–9 build new features with the design patterns already in place — not as a post-hoc polish pass.
+
+**Specifications:**
+
+| ID | Name |
+|---|---|
+| 004-F | frontend-design |
+
+**Deliverables:**
+- Stitch-generated UI for all Auth & Verification screens
+- Stitch-generated UI for all Ride Management screens (dashboard, create, detail, edit)
+- Design system tokens (colors, typography, spacing) established in Tailwind config
+- `RideCard`, `RideStatusBadge`, `RideHistoryLog`, `StartCompleteActions` components polished
+- Map UI (full-screen with slide-up form panel) for ride creation/editing
+- All screens pass `pnpm --filter main build` with no TypeScript errors
+
+**Dependencies:** Phase 4, Phase 4.1 (containerized local environment for preview)
+
+---
+
 ## Phase 5 — Route Intelligence
 
 **Goal:** Build the deterministic transportation intelligence foundation.
@@ -393,6 +440,8 @@ This document defines two tracks:
 | 009 | driver-ride-creation | 4 | MVP |
 | 010 | driver-ride-management | 4 | MVP |
 | 011 | seat-management | 4 | MVP |
+| 004-D | dockerization | 4.1 | MVP |
+| 004-F | frontend-design | 4.2 | MVP |
 | 012 | route-engine-foundation | 5 | MVP |
 | 013 | route-overlap-engine | 5 | MVP |
 | 014 | matching-engine | 5 | MVP |
@@ -411,7 +460,7 @@ This document defines two tracks:
 | 030 | ai-ride-ranking | 9 | MVP |
 | 031 | ai-pricing-recommendations | 9 | MVP |
 
-**Total Competition MVP Specs: 33**
+**Total Competition MVP Specs: 35**
 
 ---
 
