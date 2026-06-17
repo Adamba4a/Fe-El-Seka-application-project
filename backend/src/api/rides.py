@@ -41,6 +41,8 @@ def _service_error_to_http(exc: ride_service.RideServiceError) -> HTTPException:
 
 def _decode_token(token: str) -> dict:
     secret = os.getenv("SUPABASE_JWT_SECRET", "")
+    if not secret:
+        raise _err("auth_misconfigured", "JWT secret not configured.", 500)
     try:
         return jwt.decode(token, secret, algorithms=["HS256"], audience="authenticated")
     except jwt.ExpiredSignatureError:

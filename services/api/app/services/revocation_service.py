@@ -33,13 +33,13 @@ async def handle_driver_revocation(driver_id: uuid.UUID, revocation_type: str) -
             )
 
             if cancelled_ids:
-                # Bulk insert history log entries
+                # actor_id=None signals a system-triggered cancellation (not the driver)
                 await conn.executemany(
                     """
                     INSERT INTO ride_history_logs (ride_id, actor_id, action, reason)
                     VALUES ($1, $2, 'cancelled', $3)
                     """,
-                    [(row["id"], driver_id, reason) for row in cancelled_ids],
+                    [(row["id"], None, reason) for row in cancelled_ids],
                 )
 
     count = len(cancelled_ids) if cancelled_ids else 0

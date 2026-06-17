@@ -10,6 +10,7 @@ from app.api.admin.users_router import router as admin_users_router
 from app.api.admin.verification_router import router as admin_verification_router
 from app.api.auth.router import router as auth_router
 from app.api.health import router as health_router
+from app.api.internal.revocation_router import router as internal_router
 from app.api.profiles.router import router as profiles_router
 from app.api.rides.router import router as rides_router
 from app.api.vehicles.router import router as vehicles_router
@@ -81,3 +82,4 @@ app.include_router(
     tags=["admin"],
 )
 app.include_router(rides_router, prefix="/api/v1/rides", tags=["rides"])
+app.include_router(internal_router, prefix="/api/v1/internal", tags=["internal"])

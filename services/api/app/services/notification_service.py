@@ -90,6 +90,7 @@ async def _process_pending_emails() -> None:
     pool = get_pool()
     now = datetime.now(timezone.utc)
 
+    # Scan candidates without locking — per-row lock acquired below before each send
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
@@ -104,7 +105,6 @@ async def _process_pending_emails() -> None:
     for row in rows:
         retry = row["retry_count"]
         if retry >= len(_RETRY_DELAYS_MINUTES):
-            # Mark permanently failed
             async with pool.acquire() as conn:
                 await conn.execute(
                     "UPDATE email_notifications SET status = 'failed_permanent' WHERE id = $1",
@@ -120,30 +120,31 @@ async def _process_pending_emails() -> None:
             if now < last + wait:
                 continue
 
-        try:
-            await _send_cancellation_email(row["passenger_email"], row["ride_id"])
-            async with pool.acquire() as conn:
-                await conn.execute(
-                    """
-                    UPDATE email_notifications
-                    SET status = 'sent', last_attempted_at = now()
-                    WHERE id = $1
-                    """,
+        # Acquire a per-row lock inside a transaction; SKIP LOCKED means another
+        # worker already claimed this row — don't double-send.
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                locked = await conn.fetchrow(
+                    "SELECT id FROM email_notifications WHERE id = $1 AND status = 'pending' FOR UPDATE SKIP LOCKED",
                     row["id"],
                 )
-        except Exception as exc:
-            logger.warning("Email send failed for notification %s: %s", row["id"], exc)
-            new_retry = retry + 1
-            new_status = "failed_permanent" if new_retry >= len(_RETRY_DELAYS_MINUTES) else "pending"
-            async with pool.acquire() as conn:
-                await conn.execute(
-                    """
-                    UPDATE email_notifications
-                    SET retry_count = $2, status = $3, last_attempted_at = now()
-                    WHERE id = $1
-                    """,
-                    row["id"], new_retry, new_status,
-                )
+                if not locked:
+                    continue
+
+                try:
+                    await _send_cancellation_email(row["passenger_email"], row["ride_id"])
+                    await conn.execute(
+                        "UPDATE email_notifications SET status = 'sent', last_attempted_at = now() WHERE id = $1",
+                        row["id"],
+                    )
+                except Exception as exc:
+                    logger.warning("Email send failed for notification %s: %s", row["id"], exc)
+                    new_retry = retry + 1
+                    new_status = "failed_permanent" if new_retry >= len(_RETRY_DELAYS_MINUTES) else "pending"
+                    await conn.execute(
+                        "UPDATE email_notifications SET retry_count = $2, status = $3, last_attempted_at = now() WHERE id = $1",
+                        row["id"], new_retry, new_status,
+                    )
 
 
 async def email_retry_loop() -> None:

@@ -3,19 +3,17 @@ from __future__ import annotations
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 
-from app.core.config import settings
 from app.core.database import get_pool
 from app.dependencies.verification import get_current_verified_driver
 from app.models.ride import (
     CancelRideRequest,
     CreateRideRequest,
     EditRideRequest,
-    RevocationPayload,
 )
-from app.services import revocation_service, ride_service
+from app.services import ride_service
 from app.services.ride_service import RideServiceError
 
 router = APIRouter()
@@ -192,20 +190,3 @@ async def complete_ride(
         return _service_error_response(exc)
     return {"ride": ride.model_dump(mode="json")}
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# POST /api/v1/internal/driver-revocation  (Supabase webhook)
-# ─────────────────────────────────────────────────────────────────────────────
-
-@router.post("/internal/driver-revocation", include_in_schema=False)
-async def driver_revocation_webhook(
-    payload: RevocationPayload,
-    x_webhook_secret: Optional[str] = Header(None),
-):
-    if not settings.webhook_secret or x_webhook_secret != settings.webhook_secret:
-        raise HTTPException(status_code=401, detail={"error": "unauthorized", "message": "Invalid webhook secret."})
-    result = await revocation_service.handle_driver_revocation(
-        driver_id=payload.driver_id,
-        revocation_type=payload.revocation_type,
-    )
-    return result

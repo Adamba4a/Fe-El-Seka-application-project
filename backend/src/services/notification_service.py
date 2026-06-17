@@ -85,26 +85,47 @@ async def send_cancellation_email(db: AsyncSession, notification_id: uuid.UUID) 
 async def retry_pending_emails(db: AsyncSession) -> None:
     now = datetime.now(timezone.utc)
 
+    # Scan candidates without locking — per-row lock acquired before each send
     result = await db.execute(
-        select(EmailNotification).where(
+        select(
+            EmailNotification.id,
+            EmailNotification.retry_count,
+            EmailNotification.last_attempted_at,
+        ).where(
             EmailNotification.status.in_([EmailNotificationStatus.pending, EmailNotificationStatus.failed]),
             EmailNotification.retry_count < 5,
         )
     )
-    notifications = result.scalars().all()
+    candidates = result.all()
 
-    for notif in notifications:
-        backoff = BACKOFF_MINUTES[min(notif.retry_count, len(BACKOFF_MINUTES) - 1)]
-        if notif.last_attempted_at is None:
-            should_send = True
-        else:
-            last = notif.last_attempted_at
+    for row in candidates:
+        backoff = BACKOFF_MINUTES[min(row.retry_count, len(BACKOFF_MINUTES) - 1)]
+        if row.last_attempted_at is not None:
+            last = row.last_attempted_at
             if last.tzinfo is None:
                 last = last.replace(tzinfo=timezone.utc)
-            should_send = now >= last + timedelta(minutes=backoff)
+            if now < last + timedelta(minutes=backoff):
+                continue
 
-        if should_send:
-            await send_cancellation_email(db, notif.id)
+        # Re-acquire the row with a lock; SKIP LOCKED prevents double-dispatch
+        # across multiple worker processes.
+        locked = await db.execute(
+            select(EmailNotification)
+            .where(
+                EmailNotification.id == row.id,
+                EmailNotification.status.in_([
+                    EmailNotificationStatus.pending,
+                    EmailNotificationStatus.failed,
+                ]),
+            )
+            .with_for_update(skip_locked=True)
+        )
+        notif = locked.scalar_one_or_none()
+        if notif is None:
+            continue
+
+        await send_cancellation_email(db, notif.id)
+        # send_cancellation_email commits, ending the per-notification transaction
 
 
 # ─────────────────────────────────────────────────────────────────────────────
