@@ -12,12 +12,7 @@ logger = logging.getLogger(__name__)
 def _load_models(app: FastAPI) -> None:
     from app.services.model_registry import ModelRegistry, RegistryError
 
-    settings = get_settings()
-    registry = ModelRegistry(
-        supabase_url=settings.supabase_url,
-        supabase_key=settings.supabase_service_role_key,
-        bucket=settings.model_registry_bucket,
-    )
+    registry = ModelRegistry()
 
     model_state: dict[str, dict | None] = {
         "match_score": None,
@@ -58,6 +53,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     app.include_router(health.router)
+    app.include_router(health.router, prefix="/ai")
     app.include_router(predict.router, prefix="/predict")
     app.include_router(models.router, prefix="/models")
     return app

@@ -64,6 +64,7 @@ async def validation_handler(request: Request, exc: Exception) -> JSONResponse:
 
 
 app.include_router(health_router)
+app.include_router(health_router, prefix="/api")
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(profiles_router, prefix="/api/profiles", tags=["profiles"])
 app.include_router(
