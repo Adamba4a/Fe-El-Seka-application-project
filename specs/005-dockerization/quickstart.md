@@ -157,9 +157,9 @@ docker compose exec nginx whoami    # Expected: nginx (nginx image default)
 
 ```bash
 # Pull published images (replace with real tag after first CI push)
-docker pull ghcr.io/adamba4a777/fe-el-seka-api:latest
-docker pull ghcr.io/adamba4a777/fe-el-seka-ai:latest
-docker pull ghcr.io/adamba4a777/fe-el-seka-main:latest
+docker pull ghcr.io/adamba4a/fe-el-seka-api:latest
+docker pull ghcr.io/adamba4a/fe-el-seka-ai:latest
+docker pull ghcr.io/adamba4a/fe-el-seka-main:latest
 
 # Start production stack
 docker compose -f docker-compose.prod.yml up -d
@@ -188,7 +188,7 @@ docker compose -f docker-compose.prod.yml ps
 - All build jobs complete with exit 0
 - Trivy scans report 0 CRITICAL/HIGH CVEs (or fail the run if found)
 - `push` job runs only on `main` merge (not on PR runs)
-- Images appear in `ghcr.io/adamba4a777` packages with both `latest` and `<sha>` tags
+- Images appear in `ghcr.io/adamba4a` packages with both `latest` and `<sha>` tags
 
 ---
 
@@ -215,6 +215,6 @@ const nextConfig = {
 
 Verify the build works before proceeding:
 ```bash
-pnpm --filter main build
+pnpm --filter @fe-el-seka/main build
 # Expected: .next/standalone/server.js exists
 ```

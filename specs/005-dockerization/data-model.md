@@ -14,7 +14,7 @@ Three production images are defined. Each follows the multi-stage build pattern.
 
 | Attribute | Value |
 |---|---|
-| Registry path | `ghcr.io/adamba4a777/fe-el-seka-api:<tag>` |
+| Registry path | `ghcr.io/adamba4a/fe-el-seka-api:<tag>` |
 | Build context | `services/api/` |
 | Dockerfile | `services/api/Dockerfile` |
 | Base image (builder) | `python:3.11-slim` + uv binary from `ghcr.io/astral-sh/uv:latest` |
@@ -36,7 +36,7 @@ Three production images are defined. Each follows the multi-stage build pattern.
 
 | Attribute | Value |
 |---|---|
-| Registry path | `ghcr.io/adamba4a777/fe-el-seka-ai:<tag>` |
+| Registry path | `ghcr.io/adamba4a/fe-el-seka-ai:<tag>` |
 | Build context | `services/ai/` |
 | Dockerfile | `services/ai/Dockerfile` |
 | Base image (builder) | `python:3.11-slim` + uv binary |
@@ -58,7 +58,7 @@ Three production images are defined. Each follows the multi-stage build pattern.
 
 | Attribute | Value |
 |---|---|
-| Registry path | `ghcr.io/adamba4a777/fe-el-seka-main:<tag>` |
+| Registry path | `ghcr.io/adamba4a/fe-el-seka-main:<tag>` |
 | Build context | `.` (monorepo root — required for `packages/` shared deps) |
 | Dockerfile | `apps/main/Dockerfile` |
 | Base image (deps + builder) | `node:20-alpine` |
@@ -104,9 +104,9 @@ Two compose files share the same service definitions with different configuratio
 
 | Service | Image | Restart | `mem_reservation` |
 |---|---|---|---|
-| `api` | `ghcr.io/adamba4a777/fe-el-seka-api:latest` | `always` | 256 MB |
-| `ai` | `ghcr.io/adamba4a777/fe-el-seka-ai:latest` | `always` | 512 MB |
-| `main` | `ghcr.io/adamba4a777/fe-el-seka-main:latest` | `always` | 128 MB |
+| `api` | `ghcr.io/adamba4a/fe-el-seka-api:latest` | `always` | 256 MB |
+| `ai` | `ghcr.io/adamba4a/fe-el-seka-ai:latest` | `always` | 512 MB |
+| `main` | `ghcr.io/adamba4a/fe-el-seka-main:latest` | `always` | 128 MB |
 | `nginx` | `nginx:1.27-alpine` | `always` | 64 MB |
 
 **Network**: `fe-el-seka-prod` (bridge)

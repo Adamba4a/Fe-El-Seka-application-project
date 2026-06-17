@@ -1,0 +1,54 @@
+# Prerequisites: run `supabase start` before `docker compose up`
+# Supabase CLI manages the local database — it is not part of this compose stack.
+
+services:
+  api:
+    build:
+      context: services/api
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    env_file: services/api/.env
+    volumes:
+      - ./services/api/app:/app/app
+    networks:
+      - fe-el-seka-dev
+
+  ai:
+    build:
+      context: services/ai
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    env_file: services/ai/.env
+    volumes:
+      - ./services/ai/app:/app/app
+    networks:
+      - fe-el-seka-dev
+
+  main:
+    build:
+      context: .
+      dockerfile: apps/main/Dockerfile
+      target: deps
+    command: ["pnpm", "--filter", "@fe-el-seka/main", "dev"]
+    env_file: apps/main/.env
+    volumes:
+      - ./apps/main/src:/app/apps/main/src
+      - ./apps/main/public:/app/apps/main/public
+      - ./packages:/app/packages
+    networks:
+      - fe-el-seka-dev
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - fe-el-seka-dev
+    depends_on:
+      - api
+      - ai
+      - main
+
+networks:
+  fe-el-seka-dev:
+    driver: bridge

@@ -135,7 +135,7 @@ Every push to the main branch and every pull request triggers an automated pipel
 **GitHub Container Registry**
 
 - **FR-018**: Images MUST be published to `ghcr.io` under the repository's GitHub organisation/owner namespace with **public** visibility, so production servers and developers can pull images without credentials.
-- **FR-019**: Image names MUST follow the convention `ghcr.io/<owner>/fe-el-seka-<service>:<tag>` (e.g., `ghcr.io/adamba4a777/fe-el-seka-backend:latest`, `ghcr.io/adamba4a777/fe-el-seka-ai:latest`, `ghcr.io/adamba4a777/fe-el-seka-main:latest`).
+- **FR-019**: Image names MUST follow the convention `ghcr.io/<owner>/fe-el-seka-<service>:<tag>` (e.g., `ghcr.io/adamba4a/fe-el-seka-backend:latest`, `ghcr.io/adamba4a/fe-el-seka-ai:latest`, `ghcr.io/adamba4a/fe-el-seka-main:latest`).
 
 ### Key Entities
 
@@ -219,7 +219,7 @@ Every push to the main branch and every pull request triggers an automated pipel
 ## Assumptions
 
 - Developers run macOS, Linux, or Windows with WSL2; Docker Desktop or Docker Engine is pre-installed.
-- The GitHub repository is hosted under the `Adamba4a777` account; GHCR image paths follow `ghcr.io/adamba4a777/fe-el-seka-*`.
+- The GitHub repository is hosted under the `Adamba4a777` account; GHCR image paths follow `ghcr.io/adamba4a/fe-el-seka-*`.
 - A single `docker-compose.prod.yml` targeting one server is sufficient for the MVP competition demo; multi-region or multi-host deployments are not required.
 - The `GITHUB_TOKEN` automatic secret has sufficient permissions for GHCR publish in this repository; no additional PAT provisioning is assumed necessary unless the repo is private.
 - The Supabase CLI version used locally matches or is compatible with the Supabase project version in use; version pinning for the CLI is documented in the quickstart but not enforced by Docker.

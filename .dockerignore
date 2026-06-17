@@ -1,0 +1,14 @@
+**/node_modules/
+**/.env*
+.next/
+specs/
+docs/
+**/*.test.*
+**/*.spec.*
+.git/
+services/
+supabase/
+*.md
+.github/
+.specify/
+apps/admin/

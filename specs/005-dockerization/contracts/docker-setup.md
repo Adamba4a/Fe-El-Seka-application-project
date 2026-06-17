@@ -210,8 +210,8 @@ if: github.ref == 'refs/heads/main'
 **Image tags**:
 ```yaml
 tags: |
-  ghcr.io/adamba4a777/fe-el-seka-${{ matrix.service }}:latest
-  ghcr.io/adamba4a777/fe-el-seka-${{ matrix.service }}:${{ github.sha }}
+  ghcr.io/adamba4a/fe-el-seka-${{ matrix.service }}:latest
+  ghcr.io/adamba4a/fe-el-seka-${{ matrix.service }}:${{ github.sha }}
 ```
 
 ---
