@@ -25,7 +25,7 @@ COPY packages/ ./packages/
 COPY apps/main/ ./apps/main/
 COPY package.json pnpm-workspace.yaml turbo.json* ./
 
-RUN pnpm --filter @fe-el-seka/main build
+RUN pnpm --filter @fe-el-seka/main build && mkdir -p ./apps/main/public
 
 # ---- runner ----
 FROM node:20-alpine AS runner
@@ -38,6 +38,7 @@ RUN addgroup --gid 1001 nodejs && adduser --uid 1001 --ingroup nodejs --disabled
 
 COPY --from=builder --chown=nextjs:nodejs /app/apps/main/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/main/.next/static ./apps/main/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/main/public ./apps/main/public
 
 USER nextjs
 
