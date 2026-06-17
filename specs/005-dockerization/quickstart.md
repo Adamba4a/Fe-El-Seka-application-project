@@ -215,6 +215,6 @@ const nextConfig = {
 
 Verify the build works before proceeding:
 ```bash
-pnpm --filter main build
+pnpm --filter @fe-el-seka/main build
 # Expected: .next/standalone/server.js exists
 ```

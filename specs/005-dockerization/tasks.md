@@ -87,10 +87,10 @@
 
 **Purpose**: Run all quickstart validation scenarios, confirm production image sizes, and document the one-time GHCR visibility setup.
 
-- [ ] T018 Run quickstart scenario 1 (full stack cold start ≤ 60s) and scenario 2 (nginx routing) and scenario 3 (hot-reload ≤ 5s) against the development compose stack; record pass/fail
-- [ ] T019 [P] Run quickstart scenario 4 (no secrets in image layers) and scenario 6 (non-root processes) against locally built production images; record pass/fail
-- [ ] T020 [P] Run quickstart scenario 5 (production image sizes): confirm api < 300 MB, ai < 700 MB, main < 200 MB using `docker images`; if any exceed limit, add a comment to the respective Dockerfile identifying the largest layer with `docker history <image>`
-- [ ] T021 Append "One-Time Setup: GHCR Package Visibility" note to `specs/005-dockerization/quickstart.md` confirming the manual step (already partially documented — verify the section is complete and accurate for the actual repo URL)
+- [x] T018 Run quickstart scenario 1 (full stack cold start ≤ 60s) and scenario 2 (nginx routing) and scenario 3 (hot-reload ≤ 5s) against the development compose stack; record pass/fail
+- [x] T019 [P] Run quickstart scenario 4 (no secrets in image layers) and scenario 6 (non-root processes) against locally built production images; record pass/fail
+- [x] T020 [P] Run quickstart scenario 5 (production image sizes): confirm api < 300 MB, ai < 700 MB, main < 200 MB using `docker images`; if any exceed limit, add a comment to the respective Dockerfile identifying the largest layer with `docker history <image>`
+- [x] T021 Append "One-Time Setup: GHCR Package Visibility" note to `specs/005-dockerization/quickstart.md` confirming the manual step (already partially documented — verify the section is complete and accurate for the actual repo URL)
 
 ---
 
