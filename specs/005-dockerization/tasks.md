@@ -19,9 +19,9 @@
 
 **Purpose**: Apply the one prerequisite code change and create the health check endpoint that Dockerfiles depend on. Must complete before any Dockerfile is written.
 
-- [ ] T001 Add `output: 'standalone'` to `apps/main/next.config.mjs` (add after existing `transpilePackages` line); verify with `pnpm --filter main build` — confirm `.next/standalone/server.js` exists before proceeding
-- [ ] T002 [P] Create Next.js health check route handler `apps/main/src/app/api/health/route.ts`: export `GET` returning `Response.json({ status: "ok", service: "main" })` — required by `HEALTHCHECK` in the frontend Dockerfile
-- [ ] T003 [P] Verify Python health endpoints are reachable: confirm `services/api/app/api/health.py` exports a router mounted at `/health` returning `{"status":"ok"}` and `services/ai/app/api/` has an equivalent; if missing in either service, create the missing `health.py` file and register its router in the respective `app/main.py`
+- [x] T001 Add `output: 'standalone'` to `apps/main/next.config.mjs` (add after existing `transpilePackages` line); verify with `pnpm --filter main build` — confirm `.next/standalone/server.js` exists before proceeding
+- [x] T002 [P] Create Next.js health check route handler `apps/main/src/app/api/health/route.ts`: export `GET` returning `Response.json({ status: "ok", service: "main" })` — required by `HEALTHCHECK` in the frontend Dockerfile
+- [x] T003 [P] Verify Python health endpoints are reachable: confirm `services/api/app/api/health.py` exports a router mounted at `/health` returning `{"status":"ok"}` and `services/ai/app/api/` has an equivalent; if missing in either service, create the missing `health.py` file and register its router in the respective `app/main.py`
 
 ---
 
