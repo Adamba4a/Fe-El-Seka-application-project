@@ -7,7 +7,9 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
-  let response = NextResponse.next({ request });
+  // Must use NextResponse.next({ request }) and reassign on cookie writes —
+  // this is required for Supabase SSR to refresh the session cookie properly.
+  let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,24 +19,29 @@ export async function middleware(request: NextRequest) {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet) => {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+          supabaseResponse = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
         },
       },
     }
   );
 
-  const { data: { session } } = await supabase.auth.getSession();
+  // Use getUser() — not getSession() — so the JWT is validated with the
+  // Supabase server and the session cookie is refreshed when needed.
+  // This must stay directly after createServerClient with no logic in between.
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (!session && !isPublic) {
+  if (!user && !isPublic) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (session && isPublic) {
+  if (user && isPublic) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  return response;
+  return supabaseResponse;
 }
 
 export const config = {

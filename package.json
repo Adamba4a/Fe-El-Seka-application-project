@@ -2,7 +2,7 @@
   "name": "fe-el-seka",
   "private": true,
   "scripts": {
-    "dev": "concurrently --names \"main,admin,api,ai\" --prefix-colors \"blue,green,yellow,magenta\" \"pnpm --filter @fe-el-seka/main dev\" \"pnpm --filter @fe-el-seka/admin dev\" \"cd services/api && uvicorn app.main:app --port 8000 --reload\" \"cd services/ai && uvicorn app.main:app --port 8001 --reload\"",
+    "dev": "concurrently --names \"main,admin,api,ai\" --prefix-colors \"blue,green,yellow,magenta\" \"pnpm --filter @fe-el-seka/main dev\" \"pnpm --filter @fe-el-seka/admin dev\" \"cd services/api && uv run uvicorn app.main:app --port 8000 --reload\" \"cd services/ai && uv run uvicorn app.main:app --port 8001 --reload\"",
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck"

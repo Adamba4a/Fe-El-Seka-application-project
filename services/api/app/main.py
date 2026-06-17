@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -10,17 +11,21 @@ from app.api.admin.verification_router import router as admin_verification_route
 from app.api.auth.router import router as auth_router
 from app.api.health import router as health_router
 from app.api.profiles.router import router as profiles_router
+from app.api.rides.router import router as rides_router
 from app.api.vehicles.router import router as vehicles_router
 from app.api.verification.router import router as verification_router
 from app.core.config import settings
 from app.core.database import close_pool, create_pool
+from app.services.notification_service import email_retry_loop
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     pool = await create_pool(settings.database_url)
     app.state.pool = pool
+    email_task = asyncio.create_task(email_retry_loop())
     yield
+    email_task.cancel()
     await close_pool()
     app.state.pool = None
 
@@ -75,3 +80,4 @@ app.include_router(
     prefix="/api/admin/users",
     tags=["admin"],
 )
+app.include_router(rides_router, prefix="/api/v1/rides", tags=["rides"])

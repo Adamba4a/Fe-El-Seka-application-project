@@ -1,5 +1,4 @@
 export type UserRole = "passenger" | "driver" | "both";
-export type RideStatus = "active" | "paused" | "cancelled" | "completed";
 export type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 
 export interface GeoPoint {
@@ -11,16 +10,6 @@ export interface User {
   id: string;
   phone: string;
   role: UserRole;
-  createdAt: string;
-}
-
-export interface Ride {
-  id: string;
-  driverId: string;
-  origin: GeoPoint;
-  destination: GeoPoint;
-  departureAt: string;
-  status: RideStatus;
   createdAt: string;
 }
 

@@ -1,12 +1,24 @@
 export type {
   UserRole,
-  RideStatus,
   BookingStatus,
   GeoPoint,
   User,
-  Ride,
   Booking,
 } from "./types";
+
+export type {
+  RideStatus,
+  RideAction,
+  Coordinates,
+  Location,
+  Ride,
+  RideHistoryEntry,
+  CreateRidePayload,
+  EditRidePayload,
+  CancelRidePayload,
+  RideListResponse,
+  RideDetailResponse,
+} from "./types/rides";
 export { formatPhone, formatDate } from "./utils";
 
 export type {

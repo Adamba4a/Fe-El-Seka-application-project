@@ -251,6 +251,56 @@ Open the "Post a Ride" screen in the Main App at `http://localhost:3000/driver/r
 
 ---
 
+---
+
+## Webhook Setup (T057, T058)
+
+Configure two Supabase Database Webhooks in the Supabase Dashboard → Database → Webhooks.
+
+### Webhook 1 — Identity Revocation
+
+| Setting | Value |
+|---|---|
+| Name | `driver-identity-revocation` |
+| Table | `public.profiles` |
+| Events | `UPDATE` |
+| URL | `{API_BASE}/api/v1/internal/driver-revocation` |
+| HTTP Method | `POST` |
+| Header `X-Webhook-Secret` | value of `WEBHOOK_SECRET` env var |
+
+**Payload template**:
+```json
+{
+  "driver_id": "{{ NEW_RECORD.id }}",
+  "revocation_type": "identity"
+}
+```
+
+Add a condition filter: `NEW_RECORD.verification_status = 'suspended'`
+
+### Webhook 2 — Vehicle Deactivation
+
+| Setting | Value |
+|---|---|
+| Name | `driver-vehicle-revocation` |
+| Table | `public.vehicles` |
+| Events | `UPDATE` |
+| URL | `{API_BASE}/api/v1/internal/driver-revocation` |
+| HTTP Method | `POST` |
+| Header `X-Webhook-Secret` | value of `WEBHOOK_SECRET` env var |
+
+**Payload template**:
+```json
+{
+  "driver_id": "{{ NEW_RECORD.driver_id }}",
+  "revocation_type": "vehicle"
+}
+```
+
+Add a condition filter: `NEW_RECORD.is_active = false`
+
+---
+
 ## Artifact References
 
 - Data model: [`data-model.md`](data-model.md)
