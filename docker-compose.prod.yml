@@ -1,6 +1,6 @@
 services:
   api:
-    image: ghcr.io/adamba4a777/fe-el-seka-api:latest
+    image: ghcr.io/adamba4a/fe-el-seka-api:latest
     restart: always
     env_file: .env.prod
     networks:
@@ -11,7 +11,7 @@ services:
           memory: 256M
 
   ai:
-    image: ghcr.io/adamba4a777/fe-el-seka-ai:latest
+    image: ghcr.io/adamba4a/fe-el-seka-ai:latest
     restart: always
     env_file: .env.prod
     networks:
@@ -22,7 +22,7 @@ services:
           memory: 512M
 
   main:
-    image: ghcr.io/adamba4a777/fe-el-seka-main:latest
+    image: ghcr.io/adamba4a/fe-el-seka-main:latest
     restart: always
     env_file: .env.prod
     networks:

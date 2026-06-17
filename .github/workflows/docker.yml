@@ -127,8 +127,8 @@ jobs:
           context: services/api
           push: true
           tags: |
-            ghcr.io/adamba4a777/fe-el-seka-api:latest
-            ghcr.io/adamba4a777/fe-el-seka-api:${{ github.sha }}
+            ghcr.io/adamba4a/fe-el-seka-api:latest
+            ghcr.io/adamba4a/fe-el-seka-api:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -138,8 +138,8 @@ jobs:
           context: services/ai
           push: true
           tags: |
-            ghcr.io/adamba4a777/fe-el-seka-ai:latest
-            ghcr.io/adamba4a777/fe-el-seka-ai:${{ github.sha }}
+            ghcr.io/adamba4a/fe-el-seka-ai:latest
+            ghcr.io/adamba4a/fe-el-seka-ai:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -150,7 +150,7 @@ jobs:
           file: apps/main/Dockerfile
           push: true
           tags: |
-            ghcr.io/adamba4a777/fe-el-seka-main:latest
-            ghcr.io/adamba4a777/fe-el-seka-main:${{ github.sha }}
+            ghcr.io/adamba4a/fe-el-seka-main:latest
+            ghcr.io/adamba4a/fe-el-seka-main:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
