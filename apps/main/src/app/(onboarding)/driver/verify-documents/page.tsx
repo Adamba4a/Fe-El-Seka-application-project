@@ -6,6 +6,7 @@ import { DocumentUpload } from "@/components/verification/DocumentUpload";
 import { LockoutMessage } from "@/components/verification/LockoutMessage";
 import { submitDocuments, getStatus } from "@/lib/api/verification";
 import { createClient } from "@/lib/supabase/client";
+import { Spinner } from "@/components/ui/Spinner";
 
 export default function DriverVerifyDocumentsPage() {
   const router = useRouter();
@@ -67,14 +68,14 @@ export default function DriverVerifyDocumentsPage() {
 
   if (initializing) {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4">
-        <p className="text-gray-400">Loading…</p>
+      <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
+        <p className="text-body-sm text-content-muted">Loading…</p>
       </main>
     );
   }
 
   if (lockout) return (
-    <main className="min-h-screen flex items-center justify-center p-4">
+    <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm">
         <LockoutMessage lockoutMessage={lockout.message} supportEmail={lockout.support_email} />
       </div>
@@ -82,11 +83,11 @@ export default function DriverVerifyDocumentsPage() {
   );
 
   if (submitted) return (
-    <main className="min-h-screen flex items-center justify-center p-4">
+    <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm text-center space-y-4">
-        <h1 className="text-xl font-bold">Documents submitted</h1>
-        <p className="text-sm text-gray-500">We will review your documents. Once approved you can register your vehicle.</p>
-        <button onClick={() => router.push("/")} className="text-blue-600 text-sm underline">
+        <h1 className="text-h3 text-content-primary">Documents submitted</h1>
+        <p className="text-body-sm text-content-muted">We will review your documents. Once approved you can register your vehicle.</p>
+        <button onClick={() => router.push("/")} className="text-body-sm text-brand-primary underline">
           Go to home
         </button>
       </div>
@@ -94,23 +95,24 @@ export default function DriverVerifyDocumentsPage() {
   );
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
+    <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-xl font-bold">Driver Verification</h1>
-          <p className="text-gray-500 text-sm mt-1">Upload your National ID and Driving License</p>
+          <h1 className="text-h3 text-content-primary">Driver Verification</h1>
+          <p className="text-body-sm text-content-muted mt-1">Upload your National ID and Driving License</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <DocumentUpload label="National ID — Front" onFile={setFrontId} required />
           <DocumentUpload label="National ID — Back" onFile={setBackId} required />
           <DocumentUpload label="Driving License" onFile={setLicense} required />
-          {error && <p className="text-red-500 text-xs">{error}</p>}
+          {error && <p className="text-caption text-content-destructive">{error}</p>}
           <button
             type="submit"
             disabled={loading || !frontId || !backId || !license}
-            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md font-medium disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
           >
+            {loading && <Spinner />}
             {loading ? "Submitting…" : "Submit for Review"}
           </button>
         </form>

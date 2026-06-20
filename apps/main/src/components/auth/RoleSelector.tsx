@@ -28,16 +28,16 @@ export function RoleSelector({ value, onChange }: RoleSelectorProps) {
           key={role.id}
           type="button"
           onClick={() => onChange(role.id)}
-          className={`flex items-start gap-4 p-4 border-2 rounded-lg text-left transition-colors ${
+          className={`flex items-start gap-4 p-4 border-2 rounded-xl text-left transition-colors ${
             value === role.id
-              ? "border-blue-600 bg-blue-50"
-              : "border-gray-200 hover:border-gray-300"
+              ? "border-brand-primary bg-status-scheduled-bg"
+              : "border-border-default hover:border-brand-primary"
           }`}
         >
           <span className="text-3xl">{role.icon}</span>
           <div>
-            <p className="font-semibold">{role.title}</p>
-            <p className="text-sm text-gray-500">{role.description}</p>
+            <p className="text-h3 text-content-primary">{role.title}</p>
+            <p className="text-body-sm text-content-muted mt-0.5">{role.description}</p>
           </div>
         </button>
       ))}

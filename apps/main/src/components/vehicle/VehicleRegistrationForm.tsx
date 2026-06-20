@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Spinner } from "@/components/ui/Spinner";
 
 const currentYear = new Date().getFullYear();
 
@@ -45,22 +46,23 @@ export function VehicleRegistrationForm({ onSubmit }: VehicleRegistrationFormPro
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {fields.map(({ key, label, type, placeholder }) => (
         <div key={key} className="flex flex-col gap-1">
-          <label className="text-sm font-medium">{label}</label>
+          <label className="text-label text-content-secondary">{label}</label>
           <input
             {...register(key, type === "number" ? { valueAsNumber: true } : {})}
             type={type ?? "text"}
             placeholder={placeholder}
-            className="px-3 py-2 border rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-border-default rounded-md text-body-sm outline-none focus:border-border-focus transition-colors"
           />
-          {errors[key] && <p className="text-red-500 text-xs">{errors[key]?.message as string}</p>}
+          {errors[key] && <p className="text-caption text-content-destructive">{errors[key]?.message as string}</p>}
         </div>
       ))}
 
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full py-2 px-4 bg-blue-600 text-white rounded-md font-medium disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
       >
+        {isSubmitting && <Spinner />}
         {isSubmitting ? "Registering…" : "Register Vehicle"}
       </button>
     </form>

@@ -22,6 +22,7 @@ const config: Config = {
           primary:     "var(--color-text-primary)",
           secondary:   "var(--color-text-secondary)",
           muted:       "var(--color-text-muted)",
+          inverse:     "var(--color-text-inverse)",
           destructive: "var(--color-text-destructive)",
         },
         border: {

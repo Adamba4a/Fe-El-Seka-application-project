@@ -23,6 +23,7 @@ All tokens are defined as CSS custom properties on `:root` in `apps/main/src/app
 | `--color-text-primary` | `text-primary` | Text | Main body and heading text |
 | `--color-text-secondary` | `text-secondary` | Text | Supporting text |
 | `--color-text-muted` | `text-muted` | Text | Captions, timestamps, placeholder |
+| `--color-text-inverse` | `text-inverse` | Text | Text on top of dark/primary-colored backgrounds |
 | `--color-text-destructive` | `text-destructive` | Text | Inline error messages |
 | `--color-border-default` | `border-default` | Border | Card borders, input borders, dividers |
 | `--color-border-focus` | `border-focus` | Border | Input focus rings |
@@ -92,7 +93,7 @@ Maps each status to a background token + text token pair.
 entries: RideHistoryEntry[]
 ```
 
-Where `RideHistoryEntry` = `{ id, action, actor_name, timestamp, changed_fields? }`.
+Where `RideHistoryEntry` = `{ id, action, actor_id, created_at, changed_fields? }` (from `@fe-el-seka/shared`).
 Rendered in reverse-chronological order (newest first).
 
 ### StartCompleteActions

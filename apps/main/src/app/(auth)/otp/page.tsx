@@ -66,12 +66,12 @@ export default function OtpPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
+    <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Check your email</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            We sent a 6-digit code to <strong>{email}</strong>
+          <h1 className="text-h2 text-content-primary">Check your email</h1>
+          <p className="text-body-sm text-content-muted mt-1">
+            We sent a 6-digit code to <strong className="text-content-secondary">{email}</strong>
           </p>
         </div>
 
