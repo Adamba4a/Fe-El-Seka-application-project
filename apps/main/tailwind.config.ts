@@ -14,9 +14,10 @@ const config: Config = {
           accent:         "var(--color-brand-accent)",
         },
         surface: {
-          bg:      "var(--color-surface-bg)",
-          card:    "var(--color-surface-card)",
-          overlay: "var(--color-surface-overlay)",
+          bg:          "var(--color-surface-bg)",
+          card:        "var(--color-surface-card)",
+          overlay:     "var(--color-surface-overlay)",
+          destructive: "var(--color-surface-destructive)",
         },
         content: {
           primary:     "var(--color-text-primary)",

@@ -25,6 +25,11 @@ interface RideFormProps {
   error?: string | null;
   onSubmit: (payload: CreateRidePayload | EditRidePayload) => void;
   onDirtyChange?: (isDirty: boolean) => void;
+  // External coordinate props — when provided, the page owns pin-drop via a full-screen map
+  externalOrigin?: Location;
+  externalDestination?: Location;
+  onRequestOriginMap?: () => void;
+  onRequestDestinationMap?: () => void;
 }
 
 function toDatetimeLocal(iso?: string): string {
@@ -32,7 +37,10 @@ function toDatetimeLocal(iso?: string): string {
   return iso.substring(0, 16);
 }
 
-export function RideForm({ mode, initialValues, maxSeats = 7, loading, error, onSubmit, onDirtyChange }: RideFormProps) {
+export function RideForm({
+  mode, initialValues, maxSeats = 7, loading, error, onSubmit, onDirtyChange,
+  externalOrigin, externalDestination, onRequestOriginMap, onRequestDestinationMap,
+}: RideFormProps) {
   const [origin, setOrigin] = useState<Location | undefined>(initialValues?.origin);
   const [destination, setDestination] = useState<Location | undefined>(initialValues?.destination);
   const [departureRaw, setDepartureRaw] = useState(toDatetimeLocal(initialValues?.departure_datetime));
@@ -40,6 +48,10 @@ export function RideForm({ mode, initialValues, maxSeats = 7, loading, error, on
   const [pricePerSeat, setPricePerSeat] = useState(initialValues?.price_per_seat ?? "");
   const [notes, setNotes] = useState(initialValues?.notes ?? "");
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Sync external coordinates (from page-level full-screen map) into internal state
+  useEffect(() => { if (externalOrigin) setOrigin(externalOrigin); }, [externalOrigin]);
+  useEffect(() => { if (externalDestination) setDestination(externalDestination); }, [externalDestination]);
 
   // Dirty-field detection for edit mode
   useEffect(() => {
@@ -124,11 +136,35 @@ export function RideForm({ mode, initialValues, maxSeats = 7, loading, error, on
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {mode === "create" ? (
-        <RideMap
-          label="Origin (tap to drop pin)"
-          initialCoordinates={initialValues?.origin?.coordinates}
-          onPinDrop={handleOriginPin}
-        />
+        onRequestOriginMap ? (
+          // External map mode — page owns pin selection via full-screen map
+          <div className="space-y-1">
+            <label className="block text-label text-content-secondary">Origin</label>
+            {origin ? (
+              <div className="flex items-center justify-between bg-surface-bg border border-border-default rounded-xl px-3 py-2">
+                <p className="text-body-sm text-content-secondary truncate">📍 {origin.address}</p>
+                <button type="button" onClick={onRequestOriginMap} className="text-body-sm text-brand-primary ml-2 shrink-0">
+                  Change
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={onRequestOriginMap}
+                className="w-full border border-dashed border-border-default rounded-xl px-3 py-4 text-body-sm text-content-muted hover:border-brand-primary transition-colors"
+              >
+                📍 Select origin on map
+              </button>
+            )}
+          </div>
+        ) : (
+          // Inline map mode (fallback when no page-level map)
+          <RideMap
+            label="Origin (tap to drop pin)"
+            initialCoordinates={initialValues?.origin?.coordinates}
+            onPinDrop={handleOriginPin}
+          />
+        )
       ) : (
         <div className="space-y-1">
           <label className="block text-label text-content-secondary">Origin</label>
@@ -139,11 +175,34 @@ export function RideForm({ mode, initialValues, maxSeats = 7, loading, error, on
         </div>
       )}
 
-      <RideMap
-        label="Destination (tap to drop pin)"
-        initialCoordinates={initialValues?.destination?.coordinates}
-        onPinDrop={handleDestinationPin}
-      />
+      {mode === "create" && onRequestDestinationMap ? (
+        // External map mode — page owns pin selection via full-screen map
+        <div className="space-y-1">
+          <label className="block text-label text-content-secondary">Destination</label>
+          {destination ? (
+            <div className="flex items-center justify-between bg-surface-bg border border-border-default rounded-xl px-3 py-2">
+              <p className="text-body-sm text-content-secondary truncate">📍 {destination.address}</p>
+              <button type="button" onClick={onRequestDestinationMap} className="text-body-sm text-brand-primary ml-2 shrink-0">
+                Change
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onRequestDestinationMap}
+              className="w-full border border-dashed border-border-default rounded-xl px-3 py-4 text-body-sm text-content-muted hover:border-brand-primary transition-colors"
+            >
+              📍 Select destination on map
+            </button>
+          )}
+        </div>
+      ) : (
+        <RideMap
+          label="Destination (tap to drop pin)"
+          initialCoordinates={initialValues?.destination?.coordinates}
+          onPinDrop={handleDestinationPin}
+        />
+      )}
 
       <div className="space-y-1">
         <label className="block text-label text-content-secondary">Departure Date &amp; Time</label>

@@ -222,7 +222,7 @@ export default function RideDetailPage() {
             type="button"
             onClick={handleCancel}
             disabled={!cancelReason.trim() || cancelLoading}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-status-cancelled text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-surface-destructive text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
           >
             {cancelLoading && <Spinner />}
             {cancelLoading ? "Cancelling…" : "Confirm Cancellation"}

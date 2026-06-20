@@ -2,12 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { createRide } from "@/lib/api/rides";
 import { getMyVehicle } from "@/lib/api/vehicles";
 import { RideForm } from "@/components/rides/RideForm";
 import { BottomSheet } from "@/components";
-import type { CreateRidePayload } from "@fe-el-seka/shared";
+import type { CreateRidePayload, Location, Coordinates } from "@fe-el-seka/shared";
+
+const RideMap = dynamic(
+  () => import("@/components/rides/RideMap").then((m) => ({ default: m.RideMap })),
+  { ssr: false, loading: () => <div className="fixed inset-0 bg-surface-bg" /> }
+);
 
 export default function NewRidePage() {
   const router = useRouter();
@@ -15,6 +21,9 @@ export default function NewRidePage() {
   const [error, setError] = useState<string | null>(null);
   const [vehicleChecked, setVehicleChecked] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(true);
+  const [origin, setOrigin] = useState<Location | undefined>();
+  const [destination, setDestination] = useState<Location | undefined>();
+  const [selecting, setSelecting] = useState<"origin" | "destination" | null>(null);
 
   useEffect(() => {
     const checkVehicle = async () => {
@@ -30,6 +39,33 @@ export default function NewRidePage() {
     };
     checkVehicle();
   }, [router]);
+
+  const handlePinDrop = (coords: Coordinates, address: string) => {
+    const loc: Location = { coordinates: coords, address };
+    if (selecting === "origin") {
+      setOrigin(loc);
+      setSelecting("destination"); // Auto-advance to destination
+    } else if (selecting === "destination") {
+      setDestination(loc);
+      setSelecting(null);
+      setSheetOpen(true); // Reopen form after destination is placed
+    }
+  };
+
+  const handleRequestOriginMap = () => {
+    setSheetOpen(false);
+    setSelecting("origin");
+  };
+
+  const handleRequestDestinationMap = () => {
+    setSheetOpen(false);
+    setSelecting("destination");
+  };
+
+  const handleBackToForm = () => {
+    setSheetOpen(true);
+    setSelecting(null);
+  };
 
   const handleSubmit = async (payload: CreateRidePayload) => {
     setLoading(true);
@@ -58,36 +94,27 @@ export default function NewRidePage() {
 
   return (
     <>
-      {/* Full-screen map background — tap to reopen the form sheet */}
-      <div
-        className="fixed inset-0 z-20 bg-surface-bg flex flex-col items-center justify-center gap-3 cursor-pointer"
-        onClick={() => setSheetOpen(true)}
-      >
-        <svg
-          className="w-12 h-12 text-content-muted"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-        </svg>
-        {!sheetOpen && (
-          <p className="text-body-sm text-content-muted">Tap to open form</p>
-        )}
+      {/* Full-screen Leaflet map — always rendered behind the BottomSheet */}
+      <div className="fixed inset-0 z-20">
+        <RideMap onPinDrop={handlePinDrop} />
       </div>
 
-      {/* BottomSheet with ride creation form */}
+      {/* Mode-selector overlay — appears when sheet is closed and user is selecting a pin */}
+      {!sheetOpen && selecting && (
+        <div className="fixed top-4 left-4 right-4 z-30 bg-surface-card border border-border-default rounded-xl px-4 py-3 space-y-1.5 shadow-sm">
+          <p className="text-label text-content-primary">
+            {selecting === "origin" ? "📍 Tap map to set origin" : "📍 Tap map to set destination"}
+          </p>
+          {origin && selecting === "destination" && (
+            <p className="text-caption text-content-muted truncate">Origin: {origin.address}</p>
+          )}
+          <button type="button" onClick={handleBackToForm} className="text-body-sm text-brand-primary">
+            ← Back to form
+          </button>
+        </div>
+      )}
+
+      {/* BottomSheet containing the ride creation form */}
       <BottomSheet isOpen={sheetOpen} onClose={() => setSheetOpen(false)} maxHeightPercent={80}>
         <div className="space-y-4">
           <div className="flex items-center gap-3">
@@ -106,6 +133,10 @@ export default function NewRidePage() {
             loading={loading}
             error={error}
             onSubmit={handleSubmit as any}
+            externalOrigin={origin}
+            externalDestination={destination}
+            onRequestOriginMap={handleRequestOriginMap}
+            onRequestDestinationMap={handleRequestDestinationMap}
           />
         </div>
       </BottomSheet>

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Coordinates } from "@fe-el-seka/shared";
 
 interface RideMapProps {
-  label: string;
+  label?: string;
   initialCoordinates?: Coordinates;
   onPinDrop: (coords: Coordinates, address: string) => void;
 }
@@ -114,7 +114,7 @@ export function RideMap({ label, initialCoordinates, onPinDrop }: RideMapProps) 
 
   return (
     <div className="space-y-2">
-      <label className="block text-label text-content-secondary">{label}</label>
+      {label && <label className="block text-label text-content-secondary">{label}</label>}
       <div ref={containerRef} className="w-full h-48 rounded-xl border border-border-default z-0" />
       {loading && <p className="text-caption text-content-muted">Getting address…</p>}
       {address && !loading && (

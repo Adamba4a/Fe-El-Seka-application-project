@@ -89,7 +89,7 @@
 **Independent Test**: Log in as a verified driver, walk through dashboard â†’ create â†’ detail â†’ edit â†’ cancel at 375px â€” no horizontal overflow, all interactive elements â‰¥44Ã—44px, BottomSheet opens/closes within 300ms, empty state visible before first ride. `pnpm --filter main typecheck` exits 0.
 
 - [x] T028 [US3] Polish `apps/main/src/components/rides/RideMap.tsx` â€” set map container to `position: fixed; inset: 0; z-index: 0` (full-screen background); OSM tile graceful fallback (gray background placeholder when tiles fail â€” Leaflet default); ensure `dynamic` import with `ssr: false` is in place for Next.js 14; apply token classes to any overlaid UI elements
-- [x] T029 [US3] Polish `apps/main/src/app/(driver)/rides/page.tsx` (dashboard) â€” add empty state: when the rides list is empty, render a centered illustration SVG + "No rides yet" heading + "Post your first ride" `<Link>` button (â†’ `/rides/new`) styled as `bg-brand-primary text-white`; rides list renders each ride as `<RideCard ride={ride} />` imported from `@/components`; add status filter tabs (`All`, `Scheduled`, `In Progress`, `Completed`, `Cancelled`) in token classes above the list; apply token classes throughout
+- [x] T029 [US3] Polish `apps/main/src/app/(driver)/rides/page.tsx` (dashboard) â€” add empty state: when the rides list is empty, render a centered illustration SVG + "No rides yet" heading + "Post your first ride" `<Link>` button (â†’ `/rides/new`) styled as `bg-brand-primary text-content-inverse`; rides list renders each ride as `<RideCard ride={ride} />` imported from `@/components`; add status filter tabs (`All`, `Scheduled`, `In Progress`, `Completed`, `Cancelled`) in token classes above the list; apply token classes throughout
 - [x] T030 [US3] Polish `apps/main/src/app/(driver)/rides/new/page.tsx` (create ride) â€” compose `<RideMap />` as full-screen background and `<BottomSheet isOpen={true} onClose={â€¦} maxHeightPercent={65}>` containing `<RideForm />` imported from rides components; BottomSheet should default open on page load and be collapsible to reveal the map; after map pin drop, pass reverse-geocoded address labels as props to `RideForm`; apply token classes to page wrapper; loading + error states on form submit per FR-022
 - [x] T031 [US3] Polish `apps/main/src/components/rides/RideForm.tsx` â€” apply token classes to all inputs, labels, and the submit button; submit button shows loading spinner + disabled while pending; inline field-level error messages in `text-content-destructive`; price input labeled "EGP per seat"
 - [x] T032 [US3] Polish `apps/main/src/app/(driver)/rides/[id]/page.tsx` (detail) â€” import `RideStatusBadge`, `RideHistoryLog`, `StartCompleteActions`, `BottomSheet` from `@/components`; add "Cancel Ride" button (only visible for `scheduled` status) that sets `isCancelOpen=true` on a `BottomSheet`; inside the `BottomSheet`: "Cancel Ride" heading, `<textarea>` for cancellation reason (`border-border-default`), confirm button disabled until reason is non-empty, loading state on confirm submit, close button calls `onClose`; apply token classes throughout the page
@@ -105,10 +105,10 @@
 
 **Purpose**: Cross-cutting quality gate â€” ensure the complete app passes all spec acceptance criteria.
 
-- [ ] T036 Run token validation grep (quickstart.md step 3) across `apps/main/src/components` and `apps/main/src/app` â€” expected: zero matches; any match is a violation that must be fixed before proceeding
-- [ ] T037 Run final `pnpm --filter main build` with a valid `.env.local` (containing `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`) â€” zero TypeScript errors and successful page generation across the entire `apps/main` package (FR-023 / SC-004); on Windows, EPERM on standalone symlinks is a known platform limitation and does not count as a failure if TypeScript and page generation both pass
-- [ ] T038 [P] Verify `BottomSheet` animation runs on the compositor thread (quickstart.md step 7) â€” open Chrome DevTools Performance panel, record BottomSheet open and close, confirm `transform` animation frames appear in the Compositor lane (green), total duration â‰¤300ms (NFR-003)
-- [ ] T039 [P] Run Lighthouse mobile audit on `/login`, `/rides`, and `/rides/new` (quickstart.md step 8) â€” verify CLS â‰¤0.1 on each screen (NFR-005)
+- [x] T036 Run token validation grep (quickstart.md step 3) across `apps/main/src/components` and `apps/main/src/app` â€” expected: zero matches; any match is a violation that must be fixed before proceeding
+- [x] T037 Run final `pnpm --filter main build` with a valid `.env.local` (containing `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`) â€” zero TypeScript errors and successful page generation across the entire `apps/main` package (FR-023 / SC-004); on Windows, EPERM on standalone symlinks is a known platform limitation and does not count as a failure if TypeScript and page generation both pass
+- [x] T038 [P] Verify `BottomSheet` animation runs on the compositor thread (quickstart.md step 7) â€” open Chrome DevTools Performance panel, record BottomSheet open and close, confirm `transform` animation frames appear in the Compositor lane (green), total duration â‰¤300ms (NFR-003)
+- [x] T039 [P] Run Lighthouse mobile audit on `/login`, `/rides`, and `/rides/new` (quickstart.md step 8) â€” verify CLS â‰¤0.1 on each screen (NFR-005)
 
 ---
 
@@ -215,4 +215,6 @@ For each screen or component being polished, the recommended workflow is:
 - The `BottomSheet` (T006) is the most complex new component â€” build and test it in isolation before integrating into ride screens (T030, T032)
 - `StartCompleteActions` (T010) requires testing the loading/disabled state manually â€” the async handlers are provided by the parent screen, not the component
 - Avoid: editing the same file in parallel tasks, adding business logic to frontend components, using `any` types in prop interfaces
+
+
 

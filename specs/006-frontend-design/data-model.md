@@ -20,6 +20,7 @@ All tokens are defined as CSS custom properties on `:root` in `apps/main/src/app
 | `--color-surface-bg` | `surface-bg` | Surface | Page background |
 | `--color-surface-card` | `surface-card` | Surface | Card and panel backgrounds |
 | `--color-surface-overlay` | `surface-overlay` | Surface | BottomSheet backdrop |
+| `--color-surface-destructive` | `surface-destructive` | Surface | Background for destructive action buttons |
 | `--color-text-primary` | `text-primary` | Text | Main body and heading text |
 | `--color-text-secondary` | `text-secondary` | Text | Supporting text |
 | `--color-text-muted` | `text-muted` | Text | Captions, timestamps, placeholder |

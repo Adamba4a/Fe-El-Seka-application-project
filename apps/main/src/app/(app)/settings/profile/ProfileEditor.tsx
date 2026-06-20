@@ -8,6 +8,9 @@ import type { Profile, Vehicle, VehicleUpdateRequestRecord } from "@fe-el-seka/s
 
 const currentYear = new Date().getFullYear();
 
+const inputClass =
+  "border border-border-default rounded-xl px-2 py-1 text-body-sm text-right outline-none focus:border-border-focus transition-colors";
+
 // ─── Quick edit: color + seat_count ──────────────────────────────────────────
 
 function QuickEditForm({ vehicle, token, onSaved, onClose }: {
@@ -41,18 +44,20 @@ function QuickEditForm({ vehicle, token, onSaved, onClose }: {
   return (
     <div className="space-y-3 pt-1">
       <Field label="Color">
-        <input value={color} onChange={(e) => setColor(e.target.value)}
-          className="w-32 border rounded-md px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <input value={color} onChange={(e) => setColor(e.target.value)} className={`w-32 ${inputClass}`} />
       </Field>
       <Field label="Seats (excl. driver)">
         <input type="number" min={2} max={7} value={seatCount} onChange={(e) => setSeatCount(e.target.value)}
-          className="w-16 border rounded-md px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          className={`w-16 ${inputClass}`} />
       </Field>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-caption text-content-destructive">{error}</p>}
       <div className="flex gap-2 pt-1">
-        <button onClick={onClose} className="flex-1 border border-gray-300 rounded-lg py-2 text-sm text-gray-700 hover:bg-gray-100">Cancel</button>
+        <button onClick={onClose}
+          className="flex-1 border border-border-default rounded-xl py-2 text-body-sm text-content-secondary hover:bg-surface-bg transition-colors">
+          Cancel
+        </button>
         <button onClick={handleSave} disabled={saving}
-          className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50 hover:bg-blue-700">
+          className="flex-1 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-2 text-body-sm font-medium disabled:opacity-50 transition-colors">
           {saving ? "Saving…" : "Save"}
         </button>
       </div>
@@ -96,30 +101,30 @@ function StructuralEditForm({ vehicle, token, onSubmitted, onClose }: {
 
   return (
     <div className="space-y-3 pt-1">
-      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
+      <p className="text-caption text-status-in-progress bg-status-in-progress-bg border border-border-default rounded-xl p-2">
         Changes to plate number, make, model, or year require admin review before taking effect.
       </p>
       <Field label="Plate Number">
-        <input value={plate} onChange={(e) => setPlate(e.target.value)}
-          className="w-36 border rounded-md px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <input value={plate} onChange={(e) => setPlate(e.target.value)} className={`w-36 ${inputClass}`} />
       </Field>
       <Field label="Make">
-        <input value={make} onChange={(e) => setMake(e.target.value)}
-          className="w-32 border rounded-md px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <input value={make} onChange={(e) => setMake(e.target.value)} className={`w-32 ${inputClass}`} />
       </Field>
       <Field label="Model">
-        <input value={model} onChange={(e) => setModel(e.target.value)}
-          className="w-32 border rounded-md px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <input value={model} onChange={(e) => setModel(e.target.value)} className={`w-32 ${inputClass}`} />
       </Field>
       <Field label="Year">
         <input type="number" min={2000} max={currentYear + 1} value={year} onChange={(e) => setYear(e.target.value)}
-          className="w-20 border rounded-md px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          className={`w-20 ${inputClass}`} />
       </Field>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-caption text-content-destructive">{error}</p>}
       <div className="flex gap-2 pt-1">
-        <button onClick={onClose} className="flex-1 border border-gray-300 rounded-lg py-2 text-sm text-gray-700 hover:bg-gray-100">Cancel</button>
+        <button onClick={onClose}
+          className="flex-1 border border-border-default rounded-xl py-2 text-body-sm text-content-secondary hover:bg-surface-bg transition-colors">
+          Cancel
+        </button>
         <button onClick={handleSubmit} disabled={saving}
-          className="flex-1 bg-amber-600 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50 hover:bg-amber-700">
+          className="flex-1 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-2 text-body-sm font-medium disabled:opacity-50 transition-colors">
           {saving ? "Submitting…" : "Submit for Review"}
         </button>
       </div>
@@ -141,13 +146,13 @@ function VehicleSection({ vehicle: initialVehicle, pendingUpdate: initialPending
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold text-gray-900">Vehicle</h2>
+        <h2 className="font-semibold text-content-primary">Vehicle</h2>
         {editMode === "none" && (
-          <button onClick={() => setEditMode("quick")} className="text-sm text-blue-600 hover:underline">Edit</button>
+          <button onClick={() => setEditMode("quick")} className="text-body-sm text-brand-primary hover:underline">Edit</button>
         )}
       </div>
 
-      <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+      <div className="bg-surface-bg rounded-xl p-4 space-y-2 text-body-sm">
         <Row label="Plate" value={initialVehicle.plate_number} />
         <Row label="Make" value={initialVehicle.make} />
         <Row label="Model" value={initialVehicle.model} />
@@ -156,7 +161,7 @@ function VehicleSection({ vehicle: initialVehicle, pendingUpdate: initialPending
         <Row label="Seats (excl. driver)" value={String(initialVehicle.seat_count)} />
 
         {initialPending && editMode === "none" && (
-          <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 space-y-1">
+          <div className="mt-2 p-2 bg-status-in-progress-bg border border-border-default rounded-xl text-caption text-status-in-progress space-y-1">
             <p className="font-semibold">Registration change pending review</p>
             {initialPending.plate_number && <p>Plate: {initialPending.plate_number}</p>}
             {initialPending.make && <p>Make: {initialPending.make}</p>}
@@ -170,7 +175,7 @@ function VehicleSection({ vehicle: initialVehicle, pendingUpdate: initialPending
             <QuickEditForm vehicle={initialVehicle} token={token} onSaved={onVehicleSaved} onClose={() => setEditMode("none")} />
             {!initialPending && (
               <button onClick={() => setEditMode("structural")}
-                className="w-full text-xs text-amber-700 border border-amber-300 rounded-lg py-1.5 hover:bg-amber-50 mt-1">
+                className="w-full text-caption text-status-in-progress border border-border-default rounded-xl py-1.5 hover:bg-status-in-progress-bg mt-1 transition-colors">
                 Change plate / make / model / year (requires review)
               </button>
             )}
@@ -195,8 +200,8 @@ function VehicleSection({ vehicle: initialVehicle, pendingUpdate: initialPending
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-gray-500">{label}</span>
-      <span className="font-medium text-gray-900">{value}</span>
+      <span className="text-content-muted">{label}</span>
+      <span className="font-medium text-content-primary">{value}</span>
     </div>
   );
 }
@@ -204,7 +209,7 @@ function Row({ label, value }: { label: string; value: string }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-gray-500">{label}</span>
+      <span className="text-content-muted">{label}</span>
       {children}
     </div>
   );
@@ -237,10 +242,10 @@ export function ProfileEditor({
   return (
     <main className="max-w-sm mx-auto p-6 space-y-6">
       <div className="flex items-center gap-3">
-        <a href="/rides" className="text-gray-500 hover:text-gray-700 text-lg leading-none">←</a>
-        <h1 className="text-xl font-bold">Edit Profile</h1>
+        <a href="/rides" className="text-content-muted hover:text-content-secondary text-lg leading-none">←</a>
+        <h1 className="text-h3 text-content-primary">Edit Profile</h1>
       </div>
-      {saved && <p className="text-green-600 text-sm">Profile saved!</p>}
+      {saved && <p className="text-body-sm text-status-completed">Profile saved!</p>}
       <ProfileForm
         defaultValues={{ display_name: initialProfile.display_name, profile_photo_url: initialProfile.profile_photo_url }}
         onSubmit={handleProfileSubmit}
