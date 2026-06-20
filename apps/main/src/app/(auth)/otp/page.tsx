@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
 import { OtpInput } from "@/components/auth/OtpInput";
 import { verifyOtp, requestOtp } from "@/lib/api/auth";
-import { createClient } from "@/lib/supabase/client";
 
 export default function OtpPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,9 +13,9 @@ export default function OtpPage() {
 
   useEffect(() => {
     const e = sessionStorage.getItem("otp_email");
-    if (!e) router.replace("/login");
+    if (!e) window.location.replace("/login");
     else setEmail(e);
-  }, [router]);
+  }, []);
 
   const handleComplete = async (otp: string) => {
     if (loading) return;
@@ -25,17 +23,28 @@ export default function OtpPage() {
     setError("");
     try {
       const session = await verifyOtp(email, otp);
-      const supabase = createClient();
-      await supabase.auth.setSession({
+      const redirectTo = session.user.is_new_user ? "/role-select" : "/";
+
+      // Set the Supabase session in browser cookies so the middleware can
+      // read it on the next navigation. The fixed cookieOptions.name keeps
+      // this in sync with the server client used in middleware.ts.
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { cookieOptions: { name: "sb-fe-el-seka-auth" } }
+      );
+      const { error: sessionError } = await supabase.auth.setSession({
         access_token: session.access_token,
         refresh_token: session.refresh_token,
       });
-      sessionStorage.removeItem("otp_email");
-      if (session.user.is_new_user) {
-        router.replace("/role-select");
-      } else {
-        router.replace("/");
+
+      if (sessionError) {
+        setError(sessionError.message ?? "Could not establish session. Please try again.");
+        return;
       }
+
+      sessionStorage.removeItem("otp_email");
+      window.location.replace(redirectTo);
     } catch (err: unknown) {
       const e = err as { error?: string; message?: string };
       if (e?.error === "otp_expired") {

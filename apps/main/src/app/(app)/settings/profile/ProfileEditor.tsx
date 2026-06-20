@@ -3,25 +3,16 @@
 import { useState } from "react";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { updateMe, uploadPhoto } from "@/lib/api/profiles";
-import { updateMyVehicle, requestVehicleUpdate, getPendingVehicleUpdate } from "@/lib/api/vehicles";
-import { createClient } from "@/lib/supabase/client";
+import { updateMyVehicle, requestVehicleUpdate } from "@/lib/api/vehicles";
 import type { Profile, Vehicle, VehicleUpdateRequestRecord } from "@fe-el-seka/shared";
 
 const currentYear = new Date().getFullYear();
 
-async function getToken(): Promise<string | null> {
-  const supabase = createClient();
-  // getUser() validates against the auth server, preventing stale localStorage tokens
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (!user || error) return null;
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
-}
-
 // ─── Quick edit: color + seat_count ──────────────────────────────────────────
 
-function QuickEditForm({ vehicle, onSaved, onClose }: {
+function QuickEditForm({ vehicle, token, onSaved, onClose }: {
   vehicle: Vehicle;
+  token: string;
   onSaved: (v: Vehicle) => void;
   onClose: () => void;
 }) {
@@ -34,8 +25,6 @@ function QuickEditForm({ vehicle, onSaved, onClose }: {
     setSaving(true);
     setError(null);
     try {
-      const token = await getToken();
-      if (!token) return;
       const updated = await updateMyVehicle(token, {
         color: color.trim() || undefined,
         seat_count: seatCount ? Number(seatCount) : undefined,
@@ -73,8 +62,9 @@ function QuickEditForm({ vehicle, onSaved, onClose }: {
 
 // ─── Structural edit: plate + make + model + year (requires review) ───────────
 
-function StructuralEditForm({ vehicle, onSubmitted, onClose }: {
+function StructuralEditForm({ vehicle, token, onSubmitted, onClose }: {
   vehicle: Vehicle;
+  token: string;
   onSubmitted: (req: VehicleUpdateRequestRecord) => void;
   onClose: () => void;
 }) {
@@ -89,8 +79,6 @@ function StructuralEditForm({ vehicle, onSubmitted, onClose }: {
     setSaving(true);
     setError(null);
     try {
-      const token = await getToken();
-      if (!token) return;
       const req = await requestVehicleUpdate(token, {
         plate_number: plate.trim() || undefined,
         make: make.trim() || undefined,
@@ -141,9 +129,10 @@ function StructuralEditForm({ vehicle, onSubmitted, onClose }: {
 
 // ─── Vehicle section ──────────────────────────────────────────────────────────
 
-function VehicleSection({ vehicle: initialVehicle, pendingUpdate: initialPending, onVehicleSaved, onUpdateRequested }: {
+function VehicleSection({ vehicle: initialVehicle, pendingUpdate: initialPending, token, onVehicleSaved, onUpdateRequested }: {
   vehicle: Vehicle;
   pendingUpdate: VehicleUpdateRequestRecord | null;
+  token: string;
   onVehicleSaved: (v: Vehicle) => void;
   onUpdateRequested: (req: VehicleUpdateRequestRecord) => void;
 }) {
@@ -178,7 +167,7 @@ function VehicleSection({ vehicle: initialVehicle, pendingUpdate: initialPending
 
         {editMode === "quick" && (
           <>
-            <QuickEditForm vehicle={initialVehicle} onSaved={onVehicleSaved} onClose={() => setEditMode("none")} />
+            <QuickEditForm vehicle={initialVehicle} token={token} onSaved={onVehicleSaved} onClose={() => setEditMode("none")} />
             {!initialPending && (
               <button onClick={() => setEditMode("structural")}
                 className="w-full text-xs text-amber-700 border border-amber-300 rounded-lg py-1.5 hover:bg-amber-50 mt-1">
@@ -191,6 +180,7 @@ function VehicleSection({ vehicle: initialVehicle, pendingUpdate: initialPending
         {editMode === "structural" && (
           <StructuralEditForm
             vehicle={initialVehicle}
+            token={token}
             onSubmitted={(req) => { onUpdateRequested(req); setEditMode("none"); }}
             onClose={() => setEditMode("quick")}
           />
@@ -226,20 +216,20 @@ export function ProfileEditor({
   initialProfile,
   initialVehicle,
   initialPendingUpdate,
+  accessToken,
 }: {
   initialProfile: Profile;
   initialVehicle: Vehicle | null;
   initialPendingUpdate: VehicleUpdateRequestRecord | null;
+  accessToken: string;
 }) {
   const [vehicle, setVehicle] = useState(initialVehicle);
   const [pendingUpdate, setPendingUpdate] = useState(initialPendingUpdate);
   const [saved, setSaved] = useState(false);
 
   const handleProfileSubmit = async ({ display_name }: { display_name: string }, photo: File | null) => {
-    const token = await getToken();
-    if (!token) return;
-    await updateMe(token, { display_name });
-    if (photo) await uploadPhoto(token, photo);
+    await updateMe(accessToken, { display_name });
+    if (photo) await uploadPhoto(accessToken, photo);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -260,6 +250,7 @@ export function ProfileEditor({
         <VehicleSection
           vehicle={vehicle}
           pendingUpdate={pendingUpdate}
+          token={accessToken}
           onVehicleSaved={setVehicle}
           onUpdateRequested={setPendingUpdate}
         />

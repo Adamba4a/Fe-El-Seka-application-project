@@ -7,20 +7,27 @@ services:
       context: services/api
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     env_file: services/api/.env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@supabase_db_fe-el-seka:5432/postgres
+      SUPABASE_URL: http://supabase_kong_fe-el-seka:8000
     volumes:
       - ./services/api/app:/app/app
     networks:
       - fe-el-seka-dev
+      - supabase_network_fe-el-seka
 
   ai:
     build:
       context: services/ai
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     env_file: services/ai/.env
+    environment:
+      SUPABASE_URL: http://supabase_kong_fe-el-seka:8000
     volumes:
       - ./services/ai/app:/app/app
     networks:
       - fe-el-seka-dev
+      - supabase_network_fe-el-seka
 
   main:
     build:
@@ -29,12 +36,15 @@ services:
       target: deps
     command: ["pnpm", "--filter", "@fe-el-seka/main", "dev"]
     env_file: apps/main/.env
+    environment:
+      SUPABASE_INTERNAL_URL: http://supabase_kong_fe-el-seka:8000
     volumes:
       - ./apps/main/src:/app/apps/main/src
       - ./apps/main/public:/app/apps/main/public
       - ./packages:/app/packages
     networks:
       - fe-el-seka-dev
+      - supabase_network_fe-el-seka
 
   nginx:
     image: nginx:1.27-alpine
@@ -52,3 +62,5 @@ services:
 networks:
   fe-el-seka-dev:
     driver: bridge
+  supabase_network_fe-el-seka:
+    external: true

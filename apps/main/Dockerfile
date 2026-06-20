@@ -4,9 +4,9 @@ WORKDIR /app
 
 RUN corepack enable pnpm
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages/ ./packages/
-COPY apps/main/package.json ./apps/main/package.json
+COPY apps/main/package.json apps/main/next.config.mjs apps/main/tsconfig.json apps/main/postcss.config.mjs apps/main/tailwind.config.ts ./apps/main/
 
 RUN pnpm install --frozen-lockfile
 
