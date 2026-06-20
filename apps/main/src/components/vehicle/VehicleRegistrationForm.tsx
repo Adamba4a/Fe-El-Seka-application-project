@@ -16,9 +16,9 @@ const schema = z.object({
     ),
   make: z.string().min(1, "Required"),
   model: z.string().min(1, "Required"),
-  year: z.coerce.number().int().min(2000, "Min year 2000").max(currentYear, `Max year ${currentYear}`),
+  year: z.number().int().min(2000, "Min year 2000").max(currentYear, `Max year ${currentYear}`),
   color: z.string().min(1, "Required"),
-  seat_count: z.coerce.number().int().min(2, "Min 2 seats").max(7, "Max 7 seats"),
+  seat_count: z.number().int().min(2, "Min 2 seats").max(7, "Max 7 seats"),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -47,7 +47,7 @@ export function VehicleRegistrationForm({ onSubmit }: VehicleRegistrationFormPro
         <div key={key} className="flex flex-col gap-1">
           <label className="text-sm font-medium">{label}</label>
           <input
-            {...register(key)}
+            {...register(key, type === "number" ? { valueAsNumber: true } : {})}
             type={type ?? "text"}
             placeholder={placeholder}
             className="px-3 py-2 border rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500"

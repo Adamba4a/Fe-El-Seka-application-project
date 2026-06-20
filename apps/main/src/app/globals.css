@@ -1,3 +1,37 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  /* Brand */
+  --color-brand-primary:           #1B3A6B;
+  --color-brand-primary-hover:     #2D5AA8;
+  --color-brand-accent:            #E8A217;
+
+  /* Surfaces */
+  --color-surface-bg:              #F8F9FA;
+  --color-surface-card:            #FFFFFF;
+  --color-surface-overlay:         rgba(0, 0, 0, 0.50);
+
+  /* Text */
+  --color-text-primary:            #111827;
+  --color-text-secondary:          #374151;
+  --color-text-muted:              #6B7280;
+  --color-text-destructive:        #DC2626;
+
+  /* Borders */
+  --color-border-default:          #E5E7EB;
+  --color-border-focus:            #2D5AA8;
+
+  /* Status — text/icon */
+  --color-status-scheduled:        #2563EB;
+  --color-status-in-progress:      #D97706;
+  --color-status-completed:        #16A34A;
+  --color-status-cancelled:        #DC2626;
+
+  /* Status — badge backgrounds */
+  --color-status-scheduled-bg:     #DBEAFE;
+  --color-status-in-progress-bg:   #FEF3C7;
+  --color-status-completed-bg:     #DCFCE7;
+  --color-status-cancelled-bg:     #FEE2E2;
+}
