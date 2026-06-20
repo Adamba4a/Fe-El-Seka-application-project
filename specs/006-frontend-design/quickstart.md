@@ -29,11 +29,22 @@ The main app is available at `http://localhost:3000`.
 
 ## 2. Build Quality Gate (run first)
 
+Ensure `apps/main/.env.local` contains all four required variables before running the build:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+NEXT_PUBLIC_API_URL=http://localhost
+NEXT_PUBLIC_NOMINATIM_URL=https://nominatim.openstreetmap.org
+```
+
+`NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_SUPABASE_*` are validated at server startup by `src/lib/env.ts` — the build crashes with a missing-variable error without them. `NEXT_PUBLIC_NOMINATIM_URL` has a public fallback but should be set explicitly. `BACKEND_INTERNAL_URL` is optional (falls back to `NEXT_PUBLIC_API_URL`).
+
 ```bash
 pnpm --filter main build
 ```
 
-**Expected**: Exits with code 0. Zero TypeScript errors. Zero TypeScript warnings.
+**Expected**: Exits with code 0. Zero TypeScript errors. All 18 pages generated successfully.
 
 If this fails, stop — do not proceed with visual validation until the build passes.
 
