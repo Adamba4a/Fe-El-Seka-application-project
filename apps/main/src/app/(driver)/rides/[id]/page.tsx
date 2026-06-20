@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { getRide } from "@/lib/api/rides";
+import { getRide, startRide, completeRide } from "@/lib/api/rides";
 import { RideStatusBadge } from "@/components/rides/RideStatusBadge";
 import { RideHistoryLog } from "@/components/rides/RideHistoryLog";
 import { StartCompleteActions } from "@/components/rides/StartCompleteActions";
@@ -62,6 +62,23 @@ export default function RideDetailPage() {
       </div>
     );
   }
+
+  // ride: Ride (narrowed — safe to use in closures below)
+  const handleStart = async () => {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const updated = await startRide(session.access_token, ride.id);
+    setRide(updated);
+  };
+
+  const handleComplete = async () => {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const updated = await completeRide(session.access_token, ride.id);
+    setRide(updated);
+  };
 
   return (
     <div className="space-y-6">
@@ -128,13 +145,18 @@ export default function RideDetailPage() {
           </div>
         )}
 
-        <StartCompleteActions ride={ride} onRideUpdate={setRide} />
+        <StartCompleteActions
+          rideId={ride.id}
+          status={ride.status}
+          onStart={handleStart}
+          onComplete={handleComplete}
+        />
       </div>
 
       {/* History */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
         <h2 className="font-semibold text-gray-900">History</h2>
-        <RideHistoryLog history={history} />
+        <RideHistoryLog entries={history} />
       </div>
     </div>
   );

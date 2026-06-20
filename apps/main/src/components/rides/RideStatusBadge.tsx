@@ -1,10 +1,10 @@
 import type { RideStatus } from "@fe-el-seka/shared";
 
 const STATUS_STYLES: Record<RideStatus, string> = {
-  scheduled: "bg-blue-100 text-blue-800",
-  in_progress: "bg-yellow-100 text-yellow-800",
-  completed: "bg-green-100 text-green-800",
-  cancelled: "bg-red-100 text-red-800",
+  scheduled:   "bg-status-scheduled-bg text-status-scheduled",
+  in_progress: "bg-status-in-progress-bg text-status-in-progress",
+  completed:   "bg-status-completed-bg text-status-completed",
+  cancelled:   "bg-status-cancelled-bg text-status-cancelled",
 };
 
 const STATUS_LABELS: Record<RideStatus, string> = {
