@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { createRide } from "@/lib/api/rides";
 import { getMyVehicle } from "@/lib/api/vehicles";
 import { RideForm } from "@/components/rides/RideForm";
+import { BottomSheet } from "@/components";
 import type { CreateRidePayload } from "@fe-el-seka/shared";
 
 export default function NewRidePage() {
@@ -13,6 +14,7 @@ export default function NewRidePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [vehicleChecked, setVehicleChecked] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(true);
 
   useEffect(() => {
     const checkVehicle = async () => {
@@ -35,10 +37,7 @@ export default function NewRidePage() {
     try {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push("/login");
-        return;
-      }
+      if (!session) { router.push("/login"); return; }
       const ride = await createRide(session.access_token, payload);
       router.push(`/rides/${ride.id}`);
     } catch (err: any) {
@@ -50,24 +49,66 @@ export default function NewRidePage() {
   };
 
   if (!vehicleChecked) {
-    return <div className="h-48 bg-gray-100 rounded-xl animate-pulse m-4" />;
+    return (
+      <div className="fixed inset-0 z-20 bg-surface-bg flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-700">
-          ←
-        </button>
-        <h1 className="text-xl font-bold text-gray-900">Post a Ride</h1>
+    <>
+      {/* Full-screen map background — tap to reopen the form sheet */}
+      <div
+        className="fixed inset-0 z-20 bg-surface-bg flex flex-col items-center justify-center gap-3 cursor-pointer"
+        onClick={() => setSheetOpen(true)}
+      >
+        <svg
+          className="w-12 h-12 text-content-muted"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+          />
+        </svg>
+        {!sheetOpen && (
+          <p className="text-body-sm text-content-muted">Tap to open form</p>
+        )}
       </div>
 
-      <RideForm
-        mode="create"
-        loading={loading}
-        error={error}
-        onSubmit={handleSubmit as any}
-      />
-    </div>
+      {/* BottomSheet with ride creation form */}
+      <BottomSheet isOpen={sheetOpen} onClose={() => setSheetOpen(false)} maxHeightPercent={80}>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="text-content-muted hover:text-content-secondary"
+            >
+              ←
+            </button>
+            <h1 className="text-h3 text-content-primary">Post a Ride</h1>
+          </div>
+
+          <RideForm
+            mode="create"
+            loading={loading}
+            error={error}
+            onSubmit={handleSubmit as any}
+          />
+        </div>
+      </BottomSheet>
+    </>
   );
 }

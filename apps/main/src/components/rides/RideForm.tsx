@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { Spinner } from "@/components/ui/Spinner";
 import type { CreateRidePayload, EditRidePayload, Location, Coordinates } from "@fe-el-seka/shared";
 
 const RideMap = dynamic(
   () => import("./RideMap").then((m) => ({ default: m.RideMap })),
-  { ssr: false, loading: () => <div className="w-full h-48 bg-gray-100 rounded-lg animate-pulse" /> }
+  { ssr: false, loading: () => <div className="w-full h-48 bg-surface-bg rounded-xl animate-pulse" /> }
 );
 
 interface RideFormProps {
@@ -23,14 +24,15 @@ interface RideFormProps {
   loading?: boolean;
   error?: string | null;
   onSubmit: (payload: CreateRidePayload | EditRidePayload) => void;
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 function toDatetimeLocal(iso?: string): string {
   if (!iso) return "";
-  return iso.substring(0, 16); // "YYYY-MM-DDTHH:MM"
+  return iso.substring(0, 16);
 }
 
-export function RideForm({ mode, initialValues, maxSeats = 7, loading, error, onSubmit }: RideFormProps) {
+export function RideForm({ mode, initialValues, maxSeats = 7, loading, error, onSubmit, onDirtyChange }: RideFormProps) {
   const [origin, setOrigin] = useState<Location | undefined>(initialValues?.origin);
   const [destination, setDestination] = useState<Location | undefined>(initialValues?.destination);
   const [departureRaw, setDepartureRaw] = useState(toDatetimeLocal(initialValues?.departure_datetime));
@@ -38,6 +40,18 @@ export function RideForm({ mode, initialValues, maxSeats = 7, loading, error, on
   const [pricePerSeat, setPricePerSeat] = useState(initialValues?.price_per_seat ?? "");
   const [notes, setNotes] = useState(initialValues?.notes ?? "");
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Dirty-field detection for edit mode
+  useEffect(() => {
+    if (mode !== "edit" || !onDirtyChange) return;
+    const isDirty =
+      (destination?.address ?? "") !== (initialValues?.destination?.address ?? "") ||
+      departureRaw !== toDatetimeLocal(initialValues?.departure_datetime) ||
+      totalSeats !== (initialValues?.total_seats ?? 1) ||
+      pricePerSeat !== (initialValues?.price_per_seat ?? "") ||
+      notes.trim() !== (initialValues?.notes ?? "").trim();
+    onDirtyChange(isDirty);
+  }, [mode, destination, departureRaw, totalSeats, pricePerSeat, notes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleOriginPin = (coords: Coordinates, address: string) => {
     setOrigin({ coordinates: coords, address });
@@ -105,6 +119,8 @@ export function RideForm({ mode, initialValues, maxSeats = 7, loading, error, on
 
   const displayError = validationError ?? error;
 
+  const inputClass = "w-full border border-border-default rounded-xl px-3 py-2 text-body-sm outline-none focus:border-border-focus transition-colors";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {mode === "create" ? (
@@ -115,11 +131,11 @@ export function RideForm({ mode, initialValues, maxSeats = 7, loading, error, on
         />
       ) : (
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700">Origin</label>
-          <p className="text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2">
+          <label className="block text-label text-content-secondary">Origin</label>
+          <p className="text-body-sm text-content-secondary bg-surface-bg rounded-xl px-3 py-2">
             📍 {initialValues?.origin?.address ?? "—"}
           </p>
-          <p className="text-xs text-gray-400">Origin cannot be changed after posting.</p>
+          <p className="text-caption text-content-muted">Origin cannot be changed after posting.</p>
         </div>
       )}
 
@@ -130,19 +146,19 @@ export function RideForm({ mode, initialValues, maxSeats = 7, loading, error, on
       />
 
       <div className="space-y-1">
-        <label className="block text-sm font-medium text-gray-700">Departure Date &amp; Time</label>
+        <label className="block text-label text-content-secondary">Departure Date &amp; Time</label>
         <input
           type="datetime-local"
           value={departureRaw}
           onChange={(e) => setDepartureRaw(e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputClass}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700">
-            Seats <span className="text-gray-400">(max {maxSeats})</span>
+          <label className="block text-label text-content-secondary">
+            Seats <span className="text-content-muted">(max {maxSeats})</span>
           </label>
           <input
             type="number"
@@ -150,12 +166,12 @@ export function RideForm({ mode, initialValues, maxSeats = 7, loading, error, on
             max={maxSeats}
             value={totalSeats}
             onChange={(e) => setTotalSeats(Number(e.target.value))}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputClass}
           />
         </div>
 
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700">Price/Seat (EGP)</label>
+          <label className="block text-label text-content-secondary">EGP per seat</label>
           <input
             type="number"
             min={0.01}
@@ -163,38 +179,35 @@ export function RideForm({ mode, initialValues, maxSeats = 7, loading, error, on
             value={pricePerSeat}
             onChange={(e) => setPricePerSeat(e.target.value)}
             placeholder="e.g. 45"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputClass}
           />
         </div>
       </div>
 
       <div className="space-y-1">
-        <label className="block text-sm font-medium text-gray-700">Notes (optional)</label>
+        <label className="block text-label text-content-secondary">Notes (optional)</label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={2}
           placeholder="e.g. No smoking, women only…"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          className={`${inputClass} resize-none`}
         />
       </div>
 
       {displayError && (
-        <p className="text-sm text-red-600">{displayError}</p>
+        <p className="text-body-sm text-content-destructive">{displayError}</p>
       )}
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-blue-600 text-white rounded-xl py-3 font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        className="w-full flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-colors"
       >
+        {loading && <Spinner />}
         {loading
-          ? mode === "create"
-            ? "Posting ride…"
-            : "Saving changes…"
-          : mode === "create"
-          ? "Post Ride"
-          : "Save Changes"}
+          ? mode === "create" ? "Posting ride…" : "Saving changes…"
+          : mode === "create" ? "Post Ride" : "Save Changes"}
       </button>
     </form>
   );

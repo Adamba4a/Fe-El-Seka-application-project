@@ -7,13 +7,13 @@ export function LockoutMessage({ lockoutMessage, supportEmail }: LockoutMessageP
   const email = supportEmail ?? lockoutMessage.match(/[\w.+-]+@[\w-]+\.[\w.]+/)?.[0];
 
   return (
-    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2">
-      <p className="font-semibold text-amber-800">Submission limit reached</p>
-      <p className="text-sm text-amber-700">{lockoutMessage}</p>
+    <div className="bg-status-in-progress-bg border border-status-in-progress rounded-xl p-4 space-y-2">
+      <p className="text-label text-status-in-progress">Submission limit reached</p>
+      <p className="text-body-sm text-content-secondary">{lockoutMessage}</p>
       {email && (
         <a
           href={`mailto:${email}`}
-          className="inline-block text-sm text-blue-600 underline font-medium"
+          className="inline-block text-body-sm text-brand-primary underline font-medium"
         >
           Contact {email}
         </a>

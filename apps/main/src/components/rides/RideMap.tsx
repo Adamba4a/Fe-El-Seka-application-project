@@ -114,11 +114,11 @@ export function RideMap({ label, initialCoordinates, onPinDrop }: RideMapProps) 
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
-      <div ref={containerRef} className="w-full h-48 rounded-lg border border-gray-200 z-0" />
-      {loading && <p className="text-xs text-gray-400">Getting address…</p>}
+      <label className="block text-label text-content-secondary">{label}</label>
+      <div ref={containerRef} className="w-full h-48 rounded-xl border border-border-default z-0" />
+      {loading && <p className="text-caption text-content-muted">Getting address…</p>}
       {address && !loading && (
-        <p className="text-xs text-gray-600 truncate" title={address}>
+        <p className="text-caption text-content-secondary truncate" title={address}>
           📍 {address}
         </p>
       )}

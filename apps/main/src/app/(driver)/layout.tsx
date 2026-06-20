@@ -19,13 +19,13 @@ export default async function DriverLayout({ children }: { children: React.React
   if (!error && profile && profile.role !== "driver") redirect("/");
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+    <div className="min-h-screen bg-surface-bg">
+      <header className="bg-surface-card border-b border-border-default sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <span className="font-semibold text-gray-900">Fe El Seka</span>
+          <span className="font-semibold text-content-primary">Fe El Seka</span>
           <nav className="flex gap-4 text-sm">
-            <a href="/rides" className="text-blue-600 font-medium">My Rides</a>
-            <a href="/settings/profile" className="text-gray-500">Profile</a>
+            <a href="/rides" className="text-brand-primary font-medium">My Rides</a>
+            <a href="/settings/profile" className="text-content-muted">Profile</a>
           </nav>
         </div>
       </header>

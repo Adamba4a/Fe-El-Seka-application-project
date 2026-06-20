@@ -14,6 +14,7 @@ export default function EditRidePage() {
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -48,17 +49,17 @@ export default function EditRidePage() {
   };
 
   if (fetchError) {
-    return <p className="text-sm text-red-600 p-4">{fetchError}</p>;
+    return <p className="text-body-sm text-content-destructive p-4">{fetchError}</p>;
   }
 
   if (!ride) {
-    return <div className="h-48 bg-gray-100 rounded-xl animate-pulse m-4" />;
+    return <div className="h-48 bg-surface-bg rounded-xl animate-pulse m-4" />;
   }
 
   if (ride.status !== "scheduled") {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">Only scheduled rides can be edited.</p>
+        <p className="text-body-sm text-content-secondary">Only scheduled rides can be edited.</p>
       </div>
     );
   }
@@ -66,9 +67,34 @@ export default function EditRidePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-700">←</button>
-        <h1 className="text-xl font-bold text-gray-900">Edit Ride</h1>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-content-muted hover:text-content-secondary"
+        >
+          ←
+        </button>
+        <h1 className="text-h3 text-content-primary">Edit Ride</h1>
       </div>
+
+      {isDirty && (
+        <div className="bg-status-in-progress-bg border border-border-default rounded-xl px-4 py-3 flex items-center gap-2">
+          <svg
+            className="w-4 h-4 text-status-in-progress flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+            />
+          </svg>
+          <p className="text-body-sm text-status-in-progress font-medium">Unsaved changes</p>
+        </div>
+      )}
 
       <RideForm
         mode="edit"
@@ -83,6 +109,7 @@ export default function EditRidePage() {
         loading={loading}
         error={submitError}
         onSubmit={handleSubmit as any}
+        onDirtyChange={setIsDirty}
       />
     </div>
   );
