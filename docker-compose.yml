@@ -41,6 +41,7 @@ services:
     volumes:
       - ./apps/main/src:/app/apps/main/src
       - ./apps/main/public:/app/apps/main/public
+      - ./apps/main/tailwind.config.ts:/app/apps/main/tailwind.config.ts
       - ./packages:/app/packages
     networks:
       - fe-el-seka-dev

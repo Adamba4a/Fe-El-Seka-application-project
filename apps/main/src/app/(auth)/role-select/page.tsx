@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { RoleSelector } from "@/components/auth/RoleSelector";
 import { setupProfile } from "@/lib/api/profiles";
 import { createClient } from "@/lib/supabase/client";
+import { Spinner } from "@/components/ui/Spinner";
 
 export default function RoleSelectPage() {
   const router = useRouter();
@@ -26,7 +27,6 @@ export default function RoleSelectPage() {
         const e = err as { detail?: { error?: string; message?: string } | string; message?: string };
         const detail = typeof e?.detail === "object" ? e.detail : null;
         if (detail?.error === "already_exists") {
-          // Profile already created on a prior attempt — skip forward.
           router.push("/profile");
           return;
         }
@@ -35,7 +35,7 @@ export default function RoleSelectPage() {
         return;
       }
       router.push("/profile");
-    } catch (err: unknown) {
+    } catch {
       setError("Unexpected error. Please try again.");
     } finally {
       setLoading(false);
@@ -43,22 +43,23 @@ export default function RoleSelectPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
+    <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">How will you use Fe El Seka?</h1>
-          <p className="text-gray-500 text-sm mt-1">This cannot be changed later</p>
+          <h1 className="text-h2 text-content-primary">How will you use Fe El Seka?</h1>
+          <p className="text-body-sm text-content-muted mt-1">This cannot be changed later</p>
         </div>
 
         <RoleSelector value={role} onChange={setRole} />
 
-        {error && <p className="text-red-500 text-xs text-center">{error}</p>}
+        {error && <p className="text-caption text-content-destructive text-center">{error}</p>}
 
         <button
           onClick={handleContinue}
           disabled={!role || loading}
-          className="w-full py-2 px-4 bg-blue-600 text-white rounded-md font-medium disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
         >
+          {loading && <Spinner />}
           {loading ? "Saving…" : "Continue"}
         </button>
       </div>

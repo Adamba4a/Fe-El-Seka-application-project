@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { requestOtp } from "@/lib/api/auth";
+import { Spinner } from "@/components/ui/Spinner";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,16 +36,16 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
+    <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Sign in to Fe El Seka</h1>
-          <p className="text-gray-500 text-sm mt-1">Enter your email to receive a verification code</p>
+          <h1 className="text-h2 text-content-primary">Sign in to Fe El Seka</h1>
+          <p className="text-body-sm text-content-muted mt-1">Enter your email to receive a verification code</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Email address</label>
+            <label className="text-label text-content-secondary">Email address</label>
             <input
               type="email"
               inputMode="email"
@@ -52,16 +53,17 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
-              className="px-3 py-2 border rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+              className="px-3 py-2 border border-border-default rounded-md text-body-sm outline-none focus:border-border-focus disabled:bg-surface-bg transition-colors"
               autoComplete="email"
             />
-            {error && <p className="text-red-500 text-xs">{error}</p>}
+            {error && <p className="text-caption text-content-destructive">{error}</p>}
           </div>
           <button
             type="submit"
             disabled={loading || !email}
-            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md font-medium disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
           >
+            {loading && <Spinner />}
             {loading ? "Sending…" : "Send Code"}
           </button>
         </form>

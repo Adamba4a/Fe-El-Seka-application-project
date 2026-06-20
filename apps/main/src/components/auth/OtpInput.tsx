@@ -67,15 +67,15 @@ export function OtpInput({ length = 6, onComplete, disabled, error, expiresAt, o
             onChange={(e) => handleChange(i, e.target.value)}
             onKeyDown={(e) => handleKeyDown(i, e)}
             disabled={disabled}
-            className="w-10 h-12 text-center text-lg font-mono border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
+            className="w-10 h-12 text-center text-lg font-mono border border-border-default rounded-md focus:outline-none focus:border-border-focus disabled:bg-surface-bg transition-colors"
           />
         ))}
       </div>
 
-      {error && <p className="text-red-500 text-xs text-center">{error}</p>}
+      {error && <p className="text-caption text-content-destructive text-center">{error}</p>}
 
       {expiresAt && (
-        <p className="text-xs text-gray-500 text-center">
+        <p className="text-caption text-content-muted text-center">
           Code expires in {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, "0")}
         </p>
       )}
@@ -85,7 +85,7 @@ export function OtpInput({ length = 6, onComplete, disabled, error, expiresAt, o
           type="button"
           onClick={() => { onResend(); setResendCooldown(60); }}
           disabled={resendCooldown > 0}
-          className="text-xs text-blue-600 underline disabled:text-gray-400 disabled:no-underline mx-auto"
+          className="text-caption text-brand-primary underline disabled:text-content-muted disabled:no-underline mx-auto"
         >
           {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend code"}
         </button>

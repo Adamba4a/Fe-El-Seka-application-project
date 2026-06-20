@@ -63,9 +63,9 @@ export default function SettingsProfilePage() {
   if (loading) {
     return (
       <main className="max-w-sm mx-auto p-6 space-y-4">
-        <div className="h-8 bg-gray-200 rounded w-40 animate-pulse" />
-        <div className="h-24 bg-gray-200 rounded animate-pulse" />
-        <div className="h-12 bg-gray-200 rounded animate-pulse" />
+        <div className="h-8 bg-surface-bg rounded w-40 animate-pulse" />
+        <div className="h-24 bg-surface-bg rounded animate-pulse" />
+        <div className="h-12 bg-surface-bg rounded animate-pulse" />
       </main>
     );
   }
@@ -74,16 +74,16 @@ export default function SettingsProfilePage() {
     return (
       <main className="max-w-sm mx-auto p-6 space-y-4">
         <div className="flex items-center gap-3">
-          <a href="/rides" className="text-gray-500 hover:text-gray-700 text-lg">←</a>
-          <h1 className="text-xl font-bold">Profile</h1>
+          <a href="/rides" className="text-content-muted hover:text-content-secondary text-lg">←</a>
+          <h1 className="text-h3 text-content-primary">Profile</h1>
         </div>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-700 text-sm font-medium">Could not load profile</p>
-          <p className="text-red-600 text-xs mt-1 break-all">{errorMsg}</p>
+        <div className="bg-status-cancelled-bg border border-border-default rounded-xl p-4">
+          <p className="text-body-sm text-content-destructive font-medium">Could not load profile</p>
+          <p className="text-caption text-content-destructive mt-1 break-all">{errorMsg}</p>
         </div>
         <button
           onClick={() => window.location.reload()}
-          className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium"
+          className="w-full py-2 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl text-body-sm font-medium transition-colors"
         >
           Retry
         </button>

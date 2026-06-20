@@ -24,18 +24,18 @@ export default function RegisterVehiclePage() {
   };
 
   if (registered) return (
-    <main className="min-h-screen flex items-center justify-center p-4">
+    <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm text-center space-y-4">
         <p className="text-4xl">🎉</p>
-        <h1 className="text-2xl font-bold">Ready to post rides!</h1>
-        <p className="text-gray-500 text-sm">Your vehicle has been registered. You can now create ride listings.</p>
+        <h1 className="text-h2 text-content-primary">Ready to post rides!</h1>
+        <p className="text-body-sm text-content-muted">Your vehicle has been registered. You can now create ride listings.</p>
         <a
           href="/rides/new"
-          className="block w-full bg-blue-600 text-white text-sm font-medium px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          className="block w-full py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse text-body-sm font-medium rounded-xl text-center transition-colors"
         >
           Post Your First Ride
         </a>
-        <a href="/rides" className="block text-sm text-gray-400 hover:text-gray-600">
+        <a href="/rides" className="block text-body-sm text-content-muted hover:text-content-secondary">
           Go to My Rides
         </a>
       </div>
@@ -43,13 +43,13 @@ export default function RegisterVehiclePage() {
   );
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
+    <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-xl font-bold">Register Your Vehicle</h1>
-          <p className="text-gray-500 text-sm mt-1">You need one vehicle to post rides</p>
+          <h1 className="text-h3 text-content-primary">Register Your Vehicle</h1>
+          <p className="text-body-sm text-content-muted mt-1">You need one vehicle to post rides</p>
         </div>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && <p className="text-caption text-content-destructive">{error}</p>}
         <VehicleRegistrationForm onSubmit={handleSubmit} />
       </div>
     </main>

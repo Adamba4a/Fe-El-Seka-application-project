@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { getRide } from "@/lib/api/rides";
+import { getRide, startRide, completeRide, cancelRide } from "@/lib/api/rides";
 import { RideStatusBadge } from "@/components/rides/RideStatusBadge";
 import { RideHistoryLog } from "@/components/rides/RideHistoryLog";
 import { StartCompleteActions } from "@/components/rides/StartCompleteActions";
+import { BottomSheet, Spinner } from "@/components";
 import type { Ride, RideHistoryEntry } from "@fe-el-seka/shared";
 
 function formatDate(iso: string) {
@@ -27,6 +28,11 @@ export default function RideDetailPage() {
   const [history, setHistory] = useState<RideHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -49,7 +55,7 @@ export default function RideDetailPage() {
   if (loading) {
     return (
       <div className="space-y-4">
-        {[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)}
+        {[1, 2, 3].map((i) => <div key={i} className="h-20 bg-surface-bg rounded-xl animate-pulse" />)}
       </div>
     );
   }
@@ -57,27 +63,68 @@ export default function RideDetailPage() {
   if (error || !ride) {
     return (
       <div className="text-center py-12 space-y-3">
-        <p className="text-gray-600">{error ?? "Ride not found."}</p>
-        <Link href="/rides" className="text-blue-600 text-sm underline">← Back to My Rides</Link>
+        <p className="text-body-sm text-content-secondary">{error ?? "Ride not found."}</p>
+        <Link href="/rides" className="text-body-sm text-brand-primary underline">← Back to My Rides</Link>
       </div>
     );
   }
 
+  // ride: Ride (narrowed — safe to use in closures below)
+  const handleStart = async () => {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const updated = await startRide(session.access_token, ride.id);
+    setRide(updated);
+  };
+
+  const handleComplete = async () => {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const updated = await completeRide(session.access_token, ride.id);
+    setRide(updated);
+  };
+
+  const handleCancel = async () => {
+    setCancelLoading(true);
+    setCancelError(null);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const updated = await cancelRide(session.access_token, ride.id, { reason: cancelReason });
+      setRide(updated);
+      setIsCancelOpen(false);
+      setCancelReason("");
+    } catch (err: any) {
+      setCancelError(err?.detail?.message ?? "Failed to cancel ride.");
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  const closeCancelSheet = () => {
+    setIsCancelOpen(false);
+    setCancelReason("");
+    setCancelError(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/rides" className="text-gray-500 hover:text-gray-700">←</Link>
-        <h1 className="text-xl font-bold text-gray-900">Ride Detail</h1>
+        <Link href="/rides" className="text-content-muted hover:text-content-secondary">←</Link>
+        <h1 className="text-h3 text-content-primary">Ride Detail</h1>
       </div>
 
-      {/* Status + actions bar */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
+      {/* Status + actions card */}
+      <div className="bg-surface-card border border-border-default rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
           <RideStatusBadge status={ride.status} />
           {ride.status === "scheduled" && (
             <Link
               href={`/rides/${ride.id}/edit`}
-              className="text-sm text-blue-600 font-medium hover:underline"
+              className="text-body-sm text-brand-primary font-medium hover:underline"
             >
               Edit
             </Link>
@@ -86,56 +133,102 @@ export default function RideDetailPage() {
 
         <div className="space-y-2">
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">From</p>
-            <p className="text-sm font-medium text-gray-900">{ride.origin.address}</p>
+            <p className="text-caption text-content-muted uppercase tracking-wide">From</p>
+            <p className="text-body-sm font-medium text-content-primary">{ride.origin.address}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">To</p>
-            <p className="text-sm font-medium text-gray-900">{ride.destination.address}</p>
+            <p className="text-caption text-content-muted uppercase tracking-wide">To</p>
+            <p className="text-body-sm font-medium text-content-primary">{ride.destination.address}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Departure</p>
-            <p className="text-sm font-medium text-gray-900">{formatDate(ride.departure_datetime)}</p>
+            <p className="text-caption text-content-muted uppercase tracking-wide">Departure</p>
+            <p className="text-body-sm font-medium text-content-primary">{formatDate(ride.departure_datetime)}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 pt-2 border-t border-gray-100">
+        <div className="grid grid-cols-3 gap-4 pt-2 border-t border-border-default">
           <div className="text-center">
-            <p className="text-lg font-bold text-gray-900">{ride.available_seats}</p>
-            <p className="text-xs text-gray-400">Available</p>
+            <p className="text-lg font-bold text-content-primary">{ride.available_seats}</p>
+            <p className="text-caption text-content-muted">Available</p>
           </div>
           <div className="text-center">
-            <p className="text-lg font-bold text-gray-900">{ride.total_seats}</p>
-            <p className="text-xs text-gray-400">Total</p>
+            <p className="text-lg font-bold text-content-primary">{ride.total_seats}</p>
+            <p className="text-caption text-content-muted">Total</p>
           </div>
           <div className="text-center">
-            <p className="text-lg font-bold text-gray-900">EGP {ride.price_per_seat}</p>
-            <p className="text-xs text-gray-400">/seat</p>
+            <p className="text-lg font-bold text-content-primary">EGP {ride.price_per_seat}</p>
+            <p className="text-caption text-content-muted">/seat</p>
           </div>
         </div>
 
         {ride.notes && (
-          <p className="text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2">{ride.notes}</p>
+          <p className="text-body-sm text-content-secondary bg-surface-bg rounded-xl px-3 py-2">
+            {ride.notes}
+          </p>
         )}
 
         {ride.cancellation_reason && (
-          <div className="bg-red-50 rounded-lg px-3 py-2">
-            <p className="text-xs text-red-500 uppercase tracking-wide">Cancellation reason</p>
-            <p className="text-sm text-red-700">{ride.cancellation_reason}</p>
+          <div className="bg-status-cancelled-bg rounded-xl px-3 py-2 space-y-1">
+            <p className="text-caption text-content-destructive uppercase tracking-wide">Cancellation reason</p>
+            <p className="text-body-sm text-content-destructive">{ride.cancellation_reason}</p>
             {ride.cancellation_source === "system" && (
-              <p className="text-xs text-red-400 mt-1">Cancelled by system</p>
+              <p className="text-caption text-content-muted mt-1">Cancelled by system</p>
             )}
           </div>
         )}
 
-        <StartCompleteActions ride={ride} onRideUpdate={setRide} />
+        <StartCompleteActions
+          rideId={ride.id}
+          status={ride.status}
+          onStart={handleStart}
+          onComplete={handleComplete}
+        />
+
+        {ride.status === "scheduled" && (
+          <button
+            type="button"
+            onClick={() => setIsCancelOpen(true)}
+            className="w-full py-3 px-4 border border-border-default rounded-xl text-body-sm text-content-destructive font-medium hover:bg-status-cancelled-bg transition-colors"
+          >
+            Cancel Ride
+          </button>
+        )}
       </div>
 
       {/* History */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-4">
-        <h2 className="font-semibold text-gray-900">History</h2>
-        <RideHistoryLog history={history} />
+      <div className="bg-surface-card border border-border-default rounded-2xl p-5 space-y-4">
+        <h2 className="font-semibold text-content-primary">History</h2>
+        <RideHistoryLog entries={history} />
       </div>
+
+      {/* Cancel ride bottom sheet */}
+      <BottomSheet isOpen={isCancelOpen} onClose={closeCancelSheet}>
+        <div className="space-y-4">
+          <h2 className="text-h3 text-content-primary">Cancel Ride</h2>
+          <p className="text-body-sm text-content-muted">
+            Please provide a reason for cancellation. Your passengers will be notified.
+          </p>
+          <textarea
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            rows={3}
+            placeholder="e.g. Car broke down, emergency…"
+            className="w-full border border-border-default rounded-xl px-3 py-2 text-body-sm outline-none focus:border-border-focus resize-none transition-colors"
+          />
+          {cancelError && (
+            <p className="text-caption text-content-destructive">{cancelError}</p>
+          )}
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={!cancelReason.trim() || cancelLoading}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-surface-destructive text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
+          >
+            {cancelLoading && <Spinner />}
+            {cancelLoading ? "Cancelling…" : "Confirm Cancellation"}
+          </button>
+        </div>
+      </BottomSheet>
     </div>
   );
 }

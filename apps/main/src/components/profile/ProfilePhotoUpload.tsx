@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface ProfilePhotoUploadProps {
   onFile: (file: File) => void;
@@ -12,8 +12,15 @@ const MAX_BYTES = 5 * 1024 * 1024;
 
 export function ProfilePhotoUpload({ onFile, currentUrl }: ProfilePhotoUploadProps) {
   const ref = useRef<HTMLInputElement>(null);
+  const objectUrlRef = useRef<string | null>(null);
   const [preview, setPreview] = useState<string | null>(currentUrl ?? null);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    };
+  }, []);
 
   const handleFile = (file: File) => {
     setError("");
@@ -25,26 +32,31 @@ export function ProfilePhotoUpload({ onFile, currentUrl }: ProfilePhotoUploadPro
       setError("Photo must be under 5 MB");
       return;
     }
-    setPreview(URL.createObjectURL(file));
+    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    const url = URL.createObjectURL(file);
+    objectUrlRef.current = url;
+    setPreview(url);
     onFile(file);
   };
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <div
+      <button
+        type="button"
         onClick={() => ref.current?.click()}
-        className="w-24 h-24 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden cursor-pointer hover:border-blue-400 transition-colors"
+        className="w-20 h-20 rounded-full border-2 border-dashed border-border-default flex items-center justify-center overflow-hidden cursor-pointer hover:border-brand-primary transition-colors focus:outline-none focus:border-border-focus"
+        aria-label="Upload profile photo"
       >
         {preview ? (
           <img src={preview} alt="Profile" className="w-full h-full object-cover" />
         ) : (
-          <span className="text-3xl text-gray-300">👤</span>
+          <span className="text-3xl text-content-muted">👤</span>
         )}
-      </div>
-      <button type="button" onClick={() => ref.current?.click()} className="text-sm text-blue-600 underline">
+      </button>
+      <button type="button" onClick={() => ref.current?.click()} className="text-body-sm text-brand-primary underline">
         {preview ? "Change photo" : "Upload photo (optional)"}
       </button>
-      {error && <p className="text-red-500 text-xs">{error}</p>}
+      {error && <p className="text-caption text-content-destructive">{error}</p>}
       <input
         ref={ref}
         type="file"

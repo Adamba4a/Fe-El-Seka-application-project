@@ -31,10 +31,10 @@ export function PendingApprovalWait() {
   return (
     <div className="space-y-4">
       <div className="flex justify-center">
-        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-brand-primary border-t-transparent rounded-full animate-spin" />
       </div>
-      <p className="text-gray-600 font-medium">Your documents are under review.</p>
-      <p className="text-sm text-gray-400">
+      <p className="text-body-sm text-content-secondary font-medium">Your documents are under review.</p>
+      <p className="text-body-sm text-content-muted">
         This page will update automatically once a decision is made.
       </p>
     </div>

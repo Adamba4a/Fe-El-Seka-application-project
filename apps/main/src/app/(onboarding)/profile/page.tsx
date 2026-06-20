@@ -8,6 +8,7 @@ import { LockoutMessage } from "@/components/verification/LockoutMessage";
 import { updateMe, uploadPhoto } from "@/lib/api/profiles";
 import { submitDocuments } from "@/lib/api/verification";
 import { createClient } from "@/lib/supabase/client";
+import { Spinner } from "@/components/ui/Spinner";
 import type { Role } from "@fe-el-seka/shared";
 
 export default function ProfileOnboardingPage() {
@@ -101,15 +102,15 @@ export default function ProfileOnboardingPage() {
 
   if (initializing) {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4">
-        <p className="text-gray-400">Loading…</p>
+      <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
+        <p className="text-body-sm text-content-muted">Loading…</p>
       </main>
     );
   }
 
   if (lockout) {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4">
+      <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
         <div className="w-full max-w-sm">
           <LockoutMessage lockoutMessage={lockout.message} supportEmail={lockout.support_email} />
         </div>
@@ -119,15 +120,15 @@ export default function ProfileOnboardingPage() {
 
   if (verificationStatus === "pending_review") {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4">
+      <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
         <div className="w-full max-w-sm text-center space-y-4">
-          <h1 className="text-xl font-bold">Documents submitted</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-h3 text-content-primary">Documents submitted</h1>
+          <p className="text-body-sm text-content-muted">
             Your identity is under review. We will notify you once a decision is made.
           </p>
           <button
             onClick={() => router.push("/")}
-            className="text-blue-600 text-sm underline"
+            className="text-body-sm text-brand-primary underline"
           >
             Go to home
           </button>
@@ -137,11 +138,11 @@ export default function ProfileOnboardingPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
+    <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm space-y-6 py-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Complete your profile</h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <h1 className="text-h2 text-content-primary">Complete your profile</h1>
+          <p className="text-body-sm text-content-muted mt-1">
             {verificationStatus === "rejected"
               ? "Your documents were rejected. Please resubmit."
               : "Set up your account to get started"}
@@ -152,20 +153,20 @@ export default function ProfileOnboardingPage() {
           <ProfilePhotoUpload onFile={setPhoto} />
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Display name *</label>
+            <label className="text-label text-content-secondary">Display name *</label>
             <input
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="Your name"
-              className="px-3 py-2 border rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-border-default rounded-md text-body-sm outline-none focus:border-border-focus transition-colors"
               maxLength={50}
             />
           </div>
 
-          <div className="border-t pt-4 space-y-3">
-            <p className="text-sm font-medium">Identity verification</p>
-            <p className="text-xs text-gray-500">Upload your Egyptian National ID card</p>
+          <div className="border-t border-border-default pt-4 space-y-3">
+            <p className="text-label text-content-secondary">Identity verification</p>
+            <p className="text-caption text-content-muted">Upload your Egyptian National ID card</p>
             <DocumentUpload label="National ID — Front" onFile={setFrontId} required />
             <DocumentUpload label="National ID — Back" onFile={setBackId} required />
             {role === "driver" && (
@@ -173,13 +174,14 @@ export default function ProfileOnboardingPage() {
             )}
           </div>
 
-          {error && <p className="text-red-500 text-xs">{error}</p>}
+          {error && <p className="text-caption text-content-destructive">{error}</p>}
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md font-medium disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
           >
+            {submitting && <Spinner />}
             {submitting ? "Submitting…" : "Submit"}
           </button>
         </form>

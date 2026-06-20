@@ -9,18 +9,18 @@ export default function ProfileError({
   return (
     <main className="max-w-sm mx-auto p-6 space-y-4">
       <div className="flex items-center gap-3">
-        <a href="/rides" className="text-gray-500 hover:text-gray-700 text-lg leading-none">←</a>
-        <h1 className="text-xl font-bold">Edit Profile</h1>
+        <a href="/rides" className="text-content-muted hover:text-content-secondary text-lg leading-none">←</a>
+        <h1 className="text-h3 text-content-primary">Edit Profile</h1>
       </div>
-      <p className="text-sm text-red-600">Something went wrong loading your profile.</p>
+      <p className="text-body-sm text-content-destructive">Something went wrong loading your profile.</p>
       <div className="flex gap-3">
         <button
           onClick={reset}
-          className="text-sm text-blue-600 hover:underline"
+          className="text-body-sm text-brand-primary hover:underline"
         >
           Try again
         </button>
-        <a href="/rides" className="text-sm text-gray-500 hover:underline">
+        <a href="/rides" className="text-body-sm text-content-muted hover:underline">
           Go to rides
         </a>
       </div>
