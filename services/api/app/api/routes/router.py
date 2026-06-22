@@ -1,9 +1,15 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from app.models.route import FareEstimateRequest, FareEstimateResponse
-from app.services import route_service
+from app.dependencies.auth import get_current_user
+from app.models.route import (
+    CandidateListResponse,
+    CandidateSearchRequest,
+    FareEstimateRequest,
+    FareEstimateResponse,
+)
+from app.services import candidate_service, route_service
 from app.services.pricing_service import calculate_fare
 from app.services.route_service import RouteServiceUnavailableError
 
@@ -25,3 +31,22 @@ async def fare_estimate(body: FareEstimateRequest) -> FareEstimateResponse:
             detail={"error": "unroutable"},
         )
     return calculate_fare(route.distance_km, body.seat_count)
+
+
+@router.post("/candidates", response_model=CandidateListResponse)
+async def find_candidates(
+    body: CandidateSearchRequest,
+    _user: dict = Depends(get_current_user),
+) -> CandidateListResponse:
+    try:
+        return await candidate_service.generate_candidates(
+            body.origin, body.destination, body.departure_time
+        )
+    except RouteServiceUnavailableError:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "route_intelligence_unavailable",
+                "message": "Route intelligence temporarily unavailable. Please try again shortly.",
+            },
+        )
