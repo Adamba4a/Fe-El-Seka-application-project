@@ -107,3 +107,14 @@ def calculate_premium_detour_fee(detour_km: float) -> float:
     """Fee for a single premium pickup or dropoff detour — per passenger, not split."""
     fees = _calc_fee_from_distance(detour_km, seat_count=1)
     return fees["per_seat_price_egp"]
+
+
+def calculate_premium_fare_addition(
+    pickup_detour_km: float,
+    dropoff_detour_km: float,
+) -> dict:
+    """Per-passenger premium fee breakdown for optional pickup and/or dropoff detours."""
+    return {
+        "premium_pickup_fee_egp": calculate_premium_detour_fee(pickup_detour_km),
+        "premium_dropoff_fee_egp": calculate_premium_detour_fee(dropoff_detour_km),
+    }
