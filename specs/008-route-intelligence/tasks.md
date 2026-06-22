@@ -115,10 +115,10 @@
 
 **Purpose**: Observability (NFR-009), auth enforcement validation, and end-to-end quickstart run.
 
-- [ ] T035 Add structured logging to `services/api/app/services/route_service.py` — log at INFO level on each `calculate_route()` call: input coordinates, `is_routable`, `distance_km`, `duration_minutes`, elapsed ms; log at ERROR on `RouteServiceUnavailableError`
-- [ ] T036 [P] Add structured logging to `services/api/app/services/candidate_service.py` — log at INFO: input params, Stage 1 count, Stage 2 standard/premium counts, total elapsed ms; log at WARNING if pool cap (500) was hit
-- [ ] T037 [P] Add structured logging to `services/api/app/services/pricing_service.py` — log at INFO on each fare calculation: `distance_km`, `fuel_price`, `per_seat_price`, `seat_count`; log at WARNING when config cache miss forces a synchronous DB refresh
-- [ ] T038 Add per-endpoint request count and p95 latency logging to `POST /api/routes/candidates` and `POST /api/routes/fare` in `services/api/app/api/routes/router.py` — record start time, compute elapsed ms on response, emit a structured log line with `endpoint`, `status_code`, `duration_ms` (NFR-009; full metrics export sink is a post-competition concern — log-based metrics are sufficient for MVP)
+- [x] T035 Add structured logging to `services/api/app/services/route_service.py` — log at INFO level on each `calculate_route()` call: input coordinates, `is_routable`, `distance_km`, `duration_minutes`, elapsed ms; log at ERROR on `RouteServiceUnavailableError`
+- [x] T036 [P] Add structured logging to `services/api/app/services/candidate_service.py` — log at INFO: input params, Stage 1 count, Stage 2 standard/premium counts, total elapsed ms; log at WARNING if pool cap (500) was hit
+- [x] T037 [P] Add structured logging to `services/api/app/services/pricing_service.py` — log at INFO on each fare calculation: `distance_km`, `fuel_price`, `per_seat_price`, `seat_count`; log at WARNING when config cache miss forces a synchronous DB refresh
+- [x] T038 Add per-endpoint request count and p95 latency logging to `POST /api/routes/candidates` and `POST /api/routes/fare` in `services/api/app/api/routes/router.py` — record start time, compute elapsed ms on response, emit a structured log line with `endpoint`, `status_code`, `duration_ms` (NFR-009; full metrics export sink is a post-competition concern — log-based metrics are sufficient for MVP)
 - [ ] T039 Run quickstart.md Scenarios 1–7 end-to-end against the local stack and confirm all expected responses match; fix any discrepancies found
 
 **Checkpoint**: All 7 quickstart scenarios pass. Every route intelligence request produces a structured log line. Stack passes `docker compose up` cleanly with OSRM serving requests.

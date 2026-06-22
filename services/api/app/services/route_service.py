@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+import time
 
 import httpx
 
@@ -8,6 +10,8 @@ from app.core.config import settings
 from app.core.database import get_pool
 from app.models.route import CompatibilityResult, GeoPoint, RouteGeometry
 from app.services.pricing_service import calculate_premium_detour_fee
+
+logger = logging.getLogger(__name__)
 
 
 class RouteServiceUnavailableError(Exception):
@@ -47,8 +51,10 @@ async def _osrm_get(path: str, params: dict) -> dict:
     try:
         response = await _http_client.get(path, params=params)
     except httpx.RequestError as exc:
+        logger.error("OSRM request error path=%s error=%s", path, exc)
         raise RouteServiceUnavailableError(str(exc)) from exc
     if response.status_code >= 500:
+        logger.error("OSRM returned HTTP %d for path=%s", response.status_code, path)
         raise RouteServiceUnavailableError(f"OSRM returned HTTP {response.status_code}")
     return response.json()
 
@@ -57,6 +63,7 @@ async def _osrm_get(path: str, params: dict) -> dict:
 
 
 async def calculate_route(origin: GeoPoint, destination: GeoPoint) -> RouteGeometry:
+    t0 = time.monotonic()
     path = (
         f"/route/v1/driving/{origin.lng},{origin.lat}"
         f";{destination.lng},{destination.lat}"
@@ -66,6 +73,12 @@ async def calculate_route(origin: GeoPoint, destination: GeoPoint) -> RouteGeome
     )
 
     if data.get("code") != "Ok" or not data.get("routes"):
+        elapsed_ms = round((time.monotonic() - t0) * 1000)
+        logger.info(
+            "calculate_route origin=(%.5f,%.5f) dest=(%.5f,%.5f) "
+            "is_routable=False elapsed_ms=%d",
+            origin.lat, origin.lng, destination.lat, destination.lng, elapsed_ms,
+        )
         return RouteGeometry(
             is_routable=False,
             distance_km=0.0,
@@ -74,12 +87,20 @@ async def calculate_route(origin: GeoPoint, destination: GeoPoint) -> RouteGeome
         )
 
     route = data["routes"][0]
-    return RouteGeometry(
+    result = RouteGeometry(
         is_routable=True,
         distance_km=round(route["distance"] / 1000, 3),
         duration_minutes=round(route["duration"] / 60),
         geojson_linestring=route["geometry"],
     )
+    elapsed_ms = round((time.monotonic() - t0) * 1000)
+    logger.info(
+        "calculate_route origin=(%.5f,%.5f) dest=(%.5f,%.5f) "
+        "is_routable=True distance_km=%.3f duration_min=%d elapsed_ms=%d",
+        origin.lat, origin.lng, destination.lat, destination.lng,
+        result.distance_km, result.duration_minutes, elapsed_ms,
+    )
+    return result
 
 
 # ── T018: US2 — PostGIS route corridor overlap ────────────────────────────────

@@ -27,9 +27,11 @@ _DEFAULTS: dict[str, Any] = {
 
 _config_cache: dict[str, Any] = dict(_DEFAULTS)
 _config_lock = asyncio.Lock()
+_config_loaded: bool = False
 
 
 async def _refresh_pricing_config() -> None:
+    global _config_loaded
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT * FROM pricing_config LIMIT 1")
@@ -39,6 +41,7 @@ async def _refresh_pricing_config() -> None:
     async with _config_lock:
         _config_cache.clear()
         _config_cache.update(dict(row))
+        _config_loaded = True
 
 
 async def init_pricing_config() -> None:
@@ -70,6 +73,8 @@ async def pricing_config_refresh_loop() -> None:
 
 
 def get_pricing_config() -> dict[str, Any]:
+    if not _config_loaded:
+        logger.warning("pricing_config not yet loaded from DB — using hardcoded defaults")
     return dict(_config_cache)
 
 
@@ -95,6 +100,13 @@ def _calc_fee_from_distance(distance_km: float, seat_count: int) -> dict[str, fl
 def calculate_fare(distance_km: float, seat_count: int) -> FareEstimateResponse:
     config = get_pricing_config()
     fees = _calc_fee_from_distance(distance_km, seat_count)
+    logger.info(
+        "calculate_fare distance_km=%.3f fuel_price=%.2f seat_count=%d per_seat=%.2f",
+        distance_km,
+        float(config["fuel_price_per_litre"]),
+        seat_count,
+        fees["per_seat_price_egp"],
+    )
     return FareEstimateResponse(
         distance_km=round(distance_km, 2),
         fuel_price_per_litre_egp=float(config["fuel_price_per_litre"]),

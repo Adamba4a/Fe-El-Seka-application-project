@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
+import time
 from datetime import datetime, timedelta
 
 from app.core.database import get_pool
@@ -131,6 +132,13 @@ async def generate_candidates(
     departure_time: datetime,
     config: dict | None = None,
 ) -> CandidateListResponse:
+    t0 = time.monotonic()
+    logger.info(
+        "generate_candidates origin=(%.5f,%.5f) dest=(%.5f,%.5f) departure=%s",
+        origin.lat, origin.lng, destination.lat, destination.lng,
+        departure_time.isoformat(),
+    )
+
     if config is None:
         config = get_pricing_config()
 
@@ -188,11 +196,13 @@ async def generate_candidates(
         )
     )
 
+    elapsed_ms = round((time.monotonic() - t0) * 1000)
     logger.info(
-        "Stage 2: %d standard, %d premium (from %d Stage 1 candidates)",
+        "Stage 2: %d standard, %d premium (from %d Stage 1 candidates) elapsed_ms=%d",
         len(standard),
         len(premium),
         len(rides),
+        elapsed_ms,
     )
     return CandidateListResponse(
         standard=standard,

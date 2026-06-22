@@ -323,6 +323,13 @@ async def edit_ride(
                     sets.append(f"departure_datetime = {add_param(dep)}")
 
             if payload.destination is not None:
+                if ride.get("price_source") == "system":
+                    raise RideServiceError(
+                        "destination_not_editable",
+                        "Destination cannot be changed for rides with system-calculated pricing. "
+                        "Cancel this ride and create a new one with the correct destination.",
+                        400,
+                    )
                 dlat = payload.destination.coordinates.lat
                 dlng = payload.destination.coordinates.lng
                 changed_fields["destination_address"] = {
@@ -343,6 +350,12 @@ async def edit_ride(
                     sets.append(f"total_seats = {add_param(payload.total_seats)}")
 
             if payload.price_per_seat is not None:
+                if ride.get("price_source") == "system":
+                    raise RideServiceError(
+                        "price_override_not_allowed",
+                        "Price cannot be changed for rides with system-calculated pricing.",
+                        400,
+                    )
                 new_price = Decimal(payload.price_per_seat)
                 if new_price != ride["price_per_seat"]:
                     changed_fields["price_per_seat"] = {
