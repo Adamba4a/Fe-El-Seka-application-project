@@ -47,6 +47,18 @@ services:
       - fe-el-seka-dev
       - supabase_network_fe-el-seka
 
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:v5.27.1
+    command: osrm-routed --algorithm ch /data/egypt-latest.osrm
+    volumes:
+      - ./osrm-data:/data:ro
+    ports:
+      - "5000:5000"
+    networks:
+      - fe-el-seka-dev
+    profiles:
+      - osrm
+
   nginx:
     image: nginx:1.27-alpine
     ports:

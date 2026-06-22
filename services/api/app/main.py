@@ -12,21 +12,27 @@ from app.api.admin.verification_router import router as admin_verification_route
 from app.api.auth.router import router as auth_router
 from app.api.health import router as health_router
 from app.api.internal.revocation_router import router as internal_router
+from app.api.internal.route_intelligence_router import router as route_intelligence_router
 from app.api.profiles.router import router as profiles_router
+from app.api.routes.router import router as routes_router
 from app.api.rides.router import router as rides_router
 from app.api.vehicles.router import router as vehicles_router
 from app.api.verification.router import router as verification_router
 from app.core.config import settings
 from app.core.database import close_pool, create_pool
 from app.services.notification_service import email_retry_loop
+from app.services.pricing_service import init_pricing_config, pricing_config_refresh_loop
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     pool = await create_pool(settings.database_url)
     app.state.pool = pool
+    await init_pricing_config()
     email_task = asyncio.create_task(email_retry_loop())
+    pricing_task = asyncio.create_task(pricing_config_refresh_loop())
     yield
+    pricing_task.cancel()
     email_task.cancel()
     await close_pool()
     app.state.pool = None
@@ -90,3 +96,5 @@ app.include_router(
 )
 app.include_router(rides_router, prefix="/api/v1/rides", tags=["rides"])
 app.include_router(internal_router, prefix="/api/v1/internal", tags=["internal"])
+app.include_router(routes_router, prefix="/api/routes", tags=["routes"])
+app.include_router(route_intelligence_router, prefix="/internal/route-intelligence", tags=["internal"])
