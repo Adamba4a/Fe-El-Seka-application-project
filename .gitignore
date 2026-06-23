@@ -247,6 +247,7 @@ generated_rides/
 *.osrm.enw
 *.osrm.fileIndex
 *.osrm.geometry
+*.osrm.hsgr
 *.osrm.icd
 *.osrm.level
 *.osrm.maneuver_overrides

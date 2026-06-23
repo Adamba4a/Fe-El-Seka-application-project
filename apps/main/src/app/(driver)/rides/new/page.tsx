@@ -96,17 +96,23 @@ export default function NewRidePage() {
     <>
       {/* Full-screen Leaflet map — always rendered behind the BottomSheet */}
       <div className="fixed inset-0 z-20">
-        <RideMap onPinDrop={handlePinDrop} />
+        <RideMap onPinDrop={handlePinDrop} fullScreen />
       </div>
 
-      {/* Mode-selector overlay — appears when sheet is closed and user is selecting a pin */}
-      {!sheetOpen && selecting && (
+      {/* Overlay — always visible when sheet is closed so the user can always return */}
+      {!sheetOpen && (
         <div className="fixed top-4 left-4 right-4 z-30 bg-surface-card border border-border-default rounded-xl px-4 py-3 space-y-1.5 shadow-sm">
-          <p className="text-label text-content-primary">
-            {selecting === "origin" ? "📍 Tap map to set origin" : "📍 Tap map to set destination"}
-          </p>
-          {origin && selecting === "destination" && (
-            <p className="text-caption text-content-muted truncate">Origin: {origin.address}</p>
+          {selecting ? (
+            <>
+              <p className="text-label text-content-primary">
+                {selecting === "origin" ? "📍 Tap map to set origin" : "📍 Tap map to set destination"}
+              </p>
+              {origin && selecting === "destination" && (
+                <p className="text-caption text-content-muted truncate">Origin: {origin.address}</p>
+              )}
+            </>
+          ) : (
+            <p className="text-label text-content-primary">Tap map to explore or open the form</p>
           )}
           <button type="button" onClick={handleBackToForm} className="text-body-sm text-brand-primary">
             ← Back to form

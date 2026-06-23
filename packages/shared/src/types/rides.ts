@@ -44,7 +44,6 @@ export interface CreateRidePayload {
   destination: Location;
   departure_datetime: string;
   total_seats: number;
-  price_per_seat: string;
   notes?: string;
 }
 
@@ -52,7 +51,6 @@ export interface EditRidePayload {
   destination?: Location;
   departure_datetime?: string;
   total_seats?: number;
-  price_per_seat?: string;
   notes?: string;
 }
 

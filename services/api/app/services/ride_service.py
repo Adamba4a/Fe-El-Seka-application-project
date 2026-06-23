@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
@@ -43,7 +44,9 @@ _RIDE_COLS = """
     ST_X(destination_coordinates::geometry) AS dest_lng,
     departure_datetime, total_seats, booked_seats, available_seats,
     price_per_seat, status, cancellation_reason, cancellation_source,
-    notes, created_at, updated_at
+    notes, created_at, updated_at,
+    route_distance_km, route_duration_minutes,
+    fuel_cost_egp, platform_commission_egp, safety_margin_egp, price_source
 """
 
 
@@ -71,6 +74,22 @@ def _to_response(row: dict) -> RideResponse:
         notes=row["notes"],
         created_at=row["created_at"],
         updated_at=row["updated_at"],
+        route_distance_km=(
+            float(row["route_distance_km"]) if row["route_distance_km"] is not None else None
+        ),
+        route_duration_minutes=(
+            int(row["route_duration_minutes"]) if row["route_duration_minutes"] is not None else None
+        ),
+        fuel_cost_egp=(
+            float(row["fuel_cost_egp"]) if row["fuel_cost_egp"] is not None else None
+        ),
+        platform_commission_egp=(
+            float(row["platform_commission_egp"]) if row["platform_commission_egp"] is not None else None
+        ),
+        safety_margin_egp=(
+            float(row["safety_margin_egp"]) if row["safety_margin_egp"] is not None else None
+        ),
+        price_source=row["price_source"],
     )
 
 
@@ -97,6 +116,14 @@ async def create_ride(
     vehicle_id: uuid.UUID,
     vehicle_seat_count: int,
     payload: CreateRideRequest,
+    *,
+    route_geometry_geojson: dict,
+    route_distance_km: float,
+    route_duration_minutes: int,
+    fuel_cost_egp: float,
+    platform_commission_egp: float,
+    safety_margin_egp: float,
+    fare_per_seat_egp: float,
 ) -> RideResponse:
     olat = payload.origin.coordinates.lat
     olng = payload.origin.coordinates.lng
@@ -152,19 +179,25 @@ async def create_ride(
                     driver_id, vehicle_id,
                     origin_coordinates, origin_address,
                     destination_coordinates, destination_address,
-                    departure_datetime, total_seats, booked_seats, price_per_seat, notes, status
+                    departure_datetime, total_seats, booked_seats, price_per_seat, notes, status,
+                    route_geometry, route_distance_km, route_duration_minutes,
+                    fuel_cost_egp, platform_commission_egp, safety_margin_egp, price_source
                 ) VALUES (
                     $1, $2,
                     ST_GeomFromText($3, 4326)::geography, $4,
                     ST_GeomFromText($5, 4326)::geography, $6,
-                    $7, $8, 0, $9, $10, 'scheduled'
+                    $7, $8, 0, $9, $10, 'scheduled',
+                    ST_SetSRID(ST_GeomFromGeoJSON($11), 4326), $12, $13, $14, $15, $16, 'system'
                 )
                 RETURNING {_RIDE_COLS}
                 """,
                 driver_id, vehicle_id,
                 f"POINT({olng} {olat})", payload.origin.address,
                 f"POINT({dlng} {dlat})", payload.destination.address,
-                dep, payload.total_seats, Decimal(payload.price_per_seat), payload.notes,
+                dep, payload.total_seats, fare_per_seat_egp, payload.notes,
+                json.dumps(route_geometry_geojson),
+                route_distance_km, route_duration_minutes,
+                fuel_cost_egp, platform_commission_egp, safety_margin_egp,
             )
 
             await conn.execute(
@@ -178,6 +211,8 @@ async def create_ride(
 # ─────────────────────────────────────────────────────────────────────────────
 # List rides
 # ─────────────────────────────────────────────────────────────────────────────
+
+logger = logging.getLogger(__name__)
 
 VALID_STATUSES = {"scheduled", "in_progress", "completed", "cancelled"}
 
@@ -291,6 +326,13 @@ async def edit_ride(
                     sets.append(f"departure_datetime = {add_param(dep)}")
 
             if payload.destination is not None:
+                if ride.get("price_source") == "system":
+                    raise RideServiceError(
+                        "destination_not_editable",
+                        "Destination cannot be changed for rides with system-calculated pricing. "
+                        "Cancel this ride and create a new one with the correct destination.",
+                        400,
+                    )
                 dlat = payload.destination.coordinates.lat
                 dlng = payload.destination.coordinates.lng
                 changed_fields["destination_address"] = {
@@ -311,6 +353,12 @@ async def edit_ride(
                     sets.append(f"total_seats = {add_param(payload.total_seats)}")
 
             if payload.price_per_seat is not None:
+                if ride.get("price_source") == "system":
+                    raise RideServiceError(
+                        "price_override_not_allowed",
+                        "Price cannot be changed for rides with system-calculated pricing.",
+                        400,
+                    )
                 new_price = Decimal(payload.price_per_seat)
                 if new_price != ride["price_per_seat"]:
                     changed_fields["price_per_seat"] = {
@@ -384,7 +432,10 @@ async def cancel_ride(
             )
 
     from app.services.notification_service import enqueue_cancellation_emails
-    await enqueue_cancellation_emails(ride_id)
+    try:
+        await enqueue_cancellation_emails(ride_id)
+    except Exception as exc:
+        logger.warning("Failed to enqueue cancellation emails for ride %s: %s", ride_id, exc)
 
     return _to_response(dict(row))
 
