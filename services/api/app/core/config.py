@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     webhook_secret: str = ""
     smtp_host: str = "127.0.0.1"
     smtp_port: int = 54325
+    osrm_url: str = "http://osrm:5000"
+    internal_secret: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

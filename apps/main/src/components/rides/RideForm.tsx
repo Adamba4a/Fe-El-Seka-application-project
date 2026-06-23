@@ -17,7 +17,6 @@ interface RideFormProps {
     destination?: Location;
     departure_datetime?: string;
     total_seats?: number;
-    price_per_seat?: string;
     notes?: string;
   };
   maxSeats?: number;
@@ -45,7 +44,6 @@ export function RideForm({
   const [destination, setDestination] = useState<Location | undefined>(initialValues?.destination);
   const [departureRaw, setDepartureRaw] = useState(toDatetimeLocal(initialValues?.departure_datetime));
   const [totalSeats, setTotalSeats] = useState(initialValues?.total_seats ?? 1);
-  const [pricePerSeat, setPricePerSeat] = useState(initialValues?.price_per_seat ?? "");
   const [notes, setNotes] = useState(initialValues?.notes ?? "");
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -57,13 +55,11 @@ export function RideForm({
   useEffect(() => {
     if (mode !== "edit" || !onDirtyChange) return;
     const isDirty =
-      (destination?.address ?? "") !== (initialValues?.destination?.address ?? "") ||
       departureRaw !== toDatetimeLocal(initialValues?.departure_datetime) ||
       totalSeats !== (initialValues?.total_seats ?? 1) ||
-      pricePerSeat !== (initialValues?.price_per_seat ?? "") ||
       notes.trim() !== (initialValues?.notes ?? "").trim();
     onDirtyChange(isDirty);
-  }, [mode, destination, departureRaw, totalSeats, pricePerSeat, notes]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mode, destination, departureRaw, totalSeats, notes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleOriginPin = (coords: Coordinates, address: string) => {
     setOrigin({ coordinates: coords, address });
@@ -90,9 +86,6 @@ export function RideForm({
       return "Rides can only be scheduled up to 48 hours in advance.";
     if (totalSeats < 1 || totalSeats > maxSeats)
       return `Seat count must be between 1 and ${maxSeats}.`;
-    const price = parseFloat(pricePerSeat);
-    if (!pricePerSeat || isNaN(price) || price <= 0)
-      return "Please enter a valid price per seat.";
     return null;
   };
 
@@ -113,17 +106,13 @@ export function RideForm({
         destination: destination!,
         departure_datetime: dep,
         total_seats: totalSeats,
-        price_per_seat: parseFloat(pricePerSeat).toFixed(2),
         notes: notes.trim() || undefined,
       } as CreateRidePayload);
     } else {
       const payload: EditRidePayload = {};
-      if (destination) payload.destination = destination;
       if (departureRaw !== toDatetimeLocal(initialValues?.departure_datetime))
         payload.departure_datetime = dep;
       if (totalSeats !== initialValues?.total_seats) payload.total_seats = totalSeats;
-      if (pricePerSeat !== initialValues?.price_per_seat)
-        payload.price_per_seat = parseFloat(pricePerSeat).toFixed(2);
       if (notes.trim() !== (initialValues?.notes ?? "")) payload.notes = notes.trim();
       onSubmit(payload);
     }
@@ -175,33 +164,43 @@ export function RideForm({
         </div>
       )}
 
-      {mode === "create" && onRequestDestinationMap ? (
-        // External map mode — page owns pin selection via full-screen map
+      {mode === "create" ? (
+        onRequestDestinationMap ? (
+          // External map mode — page owns pin selection via full-screen map
+          <div className="space-y-1">
+            <label className="block text-label text-content-secondary">Destination</label>
+            {destination ? (
+              <div className="flex items-center justify-between bg-surface-bg border border-border-default rounded-xl px-3 py-2">
+                <p className="text-body-sm text-content-secondary truncate">📍 {destination.address}</p>
+                <button type="button" onClick={onRequestDestinationMap} className="text-body-sm text-brand-primary ml-2 shrink-0">
+                  Change
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={onRequestDestinationMap}
+                className="w-full border border-dashed border-border-default rounded-xl px-3 py-4 text-body-sm text-content-muted hover:border-brand-primary transition-colors"
+              >
+                📍 Select destination on map
+              </button>
+            )}
+          </div>
+        ) : (
+          <RideMap
+            label="Destination (tap to drop pin)"
+            initialCoordinates={initialValues?.destination?.coordinates}
+            onPinDrop={handleDestinationPin}
+          />
+        )
+      ) : (
         <div className="space-y-1">
           <label className="block text-label text-content-secondary">Destination</label>
-          {destination ? (
-            <div className="flex items-center justify-between bg-surface-bg border border-border-default rounded-xl px-3 py-2">
-              <p className="text-body-sm text-content-secondary truncate">📍 {destination.address}</p>
-              <button type="button" onClick={onRequestDestinationMap} className="text-body-sm text-brand-primary ml-2 shrink-0">
-                Change
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={onRequestDestinationMap}
-              className="w-full border border-dashed border-border-default rounded-xl px-3 py-4 text-body-sm text-content-muted hover:border-brand-primary transition-colors"
-            >
-              📍 Select destination on map
-            </button>
-          )}
+          <p className="text-body-sm text-content-secondary bg-surface-bg rounded-xl px-3 py-2">
+            📍 {initialValues?.destination?.address ?? "—"}
+          </p>
+          <p className="text-caption text-content-muted">Route cannot be changed after posting. Cancel and create a new ride to change origin or destination.</p>
         </div>
-      ) : (
-        <RideMap
-          label="Destination (tap to drop pin)"
-          initialCoordinates={initialValues?.destination?.coordinates}
-          onPinDrop={handleDestinationPin}
-        />
       )}
 
       <div className="space-y-1">
@@ -214,34 +213,23 @@ export function RideForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <label className="block text-label text-content-secondary">
-            Seats <span className="text-content-muted">(max {maxSeats})</span>
-          </label>
-          <input
-            type="number"
-            min={1}
-            max={maxSeats}
-            value={totalSeats}
-            onChange={(e) => setTotalSeats(Number(e.target.value))}
-            className={inputClass}
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="block text-label text-content-secondary">EGP per seat</label>
-          <input
-            type="number"
-            min={0.01}
-            step={0.01}
-            value={pricePerSeat}
-            onChange={(e) => setPricePerSeat(e.target.value)}
-            placeholder="e.g. 45"
-            className={inputClass}
-          />
-        </div>
+      <div className="space-y-1">
+        <label className="block text-label text-content-secondary">
+          Seats <span className="text-content-muted">(max {maxSeats})</span>
+        </label>
+        <input
+          type="number"
+          min={1}
+          max={maxSeats}
+          value={totalSeats}
+          onChange={(e) => setTotalSeats(Number(e.target.value))}
+          className={inputClass}
+        />
       </div>
+
+      <p className="text-caption text-content-muted">
+        Price per seat is calculated automatically by the system based on the route.
+      </p>
 
       <div className="space-y-1">
         <label className="block text-label text-content-secondary">Notes (optional)</label>

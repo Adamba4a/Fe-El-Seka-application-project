@@ -7,6 +7,7 @@ interface RideMapProps {
   label?: string;
   initialCoordinates?: Coordinates;
   onPinDrop: (coords: Coordinates, address: string) => void;
+  fullScreen?: boolean;
 }
 
 const NOMINATIM_URL =
@@ -16,11 +17,14 @@ const NOMINATIM_URL =
 
 const CAIRO_CENTER: [number, number] = [30.0444, 31.2357];
 
-export function RideMap({ label, initialCoordinates, onPinDrop }: RideMapProps) {
+export function RideMap({ label, initialCoordinates, onPinDrop, fullScreen = false }: RideMapProps) {
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const markerRef = useRef<import("leaflet").Marker | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Always-current ref so Leaflet's one-time click listener never captures a stale callback
+  const onPinDropRef = useRef(onPinDrop);
+  onPinDropRef.current = onPinDrop;
   const [address, setAddress] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
@@ -34,18 +38,18 @@ export function RideMap({ label, initialCoordinates, onPinDrop }: RideMapProps) 
         );
         if (!res.ok) throw new Error("Nominatim error");
         const data = await res.json();
-        const label = data.display_name ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        setAddress(label);
-        onPinDrop({ lat, lng }, label);
+        const addr = data.display_name ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        setAddress(addr);
+        onPinDropRef.current({ lat, lng }, addr);
       } catch {
         const fallback = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         setAddress(fallback);
-        onPinDrop({ lat, lng }, fallback);
+        onPinDropRef.current({ lat, lng }, fallback);
       } finally {
         setLoading(false);
       }
     },
-    [onPinDrop]
+    [] // stable — reads onPinDrop via ref
   );
 
   const handleMapClick = useCallback(
@@ -111,6 +115,10 @@ export function RideMap({ label, initialCoordinates, onPinDrop }: RideMapProps) 
       }
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (fullScreen) {
+    return <div ref={containerRef} className="w-full h-full" />;
+  }
 
   return (
     <div className="space-y-2">

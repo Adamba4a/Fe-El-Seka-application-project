@@ -13,8 +13,11 @@ from app.models.ride import (
     CreateRideRequest,
     EditRideRequest,
 )
-from app.services import ride_service
+from app.models.route import GeoPoint
+from app.services import ride_service, route_service
+from app.services.pricing_service import calculate_fare
 from app.services.ride_service import RideServiceError
+from app.services.route_service import RouteServiceUnavailableError
 
 router = APIRouter()
 
@@ -57,14 +60,62 @@ async def create_ride(
     payload: CreateRideRequest,
     profile: dict = Depends(get_current_verified_driver),
 ):
+    if payload.price_per_seat is not None:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "price_override_not_allowed",
+                "message": "price_per_seat is system-calculated and cannot be set by the driver.",
+            },
+        )
+
     driver_id = uuid.UUID(str(profile["id"]))
     vehicle = await _get_active_vehicle(driver_id)
+
+    origin = GeoPoint(
+        lat=payload.origin.coordinates.lat,
+        lng=payload.origin.coordinates.lng,
+    )
+    destination = GeoPoint(
+        lat=payload.destination.coordinates.lat,
+        lng=payload.destination.coordinates.lng,
+    )
+
+    try:
+        route = await route_service.calculate_route(origin, destination)
+    except RouteServiceUnavailableError:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "route_intelligence_unavailable",
+                "message": "Route intelligence temporarily unavailable. Please try again shortly.",
+            },
+        )
+
+    if not route.is_routable:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "unroutable",
+                "message": "No road-network route found between the provided points. Ride creation is blocked until a valid route exists.",
+            },
+        )
+
+    fare = calculate_fare(route.distance_km, payload.total_seats)
+
     try:
         ride = await ride_service.create_ride(
             driver_id=driver_id,
             vehicle_id=uuid.UUID(str(vehicle["id"])),
             vehicle_seat_count=vehicle["seat_count"],
             payload=payload,
+            route_geometry_geojson=route.geojson_linestring,
+            route_distance_km=route.distance_km,
+            route_duration_minutes=route.duration_minutes,
+            fuel_cost_egp=fare.fuel_cost_egp,
+            platform_commission_egp=fare.platform_commission_egp,
+            safety_margin_egp=fare.safety_margin_egp,
+            fare_per_seat_egp=fare.per_seat_price_egp,
         )
     except RideServiceError as exc:
         return _service_error_response(exc)

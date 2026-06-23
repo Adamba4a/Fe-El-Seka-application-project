@@ -1,5 +1,5 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/006-frontend-design/plan.md`
+`specs/008-route-intelligence/plan.md`
 <!-- SPECKIT END -->

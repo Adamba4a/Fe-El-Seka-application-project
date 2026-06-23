@@ -17,7 +17,19 @@ def generate_signed_url(
     sb = _supabase()
     try:
         resp = sb.storage.from_(bucket).create_signed_url(path, expires_in)
-        return resp.get("signedURL") or resp.get("signed_url")
+        # storage3 v2.x returns a dict; key changed from "signedURL" to "signedUrl"
+        if isinstance(resp, dict):
+            return (
+                resp.get("signedUrl")
+                or resp.get("signedURL")
+                or resp.get("signed_url")
+            )
+        # Fallback for object-style responses
+        return (
+            getattr(resp, "signed_url", None)
+            or getattr(resp, "signedUrl", None)
+            or getattr(resp, "signedURL", None)
+        )
     except Exception:
         return None
 
