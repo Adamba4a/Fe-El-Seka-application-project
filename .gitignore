@@ -263,6 +263,7 @@ generated_rides/
 *.osrm.turn_duration_penalties
 *.osrm.turn_penalties_index
 *.osrm.turn_weight_penalties
+*.osrm.hsgr
 
 # OpenStreetMap raw data
 *.osm
