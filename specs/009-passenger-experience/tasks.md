@@ -37,11 +37,11 @@
 
 **⚠️ CRITICAL**: No user story work can start until T008 (migration applied) is done. T009–T012 can then run in parallel.
 
-- [ ] T007 Apply migration: run `supabase db push` (or `supabase migration up`) from repo root and confirm `bookings`, `booking_audit_log` tables exist and `email_notifications.payload` column is present
-- [ ] T008 [P] Create `services/api/app/models/booking.py` with all Pydantic schemas per `contracts/api.md`: `BookingCreateRequest`, `BookingResponse`, `BookingListResponse`, `BookingCancelRequest`, `DriverConfirmResponse`, `DriverRejectResponse`, `DriverBookingItem`, `DriverBookingListResponse`
-- [ ] T009 [P] Add `get_current_verified_passenger` dependency to `services/api/app/dependencies/verification.py` — mirrors `get_current_verified_driver` but checks `verification_status = 'approved'` without requiring driver role; returns profile dict
-- [ ] T010 [P] Create `services/api/app/services/booking_service.py` scaffold with shared helpers only (no story logic yet): `get_booking_or_404(conn, booking_id, caller_id)` → raises HTTP 404/403; `_assert_ride_owner(conn, ride_id, driver_id)` → raises HTTP 403; `_insert_audit_log(conn, booking_id, event_type, actor_id, actor_role, prev_status, new_status, metadata)` → inserts one row into `booking_audit_log`
-- [ ] T011 [P] Add booking notification enqueue function to `services/api/app/services/notification_service.py`: `enqueue_booking_notification(conn, notification_type, recipient_user_id, payload_dict)` → inserts one row into `email_notifications` with `payload = payload_dict`
+- [X] T007 Apply migration: run `supabase db push` (or `supabase migration up`) from repo root and confirm `bookings`, `booking_audit_log` tables exist and `email_notifications.payload` column is present
+- [X] T008 [P] Create `services/api/app/models/booking.py` with all Pydantic schemas per `contracts/api.md`: `BookingCreateRequest`, `BookingResponse`, `BookingListResponse`, `BookingCancelRequest`, `DriverConfirmResponse`, `DriverRejectResponse`, `DriverBookingItem`, `DriverBookingListResponse`
+- [X] T009 [P] Add `get_current_verified_passenger` dependency to `services/api/app/dependencies/verification.py` — mirrors `get_current_verified_driver` but checks `verification_status = 'approved'` without requiring driver role; returns profile dict
+- [X] T010 [P] Create `services/api/app/services/booking_service.py` scaffold with shared helpers only (no story logic yet): `get_booking_or_404(conn, booking_id, caller_id)` → raises HTTP 404/403; `_assert_ride_owner(conn, ride_id, driver_id)` → raises HTTP 403; `_insert_audit_log(conn, booking_id, event_type, actor_id, actor_role, prev_status, new_status, metadata)` → inserts one row into `booking_audit_log`
+- [X] T011 [P] Add booking notification enqueue function to `services/api/app/services/notification_service.py`: `enqueue_booking_notification(conn, notification_type, recipient_user_id, payload_dict)` → inserts one row into `email_notifications` with `payload = payload_dict`
 
 **Checkpoint**: Migration applied, models defined, dependency added, service scaffold ready — user story implementation can begin.
 

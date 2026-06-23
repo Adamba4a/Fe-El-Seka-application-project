@@ -147,6 +147,40 @@ async def _process_pending_emails() -> None:
                     )
 
 
+async def enqueue_booking_notification(
+    conn,
+    notification_type: str,
+    recipient_user_id: uuid.UUID,
+    payload_dict: dict,
+) -> None:
+    """Insert one booking event row into email_notifications with structured payload."""
+    row = await conn.fetchrow(
+        "SELECT email FROM profiles WHERE id = $1",
+        recipient_user_id,
+    )
+    if row is None:
+        logger.warning("enqueue_booking_notification: recipient %s not found", recipient_user_id)
+        return
+
+    ride_id = payload_dict.get("ride_id")
+    if ride_id is None:
+        logger.warning("enqueue_booking_notification: payload missing ride_id for %s", notification_type)
+        return
+
+    await conn.execute(
+        """
+        INSERT INTO email_notifications
+            (ride_id, passenger_id, passenger_email, notification_type, status, payload)
+        VALUES ($1, $2, $3, $4, 'pending', $5)
+        """,
+        uuid.UUID(str(ride_id)),
+        recipient_user_id,
+        row["email"],
+        notification_type,
+        payload_dict,
+    )
+
+
 async def email_retry_loop() -> None:
     """Background task: poll email_notifications and retry until sent or exhausted."""
     while True:
