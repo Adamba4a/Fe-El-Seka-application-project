@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
@@ -210,6 +211,8 @@ async def create_ride(
 # ─────────────────────────────────────────────────────────────────────────────
 # List rides
 # ─────────────────────────────────────────────────────────────────────────────
+
+logger = logging.getLogger(__name__)
 
 VALID_STATUSES = {"scheduled", "in_progress", "completed", "cancelled"}
 
@@ -429,7 +432,10 @@ async def cancel_ride(
             )
 
     from app.services.notification_service import enqueue_cancellation_emails
-    await enqueue_cancellation_emails(ride_id)
+    try:
+        await enqueue_cancellation_emails(ride_id)
+    except Exception as exc:
+        logger.warning("Failed to enqueue cancellation emails for ride %s: %s", ride_id, exc)
 
     return _to_response(dict(row))
 

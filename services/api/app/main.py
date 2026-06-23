@@ -1,10 +1,18 @@
 import asyncio
+import logging
+import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+logging.basicConfig(
+    level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO),
+    format="%(asctime)s %(name)s %(levelname)s %(message)s",
+)
 
 from app.api.admin.users_router import router as admin_users_router
 from app.api.admin.vehicle_updates_router import router as admin_vehicle_updates_router
@@ -61,8 +69,8 @@ async def not_found_handler(request: Request, exc: Exception) -> JSONResponse:
     )
 
 
-@app.exception_handler(422)
-async def validation_handler(request: Request, exc: Exception) -> JSONResponse:
+@app.exception_handler(RequestValidationError)
+async def validation_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     return JSONResponse(
         status_code=422,
         content={"error": "validation_error", "message": str(exc)},

@@ -38,6 +38,7 @@ services:
     env_file: apps/main/.env
     environment:
       SUPABASE_INTERNAL_URL: http://supabase_kong_fe-el-seka:8000
+      WATCHPACK_POLLING: "true"
     volumes:
       - ./apps/main/src:/app/apps/main/src
       - ./apps/main/public:/app/apps/main/public

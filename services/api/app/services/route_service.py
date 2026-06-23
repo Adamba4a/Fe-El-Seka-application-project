@@ -87,6 +87,23 @@ async def calculate_route(origin: GeoPoint, destination: GeoPoint) -> RouteGeome
         )
 
     route = data["routes"][0]
+    # OSRM snaps coordinates to the nearest road. When both ends snap to the
+    # same point (e.g. ocean coordinates far from any road), distance == 0.
+    # Treat this as unroutable so callers get a 422 instead of a zero-fare ride.
+    if route["distance"] == 0:
+        elapsed_ms = round((time.monotonic() - t0) * 1000)
+        logger.info(
+            "calculate_route origin=(%.5f,%.5f) dest=(%.5f,%.5f) "
+            "is_routable=False (zero-distance snap) elapsed_ms=%d",
+            origin.lat, origin.lng, destination.lat, destination.lng, elapsed_ms,
+        )
+        return RouteGeometry(
+            is_routable=False,
+            distance_km=0.0,
+            duration_minutes=0,
+            geojson_linestring={},
+        )
+
     result = RouteGeometry(
         is_routable=True,
         distance_km=round(route["distance"] / 1000, 3),
