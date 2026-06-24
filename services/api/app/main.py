@@ -23,7 +23,9 @@ from app.api.internal.revocation_router import router as internal_router
 from app.api.internal.route_intelligence_router import router as route_intelligence_router
 from app.api.profiles.router import router as profiles_router
 from app.api.routes.router import router as routes_router
+from app.api.bookings.router import router as bookings_router
 from app.api.rides.router import router as rides_router
+from app.api.search.router import router as search_router
 from app.api.vehicles.router import router as vehicles_router
 from app.api.verification.router import router as verification_router
 from app.core.config import settings
@@ -103,6 +105,8 @@ app.include_router(
     tags=["admin"],
 )
 app.include_router(rides_router, prefix="/api/v1/rides", tags=["rides"])
+app.include_router(search_router, prefix="/api/v1/search", tags=["search"])
+app.include_router(bookings_router, prefix="/api/v1/bookings", tags=["bookings"])
 app.include_router(internal_router, prefix="/api/v1/internal", tags=["internal"])
 app.include_router(routes_router, prefix="/api/routes", tags=["routes"])
 app.include_router(route_intelligence_router, prefix="/internal/route-intelligence", tags=["internal"])
