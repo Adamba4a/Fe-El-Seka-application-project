@@ -101,12 +101,19 @@ export default function PassengerBookingDetailPage() {
     if (!booking) return;
     setCancelling(true);
     try {
-      await apiFetch(`/api/v1/bookings/${bookingId}/cancel`, {
+      const res = await apiFetch(`/api/v1/bookings/${bookingId}/cancel`, {
         method: "POST",
         body: JSON.stringify({}),
       });
       setBooking((prev) =>
-        prev ? { ...prev, status: "cancelled", cancelled_at: new Date().toISOString() } : prev
+        prev
+          ? {
+              ...prev,
+              status: res.status,
+              cancelled_at: res.cancelled_at,
+              late_cancellation: res.late_cancellation,
+            }
+          : prev
       );
       setShowConfirm(false);
     } catch (e: unknown) {

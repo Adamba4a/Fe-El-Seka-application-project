@@ -432,10 +432,7 @@ async def cancel_ride(
             )
 
             from app.services.booking_service import cancel_all_bookings_for_ride
-            try:
-                await cancel_all_bookings_for_ride(conn, ride_id)
-            except Exception as exc:
-                logger.warning("Booking cascade failed for ride %s: %s", ride_id, exc)
+            await cancel_all_bookings_for_ride(conn, ride_id)
 
     return _to_response(dict(row))
 

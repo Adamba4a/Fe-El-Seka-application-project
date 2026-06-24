@@ -2,13 +2,20 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, status
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
 
 from app.core.database import get_pool
 from app.dependencies.auth import get_current_user
 from app.dependencies.verification import get_current_verified_passenger
-from app.models.booking import BookingCancelRequest, BookingCreateRequest
+from app.models.booking import (
+    BookingCancelRequest,
+    BookingCreateRequest,
+    BookingListItem,
+    BookingListResponse,
+)
 from app.services import booking_service
 from app.services.booking_service import create_booking
 
@@ -57,7 +64,83 @@ async def book_ride(
     )
 
 
-# ── GET /api/v1/bookings/{booking_id} ───────────────────────────────────────
+# ── GET /api/v1/bookings  (T037) ────────────────────────────────────────────
+
+@router.get("/")
+async def list_bookings(
+    status_filter: Optional[str] = Query(None, alias="status"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=50),
+    profile: dict = Depends(get_current_verified_passenger),
+):
+    passenger_id = uuid.UUID(str(profile["id"]))
+    page_size = min(page_size, 50)
+    offset = (page - 1) * page_size
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        where = "WHERE b.passenger_id = $1"
+        params: list = [passenger_id]
+
+        if status_filter:
+            params.append(status_filter)
+            where += f" AND b.status = ${len(params)}"
+
+        rows = await conn.fetch(
+            f"""
+            SELECT
+                b.id, b.ride_id, b.status,
+                b.per_seat_price, b.total_price,
+                b.premium_pickup_requested, b.premium_dropoff_requested,
+                b.created_at, b.confirmed_at, b.cancelled_at,
+                r.departure_datetime,
+                p.display_name AS driver_display_name
+            FROM bookings b
+            JOIN rides r ON r.id = b.ride_id
+            JOIN profiles p ON p.id = r.driver_id
+            {where}
+            ORDER BY r.departure_datetime DESC
+            LIMIT {page_size} OFFSET {offset}
+            """,
+            *params,
+        )
+        total = await conn.fetchval(
+            f"""
+            SELECT COUNT(*)
+            FROM bookings b
+            JOIN rides r ON r.id = b.ride_id
+            {where}
+            """,
+            *params,
+        )
+
+    items = [
+        BookingListItem(
+            booking_id=r["id"],
+            ride_id=r["ride_id"],
+            status=r["status"],
+            driver_display_name=r["driver_display_name"],
+            departure_datetime=r["departure_datetime"],
+            per_seat_price=f"{float(r['per_seat_price']):.2f}",
+            total_price=f"{float(r['total_price']):.2f}",
+            premium_pickup_requested=r["premium_pickup_requested"],
+            premium_dropoff_requested=r["premium_dropoff_requested"],
+            created_at=r["created_at"],
+            confirmed_at=r["confirmed_at"],
+            cancelled_at=r["cancelled_at"],
+        )
+        for r in rows
+    ]
+
+    return BookingListResponse(
+        bookings=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+    ).model_dump(mode="json")
+
+
+# ── GET /api/v1/bookings/{booking_id}  (T038 — implemented in Phase 7) ───────
 
 @router.get("/{booking_id}")
 async def get_booking(
