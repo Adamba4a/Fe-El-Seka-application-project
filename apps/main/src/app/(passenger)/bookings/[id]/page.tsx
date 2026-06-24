@@ -3,8 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { BookingStatusBadge } from "@/components/bookings/BookingStatusBadge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/Spinner";
 import { createClient } from "@/lib/supabase/client";
 
 type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
@@ -126,16 +125,16 @@ export default function PassengerBookingDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <Spinner />
       </div>
     );
   }
 
   if (error || !booking) {
     return (
-      <div className="p-4 text-center text-destructive">
+      <div className="p-4 text-center text-content-destructive">
         <p>{error ?? "Booking not found"}</p>
-        <button className="mt-2 text-sm underline" onClick={fetchBooking}>
+        <button className="mt-2 text-sm underline text-brand-primary" onClick={fetchBooking}>
           Try again
         </button>
       </div>
@@ -145,89 +144,86 @@ export default function PassengerBookingDetailPage() {
   const isCancellable =
     booking.status === "pending" || booking.status === "confirmed";
 
-  const hasPremium =
-    booking.premium_pickup_requested || booking.premium_dropoff_requested;
-
   return (
-    <div className="max-w-md mx-auto p-4 space-y-4">
+    <div className="max-w-md mx-auto space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Booking Details</h1>
+        <h1 className="text-xl font-semibold text-content-primary">Booking Details</h1>
         <BookingStatusBadge status={booking.status} />
       </div>
 
       {/* Driver & departure */}
-      <Card>
-        <CardContent className="p-4 space-y-2">
+      <div className="rounded-xl border border-border-default bg-surface-card">
+        <div className="p-4 space-y-3">
           <div className="flex items-center gap-3">
             {booking.driver_avatar_url ? (
               <img
                 src={booking.driver_avatar_url}
                 alt={booking.driver_display_name ?? "Driver"}
-                className="h-10 w-10 rounded-full object-cover"
+                className="h-10 w-10 rounded-full object-cover shrink-0"
               />
             ) : (
-              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
+              <div className="h-10 w-10 rounded-full bg-surface-bg flex items-center justify-center shrink-0 text-sm font-medium text-content-secondary">
                 {(booking.driver_display_name ?? "D")[0].toUpperCase()}
               </div>
             )}
             <div>
-              <p className="font-medium">{booking.driver_display_name ?? "Driver"}</p>
-              <p className="text-xs text-muted-foreground">Driver</p>
+              <p className="font-medium text-content-primary">{booking.driver_display_name ?? "Driver"}</p>
+              <p className="text-xs text-content-muted">Driver</p>
             </div>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Departure</p>
-            <p className="text-sm font-medium">{formatDateTime(booking.departure_datetime)}</p>
+            <p className="text-xs text-content-muted">Departure</p>
+            <p className="text-sm font-medium text-content-primary">{formatDateTime(booking.departure_datetime)}</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Route points */}
-      <Card>
-        <CardContent className="p-4 space-y-3">
+      <div className="rounded-xl border border-border-default bg-surface-card">
+        <div className="p-4 space-y-3">
           <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Boarding point</p>
-            <p className="text-sm font-mono">{formatCoord(booking.boarding_point)}</p>
+            <p className="text-xs text-content-muted uppercase tracking-wide">Boarding point</p>
+            <p className="text-sm font-mono text-content-primary">{formatCoord(booking.boarding_point)}</p>
           </div>
-          <div className="border-t" />
+          <div className="border-t border-border-default" />
           <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Alighting point</p>
-            <p className="text-sm font-mono">{formatCoord(booking.alighting_point)}</p>
+            <p className="text-xs text-content-muted uppercase tracking-wide">Alighting point</p>
+            <p className="text-sm font-mono text-content-primary">{formatCoord(booking.alighting_point)}</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Price breakdown */}
-      <Card>
-        <CardContent className="p-4 space-y-2">
-          <p className="text-sm font-medium">Price Breakdown</p>
+      <div className="rounded-xl border border-border-default bg-surface-card">
+        <div className="p-4 space-y-2">
+          <p className="text-sm font-medium text-content-primary">Price Breakdown</p>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Base fare</span>
-            <span>EGP {booking.per_seat_price}</span>
+            <span className="text-content-muted">Base fare</span>
+            <span className="text-content-primary">EGP {booking.per_seat_price}</span>
           </div>
           {booking.premium_pickup_requested && booking.premium_pickup_fee && (
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Premium pickup</span>
-              <span>EGP {booking.premium_pickup_fee}</span>
+              <span className="text-content-muted">Premium pickup</span>
+              <span className="text-content-primary">EGP {booking.premium_pickup_fee}</span>
             </div>
           )}
           {booking.premium_dropoff_requested && booking.premium_dropoff_fee && (
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Premium dropoff</span>
-              <span>EGP {booking.premium_dropoff_fee}</span>
+              <span className="text-content-muted">Premium dropoff</span>
+              <span className="text-content-primary">EGP {booking.premium_dropoff_fee}</span>
             </div>
           )}
-          <div className="border-t pt-2 flex justify-between font-semibold">
+          <div className="border-t border-border-default pt-2 flex justify-between font-semibold text-content-primary">
             <span>Total</span>
             <span>EGP {booking.total_price}</span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Cancellation info */}
       {booking.status === "cancelled" && (
-        <Card className="border-red-100 bg-red-50">
-          <CardContent className="p-4 space-y-1">
+        <div className="rounded-xl border border-red-100 bg-red-50">
+          <div className="p-4 space-y-1">
             <p className="text-sm font-medium text-red-700">Booking Cancelled</p>
             {booking.cancellation_reason && (
               <p className="text-xs text-red-600">{booking.cancellation_reason}</p>
@@ -238,48 +234,49 @@ export default function PassengerBookingDetailPage() {
             {booking.late_cancellation && (
               <p className="text-xs text-amber-600 font-medium">Late cancellation recorded</p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Cancel action */}
       {isCancellable && !showConfirm && (
-        <Button
-          variant="outline"
-          className="w-full border-red-200 text-red-600 hover:bg-red-50"
+        <button
+          type="button"
           onClick={() => setShowConfirm(true)}
+          className="w-full rounded-xl border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2.5 text-sm font-medium transition-colors"
         >
           Cancel Booking
-        </Button>
+        </button>
       )}
 
       {showConfirm && (
-        <Card className="border-red-200">
-          <CardContent className="p-4 space-y-3">
-            <p className="text-sm font-medium">Are you sure you want to cancel?</p>
-            <p className="text-xs text-muted-foreground">
+        <div className="rounded-xl border border-red-200 bg-surface-card">
+          <div className="p-4 space-y-3">
+            <p className="text-sm font-medium text-content-primary">Are you sure you want to cancel?</p>
+            <p className="text-xs text-content-muted">
               This action cannot be undone. Your seat will be released.
             </p>
             <div className="flex gap-2">
-              <Button
-                variant="destructive"
-                className="flex-1"
+              <button
+                type="button"
                 onClick={handleCancel}
                 disabled={cancelling}
+                className="flex-1 rounded-xl bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
+                {cancelling && <Spinner />}
                 {cancelling ? "Cancelling…" : "Yes, Cancel"}
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1"
+              </button>
+              <button
+                type="button"
                 onClick={() => setShowConfirm(false)}
                 disabled={cancelling}
+                className="flex-1 rounded-xl border border-border-default text-content-primary hover:bg-surface-bg px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
               >
                 Keep Booking
-              </Button>
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );

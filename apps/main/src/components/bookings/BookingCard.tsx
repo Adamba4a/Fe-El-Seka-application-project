@@ -1,9 +1,6 @@
 "use client";
 
 import { BookingStatusBadge } from "./BookingStatusBadge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 
@@ -75,23 +72,23 @@ export function BookingCard(props: BookingCardProps) {
     const hasPremium = booking.premium_pickup_requested || booking.premium_dropoff_requested;
 
     return (
-      <Card
-        className="cursor-pointer transition-shadow hover:shadow-md"
+      <div
+        className="rounded-xl border border-border-default bg-surface-card cursor-pointer transition-shadow hover:shadow-md"
         onClick={onClick}
       >
-        <CardContent className="p-4 space-y-3">
+        <div className="p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="font-medium text-sm">
+            <span className="font-medium text-sm text-content-primary">
               {booking.driver_display_name ?? "Driver"}
             </span>
             <BookingStatusBadge status={booking.status} />
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-content-muted">
             {formatDateTime(booking.departure_datetime)}
           </p>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Total</span>
-            <span className="font-semibold">EGP {booking.total_price}</span>
+            <span className="text-content-muted">Total</span>
+            <span className="font-semibold text-content-primary">EGP {booking.total_price}</span>
           </div>
           {hasPremium && (
             <p className="text-xs text-amber-700">
@@ -100,8 +97,8 @@ export function BookingCard(props: BookingCardProps) {
               {booking.premium_dropoff_fee ? ` (+EGP ${booking.premium_dropoff_fee} dropoff)` : ""}
             </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
@@ -118,36 +115,43 @@ export function BookingCard(props: BookingCardProps) {
     .toUpperCase();
 
   return (
-    <Card>
-      <CardContent className="p-4 space-y-3">
+    <div className="rounded-xl border border-border-default bg-surface-card">
+      <div className="p-4 space-y-3">
         <div className="flex items-center gap-3">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={booking.passenger.avatar_url ?? ""} alt={passengerName} />
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
+          {booking.passenger.avatar_url ? (
+            <img
+              src={booking.passenger.avatar_url}
+              alt={passengerName}
+              className="h-10 w-10 rounded-full object-cover shrink-0"
+            />
+          ) : (
+            <div className="h-10 w-10 rounded-full bg-surface-bg flex items-center justify-center shrink-0 text-sm font-semibold text-content-secondary">
+              {initials}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">{passengerName}</p>
+            <p className="font-medium text-sm text-content-primary truncate">{passengerName}</p>
             <BookingStatusBadge status={booking.status} />
           </div>
-          <div className="text-right text-sm">
-            <p className="font-semibold">EGP {booking.total_price}</p>
-            <p className="text-xs text-muted-foreground">/ seat</p>
+          <div className="text-right text-sm shrink-0">
+            <p className="font-semibold text-content-primary">EGP {booking.total_price}</p>
+            <p className="text-xs text-content-muted">/ seat</p>
           </div>
         </div>
 
-        <div className="text-xs text-muted-foreground space-y-1">
+        <div className="text-xs text-content-muted space-y-1">
           <p>
-            <span className="font-medium text-foreground">Boarding: </span>
+            <span className="font-medium text-content-primary">Boarding: </span>
             {formatCoord(booking.boarding_point)}
           </p>
           <p>
-            <span className="font-medium text-foreground">Alighting: </span>
+            <span className="font-medium text-content-primary">Alighting: </span>
             {formatCoord(booking.alighting_point)}
           </p>
         </div>
 
         {(booking.premium_pickup_requested || booking.premium_dropoff_requested) && (
-          <div className="rounded-md bg-amber-50 border border-amber-200 p-2 text-xs text-amber-800 space-y-0.5">
+          <div className="rounded-lg bg-amber-50 border border-amber-200 p-2 text-xs text-amber-800 space-y-0.5">
             <p className="font-medium">Premium Request</p>
             {booking.premium_pickup_requested && (
               <p>Pickup detour: +EGP {booking.premium_pickup_fee ?? "—"}</p>
@@ -160,38 +164,36 @@ export function BookingCard(props: BookingCardProps) {
 
         {isPending && (
           <div className="flex gap-2 pt-1">
-            <Button
-              size="sm"
-              className="flex-1"
+            <button
+              type="button"
               onClick={onConfirm}
               disabled={actionLoading}
+              className="flex-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-primary hover:bg-brand-primary-hover text-content-inverse disabled:opacity-50 transition-colors"
             >
               Confirm
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              className="flex-1"
+            </button>
+            <button
+              type="button"
               onClick={onReject}
               disabled={actionLoading}
+              className="flex-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-red-500 hover:bg-red-600 text-white disabled:opacity-50 transition-colors"
             >
               Reject
-            </Button>
+            </button>
           </div>
         )}
 
         {isConfirmed && cancelAvailable && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full border-red-200 text-red-600 hover:bg-red-50"
+          <button
+            type="button"
             onClick={onCancel}
             disabled={actionLoading}
+            className="w-full px-3 py-1.5 rounded-lg text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
           >
             Cancel Booking
-          </Button>
+          </button>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
