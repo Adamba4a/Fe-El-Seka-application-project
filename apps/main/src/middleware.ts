@@ -6,6 +6,19 @@ const PUBLIC_PATHS = ["/login", "/otp", "/signout"];
 // Do NOT redirect authenticated users away from it.
 const ALLOW_AUTHENTICATED = ["/signout"];
 
+// Paths that require the passenger's verification_status = 'approved'
+const PASSENGER_VERIFIED_PREFIXES = ["/search", "/bookings"];
+
+function isPassengerRoute(pathname: string): boolean {
+  if (PASSENGER_VERIFIED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+    return true;
+  }
+  // /rides/[id] under the (passenger) group — only the detail view, not /rides/new etc.
+  // Match /rides/<uuid> exactly (one segment after /rides/)
+  if (/^\/rides\/[0-9a-f-]{36}$/.test(pathname)) return true;
+  return false;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
@@ -44,6 +57,19 @@ export async function middleware(request: NextRequest) {
   const canPassThrough = ALLOW_AUTHENTICATED.some((p) => pathname.startsWith(p));
   if (user && isPublic && !canPassThrough) {
     return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  // For passenger routes, enforce verification_status = 'approved'
+  if (user && isPassengerRoute(pathname)) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("verification_status")
+      .eq("id", user.id)
+      .single();
+
+    if (profile && profile.verification_status !== "approved") {
+      return NextResponse.redirect(new URL("/onboarding/verify-id", request.url));
+    }
   }
 
   return supabaseResponse;

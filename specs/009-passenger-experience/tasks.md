@@ -161,11 +161,11 @@
 
 **Purpose**: Final wiring, navigation, and route protection.
 
-- [ ] T045 [P] Update `apps/main/src/app/(passenger)/layout.tsx` with passenger bottom navigation bar: "Search" → `/search`, "My Bookings" → `/bookings`; use the same shadcn/ui navigation pattern as the `(driver)` layout
-- [ ] T046 [P] Update `apps/main/src/middleware.ts` to protect `(passenger)` routes: add `/search`, `/rides/:id`, `/bookings`, `/bookings/:id` to the authenticated+verified matcher so unauthenticated users are redirected to sign-in and unverified users are redirected to the verification pending screen
-- [ ] T047 [P] Export new components from `apps/main/src/components/index.ts`: add `BookingCard`, `BookingStatusBadge`, `RideSearchForm`, `RideCard`, `RideDetailMap`
-- [ ] T048 Add `(passenger)/` route group link to driver home screen in `apps/main/src/app/(driver)/rides/page.tsx`: add "Search Rides" navigation entry so drivers who are also passengers can switch to the passenger experience
-- [ ] T049 Run all 7 quickstart.md validation scenarios; confirm each passes; fix any regressions before marking Phase 10 complete
+- [X] T045 [P] Update `apps/main/src/app/(passenger)/layout.tsx` with passenger bottom navigation bar: "Search" → `/search`, "My Bookings" → `/bookings`; use the same shadcn/ui navigation pattern as the `(driver)` layout
+- [X] T046 [P] Update `apps/main/src/middleware.ts` to protect `(passenger)` routes: add `/search`, `/rides/:id`, `/bookings`, `/bookings/:id` to the authenticated+verified matcher so unauthenticated users are redirected to sign-in and unverified users are redirected to the verification pending screen
+- [X] T047 [P] Export new components from `apps/main/src/components/index.ts`: add `BookingCard`, `BookingStatusBadge`, `RideSearchForm`, `RideCard`, `RideDetailMap`
+- [X] T048 Add `(passenger)/` route group link to driver home screen in `apps/main/src/app/(driver)/rides/page.tsx`: add "Search Rides" navigation entry so drivers who are also passengers can switch to the passenger experience
+- [X] T049 Run all 7 quickstart.md validation scenarios; confirm each passes; fix any regressions before marking Phase 10 complete
 
 ---
 

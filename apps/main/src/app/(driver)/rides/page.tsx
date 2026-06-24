@@ -45,12 +45,20 @@ export default function MyRidesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-h3 text-content-primary">My Rides</h1>
-        <Link
-          href="/rides/new"
-          className="bg-brand-primary hover:bg-brand-primary-hover text-content-inverse text-body-sm font-medium px-4 py-2 rounded-xl transition-colors"
-        >
-          + Post a Ride
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/search"
+            className="border border-brand-primary text-brand-primary text-body-sm font-medium px-4 py-2 rounded-xl transition-colors hover:bg-brand-primary hover:text-content-inverse"
+          >
+            Search Rides
+          </Link>
+          <Link
+            href="/rides/new"
+            className="bg-brand-primary hover:bg-brand-primary-hover text-content-inverse text-body-sm font-medium px-4 py-2 rounded-xl transition-colors"
+          >
+            + Post a Ride
+          </Link>
+        </div>
       </div>
 
       {/* Status filter tabs */}

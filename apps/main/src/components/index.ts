@@ -4,3 +4,8 @@ export { RideCard } from './rides/RideCard';
 export { RideStatusBadge } from './rides/RideStatusBadge';
 export { RideHistoryLog } from './rides/RideHistoryLog';
 export { StartCompleteActions } from './rides/StartCompleteActions';
+export { BookingCard } from './bookings/BookingCard';
+export { BookingStatusBadge } from './bookings/BookingStatusBadge';
+export { RideSearchForm } from './bookings/RideSearchForm';
+export { RideCard as PassengerRideCard } from './bookings/RideCard';
+export { RideDetailMap } from './bookings/RideDetailMap';
