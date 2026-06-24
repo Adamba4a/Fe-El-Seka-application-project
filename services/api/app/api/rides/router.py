@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from app.core.database import get_pool
 from app.dependencies.auth import get_current_user
 from app.dependencies.verification import get_current_verified_driver
+from app.models.booking import BookingCancelRequest, DriverBookingItem, DriverBookingListResponse, DriverConfirmResponse, DriverRejectResponse
 from app.models.ride import (
     CancelRideRequest,
     CreateRideRequest,
@@ -18,6 +19,7 @@ from app.models.ride import (
 )
 from app.models.route import GeoPoint
 from app.services import ride_service, route_service
+from app.services import booking_service
 from app.services.pricing_service import calculate_fare, get_pricing_config
 from app.services.ride_service import RideServiceError
 from app.services.route_service import RouteServiceUnavailableError
@@ -365,4 +367,118 @@ async def complete_ride(
     except RideServiceError as exc:
         return _service_error_response(exc)
     return {"ride": ride.model_dump(mode="json")}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET /api/v1/rides/{ride_id}/bookings  (T026)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/{ride_id}/bookings")
+async def list_ride_bookings(
+    ride_id: uuid.UUID,
+    status_filter: Optional[str] = Query(None, alias="status"),
+    profile: dict = Depends(get_current_verified_driver),
+):
+    driver_id = uuid.UUID(str(profile["id"]))
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        await booking_service._assert_ride_owner(conn, ride_id, driver_id)
+
+        query = """
+            SELECT
+                b.id              AS booking_id,
+                b.status,
+                b.per_seat_price,
+                b.total_price,
+                b.premium_pickup_requested,
+                b.premium_pickup_fee,
+                b.premium_dropoff_requested,
+                b.premium_dropoff_fee,
+                b.created_at,
+                ST_Y(b.passenger_pickup_point::geometry)  AS boarding_lat,
+                ST_X(b.passenger_pickup_point::geometry)  AS boarding_lng,
+                ST_Y(b.passenger_dropoff_point::geometry) AS alighting_lat,
+                ST_X(b.passenger_dropoff_point::geometry) AS alighting_lng,
+                p.display_name    AS passenger_display_name,
+                p.avatar_url      AS passenger_avatar_url
+            FROM bookings b
+            JOIN profiles p ON p.id = b.passenger_id
+            WHERE b.ride_id = $1
+        """
+        params: list = [ride_id]
+
+        if status_filter:
+            query += " AND b.status = $2"
+            params.append(status_filter)
+
+        query += " ORDER BY b.created_at ASC"
+
+        rows = await conn.fetch(query, *params)
+
+    items = [
+        DriverBookingItem(
+            booking_id=r["booking_id"],
+            passenger={
+                "display_name": r["passenger_display_name"],
+                "avatar_url": r["passenger_avatar_url"],
+            },
+            status=r["status"],
+            per_seat_price=f"{float(r['per_seat_price']):.2f}",
+            total_price=f"{float(r['total_price']):.2f}",
+            boarding_point={"lat": r["boarding_lat"], "lng": r["boarding_lng"]},
+            alighting_point={"lat": r["alighting_lat"], "lng": r["alighting_lng"]},
+            premium_pickup_requested=r["premium_pickup_requested"],
+            premium_pickup_fee=f"{float(r['premium_pickup_fee']):.2f}" if r["premium_pickup_fee"] else None,
+            premium_dropoff_requested=r["premium_dropoff_requested"],
+            premium_dropoff_fee=f"{float(r['premium_dropoff_fee']):.2f}" if r["premium_dropoff_fee"] else None,
+            created_at=r["created_at"],
+        )
+        for r in rows
+    ]
+    return DriverBookingListResponse(bookings=items, total=len(items)).model_dump(mode="json")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /api/v1/rides/{ride_id}/bookings/{booking_id}/confirm  (T027)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post("/{ride_id}/bookings/{booking_id}/confirm")
+async def confirm_booking(
+    ride_id: uuid.UUID,
+    booking_id: uuid.UUID,
+    profile: dict = Depends(get_current_verified_driver),
+):
+    driver_id = uuid.UUID(str(profile["id"]))
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        result = await booking_service.confirm_booking(conn, booking_id, ride_id, driver_id)
+    return DriverConfirmResponse(
+        booking_id=result["id"],
+        status=result["status"],
+        confirmed_at=result.get("confirmed_at"),
+    ).model_dump(mode="json")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /api/v1/rides/{ride_id}/bookings/{booking_id}/reject  (T028)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post("/{ride_id}/bookings/{booking_id}/reject")
+async def reject_booking(
+    ride_id: uuid.UUID,
+    booking_id: uuid.UUID,
+    payload: BookingCancelRequest = None,
+    profile: dict = Depends(get_current_verified_driver),
+):
+    driver_id = uuid.UUID(str(profile["id"]))
+    reason = payload.reason if payload else None
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        result = await booking_service.reject_booking(conn, booking_id, ride_id, driver_id, reason)
+    return DriverRejectResponse(
+        booking_id=result.get("id") or booking_id,
+        status=result["status"],
+        cancelled_by=result.get("cancelled_by"),
+        fallback_applied=result.get("fallback_applied", False),
+    ).model_dump(mode="json")
 

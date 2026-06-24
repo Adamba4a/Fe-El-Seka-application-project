@@ -145,6 +145,143 @@ async def create_booking(
         return booking
 
 
+async def confirm_booking(
+    conn,
+    booking_id: uuid.UUID,
+    ride_id: uuid.UUID,
+    driver_id: uuid.UUID,
+) -> dict:
+    """Transition a pending booking to confirmed. Must be called with a pool conn."""
+    await _assert_ride_owner(conn, ride_id, driver_id)
+
+    async with conn.transaction():
+        row = await conn.fetchrow(
+            "SELECT id, status, ride_id, passenger_id FROM bookings WHERE id = $1 FOR UPDATE",
+            booking_id,
+        )
+        if row is None or row["ride_id"] != ride_id:
+            raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Booking not found"})
+        if row["status"] != "pending":
+            raise HTTPException(status_code=409, detail={"error": "booking_not_pending", "message": "Booking is not in pending status"})
+
+        updated = await conn.fetchrow(
+            "UPDATE bookings SET status = 'confirmed', confirmed_at = now() WHERE id = $1 RETURNING id, status, confirmed_at",
+            booking_id,
+        )
+
+        await _insert_audit_log(conn, booking_id, "confirmed", driver_id, "driver", "pending", "confirmed")
+
+        await enqueue_booking_notification(
+            conn,
+            "booking_confirmed",
+            row["passenger_id"],
+            {"ride_id": str(ride_id), "booking_id": str(booking_id)},
+        )
+
+    return dict(updated)
+
+
+async def reject_booking(
+    conn,
+    booking_id: uuid.UUID,
+    ride_id: uuid.UUID,
+    driver_id: uuid.UUID,
+    reason: Optional[str] = None,
+) -> dict:
+    """Reject a pending booking, applying premium fallback rule (FR-021) when applicable."""
+    await _assert_ride_owner(conn, ride_id, driver_id)
+
+    async with conn.transaction():
+        row = await conn.fetchrow(
+            """
+            SELECT b.id, b.status, b.ride_id, b.passenger_id,
+                   b.premium_pickup_requested, b.per_seat_price
+            FROM bookings b
+            WHERE b.id = $1
+            FOR UPDATE
+            """,
+            booking_id,
+        )
+        if row is None or row["ride_id"] != ride_id:
+            raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Booking not found"})
+        if row["status"] != "pending":
+            raise HTTPException(status_code=409, detail={"error": "booking_not_pending", "message": "Booking is not in pending status"})
+
+        fallback_applied = False
+
+        if row["premium_pickup_requested"]:
+            walk_m = await conn.fetchval(
+                """
+                SELECT ST_Distance(
+                    b.passenger_pickup_point::geography,
+                    ST_ClosestPoint(r.route_geometry::geometry, b.passenger_pickup_point::geometry)::geography
+                )
+                FROM bookings b
+                JOIN rides r ON r.id = b.ride_id
+                WHERE b.id = $1
+                """,
+                booking_id,
+            )
+            if walk_m is not None and walk_m <= 500:
+                # Fallback: keep as confirmed at base price, remove premium
+                await conn.execute(
+                    """
+                    UPDATE bookings
+                    SET status = 'confirmed',
+                        confirmed_at = now(),
+                        premium_pickup_requested = false,
+                        premium_pickup_fee = null,
+                        total_price = per_seat_price
+                    WHERE id = $1
+                    """,
+                    booking_id,
+                )
+                await _insert_audit_log(
+                    conn, booking_id, "confirmed", driver_id, "driver", "pending", "confirmed",
+                    {"fallback_applied": True, "reason": reason},
+                )
+                await enqueue_booking_notification(
+                    conn,
+                    "booking_confirmed",
+                    row["passenger_id"],
+                    {"ride_id": str(ride_id), "booking_id": str(booking_id), "fallback_applied": True},
+                )
+                fallback_applied = True
+                return {"id": booking_id, "status": "confirmed", "cancelled_by": None, "fallback_applied": True}
+
+        # No fallback — cancel the booking and release the seat
+        await conn.execute(
+            "UPDATE rides SET booked_seats = GREATEST(booked_seats - 1, 0) WHERE id = $1",
+            ride_id,
+        )
+        updated = await conn.fetchrow(
+            """
+            UPDATE bookings
+            SET status = 'cancelled',
+                cancelled_by = 'driver',
+                cancellation_reason = $2,
+                cancelled_at = now()
+            WHERE id = $1
+            RETURNING id, status, cancelled_by
+            """,
+            booking_id,
+            reason,
+        )
+
+        await _insert_audit_log(conn, booking_id, "rejected", driver_id, "driver", "pending", "cancelled", {"reason": reason})
+
+        await enqueue_booking_notification(
+            conn,
+            "booking_rejected",
+            row["passenger_id"],
+            {"ride_id": str(ride_id), "booking_id": str(booking_id)},
+        )
+
+    result = dict(updated)
+    result["fallback_applied"] = False
+    return result
+
+
 async def _insert_audit_log(
     conn,
     booking_id: uuid.UUID,
