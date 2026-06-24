@@ -67,7 +67,7 @@ export async function middleware(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    if (profile && profile.verification_status !== "approved") {
+    if (profile && profile.verification_status !== "verified") {
       return NextResponse.redirect(new URL("/onboarding/verify-id", request.url));
     }
   }

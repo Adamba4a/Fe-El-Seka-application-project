@@ -15,7 +15,7 @@ export default async function PassengerLayout({ children }: { children: React.Re
     .single();
 
   // Redirect unverified users; allow transient DB errors through to avoid bounce loops
-  if (!error && profile && profile.verification_status !== "approved") {
+  if (!error && profile && profile.verification_status !== "verified") {
     redirect("/onboarding/verify-id");
   }
 

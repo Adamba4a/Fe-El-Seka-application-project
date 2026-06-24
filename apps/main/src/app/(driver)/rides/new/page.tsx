@@ -75,7 +75,7 @@ export default function NewRidePage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push("/login"); return; }
       const ride = await createRide(session.access_token, payload);
-      router.push(`/rides/${ride.id}`);
+      router.push(`/rides/${ride.id}/manage`);
     } catch (err: any) {
       const detail = err?.detail ?? err;
       setError(detail?.message ?? "Failed to post ride. Please try again.");

@@ -242,7 +242,7 @@ export function ProfileEditor({
   return (
     <main className="max-w-sm mx-auto p-6 space-y-6">
       <div className="flex items-center gap-3">
-        <a href="/rides" className="text-content-muted hover:text-content-secondary text-lg leading-none">←</a>
+        <a href={initialProfile.role === "passenger" ? "/search" : "/rides"} className="text-content-muted hover:text-content-secondary text-lg leading-none">←</a>
         <h1 className="text-h3 text-content-primary">Edit Profile</h1>
       </div>
       {saved && <p className="text-body-sm text-status-completed">Profile saved!</p>}

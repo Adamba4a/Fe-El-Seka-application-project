@@ -74,7 +74,7 @@ export default function SettingsProfilePage() {
     return (
       <main className="max-w-sm mx-auto p-6 space-y-4">
         <div className="flex items-center gap-3">
-          <a href="/rides" className="text-content-muted hover:text-content-secondary text-lg">←</a>
+          <a href="/" className="text-content-muted hover:text-content-secondary text-lg">←</a>
           <h1 className="text-h3 text-content-primary">Profile</h1>
         </div>
         <div className="bg-status-cancelled-bg border border-border-default rounded-xl p-4">

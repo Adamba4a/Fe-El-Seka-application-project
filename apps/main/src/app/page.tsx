@@ -35,7 +35,7 @@ export default async function Home() {
 
   if (profile.verification_status === "verified") {
     if (profile.role === "driver") redirect("/rides");
-    if (profile.role === "passenger") redirect("/settings/profile");
+    if (profile.role === "passenger") redirect("/search");
     // Any other role (e.g. "admin") has no place in the main app.
     // This happens locally when the admin panel session bleeds in via shared cookies.
     redirect("/signout");
