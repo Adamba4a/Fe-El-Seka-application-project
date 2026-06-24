@@ -48,6 +48,8 @@ interface DriverVariantProps {
   onReject?: () => void;
   onCancel?: () => void;
   actionLoading?: boolean;
+  /** Set false to hide cancel until Phase 7 endpoint is live */
+  cancelAvailable?: boolean;
 }
 
 type BookingCardProps = PassengerVariantProps | DriverVariantProps;
@@ -104,7 +106,7 @@ export function BookingCard(props: BookingCardProps) {
   }
 
   // Driver variant
-  const { booking, onConfirm, onReject, onCancel, actionLoading } = props;
+  const { booking, onConfirm, onReject, onCancel, actionLoading, cancelAvailable = false } = props;
   const isPending = booking.status === "pending";
   const isConfirmed = booking.status === "confirmed";
   const passengerName = booking.passenger.display_name ?? "Passenger";
@@ -178,7 +180,7 @@ export function BookingCard(props: BookingCardProps) {
           </div>
         )}
 
-        {isConfirmed && (
+        {isConfirmed && cancelAvailable && (
           <Button
             size="sm"
             variant="outline"

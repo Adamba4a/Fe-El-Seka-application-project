@@ -428,9 +428,9 @@ async def list_ride_bookings(
             boarding_point={"lat": r["boarding_lat"], "lng": r["boarding_lng"]},
             alighting_point={"lat": r["alighting_lat"], "lng": r["alighting_lng"]},
             premium_pickup_requested=r["premium_pickup_requested"],
-            premium_pickup_fee=f"{float(r['premium_pickup_fee']):.2f}" if r["premium_pickup_fee"] else None,
+            premium_pickup_fee=f"{float(r['premium_pickup_fee']):.2f}" if r["premium_pickup_fee"] is not None else None,
             premium_dropoff_requested=r["premium_dropoff_requested"],
-            premium_dropoff_fee=f"{float(r['premium_dropoff_fee']):.2f}" if r["premium_dropoff_fee"] else None,
+            premium_dropoff_fee=f"{float(r['premium_dropoff_fee']):.2f}" if r["premium_dropoff_fee"] is not None else None,
             created_at=r["created_at"],
         )
         for r in rows
@@ -481,4 +481,32 @@ async def reject_booking(
         cancelled_by=result.get("cancelled_by"),
         fallback_applied=result.get("fallback_applied", False),
     ).model_dump(mode="json")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /api/v1/rides/{ride_id}/bookings/{booking_id}/cancel  (T034)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post("/{ride_id}/bookings/{booking_id}/cancel")
+async def cancel_booking_driver(
+    ride_id: uuid.UUID,
+    booking_id: uuid.UUID,
+    payload: BookingCancelRequest = None,
+    profile: dict = Depends(get_current_verified_driver),
+):
+    driver_id = uuid.UUID(str(profile["id"]))
+    reason = payload.reason if payload else None
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        await booking_service._assert_ride_owner(conn, ride_id, driver_id)
+        result = await booking_service.cancel_booking(
+            conn, booking_id, driver_id, "driver", reason
+        )
+    return {
+        "booking_id": str(result["id"]),
+        "status": result["status"],
+        "cancelled_by": result["cancelled_by"],
+        "late_cancellation": result["late_cancellation"],
+        "cancelled_at": result["cancelled_at"].isoformat(),
+    }
 

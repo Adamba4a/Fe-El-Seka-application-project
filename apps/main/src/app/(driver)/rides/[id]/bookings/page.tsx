@@ -38,7 +38,10 @@ async function apiFetch(path: string, options?: RequestInit) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err?.message ?? `HTTP ${res.status}`);
+    // FastAPI wraps errors as { detail: { message: "..." } } or { detail: "string" }
+    const msg =
+      err?.detail?.message ?? err?.detail ?? err?.message ?? `HTTP ${res.status}`;
+    throw new Error(msg);
   }
   return res.json();
 }
@@ -100,7 +103,7 @@ export default function DriverRideBookingsPage() {
         }
       );
       if (result.fallback_applied) {
-        // Premium declined but booking kept as confirmed at base price
+        // Premium pickup declined but booking kept as confirmed; subtract pickup fee from total
         setBookings((prev) =>
           prev.map((b) =>
             b.booking_id === bookingId
@@ -109,6 +112,9 @@ export default function DriverRideBookingsPage() {
                   status: "confirmed",
                   premium_pickup_requested: false,
                   premium_pickup_fee: null,
+                  total_price: (
+                    Number(b.total_price) - Number(b.premium_pickup_fee || 0)
+                  ).toFixed(2),
                 }
               : b
           )
@@ -216,6 +222,7 @@ export default function DriverRideBookingsPage() {
               key={booking.booking_id}
               variant="driver"
               booking={booking}
+              cancelAvailable={true}
               onCancel={() => handleCancel(booking.booking_id)}
               actionLoading={actionLoading === booking.booking_id}
             />

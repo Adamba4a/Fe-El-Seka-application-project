@@ -223,7 +223,7 @@ async def reject_booking(
                 booking_id,
             )
             if walk_m is not None and walk_m <= 500:
-                # Fallback: keep as confirmed at base price, remove premium
+                # Fallback: remove only the pickup premium; preserve any dropoff premium
                 await conn.execute(
                     """
                     UPDATE bookings
@@ -231,7 +231,7 @@ async def reject_booking(
                         confirmed_at = now(),
                         premium_pickup_requested = false,
                         premium_pickup_fee = null,
-                        total_price = per_seat_price
+                        total_price = total_price - COALESCE(premium_pickup_fee, 0)
                     WHERE id = $1
                     """,
                     booking_id,
@@ -280,6 +280,111 @@ async def reject_booking(
     result = dict(updated)
     result["fallback_applied"] = False
     return result
+
+
+async def cancel_booking(
+    conn,
+    booking_id: uuid.UUID,
+    caller_id: Optional[uuid.UUID],
+    caller_role: str,  # 'passenger', 'driver', 'system'
+    reason: Optional[str] = None,
+) -> dict:
+    """Cancel a booking, release the seat, and enqueue the appropriate notification."""
+    async with conn.transaction():
+        row = await conn.fetchrow(
+            """
+            SELECT b.id, b.status, b.ride_id, b.passenger_id,
+                   r.driver_id, r.departure_datetime
+            FROM bookings b
+            JOIN rides r ON r.id = b.ride_id
+            WHERE b.id = $1
+            FOR UPDATE OF b
+            """,
+            booking_id,
+        )
+        if row is None:
+            raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Booking not found"})
+
+        if caller_role == "passenger" and row["passenger_id"] != caller_id:
+            raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "Access denied"})
+        if caller_role == "driver" and row["driver_id"] != caller_id:
+            raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "Access denied"})
+
+        if row["status"] in ("cancelled", "completed"):
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "booking_terminal", "message": "Booking is already cancelled or completed"},
+            )
+
+        dep = row["departure_datetime"]
+        if dep.tzinfo is None:
+            dep = dep.replace(tzinfo=timezone.utc)
+        late_cancellation = (dep - datetime.now(timezone.utc)) < timedelta(hours=1)
+
+        await conn.execute(
+            "UPDATE rides SET booked_seats = GREATEST(booked_seats - 1, 0) WHERE id = $1",
+            row["ride_id"],
+        )
+
+        cancelled_by_val = caller_role if caller_role in ("passenger", "driver") else "system"
+        updated = await conn.fetchrow(
+            """
+            UPDATE bookings
+            SET status = 'cancelled',
+                cancelled_by = $2,
+                cancellation_reason = $3,
+                late_cancellation = $4,
+                cancelled_at = now()
+            WHERE id = $1
+            RETURNING id, status, cancelled_by, late_cancellation, cancelled_at
+            """,
+            booking_id,
+            cancelled_by_val,
+            reason,
+            late_cancellation,
+        )
+
+        prev_status = row["status"]
+        await _insert_audit_log(
+            conn, booking_id, "cancelled", caller_id, caller_role,
+            prev_status, "cancelled", {"reason": reason},
+        )
+
+        if caller_role == "passenger":
+            notif_type = "booking_cancelled_by_passenger"
+            recipient = row["driver_id"]
+        elif caller_role == "driver":
+            notif_type = "booking_cancelled_by_driver"
+            recipient = row["passenger_id"]
+        else:
+            notif_type = "ride_cancelled"
+            recipient = row["passenger_id"]
+
+        await enqueue_booking_notification(
+            conn,
+            notif_type,
+            recipient,
+            {"ride_id": str(row["ride_id"]), "booking_id": str(booking_id)},
+        )
+
+    return dict(updated)
+
+
+async def cancel_all_bookings_for_ride(conn, ride_id: uuid.UUID) -> int:
+    """Cancel all pending and confirmed bookings for a ride. Used by ride cascade. Returns count."""
+    rows = await conn.fetch(
+        "SELECT id FROM bookings WHERE ride_id = $1 AND status IN ('pending', 'confirmed')",
+        ride_id,
+    )
+    for row in rows:
+        await cancel_booking(
+            conn,
+            row["id"],
+            caller_id=None,
+            caller_role="system",
+            reason="ride_cancelled_by_driver",
+        )
+    return len(rows)
 
 
 async def _insert_audit_log(

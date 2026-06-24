@@ -431,11 +431,11 @@ async def cancel_ride(
                 ride_id, log_actor, reason.strip(),
             )
 
-    from app.services.notification_service import enqueue_cancellation_emails
-    try:
-        await enqueue_cancellation_emails(ride_id)
-    except Exception as exc:
-        logger.warning("Failed to enqueue cancellation emails for ride %s: %s", ride_id, exc)
+            from app.services.booking_service import cancel_all_bookings_for_ride
+            try:
+                await cancel_all_bookings_for_ride(conn, ride_id)
+            except Exception as exc:
+                logger.warning("Booking cascade failed for ride %s: %s", ride_id, exc)
 
     return _to_response(dict(row))
 
