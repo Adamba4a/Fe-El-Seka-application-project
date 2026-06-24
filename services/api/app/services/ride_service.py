@@ -494,4 +494,7 @@ async def complete_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideRespons
                 ride_id, driver_id,
             )
 
+            from app.services.booking_service import complete_ride_bookings
+            await complete_ride_bookings(conn, ride_id)
+
     return _to_response(dict(row))

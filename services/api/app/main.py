@@ -30,6 +30,7 @@ from app.api.vehicles.router import router as vehicles_router
 from app.api.verification.router import router as verification_router
 from app.core.config import settings
 from app.core.database import close_pool, create_pool
+from app.services.booking_service import booking_expiry_loop
 from app.services.notification_service import email_retry_loop
 from app.services.pricing_service import init_pricing_config, pricing_config_refresh_loop
 
@@ -40,9 +41,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.pool = pool
     await init_pricing_config()
     email_task = asyncio.create_task(email_retry_loop())
+    expiry_task = asyncio.create_task(booking_expiry_loop())
     pricing_task = asyncio.create_task(pricing_config_refresh_loop())
     yield
     pricing_task.cancel()
+    expiry_task.cancel()
     email_task.cancel()
     await close_pool()
     app.state.pool = None

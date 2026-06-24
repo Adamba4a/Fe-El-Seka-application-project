@@ -92,6 +92,7 @@ async def list_bookings(
                 b.id, b.ride_id, b.status,
                 b.per_seat_price, b.total_price,
                 b.premium_pickup_requested, b.premium_dropoff_requested,
+                b.premium_pickup_fee, b.premium_dropoff_fee,
                 b.created_at, b.confirmed_at, b.cancelled_at,
                 r.departure_datetime,
                 p.display_name AS driver_display_name
@@ -125,6 +126,8 @@ async def list_bookings(
             total_price=f"{float(r['total_price']):.2f}",
             premium_pickup_requested=r["premium_pickup_requested"],
             premium_dropoff_requested=r["premium_dropoff_requested"],
+            premium_pickup_fee=f"{float(r['premium_pickup_fee']):.2f}" if r["premium_pickup_fee"] is not None else None,
+            premium_dropoff_fee=f"{float(r['premium_dropoff_fee']):.2f}" if r["premium_dropoff_fee"] is not None else None,
             created_at=r["created_at"],
             confirmed_at=r["confirmed_at"],
             cancelled_at=r["cancelled_at"],

@@ -387,6 +387,92 @@ async def cancel_all_bookings_for_ride(conn, ride_id: uuid.UUID) -> int:
     return len(rows)
 
 
+async def _expire_pending_bookings(pool) -> None:
+    """Sweep pending bookings older than 24 hours and cancel them (max 500 per run)."""
+    async with pool.acquire() as conn:
+        candidates = await conn.fetch(
+            """
+            SELECT id, passenger_id, ride_id
+            FROM bookings
+            WHERE status = 'pending'
+              AND created_at < NOW() - INTERVAL '24 hours'
+            LIMIT 500
+            """
+        )
+
+    for row in candidates:
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                locked = await conn.fetchrow(
+                    """
+                    SELECT id, passenger_id, ride_id
+                    FROM bookings
+                    WHERE id = $1 AND status = 'pending'
+                    FOR UPDATE SKIP LOCKED
+                    """,
+                    row["id"],
+                )
+                if locked is None:
+                    continue  # Concurrently processed or already non-pending
+
+                await conn.execute(
+                    """
+                    UPDATE bookings
+                    SET status = 'cancelled',
+                        cancelled_by = 'system',
+                        cancellation_reason = 'booking_expired',
+                        cancelled_at = now()
+                    WHERE id = $1
+                    """,
+                    locked["id"],
+                )
+
+                await conn.execute(
+                    "UPDATE rides SET booked_seats = GREATEST(booked_seats - 1, 0) WHERE id = $1",
+                    locked["ride_id"],
+                )
+
+                await _insert_audit_log(
+                    conn, locked["id"], "expired", None, "system", "pending", "cancelled"
+                )
+
+                await enqueue_booking_notification(
+                    conn,
+                    "booking_expired",
+                    locked["passenger_id"],
+                    {"ride_id": str(locked["ride_id"]), "booking_id": str(locked["id"])},
+                )
+
+
+async def booking_expiry_loop() -> None:
+    """Background task: cancel unresponded pending bookings every 10 minutes."""
+    pool = get_pool()
+    while True:
+        try:
+            await _expire_pending_bookings(pool)
+        except Exception as exc:
+            logger.error("Booking expiry sweep error: %s", exc)
+        await asyncio.sleep(600)
+
+
+async def complete_ride_bookings(conn, ride_id: uuid.UUID) -> int:
+    """Transition all confirmed bookings for a ride to completed. Idempotent."""
+    rows = await conn.fetch(
+        """
+        UPDATE bookings
+        SET status = 'completed'
+        WHERE ride_id = $1 AND status = 'confirmed'
+        RETURNING id
+        """,
+        ride_id,
+    )
+    for row in rows:
+        await _insert_audit_log(
+            conn, row["id"], "completed", None, "system", "confirmed", "completed"
+        )
+    return len(rows)
+
+
 async def _insert_audit_log(
     conn,
     booking_id: uuid.UUID,
