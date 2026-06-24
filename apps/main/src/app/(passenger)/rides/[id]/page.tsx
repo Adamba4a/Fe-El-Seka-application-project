@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { env } from "@/lib/env";
 
 const RideDetailMap = dynamic(
@@ -74,6 +75,9 @@ export default function PassengerRideDetailPage() {
   const [gone, setGone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [premiumOption, setPremiumOption] = useState<PremiumOption>("standard");
+  const [showSheet, setShowSheet] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -153,7 +157,61 @@ export default function PassengerRideDetailPage() {
   const noSeats = ride.available_seats === 0;
 
   const handleBook = () => {
-    // Booking bottom sheet wired in Phase 5 (T023)
+    setBookingError(null);
+    setShowSheet(true);
+  };
+
+  const confirmBooking = async () => {
+    if (!detail) return;
+    setBookingLoading(true);
+    setBookingError(null);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { router.push("/login"); return; }
+
+      const ctx = detail.passenger_context;
+      const pickupFee = premiumOption === "premium_pickup" || premiumOption === "premium_both"
+        ? ctx.premium_pickup_fee : null;
+      const dropoffFee = premiumOption === "premium_dropoff" || premiumOption === "premium_both"
+        ? ctx.premium_dropoff_fee : null;
+
+      const res = await fetch(`${env.apiUrl}/api/v1/bookings`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ride_id: detail.ride.id,
+          boarding_point: ctx.boarding_point,
+          alighting_point: ctx.alighting_point,
+          premium_pickup_requested: premiumOption === "premium_pickup" || premiumOption === "premium_both",
+          premium_dropoff_requested: premiumOption === "premium_dropoff" || premiumOption === "premium_both",
+          premium_pickup_fee: pickupFee,
+          premium_dropoff_fee: dropoffFee,
+        }),
+      });
+
+      const json = await res.json();
+      if (res.status === 201) {
+        router.push(`/bookings/${json.booking_id}`);
+        return;
+      }
+      if (res.status === 409) {
+        setBookingError(
+          json.error === "duplicate_booking"
+            ? "You already have a booking for this ride."
+            : "No seats available — this ride just filled up."
+        );
+      } else {
+        setBookingError(json.message ?? "Booking failed. Please try again.");
+      }
+    } catch {
+      setBookingError("Network error — please try again.");
+    } finally {
+      setBookingLoading(false);
+    }
   };
 
   return (
@@ -243,7 +301,12 @@ export default function PassengerRideDetailPage() {
           {ctx.premium_pickup_available && (
             <button
               type="button"
-              onClick={() => setPremiumOption(premiumOption === "premium_both" || premiumOption === "premium_pickup" ? "standard" : "premium_pickup")}
+              onClick={() => setPremiumOption(
+                premiumOption === "standard"        ? "premium_pickup" :
+                premiumOption === "premium_pickup"  ? "standard" :
+                premiumOption === "premium_dropoff" ? "premium_both" :
+                /* premium_both */                    "premium_dropoff"
+              )}
               className={`w-full flex items-center justify-between p-3 rounded-xl border text-sm transition-colors ${
                 premiumOption === "premium_pickup" || premiumOption === "premium_both"
                   ? "border-amber-400 bg-amber-50"
@@ -258,7 +321,12 @@ export default function PassengerRideDetailPage() {
           {ctx.premium_dropoff_available && (
             <button
               type="button"
-              onClick={() => setPremiumOption(premiumOption === "premium_both" || premiumOption === "premium_dropoff" ? "standard" : "premium_dropoff")}
+              onClick={() => setPremiumOption(
+                premiumOption === "standard"        ? "premium_dropoff" :
+                premiumOption === "premium_dropoff" ? "standard" :
+                premiumOption === "premium_pickup"  ? "premium_both" :
+                /* premium_both */                    "premium_pickup"
+              )}
               className={`w-full flex items-center justify-between p-3 rounded-xl border text-sm transition-colors ${
                 premiumOption === "premium_dropoff" || premiumOption === "premium_both"
                   ? "border-amber-400 bg-amber-50"
@@ -288,6 +356,73 @@ export default function PassengerRideDetailPage() {
           {noSeats ? "No Seats Available" : "Book Seat"}
         </button>
       </div>
+
+      {/* Booking confirmation bottom sheet */}
+      <BottomSheet isOpen={showSheet} onClose={() => { setShowSheet(false); setBookingError(null); }}>
+        <div className="space-y-4 pt-1">
+          <h2 className="text-base font-semibold text-content-primary">Confirm Booking</h2>
+
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between text-content-secondary">
+              <span>Driver</span>
+              <span className="font-medium text-content-primary">{ride.driver.display_name ?? "—"}</span>
+            </div>
+            <div className="flex justify-between text-content-secondary">
+              <span>Departure</span>
+              <span className="font-medium text-content-primary">{formatDeparture(ride.departure_datetime)}</span>
+            </div>
+            <div className="flex justify-between text-content-secondary">
+              <span>Pickup</span>
+              <span className="font-medium text-content-primary">
+                {ctx.pickup_walk_meters}m walk to boarding point
+              </span>
+            </div>
+            <div className="flex justify-between text-content-secondary">
+              <span>Dropoff</span>
+              <span className="font-medium text-content-primary">
+                {ctx.dropoff_walk_meters}m walk from alighting point
+              </span>
+            </div>
+          </div>
+
+          <div className="border-t border-border-default pt-3 space-y-1 text-sm">
+            <div className="flex justify-between text-content-secondary">
+              <span>Base fare</span>
+              <span>EGP {ride.per_seat_price}</span>
+            </div>
+            {(premiumOption === "premium_pickup" || premiumOption === "premium_both") && ctx.premium_pickup_fee && (
+              <div className="flex justify-between text-amber-700">
+                <span>Premium pickup</span>
+                <span>+EGP {ctx.premium_pickup_fee.toFixed(2)}</span>
+              </div>
+            )}
+            {(premiumOption === "premium_dropoff" || premiumOption === "premium_both") && ctx.premium_dropoff_fee && (
+              <div className="flex justify-between text-amber-700">
+                <span>Premium dropoff</span>
+                <span>+EGP {ctx.premium_dropoff_fee.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-semibold text-content-primary pt-1 border-t border-border-default">
+              <span>Total</span>
+              <span>EGP {totalPrice}</span>
+            </div>
+          </div>
+
+          {bookingError && (
+            <p className="text-sm text-content-destructive">{bookingError}</p>
+          )}
+
+          <button
+            type="button"
+            onClick={confirmBooking}
+            disabled={bookingLoading}
+            className="w-full flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-colors"
+          >
+            {bookingLoading && <Spinner />}
+            {bookingLoading ? "Booking…" : "Confirm Booking"}
+          </button>
+        </div>
+      </BottomSheet>
     </div>
   );
 }
