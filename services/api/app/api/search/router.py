@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -27,7 +25,6 @@ class _LatLng(BaseModel):
 class SearchRidesRequest(BaseModel):
     origin: _LatLng
     destination: _LatLng
-    desired_departure_at: datetime
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -39,7 +36,7 @@ async def _fetch_driver_profiles(driver_ids: list[uuid.UUID]) -> dict[uuid.UUID,
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            SELECT id, display_name, avatar_url, verification_status
+            SELECT id, display_name, profile_photo_path AS avatar_url, verification_status
             FROM profiles
             WHERE id = ANY($1::uuid[])
             """,
@@ -77,7 +74,6 @@ async def search_rides(
         result = await candidate_service.generate_candidates(
             origin=origin,
             destination=destination,
-            departure_time=body.desired_departure_at,
         )
     except RouteServiceUnavailableError:
         return JSONResponse(

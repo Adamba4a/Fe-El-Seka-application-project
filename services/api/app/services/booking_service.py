@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import uuid
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Optional
 
@@ -319,7 +320,18 @@ async def cancel_booking(
         dep = row["departure_datetime"]
         if dep.tzinfo is None:
             dep = dep.replace(tzinfo=timezone.utc)
-        late_cancellation = (dep - datetime.now(timezone.utc)) < timedelta(hours=1)
+        time_until_dep = dep - datetime.now(timezone.utc)
+        if caller_role == "passenger" and time_until_dep < timedelta(hours=2):
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "cancellation_window_closed", "message": "Bookings cannot be cancelled within 2 hours of departure."},
+            )
+        if caller_role == "driver" and time_until_dep < timedelta(hours=2):
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "cancellation_window_closed", "message": "Passenger bookings cannot be cancelled within 2 hours of departure."},
+            )
+        late_cancellation = time_until_dep < timedelta(hours=2)
 
         await conn.execute(
             "UPDATE rides SET booked_seats = GREATEST(booked_seats - 1, 0) WHERE id = $1",

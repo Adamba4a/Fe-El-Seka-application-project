@@ -260,6 +260,15 @@ export function ProfileEditor({
           onUpdateRequested={setPendingUpdate}
         />
       )}
+
+      <div className="pt-4 border-t border-border-default">
+        <a
+          href="/signout"
+          className="w-full flex items-center justify-center py-3 border border-border-default rounded-xl text-body-sm text-content-destructive font-medium hover:bg-status-cancelled-bg transition-colors"
+        >
+          Sign out
+        </a>
+      </div>
     </main>
   );
 }

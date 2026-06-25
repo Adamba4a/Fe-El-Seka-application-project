@@ -216,6 +216,14 @@ export default function PassengerRideDetailPage() {
 
   return (
     <div className="space-y-6">
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="text-content-muted hover:text-content-secondary text-sm"
+      >
+        ← Back to results
+      </button>
+
       {/* Driver card */}
       <div className="flex items-center gap-3 p-4 bg-surface-card border border-border-default rounded-xl">
         {ride.driver.avatar_url ? (

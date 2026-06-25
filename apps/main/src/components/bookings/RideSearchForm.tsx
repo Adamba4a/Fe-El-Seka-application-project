@@ -11,7 +11,7 @@ export interface SearchLocation {
 
 interface RideSearchFormProps {
   loading?: boolean;
-  onSearch: (origin: SearchLocation, destination: SearchLocation, departure: string) => void;
+  onSearch: (origin: SearchLocation, destination: SearchLocation) => void;
 }
 
 interface NominatimResult {
@@ -32,20 +32,12 @@ async function geocodeAddress(query: string): Promise<SearchLocation | null> {
   return { lat: parseFloat(r.lat), lng: parseFloat(r.lon), address: r.display_name };
 }
 
-function toDatetimeLocal(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
 const inputClass =
   "w-full border border-border-default rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-primary transition-colors bg-surface-card";
 
 export function RideSearchForm({ loading, onSearch }: RideSearchFormProps) {
-  const defaultDeparture = toDatetimeLocal(new Date(Date.now() + 30 * 60 * 1000));
-
   const [originText, setOriginText] = useState("");
   const [destText, setDestText] = useState("");
-  const [departure, setDeparture] = useState(defaultDeparture);
   const [error, setError] = useState<string | null>(null);
   const [geocoding, setGeocoding] = useState(false);
 
@@ -55,8 +47,6 @@ export function RideSearchForm({ loading, onSearch }: RideSearchFormProps) {
 
     if (!originText.trim()) { setError("Please enter an origin address."); return; }
     if (!destText.trim()) { setError("Please enter a destination address."); return; }
-    if (!departure) { setError("Please select a departure time."); return; }
-    if (new Date(departure) <= new Date()) { setError("Departure time must be in the future."); return; }
 
     setGeocoding(true);
     try {
@@ -73,7 +63,7 @@ export function RideSearchForm({ loading, onSearch }: RideSearchFormProps) {
         return;
       }
 
-      onSearch(origin, dest, new Date(departure).toISOString());
+      onSearch(origin, dest);
     } finally {
       setGeocoding(false);
     }
@@ -102,17 +92,6 @@ export function RideSearchForm({ loading, onSearch }: RideSearchFormProps) {
           placeholder="e.g. Maadi, Cairo"
           value={destText}
           onChange={(e) => setDestText(e.target.value)}
-          className={inputClass}
-          disabled={busy}
-        />
-      </div>
-
-      <div className="space-y-1">
-        <label className="block text-sm font-medium text-content-secondary">Departure</label>
-        <input
-          type="datetime-local"
-          value={departure}
-          onChange={(e) => setDeparture(e.target.value)}
           className={inputClass}
           disabled={busy}
         />

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from typing import Optional
 
@@ -11,11 +12,17 @@ logger = logging.getLogger(__name__)
 _pool: Optional[asyncpg.Pool] = None  # type: ignore[type-arg]
 
 
+async def _init_connection(conn: asyncpg.Connection) -> None:  # type: ignore[type-arg]
+    """Register JSON/JSONB codecs so Python dicts are accepted for JSONB columns."""
+    await conn.set_type_codec("jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog")
+    await conn.set_type_codec("json", encoder=json.dumps, decoder=json.loads, schema="pg_catalog")
+
+
 async def create_pool(database_url: str) -> asyncpg.Pool:  # type: ignore[type-arg]
     global _pool
     if _pool is not None:
         return _pool
-    _pool = await asyncpg.create_pool(database_url, min_size=1, max_size=10)
+    _pool = await asyncpg.create_pool(database_url, min_size=1, max_size=10, init=_init_connection)
     return _pool
 
 

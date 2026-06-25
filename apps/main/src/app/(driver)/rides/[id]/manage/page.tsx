@@ -44,7 +44,7 @@ export default function RideManagePage() {
         setRide(detail.ride);
         setHistory(detail.history);
       } catch (err: any) {
-        setError(err?.detail?.message ?? "Ride not found.");
+        setError(err?.detail?.message ?? err?.message ?? "Failed to load ride.");
       } finally {
         setLoading(false);
       }

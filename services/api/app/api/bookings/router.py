@@ -168,7 +168,7 @@ async def get_booking(
                 ST_X(b.passenger_dropoff_point::geometry) AS alighting_lng,
                 r.departure_datetime, r.driver_id,
                 p.display_name AS driver_display_name,
-                p.avatar_url   AS driver_avatar_url
+                p.profile_photo_path AS driver_avatar_url
             FROM bookings b
             JOIN rides r ON r.id = b.ride_id
             JOIN profiles p ON p.id = r.driver_id

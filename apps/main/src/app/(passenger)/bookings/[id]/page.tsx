@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { BookingStatusBadge } from "@/components/bookings/BookingStatusBadge";
 import { Spinner } from "@/components/ui/Spinner";
 import { createClient } from "@/lib/supabase/client";
@@ -66,25 +66,47 @@ function formatDateTime(iso?: string | null) {
   });
 }
 
-function formatCoord(pt: { lat: number; lng: number }) {
-  return `${pt.lat.toFixed(5)}, ${pt.lng.toFixed(5)}`;
+async function reverseGeocode(lat: number, lng: number): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`,
+      { headers: { "Accept-Language": "en" } },
+    );
+    if (!res.ok) return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    const data = await res.json();
+    const a = data.address ?? {};
+    const parts = [a.road, a.suburb ?? a.city_district, a.city ?? a.town].filter(Boolean);
+    return parts.length ? parts.join(", ") : (data.display_name ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+  } catch {
+    return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  }
 }
 
 export default function PassengerBookingDetailPage() {
   const params = useParams<{ id: string }>();
   const bookingId = params.id;
+  const router = useRouter();
 
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [boardingAddress, setBoardingAddress] = useState<string | null>(null);
+  const [alightingAddress, setAlightingAddress] = useState<string | null>(null);
 
   const fetchBooking = useCallback(async () => {
     try {
       setError(null);
       const data = await apiFetch(`/api/v1/bookings/${bookingId}`);
       setBooking(data);
+      // Reverse-geocode boarding and alighting points in parallel
+      const [boarding, alighting] = await Promise.all([
+        reverseGeocode(data.boarding_point.lat, data.boarding_point.lng),
+        reverseGeocode(data.alighting_point.lat, data.alighting_point.lng),
+      ]);
+      setBoardingAddress(boarding);
+      setAlightingAddress(alighting);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load booking");
     } finally {
@@ -146,7 +168,14 @@ export default function PassengerBookingDetailPage() {
 
   return (
     <div className="max-w-md mx-auto space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-content-muted hover:text-content-secondary"
+        >
+          ←
+        </button>
         <h1 className="text-xl font-semibold text-content-primary">Booking Details</h1>
         <BookingStatusBadge status={booking.status} />
       </div>
@@ -183,12 +212,16 @@ export default function PassengerBookingDetailPage() {
         <div className="p-4 space-y-3">
           <div>
             <p className="text-xs text-content-muted uppercase tracking-wide">Boarding point</p>
-            <p className="text-sm font-mono text-content-primary">{formatCoord(booking.boarding_point)}</p>
+            <p className="text-sm font-medium text-content-primary">
+              {boardingAddress ?? "Loading…"}
+            </p>
           </div>
           <div className="border-t border-border-default" />
           <div>
             <p className="text-xs text-content-muted uppercase tracking-wide">Alighting point</p>
-            <p className="text-sm font-mono text-content-primary">{formatCoord(booking.alighting_point)}</p>
+            <p className="text-sm font-medium text-content-primary">
+              {alightingAddress ?? "Loading…"}
+            </p>
           </div>
         </div>
       </div>

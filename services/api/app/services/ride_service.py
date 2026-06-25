@@ -8,6 +8,7 @@ from decimal import Decimal
 from typing import Optional
 
 from app.core.database import get_pool
+from app.services.pricing_service import calculate_fare
 from app.models.ride import (
     CoordinatesSchema,
     CreateRideRequest,
@@ -351,6 +352,18 @@ async def edit_ride(
                 if payload.total_seats != ride["total_seats"]:
                     changed_fields["total_seats"] = {"before": ride["total_seats"], "after": payload.total_seats}
                     sets.append(f"total_seats = {add_param(payload.total_seats)}")
+                    if ride.get("price_source") == "system" and ride["route_distance_km"] is not None:
+                        new_fare = calculate_fare(float(ride["route_distance_km"]), payload.total_seats)
+                        new_price = Decimal(str(new_fare.per_seat_price_egp))
+                        if new_price != ride["price_per_seat"]:
+                            changed_fields["price_per_seat"] = {
+                                "before": str(ride["price_per_seat"]),
+                                "after": str(new_price),
+                            }
+                        sets.append(f"price_per_seat = {add_param(new_price)}")
+                        sets.append(f"fuel_cost_egp = {add_param(new_fare.fuel_cost_egp)}")
+                        sets.append(f"platform_commission_egp = {add_param(new_fare.platform_commission_egp)}")
+                        sets.append(f"safety_margin_egp = {add_param(new_fare.safety_margin_egp)}")
 
             if payload.price_per_seat is not None:
                 if ride.get("price_source") == "system":
@@ -384,7 +397,7 @@ async def edit_ride(
                         INSERT INTO ride_history_logs (ride_id, actor_id, action, changed_fields)
                         VALUES ($1, $2, 'edited', $3)
                         """,
-                        ride_id, driver_id, json.dumps(changed_fields),
+                        ride_id, driver_id, changed_fields,
                     )
             else:
                 row = await conn.fetchrow(
@@ -413,6 +426,17 @@ async def cancel_ride(
 
             if ride["status"] != "scheduled":
                 raise RideServiceError("ride_not_editable", "Only scheduled rides can be cancelled.", 409)
+
+            if cancellation_source == "driver":
+                dep = ride["departure_datetime"]
+                if dep.tzinfo is None:
+                    dep = dep.replace(tzinfo=timezone.utc)
+                if (dep - _now()) < timedelta(hours=4):
+                    raise RideServiceError(
+                        "cancellation_window_closed",
+                        "Rides cannot be cancelled within 4 hours of departure.",
+                        409,
+                    )
 
             row = await conn.fetchrow(
                 f"""

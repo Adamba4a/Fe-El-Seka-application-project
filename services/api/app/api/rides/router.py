@@ -264,7 +264,7 @@ async def get_ride_passenger_detail(
                 ST_X(r.origin_coordinates::geometry)       AS origin_lng,
                 ST_Y(r.destination_coordinates::geometry)  AS destination_lat,
                 ST_X(r.destination_coordinates::geometry)  AS destination_lng,
-                p.display_name, p.avatar_url, p.verification_status
+                p.display_name, p.profile_photo_path AS avatar_url, p.verification_status
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
             WHERE r.id = $1
@@ -399,8 +399,8 @@ async def list_ride_bookings(
                 ST_X(b.passenger_pickup_point::geometry)  AS boarding_lng,
                 ST_Y(b.passenger_dropoff_point::geometry) AS alighting_lat,
                 ST_X(b.passenger_dropoff_point::geometry) AS alighting_lng,
-                p.display_name    AS passenger_display_name,
-                p.avatar_url      AS passenger_avatar_url
+                p.display_name        AS passenger_display_name,
+                p.profile_photo_path  AS passenger_avatar_url
             FROM bookings b
             JOIN profiles p ON p.id = b.passenger_id
             WHERE b.ride_id = $1

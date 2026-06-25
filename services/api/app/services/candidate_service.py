@@ -4,7 +4,7 @@ import asyncio
 import logging
 import math
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from app.core.database import get_pool
 from app.models.route import (
@@ -47,13 +47,8 @@ def _bbox(
 async def _stage1_query(
     origin: GeoPoint,
     destination: GeoPoint,
-    departure_time: datetime,
     config: dict,
 ) -> list[dict]:
-    window = int(config["time_window_minutes"])
-    time_lo = departure_time - timedelta(minutes=window)
-    time_hi = departure_time + timedelta(minutes=window)
-
     pad_km = float(config["max_premium_detour_km"])
     min_lng, min_lat, max_lng, max_lat = _bbox(origin, destination, pad_km)
 
@@ -79,13 +74,11 @@ async def _stage1_query(
                 status = 'scheduled'
                 AND available_seats > 0
                 AND route_geometry IS NOT NULL
-                AND departure_datetime BETWEEN $1 AND $2
-                AND route_geometry && ST_MakeEnvelope($3, $4, $5, $6, 4326)
+                AND departure_datetime > NOW()
+                AND route_geometry && ST_MakeEnvelope($1, $2, $3, $4, 4326)
             ORDER BY departure_datetime
-            LIMIT $7
+            LIMIT $5
             """,
-            time_lo,
-            time_hi,
             min_lng,
             min_lat,
             max_lng,
@@ -129,20 +122,18 @@ async def _assess_ride(
 async def generate_candidates(
     origin: GeoPoint,
     destination: GeoPoint,
-    departure_time: datetime,
     config: dict | None = None,
 ) -> CandidateListResponse:
     t0 = time.monotonic()
     logger.info(
-        "generate_candidates origin=(%.5f,%.5f) dest=(%.5f,%.5f) departure=%s",
+        "generate_candidates origin=(%.5f,%.5f) dest=(%.5f,%.5f)",
         origin.lat, origin.lng, destination.lat, destination.lng,
-        departure_time.isoformat(),
     )
 
     if config is None:
         config = get_pricing_config()
 
-    rides = await _stage1_query(origin, destination, departure_time, config)
+    rides = await _stage1_query(origin, destination, config)
     if not rides:
         return CandidateListResponse(standard=[], premium=[], total_count=0)
 

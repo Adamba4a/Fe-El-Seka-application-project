@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { createClient } from "@/lib/supabase/client";
 
@@ -49,6 +49,7 @@ async function apiFetch(path: string, options?: RequestInit) {
 export default function DriverRideBookingsPage() {
   const params = useParams<{ id: string }>();
   const rideId = params.id;
+  const router = useRouter();
 
   const [bookings, setBookings] = useState<DriverBooking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -184,7 +185,16 @@ export default function DriverRideBookingsPage() {
 
   return (
     <div className="max-w-md mx-auto p-4 space-y-6">
-      <h1 className="text-xl font-semibold">Booking Requests</h1>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-content-muted hover:text-content-secondary"
+        >
+          ←
+        </button>
+        <h1 className="text-xl font-semibold">Booking Requests</h1>
+      </div>
 
       <section className="space-y-3">
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">

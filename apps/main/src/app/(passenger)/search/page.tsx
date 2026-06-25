@@ -17,7 +17,6 @@ export default function SearchPage() {
   const [searchMeta, setSearchMeta] = useState<{
     origin: SearchLocation;
     destination: SearchLocation;
-    departure: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +24,6 @@ export default function SearchPage() {
   const handleSearch = async (
     origin: SearchLocation,
     destination: SearchLocation,
-    departure: string
   ) => {
     setLoading(true);
     setError(null);
@@ -43,7 +41,6 @@ export default function SearchPage() {
         body: JSON.stringify({
           origin: { lat: origin.lat, lng: origin.lng },
           destination: { lat: destination.lat, lng: destination.lng },
-          desired_departure_at: departure,
         }),
       });
 
@@ -59,7 +56,7 @@ export default function SearchPage() {
       }
 
       setCandidates(json.candidates ?? []);
-      setSearchMeta({ origin, destination, departure });
+      setSearchMeta({ origin, destination });
       setPhase("results");
     } catch {
       setError("Network error — please check your connection and try again.");
