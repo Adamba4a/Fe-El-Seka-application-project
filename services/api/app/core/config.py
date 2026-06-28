@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     smtp_port: int = 54325
     osrm_url: str = "http://osrm:5000"
     internal_secret: str = ""
+    firebase_service_account_secret_name: str = "firebase_service_account"
 
     model_config = SettingsConfigDict(
         env_file=".env",
