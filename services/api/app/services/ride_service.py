@@ -47,7 +47,8 @@ _RIDE_COLS = """
     price_per_seat, status, cancellation_reason, cancellation_source,
     notes, created_at, updated_at,
     route_distance_km, route_duration_minutes,
-    fuel_cost_egp, platform_commission_egp, safety_margin_egp, price_source
+    fuel_cost_egp, platform_commission_egp, safety_margin_egp, price_source,
+    started_at, completed_at
 """
 
 
@@ -91,6 +92,8 @@ def _to_response(row: dict) -> RideResponse:
             float(row["safety_margin_egp"]) if row["safety_margin_egp"] is not None else None
         ),
         price_source=row["price_source"],
+        started_at=row["started_at"],
+        completed_at=row["completed_at"],
     )
 
 
