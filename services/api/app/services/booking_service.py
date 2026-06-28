@@ -16,6 +16,20 @@ from app.services.notification_service import enqueue_booking_notification
 logger = logging.getLogger(__name__)
 
 
+async def _enqueue_fcm_notification(
+    conn,
+    event_type: str,
+    recipient_user_id: uuid.UUID,
+    payload: dict,
+) -> None:
+    await conn.execute(
+        "INSERT INTO notification_events (recipient_user_id, event_type, payload) VALUES ($1, $2, $3)",
+        recipient_user_id,
+        event_type,
+        payload,
+    )
+
+
 async def get_booking_or_404(conn, booking_id: uuid.UUID, caller_id: uuid.UUID) -> dict:
     """Fetch a booking by ID and verify the caller has access (passenger or ride driver)."""
     row = await conn.fetchrow(
@@ -179,6 +193,27 @@ async def confirm_booking(
             {"ride_id": str(ride_id), "booking_id": str(booking_id)},
         )
 
+        info = await conn.fetchrow(
+            """
+            SELECT r.departure_datetime, p.display_name AS driver_name
+            FROM rides r JOIN profiles p ON p.id = r.driver_id
+            WHERE r.id = $1
+            """,
+            ride_id,
+        )
+        await _enqueue_fcm_notification(
+            conn,
+            "booking_confirmed",
+            row["passenger_id"],
+            {
+                "ride_id": str(ride_id),
+                "booking_id": str(booking_id),
+                "driver_name": info["driver_name"] if info else "",
+                "departure_datetime": info["departure_datetime"].isoformat() if info else "",
+                "deep_link": f"/(passenger)/bookings/{booking_id}",
+            },
+        )
+
     return dict(updated)
 
 
@@ -247,6 +282,16 @@ async def reject_booking(
                     row["passenger_id"],
                     {"ride_id": str(ride_id), "booking_id": str(booking_id), "fallback_applied": True},
                 )
+                await _enqueue_fcm_notification(
+                    conn,
+                    "booking_confirmed",
+                    row["passenger_id"],
+                    {
+                        "ride_id": str(ride_id),
+                        "booking_id": str(booking_id),
+                        "deep_link": f"/(passenger)/bookings/{booking_id}",
+                    },
+                )
                 fallback_applied = True
                 return {"id": booking_id, "status": "confirmed", "cancelled_by": None, "fallback_applied": True}
 
@@ -276,6 +321,16 @@ async def reject_booking(
             "booking_rejected",
             row["passenger_id"],
             {"ride_id": str(ride_id), "booking_id": str(booking_id)},
+        )
+        await _enqueue_fcm_notification(
+            conn,
+            "booking_rejected",
+            row["passenger_id"],
+            {
+                "ride_id": str(ride_id),
+                "booking_id": str(booking_id),
+                "deep_link": "/(passenger)/rides",
+            },
         )
 
     result = dict(updated)
@@ -379,6 +434,32 @@ async def cancel_booking(
             {"ride_id": str(row["ride_id"]), "booking_id": str(booking_id)},
         )
 
+        if caller_role == "passenger":
+            await _enqueue_fcm_notification(
+                conn,
+                "booking_cancelled",
+                row["driver_id"],
+                {
+                    "ride_id": str(row["ride_id"]),
+                    "booking_id": str(booking_id),
+                    "cancelled_by": "passenger",
+                    "deep_link": f"/(driver)/rides/{row['ride_id']}/bookings",
+                },
+            )
+        elif caller_role == "driver":
+            await _enqueue_fcm_notification(
+                conn,
+                "booking_cancelled",
+                row["passenger_id"],
+                {
+                    "ride_id": str(row["ride_id"]),
+                    "booking_id": str(booking_id),
+                    "cancelled_by": "driver",
+                    "deep_link": f"/(passenger)/bookings/{booking_id}",
+                },
+            )
+        # system: ride_cancelled FCM events are emitted by cancel_ride() directly
+
     return dict(updated)
 
 
@@ -453,6 +534,16 @@ async def _expire_pending_bookings(pool) -> None:
                     "booking_expired",
                     locked["passenger_id"],
                     {"ride_id": str(locked["ride_id"]), "booking_id": str(locked["id"])},
+                )
+                await _enqueue_fcm_notification(
+                    conn,
+                    "booking_expired",
+                    locked["passenger_id"],
+                    {
+                        "ride_id": str(locked["ride_id"]),
+                        "booking_id": str(locked["id"]),
+                        "deep_link": "/(passenger)/rides",
+                    },
                 )
 
 

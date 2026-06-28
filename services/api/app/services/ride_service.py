@@ -458,8 +458,26 @@ async def cancel_ride(
                 ride_id, log_actor, reason.strip(),
             )
 
+            # Capture confirmed passengers before cascade changes their status
+            confirmed_passengers = await conn.fetch(
+                "SELECT id, passenger_id FROM bookings WHERE ride_id = $1 AND status = 'confirmed'",
+                ride_id,
+            )
+
             from app.services.booking_service import cancel_all_bookings_for_ride
             await cancel_all_bookings_for_ride(conn, ride_id)
+
+            dep = row["departure_datetime"]
+            for b in confirmed_passengers:
+                await conn.execute(
+                    "INSERT INTO notification_events (recipient_user_id, event_type, payload) VALUES ($1, 'ride_cancelled', $2)",
+                    b["passenger_id"],
+                    {
+                        "ride_id": str(ride_id),
+                        "departure_datetime": dep.isoformat() if dep else "",
+                        "deep_link": f"/(passenger)/bookings/{b['id']}",
+                    },
+                )
 
     return _to_response(dict(row))
 

@@ -14,6 +14,7 @@ logging.basicConfig(
     format="%(asctime)s %(name)s %(levelname)s %(message)s",
 )
 
+from app.api.users.router import router as users_router
 from app.api.admin.users_router import router as admin_users_router
 from app.api.admin.vehicle_updates_router import router as admin_vehicle_updates_router
 from app.api.admin.verification_router import router as admin_verification_router
@@ -31,6 +32,8 @@ from app.api.verification.router import router as verification_router
 from app.core.config import settings
 from app.core.database import close_pool, create_pool
 from app.services.booking_service import booking_expiry_loop
+from app.services.fcm_service import initialize_fcm
+from app.services.notification_dispatcher import notification_dispatcher_loop
 from app.services.notification_service import email_retry_loop
 from app.services.pricing_service import init_pricing_config, pricing_config_refresh_loop
 
@@ -40,10 +43,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     pool = await create_pool(settings.database_url)
     app.state.pool = pool
     await init_pricing_config()
+    try:
+        await initialize_fcm()
+    except Exception as exc:
+        logging.getLogger(__name__).warning("FCM initialization skipped: %s", exc)
     email_task = asyncio.create_task(email_retry_loop())
     expiry_task = asyncio.create_task(booking_expiry_loop())
     pricing_task = asyncio.create_task(pricing_config_refresh_loop())
+    dispatcher_task = asyncio.create_task(notification_dispatcher_loop())
     yield
+    dispatcher_task.cancel()
     pricing_task.cancel()
     expiry_task.cancel()
     email_task.cancel()
@@ -119,6 +128,7 @@ app.include_router(
     prefix="/api/admin/vehicle-updates",
     tags=["admin"],
 )
+app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
 app.include_router(rides_router, prefix="/api/v1/rides", tags=["rides"])
 app.include_router(search_router, prefix="/api/v1/search", tags=["search"])
 app.include_router(bookings_router, prefix="/api/v1/bookings", tags=["bookings"])

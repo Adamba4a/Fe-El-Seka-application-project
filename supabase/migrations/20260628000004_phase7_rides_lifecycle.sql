@@ -8,8 +8,10 @@ ALTER TABLE public.rides
 
 -- Enable Supabase Realtime change events for booking status updates
 -- and driver location updates (required for in-app real-time features).
--- NOTE: Supabase Realtime Authorization must also be enabled manually in
--- the project dashboard (Database → Replication → Realtime Authorization)
--- so that RLS policies filter change events per authenticated subscriber.
+-- NOTE: For LOCAL development, Supabase already enforces RLS on postgres_changes
+-- subscriptions by default — no extra toggle is needed.
+-- For HOSTED/PRODUCTION Supabase, enable "Realtime Authorization" in the
+-- project dashboard (Database → Replication → Realtime Authorization) so that
+-- RLS policies filter change events per authenticated subscriber.
 ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.driver_locations;
