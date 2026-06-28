@@ -32,6 +32,7 @@ from app.api.verification.router import router as verification_router
 from app.core.config import settings
 from app.core.database import close_pool, create_pool
 from app.services.booking_service import booking_expiry_loop
+from app.services.driver_reminder_service import driver_reminder_loop
 from app.services.fcm_service import initialize_fcm
 from app.services.notification_dispatcher import notification_dispatcher_loop
 from app.services.notification_service import email_retry_loop
@@ -51,7 +52,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     expiry_task = asyncio.create_task(booking_expiry_loop())
     pricing_task = asyncio.create_task(pricing_config_refresh_loop())
     dispatcher_task = asyncio.create_task(notification_dispatcher_loop())
+    reminder_task = asyncio.create_task(driver_reminder_loop())
     yield
+    reminder_task.cancel()
     dispatcher_task.cancel()
     pricing_task.cancel()
     expiry_task.cancel()

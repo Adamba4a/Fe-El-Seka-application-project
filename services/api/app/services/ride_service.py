@@ -506,13 +506,28 @@ async def start_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideResponse:
                 )
 
             row = await conn.fetchrow(
-                f"UPDATE rides SET status = 'in_progress', updated_at = now() WHERE id = $1 RETURNING {_RIDE_COLS}",
+                f"UPDATE rides SET status = 'in_progress', started_at = now(), updated_at = now() WHERE id = $1 RETURNING {_RIDE_COLS}",
                 ride_id,
             )
             await conn.execute(
                 "INSERT INTO ride_history_logs (ride_id, actor_id, action) VALUES ($1, $2, 'started')",
                 ride_id, driver_id,
             )
+
+            confirmed_bookings = await conn.fetch(
+                "SELECT id, passenger_id FROM bookings WHERE ride_id = $1 AND status = 'confirmed'",
+                ride_id,
+            )
+            for b in confirmed_bookings:
+                await conn.execute(
+                    "INSERT INTO notification_events (recipient_user_id, event_type, payload) VALUES ($1, 'ride_started', $2)",
+                    b["passenger_id"],
+                    {
+                        "ride_id": str(ride_id),
+                        "booking_id": str(b["id"]),
+                        "deep_link": f"/(passenger)/rides/{ride_id}/tracking",
+                    },
+                )
 
     return _to_response(dict(row))
 
@@ -531,7 +546,7 @@ async def complete_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideRespons
                 raise RideServiceError("ride_not_editable", "Only in-progress rides can be completed.", 409)
 
             row = await conn.fetchrow(
-                f"UPDATE rides SET status = 'completed', updated_at = now() WHERE id = $1 RETURNING {_RIDE_COLS}",
+                f"UPDATE rides SET status = 'completed', completed_at = now(), updated_at = now() WHERE id = $1 RETURNING {_RIDE_COLS}",
                 ride_id,
             )
             await conn.execute(
@@ -539,7 +554,24 @@ async def complete_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideRespons
                 ride_id, driver_id,
             )
 
+            # Capture confirmed bookings before cascade transitions them to completed
+            confirmed_bookings = await conn.fetch(
+                "SELECT id, passenger_id FROM bookings WHERE ride_id = $1 AND status = 'confirmed'",
+                ride_id,
+            )
+
             from app.services.booking_service import complete_ride_bookings
             await complete_ride_bookings(conn, ride_id)
+
+            for b in confirmed_bookings:
+                await conn.execute(
+                    "INSERT INTO notification_events (recipient_user_id, event_type, payload) VALUES ($1, 'ride_completed', $2)",
+                    b["passenger_id"],
+                    {
+                        "ride_id": str(ride_id),
+                        "booking_id": str(b["id"]),
+                        "deep_link": f"/(passenger)/bookings/{b['id']}",
+                    },
+                )
 
     return _to_response(dict(row))

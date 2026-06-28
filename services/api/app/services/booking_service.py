@@ -148,13 +148,31 @@ async def create_booking(
         # 5. Audit log
         await _insert_audit_log(conn, booking_id, "created", passenger_id, "passenger", None, "pending")
 
-        # 6. Notification
+        # 6. Notifications
         driver_id = ride["driver_id"]
         await enqueue_booking_notification(
             conn,
             "booking_created",
             passenger_id,
             {"ride_id": str(ride_id), "booking_id": str(booking_id)},
+        )
+
+        passenger_profile = await conn.fetchrow(
+            "SELECT display_name FROM profiles WHERE id = $1",
+            passenger_id,
+        )
+        dep = ride["departure_datetime"]
+        await _enqueue_fcm_notification(
+            conn,
+            "booking_received",
+            driver_id,
+            {
+                "ride_id": str(ride_id),
+                "booking_id": str(booking_id),
+                "passenger_name": passenger_profile["display_name"] if passenger_profile else "",
+                "departure_datetime": dep.isoformat() if dep else "",
+                "deep_link": f"/(driver)/rides/{ride_id}/bookings",
+            },
         )
 
         return booking
@@ -231,10 +249,12 @@ async def reject_booking(
         row = await conn.fetchrow(
             """
             SELECT b.id, b.status, b.ride_id, b.passenger_id,
-                   b.premium_pickup_requested, b.per_seat_price
+                   b.premium_pickup_requested, b.per_seat_price,
+                   r.departure_datetime
             FROM bookings b
+            JOIN rides r ON r.id = b.ride_id
             WHERE b.id = $1
-            FOR UPDATE
+            FOR UPDATE OF b
             """,
             booking_id,
         )
@@ -289,6 +309,7 @@ async def reject_booking(
                     {
                         "ride_id": str(ride_id),
                         "booking_id": str(booking_id),
+                        "departure_datetime": row["departure_datetime"].isoformat() if row["departure_datetime"] else "",
                         "deep_link": f"/(passenger)/bookings/{booking_id}",
                     },
                 )
@@ -329,6 +350,7 @@ async def reject_booking(
             {
                 "ride_id": str(ride_id),
                 "booking_id": str(booking_id),
+                "departure_datetime": row["departure_datetime"].isoformat() if row["departure_datetime"] else "",
                 "deep_link": "/(passenger)/rides",
             },
         )
@@ -434,6 +456,7 @@ async def cancel_booking(
             {"ride_id": str(row["ride_id"]), "booking_id": str(booking_id)},
         )
 
+        dep_str = row["departure_datetime"].isoformat() if row["departure_datetime"] else ""
         if caller_role == "passenger":
             await _enqueue_fcm_notification(
                 conn,
@@ -443,6 +466,7 @@ async def cancel_booking(
                     "ride_id": str(row["ride_id"]),
                     "booking_id": str(booking_id),
                     "cancelled_by": "passenger",
+                    "departure_datetime": dep_str,
                     "deep_link": f"/(driver)/rides/{row['ride_id']}/bookings",
                 },
             )
@@ -455,6 +479,7 @@ async def cancel_booking(
                     "ride_id": str(row["ride_id"]),
                     "booking_id": str(booking_id),
                     "cancelled_by": "driver",
+                    "departure_datetime": dep_str,
                     "deep_link": f"/(passenger)/bookings/{booking_id}",
                 },
             )
@@ -498,10 +523,11 @@ async def _expire_pending_bookings(pool) -> None:
             async with conn.transaction():
                 locked = await conn.fetchrow(
                     """
-                    SELECT id, passenger_id, ride_id
-                    FROM bookings
-                    WHERE id = $1 AND status = 'pending'
-                    FOR UPDATE SKIP LOCKED
+                    SELECT b.id, b.passenger_id, b.ride_id, r.departure_datetime
+                    FROM bookings b
+                    JOIN rides r ON r.id = b.ride_id
+                    WHERE b.id = $1 AND b.status = 'pending'
+                    FOR UPDATE OF b SKIP LOCKED
                     """,
                     row["id"],
                 )
@@ -542,6 +568,7 @@ async def _expire_pending_bookings(pool) -> None:
                     {
                         "ride_id": str(locked["ride_id"]),
                         "booking_id": str(locked["id"]),
+                        "departure_datetime": locked["departure_datetime"].isoformat() if locked["departure_datetime"] else "",
                         "deep_link": "/(passenger)/rides",
                     },
                 )
