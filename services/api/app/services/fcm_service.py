@@ -21,6 +21,10 @@ _NOTIFICATION_TEMPLATES: dict[str, tuple[str, str]] = {
         "New Booking Request",
         "A passenger wants to join your ride.",
     ),
+    "booking_reminder": (
+        "Pending Booking Request",
+        "You have a pending booking request waiting for your response.",
+    ),
     "booking_confirmed": (
         "Booking Confirmed",
         "Your ride booking has been confirmed!",

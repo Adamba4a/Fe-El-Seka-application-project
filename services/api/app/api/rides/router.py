@@ -12,6 +12,7 @@ from app.core.database import get_pool
 from app.dependencies.auth import get_current_user
 from app.dependencies.verification import get_current_verified_driver
 from app.models.booking import BookingCancelRequest, DriverBookingItem, DriverBookingListResponse, DriverConfirmResponse, DriverRejectResponse
+from app.models.location import LocationUpdateRequest
 from app.models.ride import (
     CancelRideRequest,
     CreateRideRequest,
@@ -19,7 +20,8 @@ from app.models.ride import (
 )
 from app.models.route import GeoPoint
 from app.services import ride_service, route_service
-from app.services import booking_service
+from app.services import booking_service, location_service
+from app.services.location_service import LocationServiceError
 from app.services.pricing_service import calculate_fare, get_pricing_config
 from app.services.ride_service import RideServiceError
 from app.services.route_service import RouteServiceUnavailableError
@@ -185,6 +187,76 @@ async def edit_ride(
     except RideServiceError as exc:
         return _service_error_response(exc)
     return {"ride": ride.model_dump(mode="json")}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /api/v1/rides/{ride_id}/location  (T027)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _location_error_response(exc: LocationServiceError) -> JSONResponse:
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": exc.code, "message": exc.message},
+    )
+
+
+@router.post("/{ride_id}/location", status_code=status.HTTP_200_OK)
+async def update_driver_location(
+    ride_id: uuid.UUID,
+    payload: LocationUpdateRequest,
+    profile: dict = Depends(get_current_verified_driver),
+):
+    driver_id = uuid.UUID(str(profile["id"]))
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        try:
+            result = await location_service.upsert_location(
+                conn=conn,
+                ride_id=ride_id,
+                driver_id=driver_id,
+                lat=payload.lat,
+                lng=payload.lng,
+                bearing=payload.bearing,
+                speed_kmh=payload.speed_kmh,
+                client_timestamp=payload.client_timestamp,
+            )
+        except LocationServiceError as exc:
+            return _location_error_response(exc)
+    return {
+        "location_id": str(result.location_id),
+        "ride_id": str(result.ride_id),
+        "updated_at": result.updated_at.isoformat(),
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET /api/v1/rides/{ride_id}/location  (T027)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/{ride_id}/location")
+async def get_driver_location(
+    ride_id: uuid.UUID,
+    profile: dict = Depends(get_current_user),
+):
+    caller_id = uuid.UUID(str(profile["id"]))
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        try:
+            result = await location_service.read_location(
+                conn=conn,
+                ride_id=ride_id,
+                caller_id=caller_id,
+            )
+        except LocationServiceError as exc:
+            return _location_error_response(exc)
+    return {
+        "ride_id": str(result.ride_id),
+        "lat": result.lat,
+        "lng": result.lng,
+        "bearing": result.bearing,
+        "client_timestamp": result.client_timestamp.isoformat(),
+        "updated_at": result.updated_at.isoformat(),
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
