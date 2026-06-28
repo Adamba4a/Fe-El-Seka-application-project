@@ -125,8 +125,8 @@ supabase/migrations/  → Database migrations
 
 **Purpose**: Logging verification, metrics, and final end-to-end validation.
 
-- [ ] T036 [P] Add structured log entries (endpoint name, input params sanitized, output summary, duration ms, error details) to all new backend endpoints and background loops per NFR-010: `POST /users/me/device-tokens`, `POST /rides/{id}/location`, `GET /rides/{id}/location`, `notification_dispatcher_loop`, `driver_reminder_loop`
-- [ ] T037 Run quickstart.md validation scenarios 1–8 end-to-end against the deployed Phase 7 implementation and confirm all acceptance criteria from spec.md SC-001 through SC-007 pass
+- [X] T036 [P] Add structured log entries (endpoint name, input params sanitized, output summary, duration ms, error details) to all new backend endpoints and background loops per NFR-010: `POST /users/me/device-tokens`, `POST /rides/{id}/location`, `GET /rides/{id}/location`, `notification_dispatcher_loop`, `driver_reminder_loop`
+- [X] T037 Run quickstart.md validation scenarios 1–8 end-to-end against the deployed Phase 7 implementation and confirm all acceptance criteria from spec.md SC-001 through SC-007 pass
 
 ---
 

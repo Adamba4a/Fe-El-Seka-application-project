@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 
 from app.core.database import get_pool
 from app.services import fcm_service
@@ -10,9 +11,11 @@ logger = logging.getLogger(__name__)
 
 
 async def _process_pending_notifications() -> None:
+    t0 = time.monotonic()
     pool = get_pool()
+    dispatched = 0
+    failed = 0
 
-    # Scan without locking to get candidates (same pattern as email_retry_loop)
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
@@ -27,7 +30,6 @@ async def _process_pending_notifications() -> None:
     for row in rows:
         async with pool.acquire() as conn:
             async with conn.transaction():
-                # Per-row lock; SKIP LOCKED means another worker claimed it already
                 locked = await conn.fetchrow(
                     """
                     SELECT id, recipient_user_id, event_type, payload, retry_count
@@ -57,6 +59,7 @@ async def _process_pending_notifications() -> None:
                         locked["recipient_user_id"],
                         success_count,
                     )
+                    dispatched += 1
                 except Exception as exc:
                     new_retry = locked["retry_count"] + 1
                     new_status = "failed" if new_retry >= 3 else "pending"
@@ -73,6 +76,13 @@ async def _process_pending_notifications() -> None:
                         3,
                         exc,
                     )
+                    failed += 1
+
+    if rows:
+        logger.info(
+            "notification_dispatcher_loop sweep | candidates=%d dispatched=%d failed=%d | duration_ms=%.1f",
+            len(rows), dispatched, failed, (time.monotonic() - t0) * 1000,
+        )
 
 
 async def notification_dispatcher_loop() -> None:

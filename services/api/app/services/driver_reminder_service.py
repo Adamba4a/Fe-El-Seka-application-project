@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 
 from app.core.database import get_pool
 
@@ -25,6 +26,7 @@ async def _check_overdue_pending_bookings() -> None:
     to_char() is used instead of ::text to produce ISO-8601 datetime strings that
     match Python's datetime.isoformat() output (T-separator, colon-separated offset).
     """
+    t0 = time.monotonic()
     pool = get_pool()
     async with pool.acquire() as conn:
         result = await conn.execute(
@@ -57,8 +59,10 @@ async def _check_overdue_pending_bookings() -> None:
             """
         )
         inserted = int(result.split()[-1]) if result else 0
-        if inserted:
-            logger.info("Driver reminder: inserted %d booking_reminder event(s)", inserted)
+    logger.info(
+        "driver_reminder_loop sweep | inserted=%d | duration_ms=%.1f",
+        inserted, (time.monotonic() - t0) * 1000,
+    )
 
 
 async def driver_reminder_loop() -> None:

@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
+import time
 import uuid
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
@@ -206,6 +210,7 @@ async def update_driver_location(
     payload: LocationUpdateRequest,
     profile: dict = Depends(get_current_verified_driver),
 ):
+    t0 = time.monotonic()
     driver_id = uuid.UUID(str(profile["id"]))
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -221,7 +226,16 @@ async def update_driver_location(
                 client_timestamp=payload.client_timestamp,
             )
         except LocationServiceError as exc:
+            logger.warning(
+                "POST /rides/%s/location | driver_id=%s | error=%s | duration_ms=%.1f",
+                ride_id, driver_id, exc.code, (time.monotonic() - t0) * 1000,
+            )
             return _location_error_response(exc)
+    logger.info(
+        "POST /rides/%s/location | driver_id=%s lat=%.5f lng=%.5f bearing=%s | duration_ms=%.1f",
+        ride_id, driver_id, payload.lat, payload.lng, payload.bearing,
+        (time.monotonic() - t0) * 1000,
+    )
     return {
         "location_id": str(result.location_id),
         "ride_id": str(result.ride_id),
@@ -238,6 +252,7 @@ async def get_driver_location(
     ride_id: uuid.UUID,
     profile: dict = Depends(get_current_user),
 ):
+    t0 = time.monotonic()
     caller_id = uuid.UUID(str(profile["id"]))
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -248,7 +263,15 @@ async def get_driver_location(
                 caller_id=caller_id,
             )
         except LocationServiceError as exc:
+            logger.warning(
+                "GET /rides/%s/location | caller_id=%s | error=%s | duration_ms=%.1f",
+                ride_id, caller_id, exc.code, (time.monotonic() - t0) * 1000,
+            )
             return _location_error_response(exc)
+    logger.info(
+        "GET /rides/%s/location | caller_id=%s | lat=%.5f lng=%.5f | duration_ms=%.1f",
+        ride_id, caller_id, result.lat, result.lng, (time.monotonic() - t0) * 1000,
+    )
     return {
         "ride_id": str(result.ride_id),
         "lat": result.lat,
