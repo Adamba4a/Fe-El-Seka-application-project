@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { createClient } from "@/lib/supabase/client";
+import { useBookingStatus } from "@/lib/hooks/useBookingStatus";
 
 type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 
@@ -71,6 +72,15 @@ export default function DriverRideBookingsPage() {
   useEffect(() => {
     fetchBookings();
   }, [fetchBookings]);
+
+  const { lastEvent } = useBookingStatus({ rideId });
+
+  // New booking INSERT: re-fetch the list to get full passenger details
+  // (Realtime payload carries PostGIS binary for pickup/dropoff points, not lat/lng floats)
+  useEffect(() => {
+    if (!lastEvent || lastEvent.eventType !== "INSERT") return;
+    fetchBookings();
+  }, [lastEvent, fetchBookings]);
 
   async function handleConfirm(bookingId: string) {
     setActionLoading(bookingId);

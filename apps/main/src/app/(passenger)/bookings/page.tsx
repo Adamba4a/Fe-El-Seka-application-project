@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { createClient } from "@/lib/supabase/client";
+import { useSession } from "@/lib/auth/hooks";
+import { useBookingStatus } from "@/lib/hooks/useBookingStatus";
 
 type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 type Tab = "all" | "active" | "past";
@@ -59,10 +61,26 @@ function filterByTab(bookings: PassengerBooking[], tab: Tab): PassengerBooking[]
 
 export default function PassengerBookingsPage() {
   const router = useRouter();
+  const session = useSession();
+  const userId = session?.user.id;
   const [bookings, setBookings] = useState<PassengerBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("all");
+
+  const { lastEvent } = useBookingStatus({ passengerId: userId });
+
+  // Apply real-time UPDATE events to local state without a full refetch
+  useEffect(() => {
+    if (!lastEvent || lastEvent.eventType !== "UPDATE") return;
+    const updated = lastEvent.new as { id?: string; status?: BookingStatus };
+    if (!updated?.id || !updated?.status) return;
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.booking_id === updated.id ? { ...b, status: updated.status! } : b
+      )
+    );
+  }, [lastEvent]);
 
   const fetchBookings = useCallback(async () => {
     try {

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { BookingStatusBadge } from "@/components/bookings/BookingStatusBadge";
 import { Spinner } from "@/components/ui/Spinner";
 import { createClient } from "@/lib/supabase/client";
+import { useBookingStatus } from "@/lib/hooks/useBookingStatus";
 
 type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 
@@ -94,6 +95,31 @@ export default function PassengerBookingDetailPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [boardingAddress, setBoardingAddress] = useState<string | null>(null);
   const [alightingAddress, setAlightingAddress] = useState<string | null>(null);
+
+  const { lastEvent } = useBookingStatus({ bookingId });
+
+  // Apply real-time status changes without a full refetch
+  useEffect(() => {
+    if (!lastEvent || lastEvent.eventType !== "UPDATE") return;
+    const updated = lastEvent.new as {
+      status?: BookingStatus;
+      cancelled_at?: string | null;
+      cancellation_reason?: string | null;
+    };
+    if (!updated?.status) return;
+    setBooking((prev) =>
+      prev
+        ? {
+            ...prev,
+            status: updated.status!,
+            cancelled_at: updated.cancelled_at ?? prev.cancelled_at,
+            cancellation_reason: updated.cancellation_reason ?? prev.cancellation_reason,
+          }
+        : prev
+    );
+    // Close the confirm dialog if the booking was externally cancelled (e.g. driver)
+    if (updated.status === "cancelled") setShowConfirm(false);
+  }, [lastEvent]);
 
   const fetchBooking = useCallback(async () => {
     try {
