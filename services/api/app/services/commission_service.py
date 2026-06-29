@@ -5,6 +5,8 @@ import uuid
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 
+from fastapi import HTTPException
+
 from app.services import wallet_service
 
 logger = logging.getLogger(__name__)
@@ -28,8 +30,8 @@ async def deduct_commission(
     For each confirmed booking:
         commission = ROUND(fuel_cost_egp * 0.20 / total_seats, 2)
 
-    Also deletes the ride's CommissionReservation (even if no confirmed bookings exist —
-    empty-seat reservations are silently released).
+    Does NOT release the CommissionReservation — the caller (complete_ride) must call
+    release_reservation() separately after this function returns.
 
     MUST be called inside the complete_ride() transaction, after bookings have been
     transitioned to 'completed' by complete_ride_bookings(). The wallet row is locked
@@ -46,16 +48,6 @@ async def deduct_commission(
 
     wallet = await wallet_service.get_wallet_with_lock(conn, driver_id)
     wallet_id = wallet["id"]
-
-    # Always delete the reservation — release unused seat reservation for empty rides too
-    reservation = await conn.fetchrow(
-        "DELETE FROM commission_reservations WHERE ride_id = $1 RETURNING reserved_amount_egp",
-        ride_id,
-    )
-    if reservation is not None:
-        await wallet_service.decrement_reserved(
-            conn, wallet_id, Decimal(str(reservation["reserved_amount_egp"]))
-        )
 
     if not confirmed_bookings or total_seats == 0 or fuel_cost == Decimal("0"):
         logger.info(
@@ -130,4 +122,51 @@ async def release_reservation(conn, ride_id: uuid.UUID, driver_id: uuid.UUID) ->
         driver_id,
         ride_id,
         released,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ride creation — balance enforcement and reservation
+# ─────────────────────────────────────────────────────────────────────────────
+
+def check_available_balance(wallet: dict, max_commission: Decimal) -> bool:
+    """Return True if the driver's available balance covers max_commission.
+
+    available_egp = balance_egp − reserved_egp (never stored, always derived)
+    """
+    balance = Decimal(str(wallet["balance_egp"]))
+    reserved = Decimal(str(wallet["reserved_egp"]))
+    return (balance - reserved) >= max_commission
+
+
+async def create_reservation(
+    conn,
+    wallet_id: uuid.UUID,
+    driver_id: uuid.UUID,
+    ride_id: uuid.UUID,
+    reserved_amount: Decimal,
+) -> None:
+    """Insert a CommissionReservation row and increment wallet.reserved_egp.
+
+    MUST be called inside the create_ride() transaction, after the ride row is inserted
+    (ride_id FK must already exist). The wallet row must already be locked via
+    get_wallet_with_lock().
+    """
+    await conn.execute(
+        """
+        INSERT INTO commission_reservations (wallet_id, driver_id, ride_id, reserved_amount_egp)
+        VALUES ($1, $2, $3, $4)
+        """,
+        wallet_id,
+        driver_id,
+        ride_id,
+        reserved_amount,
+    )
+    await wallet_service.increment_reserved(conn, wallet_id, reserved_amount)
+
+    logger.info(
+        "wallet_write operation=RESERVATION_CREATE driver_id=%s ride_id=%s reserved_egp=%s",
+        driver_id,
+        ride_id,
+        reserved_amount,
     )

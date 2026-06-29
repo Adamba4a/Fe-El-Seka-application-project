@@ -177,6 +177,34 @@ async def create_ride(
                     409,
                 )
 
+            # Phase 8 (FR-014): balance enforcement — lock wallet before ride INSERT so
+            # the check and the ride creation are atomic; concurrent rides by the same
+            # driver are serialized by the advisory lock already held above.
+            from decimal import ROUND_HALF_UP
+            from fastapi import HTTPException as _HTTPException
+            from app.services import wallet_service as _ws
+            from app.services.commission_service import check_available_balance, create_reservation
+
+            max_commission = (Decimal(str(fuel_cost_egp)) * Decimal("0.20")).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+            wallet = await _ws.get_wallet_with_lock(conn, driver_id)
+
+            if not check_available_balance(wallet, max_commission):
+                _balance = Decimal(str(wallet["balance_egp"]))
+                _reserved = Decimal(str(wallet["reserved_egp"]))
+                raise _HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": "INSUFFICIENT_WALLET_BALANCE",
+                        "message": "Insufficient wallet balance to cover this ride's commission.",
+                        "available_egp": str(_balance - _reserved),
+                        "required_commission_egp": str(max_commission),
+                        "balance_egp": str(_balance),
+                        "reserved_egp": str(_reserved),
+                    },
+                )
+
             row = await conn.fetchrow(
                 f"""
                 INSERT INTO rides (
@@ -208,6 +236,8 @@ async def create_ride(
                 "INSERT INTO ride_history_logs (ride_id, actor_id, action) VALUES ($1, $2, 'created')",
                 row["id"], driver_id,
             )
+
+            await create_reservation(conn, wallet["id"], driver_id, row["id"], max_commission)
 
     return _to_response(dict(row))
 
@@ -566,8 +596,9 @@ async def complete_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideRespons
             from app.services.booking_service import complete_ride_bookings
             await complete_ride_bookings(conn, ride_id)
 
-            from app.services.commission_service import deduct_commission
+            from app.services.commission_service import deduct_commission, release_reservation
             await deduct_commission(conn, dict(ride), [dict(b) for b in confirmed_bookings])
+            await release_reservation(conn, ride_id, driver_id)
 
             for b in confirmed_bookings:
                 await conn.execute(
