@@ -41,6 +41,7 @@ export default function SearchPage() {
         body: JSON.stringify({
           origin: { lat: origin.lat, lng: origin.lng },
           destination: { lat: destination.lat, lng: destination.lng },
+          dest_bbox: destination.bbox ?? null,
         }),
       });
 

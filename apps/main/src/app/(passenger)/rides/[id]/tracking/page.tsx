@@ -37,7 +37,7 @@ export default function TrackingPage() {
       .select("id, status")
       .eq("ride_id", rideId)
       .eq("passenger_id", userId)
-      .eq("status", "confirmed")
+      .in("status", ["confirmed", "completed"])
       .maybeSingle()
       .then(({ data }) => {
         if (!data) {
@@ -79,7 +79,7 @@ export default function TrackingPage() {
   }, [bookingId]);
 
   function handleRedirect() {
-    router.replace(`/(passenger)/bookings/${bookingId}`);
+    router.replace(`/bookings/${bookingId}`);
   }
 
   if (!session) {
@@ -107,12 +107,24 @@ export default function TrackingPage() {
       />
 
       <div className="flex-1 relative">
-        {locationError && !location ? (
-          <div className="flex items-center justify-center h-full text-content-secondary text-sm">
-            Location unavailable — driver has not started sharing yet.
+        <LiveTrackingMap location={location} isStale={isStale} />
+
+        {/* Overlay while waiting for first location fix */}
+        {!location && !locationError && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 z-10">
+            <div className="bg-surface-card rounded-2xl px-6 py-4 shadow-lg text-center space-y-1">
+              <p className="text-sm font-semibold text-content-primary">Waiting for driver…</p>
+              <p className="text-xs text-content-muted">Location will appear once the driver is on the way.</p>
+            </div>
           </div>
-        ) : (
-          <LiveTrackingMap location={location} isStale={isStale} />
+        )}
+
+        {locationError && !location && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
+            <div className="bg-surface-card rounded-2xl px-6 py-4 shadow-lg text-center">
+              <p className="text-sm text-content-secondary">Location unavailable — driver has not started sharing yet.</p>
+            </div>
+          </div>
         )}
       </div>
     </div>

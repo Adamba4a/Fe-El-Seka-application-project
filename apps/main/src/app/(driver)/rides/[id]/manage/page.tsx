@@ -1,15 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { getRide, startRide, completeRide, cancelRide } from "@/lib/api/rides";
+import { reportLocation } from "@/lib/api/location";
 import { RideStatusBadge } from "@/components/rides/RideStatusBadge";
 import { RideHistoryLog } from "@/components/rides/RideHistoryLog";
 import { StartCompleteActions } from "@/components/rides/StartCompleteActions";
 import { BottomSheet, Spinner } from "@/components";
 import type { Ride, RideHistoryEntry } from "@fe-el-seka/shared";
+
+function bearingDeg(from: GeolocationPosition, to: GeolocationPosition): number {
+  const lat1 = (from.coords.latitude * Math.PI) / 180;
+  const lat2 = (to.coords.latitude * Math.PI) / 180;
+  const dLng = ((to.coords.longitude - from.coords.longitude) * Math.PI) / 180;
+  const y = Math.sin(dLng) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString("en-EG", {
@@ -33,6 +43,9 @@ export default function RideManagePage() {
   const [cancelReason, setCancelReason] = useState("");
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+  const lastPosRef = useRef<GeolocationPosition | null>(null);
+  const lastSentRef = useRef<number>(0);
 
   useEffect(() => {
     const load = async () => {
@@ -51,6 +64,47 @@ export default function RideManagePage() {
     };
     load();
   }, [id]);
+
+  // GPS location broadcasting when ride is in_progress
+  useEffect(() => {
+    if (ride?.status !== "in_progress") return;
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+
+    const INTERVAL_MS = 10_000;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const now = Date.now();
+        if (now - lastSentRef.current < INTERVAL_MS) return;
+        lastSentRef.current = now;
+
+        const bearing = lastPosRef.current ? bearingDeg(lastPosRef.current, pos) : null;
+        lastPosRef.current = pos;
+
+        (async () => {
+          const supabase = createClient();
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) return;
+          try {
+            await reportLocation(session.access_token, ride.id, {
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              bearing,
+              speed_kmh: pos.coords.speed != null ? pos.coords.speed * 3.6 : null,
+              client_timestamp: new Date(pos.timestamp).toISOString(),
+            });
+            setGpsError(null);
+          } catch {
+            // silent — don't interrupt the driver UI on transient errors
+          }
+        })();
+      },
+      (err) => setGpsError(err.message),
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [ride?.status, ride?.id]);
 
   if (loading) {
     return (
@@ -181,6 +235,12 @@ export default function RideManagePage() {
             {ride.cancellation_source === "system" && (
               <p className="text-caption text-content-muted mt-1">Cancelled by system</p>
             )}
+          </div>
+        )}
+
+        {ride.status === "in_progress" && (
+          <div className={`rounded-xl px-3 py-2 text-xs font-medium ${gpsError ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}>
+            {gpsError ? `GPS error: ${gpsError}` : "📍 Broadcasting live location to passengers"}
           </div>
         )}
 

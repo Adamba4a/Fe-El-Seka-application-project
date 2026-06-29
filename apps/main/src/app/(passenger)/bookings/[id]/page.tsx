@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { BookingStatusBadge } from "@/components/bookings/BookingStatusBadge";
 import { Spinner } from "@/components/ui/Spinner";
 import { createClient } from "@/lib/supabase/client";
@@ -251,6 +252,17 @@ export default function PassengerBookingDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Live tracking — shown once driver has accepted and ride may be in progress */}
+      {booking.status === "confirmed" && (
+        <Link
+          href={`/rides/${booking.ride_id}/tracking`}
+          className="flex items-center justify-center gap-2 w-full rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white px-4 py-3 text-sm font-semibold transition-colors"
+        >
+          <span>📍</span>
+          Track Live
+        </Link>
+      )}
 
       {/* Price breakdown */}
       <div className="rounded-xl border border-border-default bg-surface-card">

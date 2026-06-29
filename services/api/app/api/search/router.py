@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Optional
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -22,9 +23,17 @@ class _LatLng(BaseModel):
     lng: float
 
 
+class _Bbox(BaseModel):
+    south: float
+    north: float
+    west: float
+    east: float
+
+
 class SearchRidesRequest(BaseModel):
     origin: _LatLng
     destination: _LatLng
+    dest_bbox: Optional[_Bbox] = None
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -70,10 +79,13 @@ async def search_rides(
     origin = GeoPoint(lat=body.origin.lat, lng=body.origin.lng)
     destination = GeoPoint(lat=body.destination.lat, lng=body.destination.lng)
 
+    dest_bbox = dict(body.dest_bbox) if body.dest_bbox else None
+
     try:
         result = await candidate_service.generate_candidates(
             origin=origin,
             destination=destination,
+            dest_bbox=dest_bbox,
         )
     except RouteServiceUnavailableError:
         return JSONResponse(

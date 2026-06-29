@@ -106,12 +106,13 @@ async def _assess_ride(
     passenger_route: RouteGeometry,
     config: dict,
     sem: asyncio.Semaphore,
+    dest_bbox: dict | None = None,
 ) -> tuple[dict, object] | None:
     async with sem:
         return (
             ride,
             await route_service.assess_compatibility(
-                ride, origin, destination, passenger_route, config
+                ride, origin, destination, passenger_route, config, dest_bbox=dest_bbox
             ),
         )
 
@@ -123,6 +124,7 @@ async def generate_candidates(
     origin: GeoPoint,
     destination: GeoPoint,
     config: dict | None = None,
+    dest_bbox: dict | None = None,
 ) -> CandidateListResponse:
     t0 = time.monotonic()
     logger.info(
@@ -145,7 +147,7 @@ async def generate_candidates(
     sem = asyncio.Semaphore(_STAGE2_CONCURRENCY)
     raw_results = await asyncio.gather(
         *[
-            _assess_ride(ride, origin, destination, passenger_route, config, sem)
+            _assess_ride(ride, origin, destination, passenger_route, config, sem, dest_bbox=dest_bbox)
             for ride in rides
         ],
         return_exceptions=True,

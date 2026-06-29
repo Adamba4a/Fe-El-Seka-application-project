@@ -257,6 +257,7 @@ async def assess_compatibility(
     passenger_destination: GeoPoint,
     passenger_route_geom: RouteGeometry,
     config: dict,
+    dest_bbox: dict | None = None,
 ) -> CompatibilityResult:
     """Orchestrates overlap, walk, detour, and premium eligibility checks.
 
@@ -295,7 +296,21 @@ async def assess_compatibility(
 
     overlap_ok = overlap_pct >= min_overlap
     pickup_ok = pickup_walk_m <= max_pickup_walk
-    dropoff_ok = dropoff_walk_m <= max_dropoff_walk
+
+    # Dropoff: standard walk check OR driver's destination falls inside the
+    # passenger's geocoded bounding box (handles area searches like "Giza" where
+    # the Nominatim centroid is far from where the driver actually ends up within
+    # that administrative area — e.g. Cairo University is inside the Giza bbox).
+    driver_dest_in_bbox = False
+    if dest_bbox:
+        d_lat = float(ride["destination_lat"])
+        d_lng = float(ride["destination_lng"])
+        driver_dest_in_bbox = (
+            dest_bbox["south"] <= d_lat <= dest_bbox["north"]
+            and dest_bbox["west"] <= d_lng <= dest_bbox["east"]
+        )
+
+    dropoff_ok = dropoff_walk_m <= max_dropoff_walk or driver_dest_in_bbox
 
     detour_km = 0.0
     detour_minutes = 0

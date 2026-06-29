@@ -15,13 +15,13 @@ PLATFORM_COMMISSION_RATE: float = 0.20
 _DEFAULTS: dict[str, Any] = {
     "fuel_price_per_litre": 15.00,
     "safety_margin": 5.00,
-    "corridor_buffer_radius_m": 150,
-    "min_overlap_pct": 50.00,
-    "max_pickup_walk_m": 500,
-    "max_dropoff_walk_m": 500,
+    "corridor_buffer_radius_m": 500,
+    "min_overlap_pct": 30.00,
+    "max_pickup_walk_m": 1500,
+    "max_dropoff_walk_m": 1500,
     "max_detour_km": 3.00,
     "max_detour_minutes": 10,
-    "max_premium_detour_km": 2.00,
+    "max_premium_detour_km": 5.00,
     "time_window_minutes": 30,
 }
 
