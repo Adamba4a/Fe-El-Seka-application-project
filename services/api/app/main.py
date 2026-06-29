@@ -18,6 +18,7 @@ from app.api.users.router import router as users_router
 from app.api.admin.users_router import router as admin_users_router
 from app.api.admin.vehicle_updates_router import router as admin_vehicle_updates_router
 from app.api.admin.verification_router import router as admin_verification_router
+from app.api.admin.wallet_router import router as admin_wallet_router
 from app.api.auth.router import router as auth_router
 from app.api.health import router as health_router
 from app.api.internal.revocation_router import router as internal_router
@@ -129,6 +130,11 @@ app.include_router(
 app.include_router(
     admin_vehicle_updates_router,
     prefix="/api/admin/vehicle-updates",
+    tags=["admin"],
+)
+app.include_router(
+    admin_wallet_router,
+    prefix="/api/admin/drivers",
     tags=["admin"],
 )
 app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
