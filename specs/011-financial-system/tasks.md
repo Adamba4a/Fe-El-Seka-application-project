@@ -82,13 +82,13 @@
 
 **Independent Test**: From `quickstart.md` Scenario 3 — `GET /drivers/me/wallet` returns correct three balance figures; entries ordered newest-first; non-driver JWT returns HTTP 403.
 
-- [ ] T019 [P] [US3] Create `services/api/app/api/wallet/__init__.py` — empty module init file
-- [ ] T020 [P] [US3] Create `services/api/app/api/wallet/router.py` — `GET /drivers/me/wallet` endpoint: extract `driver_id` from JWT; call `wallet_service.get_or_create_wallet()` (returns 0.00 balances if no wallet); call `wallet_service.get_ledger_page(page, per_page=50)`; compute `available_egp = balance_egp - reserved_egp`; return `WalletPageResponse`; enforce driver role — HTTP 403 if not driver
-- [ ] T021 Register wallet router in `services/api/app/main.py` — include the new `wallet.router` with prefix `/drivers/me` alongside existing routers
-- [ ] T022 [P] [US3] Create `apps/main/src/lib/api/wallet.ts` — `getWallet(page?: number): Promise<WalletPageResponse>` calling `GET /drivers/me/wallet`; `formatEgp(amount: string | number): string` using `Intl.NumberFormat` with EGP locale
-- [ ] T023 [P] [US3] Create `apps/main/src/components/wallet/WalletBalanceCard.tsx` — displays available balance prominently; shows total and reserved as secondary figures; hides reserved row when `reserved_egp === "0.00"`; accepts `WalletSummaryResponse` as props
-- [ ] T024 [P] [US3] Create `apps/main/src/components/wallet/LedgerEntryRow.tsx` and `LedgerEntryList.tsx` — `LedgerEntryRow`: type label ("Commission Charge" / "Balance Top-Up" / "Balance Adjustment"), signed amount (green `+` for credits, red `-` for debits), ride link for `COMMISSION_DEBIT`, relative timestamp; `LedgerEntryList`: renders list of `LedgerEntryRow`; "Load more" button that fetches next page and appends entries
-- [ ] T025 [US3] Create `apps/main/src/app/(driver)/wallet/page.tsx` — client component; on mount calls `getWallet(1)`; renders `WalletBalanceCard` + `LedgerEntryList`; empty state: "No transactions yet. Add balance to start posting rides."; refetches on window focus (for balance updates after ride creation)
+- [x] T019 [P] [US3] Create `services/api/app/api/wallet/__init__.py` — empty module init file
+- [x] T020 [P] [US3] Create `services/api/app/api/wallet/router.py` — `GET /drivers/me/wallet` endpoint: extract `driver_id` from JWT; call `wallet_service.get_or_create_wallet()` (returns 0.00 balances if no wallet); call `wallet_service.get_ledger_page(page, per_page=50)`; compute `available_egp = balance_egp - reserved_egp`; return wallet dict; enforce driver role — HTTP 403 if not driver
+- [x] T021 Register wallet router in `services/api/app/main.py` — included as `wallet_router` at prefix `/api/v1/drivers/me` with tag "wallet"
+- [x] T022 [P] [US3] Create `apps/main/src/lib/api/wallet.ts` — `getWallet(token, page?): Promise<WalletResponse>`; `formatEgp(amount): string` using `Intl.NumberFormat` with EGP locale; typed `LedgerEntry` and `WalletResponse` interfaces
+- [x] T023 [P] [US3] Create `apps/main/src/components/wallet/WalletBalanceCard.tsx` — available balance prominent; total and reserved as secondary; reserved row hidden when `reserved_egp === "0.00"`
+- [x] T024 [P] [US3] Create `apps/main/src/components/wallet/LedgerEntryRow.tsx` and `LedgerEntryList.tsx` — type labels, signed colours, ride link for COMMISSION_DEBIT, relative timestamp; Load more button appends entries page by page
+- [x] T025 [US3] Create `apps/main/src/app/(driver)/wallet/page.tsx` — client component; loads on mount; empty state message; refetches on `visibilitychange` event (tab regains focus)
 
 **Checkpoint**: Open the driver wallet screen, verify all three balance figures are displayed correctly, verify paginated transaction list matches DB, verify a new driver sees empty state with 0.00 EGP.
 
