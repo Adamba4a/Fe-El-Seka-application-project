@@ -467,6 +467,9 @@ async def cancel_ride(
             from app.services.booking_service import cancel_all_bookings_for_ride
             await cancel_all_bookings_for_ride(conn, ride_id)
 
+            from app.services.commission_service import release_reservation
+            await release_reservation(conn, ride_id, driver_id)
+
             dep = row["departure_datetime"]
             for b in confirmed_passengers:
                 await conn.execute(
@@ -562,6 +565,9 @@ async def complete_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideRespons
 
             from app.services.booking_service import complete_ride_bookings
             await complete_ride_bookings(conn, ride_id)
+
+            from app.services.commission_service import deduct_commission
+            await deduct_commission(conn, dict(ride), [dict(b) for b in confirmed_bookings])
 
             for b in confirmed_bookings:
                 await conn.execute(
