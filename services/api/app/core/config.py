@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     osrm_url: str = "http://osrm:5000"
     internal_secret: str = ""
     firebase_service_account_secret_name: str = "firebase_service_account"
+    ai_service_url: str = "http://localhost:8001"
 
     model_config = SettingsConfigDict(
         env_file=".env",
