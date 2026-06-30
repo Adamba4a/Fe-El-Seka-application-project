@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 import uuid
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
@@ -115,13 +116,13 @@ async def release_reservation(conn, ride_id: uuid.UUID, driver_id: uuid.UUID) ->
         return
 
     released = Decimal(str(reservation["reserved_amount_egp"]))
+    _start = time.monotonic()
     await wallet_service.decrement_reserved(conn, wallet["id"], released)
-
+    _ms = round((time.monotonic() - _start) * 1000)
     logger.info(
-        "wallet_write operation=RESERVATION_RELEASE driver_id=%s ride_id=%s released_egp=%s",
-        driver_id,
-        ride_id,
-        released,
+        "event=wallet_write operation=RESERVATION_RELEASE driver_id=%s amount_egp=%s "
+        "ride_id=%s booking_id=null admin_actor_id=null duration_ms=%d error=null",
+        driver_id, released, ride_id, _ms,
     )
 
 
@@ -162,11 +163,11 @@ async def create_reservation(
         ride_id,
         reserved_amount,
     )
+    _start = time.monotonic()
     await wallet_service.increment_reserved(conn, wallet_id, reserved_amount)
-
+    _ms = round((time.monotonic() - _start) * 1000)
     logger.info(
-        "wallet_write operation=RESERVATION_CREATE driver_id=%s ride_id=%s reserved_egp=%s",
-        driver_id,
-        ride_id,
-        reserved_amount,
+        "event=wallet_write operation=RESERVATION_CREATE driver_id=%s amount_egp=%s "
+        "ride_id=%s booking_id=null admin_actor_id=null duration_ms=%d error=null",
+        driver_id, reserved_amount, ride_id, _ms,
     )

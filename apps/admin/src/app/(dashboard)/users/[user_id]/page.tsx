@@ -77,6 +77,15 @@ export default function UserDetailPage({ params }: { params: { user_id: string }
         <dd>{profile.is_submission_locked ? "Locked" : "Open"}</dd>
       </dl>
 
+      {profile.role === "driver" && (
+        <a
+          href={`/drivers/${profile.id}/wallet`}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded border border-gray-300 text-sm font-medium hover:bg-gray-50 transition-colors"
+        >
+          Manage Wallet
+        </a>
+      )}
+
       <UserActionPanel
         userId={profile.id}
         currentStatus={profile.verification_status}

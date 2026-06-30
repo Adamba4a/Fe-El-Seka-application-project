@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 import uuid
 from decimal import Decimal
 from typing import Optional
@@ -106,32 +107,40 @@ async def insert_ledger_entry(
 ) -> dict:
     """Insert an immutable COMMISSION_DEBIT, ADMIN_CREDIT, or ADMIN_DEBIT entry.
     Returns the created row as a dict."""
-    row = await conn.fetchrow(
-        """
-        INSERT INTO driver_ledger_entries
-            (wallet_id, driver_id, type, amount_egp, ride_id, booking_id,
-             fuel_cost_egp_snapshot, created_by, note)
-        VALUES ($1, $2, $3::ledger_entry_type, $4, $5, $6, $7, $8, $9)
-        RETURNING id, wallet_id, driver_id, type, amount_egp, ride_id, booking_id,
-                  fuel_cost_egp_snapshot, created_by, note, created_at
-        """,
-        wallet_id,
-        driver_id,
-        entry_type,
-        amount,
-        ride_id,
-        booking_id,
-        fuel_cost_egp_snapshot,
-        created_by,
-        note,
-    )
+    _start = time.monotonic()
+    try:
+        row = await conn.fetchrow(
+            """
+            INSERT INTO driver_ledger_entries
+                (wallet_id, driver_id, type, amount_egp, ride_id, booking_id,
+                 fuel_cost_egp_snapshot, created_by, note)
+            VALUES ($1, $2, $3::ledger_entry_type, $4, $5, $6, $7, $8, $9)
+            RETURNING id, wallet_id, driver_id, type, amount_egp, ride_id, booking_id,
+                      fuel_cost_egp_snapshot, created_by, note, created_at
+            """,
+            wallet_id,
+            driver_id,
+            entry_type,
+            amount,
+            ride_id,
+            booking_id,
+            fuel_cost_egp_snapshot,
+            created_by,
+            note,
+        )
+    except Exception as exc:
+        _ms = round((time.monotonic() - _start) * 1000)
+        logger.error(
+            "event=wallet_write operation=%s driver_id=%s amount_egp=%s "
+            "ride_id=%s booking_id=%s admin_actor_id=%s duration_ms=%d error=%s",
+            entry_type, driver_id, amount, ride_id, booking_id, created_by, _ms, exc,
+        )
+        raise
+    _ms = round((time.monotonic() - _start) * 1000)
     logger.info(
-        "wallet_write type=%s driver_id=%s amount_egp=%s ride_id=%s booking_id=%s",
-        entry_type,
-        driver_id,
-        amount,
-        ride_id,
-        booking_id,
+        "event=wallet_write operation=%s driver_id=%s amount_egp=%s "
+        "ride_id=%s booking_id=%s admin_actor_id=%s duration_ms=%d error=null",
+        entry_type, driver_id, amount, ride_id, booking_id, created_by, _ms,
     )
     return dict(row)
 

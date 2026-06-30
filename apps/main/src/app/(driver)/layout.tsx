@@ -25,6 +25,7 @@ export default async function DriverLayout({ children }: { children: React.React
           <span className="font-semibold text-content-primary">Fe El Seka</span>
           <nav className="flex gap-4 text-sm">
             <a href="/rides" className="text-brand-primary font-medium">My Rides</a>
+            <a href="/wallet" className="text-content-muted">Wallet</a>
             <a href="/settings/profile" className="text-content-muted">Profile</a>
           </nav>
         </div>

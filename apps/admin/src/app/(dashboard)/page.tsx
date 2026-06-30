@@ -24,10 +24,10 @@ export default async function DashboardPage() {
           <p className="text-3xl font-bold">{pendingVehicleUpdates.count ?? 0}</p>
           <p className="text-sm text-gray-500 mt-1">Pending vehicle updates</p>
         </Link>
-        <div className="border rounded-lg p-5">
+        <Link href="/users" className="block border rounded-lg p-5 hover:bg-gray-50">
           <p className="text-3xl font-bold">{total.count ?? 0}</p>
           <p className="text-sm text-gray-500 mt-1">Total users</p>
-        </div>
+        </Link>
       </div>
     </main>
   );

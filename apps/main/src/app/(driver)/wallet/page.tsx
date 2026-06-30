@@ -22,8 +22,11 @@ export default function WalletPage() {
       const token = await getToken();
       const data = await getWallet(token, 1);
       setWallet(data);
-    } catch {
-      setError("Failed to load wallet.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error
+        ? err.message
+        : JSON.stringify(err);
+      setError(`Failed to load wallet: ${msg}`);
     }
   }, []);
 
