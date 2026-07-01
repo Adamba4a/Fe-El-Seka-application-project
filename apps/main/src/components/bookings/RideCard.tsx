@@ -1,5 +1,6 @@
 "use client";
 
+import { MatchScoreBadge } from "@/components/search/MatchScoreBadge";
 
 export interface RideCandidate {
   ride_id: string;
@@ -12,6 +13,7 @@ export interface RideCandidate {
   available_seats: number;
   per_seat_price: string;
   candidate_type: "standard" | "premium";
+  match_score_pct: number | null;
   compatibility: {
     overlap_percentage: number;
     pickup_walk_meters: number;
@@ -101,6 +103,10 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
             </span>
           </div>
         </div>
+
+        {candidate.match_score_pct !== null && (
+          <MatchScoreBadge score_pct={candidate.match_score_pct} />
+        )}
 
         <OverlapBar pct={candidate.compatibility.overlap_percentage} />
 

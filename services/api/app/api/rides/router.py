@@ -5,6 +5,7 @@ import json
 import logging
 import time
 import uuid
+from datetime import datetime
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -71,15 +72,6 @@ async def create_ride(
     payload: CreateRideRequest,
     profile: dict = Depends(get_current_verified_driver),
 ):
-    if payload.price_per_seat is not None:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "error": "price_override_not_allowed",
-                "message": "price_per_seat is system-calculated and cannot be set by the driver.",
-            },
-        )
-
     driver_id = uuid.UUID(str(profile["id"]))
     vehicle = await _get_active_vehicle(driver_id)
 
@@ -126,7 +118,6 @@ async def create_ride(
             fuel_cost_egp=fare.fuel_cost_egp,
             platform_commission_egp=fare.platform_commission_egp,
             safety_margin_egp=fare.safety_margin_egp,
-            fare_per_seat_egp=fare.per_seat_price_egp,
         )
     except RideServiceError as exc:
         return _service_error_response(exc)
@@ -343,6 +334,7 @@ async def get_ride_passenger_detail(
     origin_lng: float = Query(...),
     destination_lat: float = Query(...),
     destination_lng: float = Query(...),
+    departure_at: Optional[datetime] = Query(None),
     _user: dict = Depends(get_current_user),
 ):
     pool = get_pool()
@@ -417,6 +409,42 @@ async def get_ride_passenger_detail(
 
     route_geojson = json.loads(ride["route_geometry_geojson"]) if ride["route_geometry_geojson"] else None
 
+    match_score_pct = None
+    if departure_at is not None:
+        try:
+            from app.models.ai import CandidateFeatures, PassengerRequestFeatures, ZoneCentroid
+            from app.services import ai_client as _ai
+            from app.utils.zone_lookup import nearest_zone as _nz
+
+            p_orig_zone, p_orig_c = _nz(origin_lat, origin_lng)
+            p_dest_zone, p_dest_c = _nz(destination_lat, destination_lng)
+            d_orig_zone, d_orig_c = _nz(float(ride["origin_lat"]), float(ride["origin_lng"]))
+            d_dest_zone, d_dest_c = _nz(float(ride["destination_lat"]), float(ride["destination_lng"]))
+
+            passenger_req = PassengerRequestFeatures(
+                origin_zone=p_orig_zone,
+                destination_zone=p_dest_zone,
+                origin_centroid=ZoneCentroid(**p_orig_c),
+                destination_centroid=ZoneCentroid(**p_dest_c),
+                departure_at=departure_at,
+            )
+            candidate_feat = CandidateFeatures(
+                ride_id=str(ride_id),
+                driver_origin_zone=d_orig_zone,
+                driver_destination_zone=d_dest_zone,
+                driver_origin_centroid=ZoneCentroid(**d_orig_c),
+                driver_dest_centroid=ZoneCentroid(**d_dest_c),
+                driver_departure_at=ride["departure_datetime"],
+                estimated_overlap_ratio=max(0.0, min(1.0, compat.overlap_pct / 100)),
+                estimated_pickup_detour_km=max(0.0, compat.pickup_walk_m / 1000),
+                estimated_dropoff_distance_km=max(0.0, compat.dropoff_walk_m / 1000),
+            )
+            scored = await _ai.score_candidates(passenger_req, [candidate_feat])
+            if scored:
+                match_score_pct = scored[0].match_score_pct
+        except Exception:
+            pass
+
     return JSONResponse({
         "ride": {
             "id": str(ride["id"]),
@@ -444,6 +472,7 @@ async def get_ride_passenger_detail(
             "premium_dropoff_available": compat.premium_dropoff_available,
             "premium_dropoff_fee": compat.premium_dropoff_fee_egp,
         },
+        "match_score_pct": match_score_pct,
     })
 
 

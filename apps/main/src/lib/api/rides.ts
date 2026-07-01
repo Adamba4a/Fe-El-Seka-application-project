@@ -6,6 +6,9 @@ import type {
   RideListResponse,
   RideDetailResponse,
 } from "@fe-el-seka/shared";
+
+// price_per_seat is always present in the create response (system-assigned)
+export type CreateRideResponse = Ride;
 import { env } from "../env";
 
 const base = env.apiUrl;

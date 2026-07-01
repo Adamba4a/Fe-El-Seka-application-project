@@ -8,7 +8,7 @@ import { createRide } from "@/lib/api/rides";
 import { getMyVehicle } from "@/lib/api/vehicles";
 import { RideForm } from "@/components/rides/RideForm";
 import { BottomSheet } from "@/components";
-import type { CreateRidePayload, Location, Coordinates } from "@fe-el-seka/shared";
+import type { Ride, CreateRidePayload, Location, Coordinates } from "@fe-el-seka/shared";
 
 const RideMap = dynamic(
   () => import("@/components/rides/RideMap").then((m) => ({ default: m.RideMap })),
@@ -19,6 +19,7 @@ export default function NewRidePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [createdRide, setCreatedRide] = useState<Ride | null>(null);
   const [vehicleChecked, setVehicleChecked] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(true);
   const [origin, setOrigin] = useState<Location | undefined>();
@@ -75,7 +76,7 @@ export default function NewRidePage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push("/login"); return; }
       const ride = await createRide(session.access_token, payload);
-      router.push(`/rides/${ride.id}/manage`);
+      setCreatedRide(ride);
     } catch (err: any) {
       const detail = err?.detail ?? err;
       setError(detail?.message ?? "Failed to post ride. Please try again.");
@@ -83,6 +84,33 @@ export default function NewRidePage() {
       setLoading(false);
     }
   };
+
+  if (createdRide) {
+    return (
+      <div className="fixed inset-0 z-50 bg-surface-bg flex items-center justify-center p-6">
+        <div className="bg-surface-card border border-border-default rounded-2xl p-6 w-full max-w-sm space-y-4">
+          <h2 className="text-h3 text-content-primary">Ride Posted!</h2>
+          <p className="text-sm text-content-muted">Your ride has been created successfully.</p>
+          <div className="flex justify-between items-center py-3 border-t border-b border-border-default">
+            <span className="text-sm text-content-secondary">Fare per seat</span>
+            <span className="text-base font-semibold text-content-primary">
+              EGP {createdRide.price_per_seat}
+            </span>
+          </div>
+          <p className="text-xs text-content-muted">
+            This fare is set by our system based on your route and current conditions.
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push(`/rides/${createdRide.id}/manage`)}
+            className="w-full bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-3 font-medium transition-colors"
+          >
+            View Ride
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!vehicleChecked) {
     return (

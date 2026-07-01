@@ -174,6 +174,10 @@ async def generate_candidates(
             available_seats=ride["available_seats"],
             price_per_seat_egp=float(ride["price_per_seat"]),
             compatibility=compat,
+            driver_origin_lat=float(ride["origin_lat"]),
+            driver_origin_lng=float(ride["origin_lng"]),
+            driver_dest_lat=float(ride["destination_lat"]),
+            driver_dest_lng=float(ride["destination_lng"]),
         )
 
         if compat.is_compatible:

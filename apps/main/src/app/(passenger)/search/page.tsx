@@ -17,6 +17,7 @@ export default function SearchPage() {
   const [searchMeta, setSearchMeta] = useState<{
     origin: SearchLocation;
     destination: SearchLocation;
+    departure_at: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +43,7 @@ export default function SearchPage() {
           origin: { lat: origin.lat, lng: origin.lng },
           destination: { lat: destination.lat, lng: destination.lng },
           dest_bbox: destination.bbox ?? null,
+          desired_departure_at: new Date().toISOString(),
         }),
       });
 
@@ -57,7 +59,7 @@ export default function SearchPage() {
       }
 
       setCandidates(json.candidates ?? []);
-      setSearchMeta({ origin, destination });
+      setSearchMeta({ origin, destination, departure_at: new Date().toISOString() });
       setPhase("results");
     } catch {
       setError("Network error — please check your connection and try again.");
@@ -73,6 +75,7 @@ export default function SearchPage() {
       origin_lng: String(searchMeta.origin.lng),
       dest_lat: String(searchMeta.destination.lat),
       dest_lng: String(searchMeta.destination.lng),
+      departure_at: searchMeta.departure_at,
     });
     router.push(`/rides/${candidate.ride_id}?${params}`);
   };

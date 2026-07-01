@@ -4,7 +4,6 @@ import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-import httpx
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -39,6 +38,7 @@ from app.services.driver_reminder_service import driver_reminder_loop
 from app.services.fcm_service import initialize_fcm
 from app.services.notification_dispatcher import notification_dispatcher_loop
 from app.services.notification_service import email_retry_loop
+from app.services import ai_client as ai_client_module
 from app.services.pricing_service import init_pricing_config, pricing_config_refresh_loop
 
 
@@ -51,11 +51,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await initialize_fcm()
     except Exception as exc:
         logging.getLogger(__name__).warning("FCM initialization skipped: %s", exc)
-    ai_http_client = httpx.AsyncClient(
-        base_url=settings.ai_service_url,
-        timeout=httpx.Timeout(1.0),
-    )
-    app.state.ai_http_client = ai_http_client
+    app.state.ai_http_client = await ai_client_module.init(settings.ai_service_url)
     email_task = asyncio.create_task(email_retry_loop())
     expiry_task = asyncio.create_task(booking_expiry_loop())
     pricing_task = asyncio.create_task(pricing_config_refresh_loop())
@@ -67,7 +63,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     pricing_task.cancel()
     expiry_task.cancel()
     email_task.cancel()
-    await ai_http_client.aclose()
+    await ai_client_module.close()
     app.state.ai_http_client = None
     await close_pool()
     app.state.pool = None

@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { MatchScoreBadge } from "@/components/search/MatchScoreBadge";
 import { env } from "@/lib/env";
 
 const RideDetailMap = dynamic(
@@ -46,6 +47,7 @@ interface RideDetail {
 interface DetailResponse {
   ride: RideDetail;
   passenger_context: PassengerContext;
+  match_score_pct: number | null;
 }
 
 type PremiumOption = "standard" | "premium_pickup" | "premium_dropoff" | "premium_both";
@@ -69,6 +71,7 @@ export default function PassengerRideDetailPage() {
   const originLng = parseFloat(searchParams.get("origin_lng") ?? "31.2497");
   const destLat = parseFloat(searchParams.get("dest_lat") ?? "30.0444");
   const destLng = parseFloat(searchParams.get("dest_lng") ?? "31.2357");
+  const departureAt = searchParams.get("departure_at");
 
   const [detail, setDetail] = useState<DetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,6 +94,7 @@ export default function PassengerRideDetailPage() {
           origin_lng: String(originLng),
           destination_lat: String(destLat),
           destination_lng: String(destLng),
+          ...(departureAt ? { departure_at: departureAt } : {}),
         });
 
         const res = await fetch(`${env.apiUrl}/api/v1/rides/${id}/passenger-detail?${params}`, {
@@ -246,6 +250,10 @@ export default function PassengerRideDetailPage() {
           )}
         </div>
       </div>
+
+      {detail.match_score_pct !== null && (
+        <MatchScoreBadge score_pct={detail.match_score_pct} />
+      )}
 
       {/* Map */}
       <RideDetailMap

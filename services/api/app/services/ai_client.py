@@ -1,30 +1,52 @@
 from __future__ import annotations
 
 import logging
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 import httpx
 
 from app.models.ai import (
     AIMatchScoreRequest,
-    AIMatchScoreResponse,
     AIPriceRequest,
-    AIPriceResponse,
-    AIRankingResponse,
+    CandidateFeatures,
+    PassengerRequestFeatures,
     ScoredCandidate,
 )
 
 logger = logging.getLogger(__name__)
+
+_client: httpx.AsyncClient | None = None
 
 
 class AIServiceUnavailableError(Exception):
     pass
 
 
+async def init(base_url: str) -> httpx.AsyncClient:
+    global _client
+    _client = httpx.AsyncClient(base_url=base_url, timeout=httpx.Timeout(1.0))
+    return _client
+
+
+async def close() -> None:
+    global _client
+    if _client is not None:
+        await _client.aclose()
+        _client = None
+
+
+def _get() -> httpx.AsyncClient:
+    if _client is None:
+        raise AIServiceUnavailableError("AI client not initialized")
+    return _client
+
+
 async def score_candidates(
-    client: httpx.AsyncClient,
-    request: AIMatchScoreRequest,
-) -> AIMatchScoreResponse:
+    passenger_req: PassengerRequestFeatures,
+    candidates: list[CandidateFeatures],
+) -> list[ScoredCandidate]:
+    client = _get()
+    request = AIMatchScoreRequest(passenger_request=passenger_req, candidates=candidates)
     try:
         resp = await client.post(
             "/predict/match-score",
@@ -41,22 +63,21 @@ async def score_candidates(
         logger.warning("AI match-score returned %d", exc.response.status_code)
         raise AIServiceUnavailableError(f"AI service error {exc.response.status_code}") from exc
 
-    data = resp.json()
-    scores = [
-        ScoredCandidate(
-            ride_id=s["ride_id"],
-            match_score=s["match_score"],
-            match_score_pct=round(s["match_score"] * 100),
+    results: list[ScoredCandidate] = []
+    for s in resp.json()["scores"]:
+        clamped = max(0.0, min(1.0, s["match_score"]))
+        results.append(
+            ScoredCandidate(
+                ride_id=s["ride_id"],
+                match_score=clamped,
+                match_score_pct=round(clamped * 100),
+            )
         )
-        for s in data["scores"]
-    ]
-    return AIMatchScoreResponse(model_version=data["model_version"], scores=scores)
+    return results
 
 
-async def rank_candidates(
-    client: httpx.AsyncClient,
-    scored: list[ScoredCandidate],
-) -> AIRankingResponse:
+async def rank_candidates(scored: list[ScoredCandidate]) -> list[str]:
+    client = _get()
     payload = {
         "candidates": [
             {"ride_id": s.ride_id, "match_score": s.match_score}
@@ -76,18 +97,15 @@ async def rank_candidates(
         logger.warning("AI ride-ranking returned %d", exc.response.status_code)
         raise AIServiceUnavailableError(f"AI service error {exc.response.status_code}") from exc
 
-    data = resp.json()
-    return AIRankingResponse(model_version=data["model_version"], ranked=data["ranked"])
+    return resp.json()["ranked"]
 
 
-async def get_fare(
-    client: httpx.AsyncClient,
-    request: AIPriceRequest,
-) -> AIPriceResponse:
+async def get_fare(req: AIPriceRequest) -> Decimal:
+    client = _get()
     try:
         resp = await client.post(
             "/predict/price-recommendation",
-            json=request.model_dump(mode="json"),
+            json=req.model_dump(mode="json"),
         )
         resp.raise_for_status()
     except httpx.TimeoutException as exc:
@@ -100,19 +118,20 @@ async def get_fare(
         logger.warning("AI price-recommendation returned %d", exc.response.status_code)
         raise AIServiceUnavailableError(f"AI service error {exc.response.status_code}") from exc
 
-    data = resp.json()
-    fare = data["recommended_fare"]
-    return AIPriceResponse(
-        model_version=data["model_version"],
-        min_egp=Decimal(str(fare["min_egp"])),
-        max_egp=Decimal(str(fare["max_egp"])),
-    )
+    fare = resp.json()["recommended_fare"]
+    min_egp = Decimal(str(fare["min_egp"]))
+    max_egp = Decimal(str(fare["max_egp"]))
+    result = ((min_egp + max_egp) / 2).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    if result <= 0:
+        raise AIServiceUnavailableError("AI service returned invalid fare (≤ 0)")
+    return result
 
 
-async def is_available(client: httpx.AsyncClient) -> bool:
+async def is_available() -> bool:
     try:
+        client = _get()
         resp = await client.get("/health")
         resp.raise_for_status()
-        return resp.json().get("status") == "ok"
+        return resp.json().get("status") in ("ok", "degraded")
     except Exception:
         return False

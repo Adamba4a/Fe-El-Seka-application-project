@@ -4,11 +4,15 @@ import json
 import logging
 import uuid
 from datetime import datetime, timezone, timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 
 from app.core.database import get_pool
-from app.services.pricing_service import calculate_fare
+from app.services.pricing_service import calculate_fare, get_pricing_config
+from app.models.ai import AIPriceRequest, ZoneCentroid
+from app.services import ai_client as _ai_module
+from app.services.ai_client import AIServiceUnavailableError as _AIError
+from app.utils.zone_lookup import nearest_zone as _nearest_zone
 from app.models.ride import (
     CoordinatesSchema,
     CreateRideRequest,
@@ -101,6 +105,18 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+async def _compute_ai_fare(req: AIPriceRequest) -> Decimal:
+    return await _ai_module.get_fare(req)
+
+
+def _compute_fallback_fare(distance_km: float, pricing_config: dict) -> Decimal:
+    fuel = Decimal(str(pricing_config["fuel_price_per_litre"]))
+    safety = Decimal(str(pricing_config["safety_margin"]))
+    return (Decimal(str(distance_km / 15.0)) * fuel + safety).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+
+
 async def _fetch_own_ride(conn, ride_id: uuid.UUID, driver_id: uuid.UUID) -> dict:
     row = await conn.fetchrow(
         f"SELECT {_RIDE_COLS} FROM rides WHERE id = $1",
@@ -127,7 +143,6 @@ async def create_ride(
     fuel_cost_egp: float,
     platform_commission_egp: float,
     safety_margin_egp: float,
-    fare_per_seat_egp: float,
 ) -> RideResponse:
     olat = payload.origin.coordinates.lat
     olng = payload.origin.coordinates.lng
@@ -151,6 +166,21 @@ async def create_ride(
             "seat_count_invalid",
             f"Seat count must be between 1 and your vehicle's capacity ({vehicle_seat_count}).",
         )
+
+    origin_zone, origin_centroid = _nearest_zone(olat, olng)
+    dest_zone, dest_centroid = _nearest_zone(dlat, dlng)
+    ai_price_req = AIPriceRequest(
+        origin_zone=origin_zone,
+        destination_zone=dest_zone,
+        origin_centroid=ZoneCentroid(**origin_centroid),
+        destination_centroid=ZoneCentroid(**dest_centroid),
+        estimated_distance_km=max(0.01, float(route_distance_km)),
+        departure_at=dep,
+    )
+    try:
+        price_per_seat = await _compute_ai_fare(ai_price_req)
+    except _AIError:
+        price_per_seat = _compute_fallback_fare(route_distance_km, get_pricing_config())
 
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -180,7 +210,6 @@ async def create_ride(
             # Phase 8 (FR-014): balance enforcement — lock wallet before ride INSERT so
             # the check and the ride creation are atomic; concurrent rides by the same
             # driver are serialized by the advisory lock already held above.
-            from decimal import ROUND_HALF_UP
             from fastapi import HTTPException as _HTTPException
             from app.services import wallet_service as _ws
             from app.services.commission_service import check_available_balance, create_reservation
@@ -226,7 +255,7 @@ async def create_ride(
                 driver_id, vehicle_id,
                 f"POINT({olng} {olat})", payload.origin.address,
                 f"POINT({dlng} {dlat})", payload.destination.address,
-                dep, payload.total_seats, fare_per_seat_egp, payload.notes,
+                dep, payload.total_seats, price_per_seat, payload.notes,
                 json.dumps(route_geometry_geojson),
                 route_distance_km, route_duration_minutes,
                 fuel_cost_egp, platform_commission_egp, safety_margin_egp,
@@ -397,21 +426,6 @@ async def edit_ride(
                         sets.append(f"fuel_cost_egp = {add_param(new_fare.fuel_cost_egp)}")
                         sets.append(f"platform_commission_egp = {add_param(new_fare.platform_commission_egp)}")
                         sets.append(f"safety_margin_egp = {add_param(new_fare.safety_margin_egp)}")
-
-            if payload.price_per_seat is not None:
-                if ride.get("price_source") == "system":
-                    raise RideServiceError(
-                        "price_override_not_allowed",
-                        "Price cannot be changed for rides with system-calculated pricing.",
-                        400,
-                    )
-                new_price = Decimal(payload.price_per_seat)
-                if new_price != ride["price_per_seat"]:
-                    changed_fields["price_per_seat"] = {
-                        "before": str(ride["price_per_seat"]),
-                        "after": str(new_price),
-                    }
-                    sets.append(f"price_per_seat = {add_param(new_price)}")
 
             if payload.notes is not None and payload.notes != ride["notes"]:
                 changed_fields["notes"] = {"before": ride["notes"], "after": payload.notes}

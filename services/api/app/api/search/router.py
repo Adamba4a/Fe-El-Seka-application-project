@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import logging
 import uuid
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends
@@ -9,14 +11,21 @@ from pydantic import BaseModel
 
 from app.core.database import get_pool
 from app.dependencies.verification import get_current_verified_passenger
+from app.models.ai import CandidateFeatures, PassengerRequestFeatures, ZoneCentroid
 from app.models.route import GeoPoint
+from app.services import ai_client
 from app.services import candidate_service
+from app.services.ai_client import AIServiceUnavailableError
 from app.services.route_service import RouteServiceUnavailableError
+from app.utils.zone_lookup import nearest_zone
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+_AI_CANDIDATE_CAP = 20
 
 
-# ── Request / Response models ────────────────────────────────────────────────
+# ── Request models ────────────────────────────────────────────────────────────
 
 class _LatLng(BaseModel):
     lat: float
@@ -34,6 +43,7 @@ class SearchRidesRequest(BaseModel):
     origin: _LatLng
     destination: _LatLng
     dest_bbox: Optional[_Bbox] = None
+    desired_departure_at: Optional[datetime] = None
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -69,6 +79,71 @@ def _shape_compatibility(c) -> dict:
     }
 
 
+async def _ai_rank(
+    candidates,
+    origin_lat: float,
+    origin_lng: float,
+    dest_lat: float,
+    dest_lng: float,
+    departure_at: datetime,
+) -> tuple[list, dict[str, int]]:
+    """Return (ranked_candidates, score_map). Raises AIServiceUnavailableError on failure."""
+    p_origin_zone, p_origin_centroid = nearest_zone(origin_lat, origin_lng)
+    p_dest_zone, p_dest_centroid = nearest_zone(dest_lat, dest_lng)
+
+    passenger_req = PassengerRequestFeatures(
+        origin_zone=p_origin_zone,
+        destination_zone=p_dest_zone,
+        origin_centroid=ZoneCentroid(**p_origin_centroid),
+        destination_centroid=ZoneCentroid(**p_dest_centroid),
+        departure_at=departure_at,
+    )
+
+    capped = candidates[:_AI_CANDIDATE_CAP]
+
+    ai_features: list[CandidateFeatures] = []
+    for c in capped:
+        if c.driver_origin_lat is None:
+            continue
+        d_origin_zone, d_origin_centroid = nearest_zone(c.driver_origin_lat, c.driver_origin_lng)
+        d_dest_zone, d_dest_centroid = nearest_zone(c.driver_dest_lat, c.driver_dest_lng)
+        ai_features.append(
+            CandidateFeatures(
+                ride_id=str(c.ride_id),
+                driver_origin_zone=d_origin_zone,
+                driver_destination_zone=d_dest_zone,
+                driver_origin_centroid=ZoneCentroid(**d_origin_centroid),
+                driver_dest_centroid=ZoneCentroid(**d_dest_centroid),
+                driver_departure_at=c.departure_time,
+                estimated_overlap_ratio=max(0.0, min(1.0, c.compatibility.overlap_pct / 100)),
+                estimated_pickup_detour_km=max(0.0, c.compatibility.pickup_walk_m / 1000),
+                estimated_dropoff_distance_km=max(0.0, c.compatibility.dropoff_walk_m / 1000),
+            )
+        )
+
+    if not ai_features:
+        raise AIServiceUnavailableError("No candidates with coordinates for AI scoring")
+
+    scored = await ai_client.score_candidates(passenger_req, ai_features)
+    ranked_ids = await ai_client.rank_candidates(scored)
+
+    score_lookup = {s.ride_id: s for s in scored}
+    ranked_scored = [score_lookup[rid] for rid in ranked_ids if rid in score_lookup]
+
+    # Apply 20% threshold with min-3 guarantee (preserve ranked order)
+    above = [s for s in ranked_scored if s.match_score_pct >= 20]
+    if len(above) < 3:
+        below = [s for s in ranked_scored if s.match_score_pct < 20]
+        above = above + below[: max(0, 3 - len(above))]
+    final_scored = above
+
+    cand_lookup = {str(c.ride_id): c for c in capped}
+    ranked_candidates = [cand_lookup[s.ride_id] for s in final_scored if s.ride_id in cand_lookup]
+    score_map = {s.ride_id: s.match_score_pct for s in final_scored}
+
+    return ranked_candidates, score_map
+
+
 # ── POST /api/v1/search/rides ─────────────────────────────────────────────────
 
 @router.post("/rides")
@@ -78,7 +153,6 @@ async def search_rides(
 ) -> JSONResponse:
     origin = GeoPoint(lat=body.origin.lat, lng=body.origin.lng)
     destination = GeoPoint(lat=body.destination.lat, lng=body.destination.lng)
-
     dest_bbox = dict(body.dest_bbox) if body.dest_bbox else None
 
     try:
@@ -96,10 +170,29 @@ async def search_rides(
     all_candidates = list(result.standard) + list(result.premium)
 
     if not all_candidates:
-        return JSONResponse({"candidates": [], "total": 0, "no_rides_found": True})
+        return JSONResponse({"candidates": [], "total": 0, "no_rides_found": True, "ai_ranking_active": False})
 
     driver_ids = list({c.driver_id for c in all_candidates})
     profiles = await _fetch_driver_profiles(driver_ids)
+
+    departure_at = body.desired_departure_at or datetime.now(timezone.utc)
+
+    ai_active = False
+    score_map: dict[str, int] = {}
+
+    try:
+        all_candidates, score_map = await _ai_rank(
+            all_candidates,
+            body.origin.lat,
+            body.origin.lng,
+            body.destination.lat,
+            body.destination.lng,
+            departure_at,
+        )
+        ai_active = True
+    except AIServiceUnavailableError:
+        logger.warning("AI search fallback: sorting by overlap_pct desc")
+        all_candidates = sorted(all_candidates, key=lambda c: c.compatibility.overlap_pct, reverse=True)
 
     candidates_out = []
     for c in all_candidates:
@@ -115,6 +208,7 @@ async def search_rides(
             "available_seats": c.available_seats,
             "per_seat_price": f"{c.price_per_seat_egp:.2f}",
             "candidate_type": c.candidate_type,
+            "match_score_pct": score_map.get(str(c.ride_id)),
             "compatibility": _shape_compatibility(c.compatibility),
         })
 
@@ -122,4 +216,5 @@ async def search_rides(
         "candidates": candidates_out,
         "total": len(candidates_out),
         "no_rides_found": False,
+        "ai_ranking_active": ai_active,
     })

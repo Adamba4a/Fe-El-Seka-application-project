@@ -52,26 +52,26 @@
 
 **Independent Test**: `POST /api/v1/search/rides` returns candidates with `match_score_pct` (descending) and `ai_ranking_active: true`. The badge renders in the correct colour on ride cards and on the detail page.
 
-- [ ] T006 [P] [US1] Extend `RideCandidateResponse` and `SearchResponse` Pydantic response schemas in `services/api/app/api/search/router.py` — add `match_score_pct: int | None` to `RideCandidateResponse`; add `ai_ranking_active: bool` to `SearchResponse`; ensure existing fields are unchanged
+- [x] T006 [P] [US1] Extend `RideCandidateResponse` and `SearchResponse` Pydantic response schemas in `services/api/app/api/search/router.py` — add `match_score_pct: int | None` to `RideCandidateResponse`; add `ai_ranking_active: bool` to `SearchResponse`; ensure existing fields are unchanged
 
-- [ ] T007 [US1] Implement AI scoring pipeline in `services/api/app/services/search_service.py` (depends on T005, T006):
+- [x] T007 [US1] Implement AI scoring pipeline in `services/api/app/services/search_service.py` (depends on T005, T006):
   1. After Phase 5 candidate generation, build `CandidateFeatures` list — unit conversions: `overlap_pct / 100 → estimated_overlap_ratio`, `pickup_walk_m / 1000 → estimated_pickup_detour_km`, `dropoff_walk_m / 1000 → estimated_dropoff_distance_km`; zone lookup via `nearest_zone()` for both passenger and each driver's origin/destination
   2. Call `ai_client.score_candidates()` → receive `list[ScoredCandidate]` with clamped scores and `match_score_pct`
   3. Call `ai_client.rank_candidates()` to get final `ride_id` ordering
   4. Apply 20% threshold filter: exclude candidates where `match_score_pct < 20`; if remaining count < 3, append highest-scoring suppressed candidates until count = 3 or pool exhausted
   5. On `AIServiceUnavailableError` OR when all scores are identical: set `ai_ranking_active = False`, sort all candidates by `overlap_pct` descending, set `match_score_pct = None` for all
 
-- [ ] T008 [US1] Wire AI scoring into the `POST /api/v1/search/rides` endpoint handler in `services/api/app/api/search/router.py` — call updated `search_service` pipeline; populate `match_score_pct` per candidate and `ai_ranking_active` on the response (depends on T007)
+- [x] T008 [US1] Wire AI scoring into the `POST /api/v1/search/rides` endpoint handler in `services/api/app/api/search/router.py` — call updated `search_service` pipeline; populate `match_score_pct` per candidate and `ai_ranking_active` on the response (depends on T007)
 
-- [ ] T009 [P] [US1] Extend TypeScript types in `apps/main/src/lib/api/search.ts` — add `match_score_pct: number | null` to `RideCandidate`; add `ai_ranking_active: boolean` to `RideSearchResponse`; update `RidePassengerDetail` to include `match_score_pct: number | null` (used by detail page)
+- [x] T009 [P] [US1] Extend TypeScript types in `apps/main/src/lib/api/search.ts` — add `match_score_pct: number | null` to `RideCandidate`; add `ai_ranking_active: boolean` to `RideSearchResponse`; update `RidePassengerDetail` to include `match_score_pct: number | null` (used by detail page)
 
-- [ ] T010 [P] [US1] Implement `MatchScoreBadge` component in `apps/main/src/components/search/MatchScoreBadge.tsx` — props: `score_pct: number | null`; `null` renders nothing; display text: `"{score_pct}% match"`; colour coding: `score_pct >= 70` → `bg-green-100 text-green-800`, `score_pct >= 40` → `bg-amber-100 text-amber-800`, `score_pct < 40` → `bg-gray-100 text-gray-600`; pill shape consistent with existing `RideStatusBadge`
+- [x] T010 [P] [US1] Implement `MatchScoreBadge` component in `apps/main/src/components/search/MatchScoreBadge.tsx` — props: `score_pct: number | null`; `null` renders nothing; display text: `"{score_pct}% match"`; colour coding: `score_pct >= 70` → `bg-green-100 text-green-800`, `score_pct >= 40` → `bg-amber-100 text-amber-800`, `score_pct < 40` → `bg-gray-100 text-gray-600`; pill shape consistent with existing `RideStatusBadge`
 
-- [ ] T011 [US1] Add `MatchScoreBadge` to each ride card in `apps/main/src/app/(passenger)/search/results/page.tsx` — import `MatchScoreBadge`; pass `candidate.match_score_pct` as `score_pct`; place below driver name / departure row, above price and seats row (depends on T009, T010)
+- [x] T011 [US1] Add `MatchScoreBadge` to each ride card in `apps/main/src/app/(passenger)/search/results/page.tsx` — import `MatchScoreBadge`; pass `candidate.match_score_pct` as `score_pct`; place below driver name / departure row, above price and seats row (depends on T009, T010)
 
-- [ ] T012 [US1] Extend `GET /api/v1/rides/{ride_id}/passenger-detail` in `services/api/app/api/rides/router.py` — add optional `departure_at: datetime | None` query parameter; when `departure_at` is present alongside the existing coordinate params, call `ai_client.score_candidates()` for this single ride; add `match_score_pct: int | None` to the response body; on `AIServiceUnavailableError` or missing `departure_at`: return `match_score_pct: null` (depends on T005)
+- [x] T012 [US1] Extend `GET /api/v1/rides/{ride_id}/passenger-detail` in `services/api/app/api/rides/router.py` — add optional `departure_at: datetime | None` query parameter; when `departure_at` is present alongside the existing coordinate params, call `ai_client.score_candidates()` for this single ride; add `match_score_pct: int | None` to the response body; on `AIServiceUnavailableError` or missing `departure_at`: return `match_score_pct: null` (depends on T005)
 
-- [ ] T013 [US1] Add `MatchScoreBadge` to ride detail page in `apps/main/src/app/(passenger)/rides/[id]/page.tsx` — pass `departure_at` from search context (URL param or router state) to the detail API call; render `MatchScoreBadge` with `match_score_pct` from `RidePassengerDetail` response in the ride header section (depends on T010, T012)
+- [x] T013 [US1] Add `MatchScoreBadge` to ride detail page in `apps/main/src/app/(passenger)/rides/[id]/page.tsx` — pass `departure_at` from search context (URL param or router state) to the detail API call; render `MatchScoreBadge` with `match_score_pct` from `RidePassengerDetail` response in the ride header section (depends on T010, T012)
 
 **Checkpoint**: User Story 1 is independently testable — run quickstart.md Scenarios 1 and 2 to verify.
 
@@ -83,21 +83,21 @@
 
 **Independent Test**: `POST /api/v1/rides` without `price_per_seat` returns a system-assigned fare. A PATCH attempt to change the fare is rejected. The driver creation form has no price field; the confirmation screen shows the fare read-only.
 
-- [ ] T014 [P] [US2] Remove `price_per_seat` from `CreateRideRequest` Pydantic schema in `services/api/app/api/rides/router.py`; confirm `UpdateRideRequest` (PATCH body) also has no `price_per_seat` field; add `price_per_seat: str` (read-only) to `CreateRideResponse`
+- [x] T014 [P] [US2] Remove `price_per_seat` from `CreateRideRequest` Pydantic schema in `services/api/app/api/rides/router.py`; confirm `UpdateRideRequest` (PATCH body) also has no `price_per_seat` field; add `price_per_seat: str` (read-only) to `CreateRideResponse`
 
-- [ ] T015 [P] [US2] Implement `_compute_ai_fare()` and `_compute_fallback_fare()` helpers in `services/api/app/services/ride_service.py` (depends on T005):
+- [x] T015 [P] [US2] Implement `_compute_ai_fare()` and `_compute_fallback_fare()` helpers in `services/api/app/services/ride_service.py` (depends on T005):
   - `_compute_ai_fare(req: AIPriceRequest) -> Decimal` — call `ai_client.get_fare()`; returns midpoint fare; propagates `AIServiceUnavailableError`
   - `_compute_fallback_fare(distance_km: float, pricing_config: dict) -> Decimal` — formula: `Decimal(distance_km / 15.0) * Decimal(str(pricing_config["fuel_price_per_litre"])) + Decimal(str(pricing_config["safety_margin"]))`; quantize to `"0.01"`; read `pricing_config` via a single `SELECT * FROM pricing_config LIMIT 1`
 
-- [ ] T016 [US2] Extend `create_ride()` in `services/api/app/services/ride_service.py` (depends on T014, T015):
+- [x] T016 [US2] Extend `create_ride()` in `services/api/app/services/ride_service.py` (depends on T014, T015):
   1. After OSRM route computation (which gives `estimated_distance_km`), call `nearest_zone()` on driver origin and destination coordinates to get zone names and centroids
   2. Build `AIPriceRequest` and call `_compute_ai_fare()`
   3. On `AIServiceUnavailableError` or fare ≤ 0: call `_compute_fallback_fare()`
   4. Assign computed fare to `price_per_seat` in the ride INSERT statement — `price_per_seat` is never taken from the request body in this function
 
-- [ ] T017 [P] [US2] Update TypeScript types in `apps/main/src/lib/api/rides.ts` — remove `price_per_seat` from `CreateRideRequest` interface; add `price_per_seat: string` to `CreateRideResponse` interface
+- [x] T017 [P] [US2] Update TypeScript types in `apps/main/src/lib/api/rides.ts` — remove `price_per_seat` from `CreateRideRequest` interface; add `price_per_seat: string` to `CreateRideResponse` interface
 
-- [ ] T018 [US2] Update driver ride creation page in `apps/main/src/app/(driver)/rides/create/page.tsx` (depends on T017):
+- [x] T018 [US2] Update driver ride creation page in `apps/main/src/app/(driver)/rides/create/page.tsx` (depends on T017):
   - Remove the price-per-seat `<input>` (and its label, state variable, and validation) from the form
   - On successful `POST /api/v1/rides`, display `"Fare: {price_per_seat} EGP per seat"` as a read-only row on the success/confirmation screen using existing confirmation screen layout
 
