@@ -179,8 +179,14 @@ async def create_ride(
     )
     try:
         price_per_seat = await _compute_ai_fare(ai_price_req)
-    except _AIError:
+    except _AIError as exc:
         price_per_seat = _compute_fallback_fare(route_distance_km, get_pricing_config())
+        logger.warning(json.dumps({
+            "event": "ai_fare_fallback",
+            "reason": type(exc).__name__,
+            "fallback_fare_egp": str(price_per_seat),
+            "formula": "distance_km/15*fuel+safety",
+        }))
 
     pool = get_pool()
     async with pool.acquire() as conn:

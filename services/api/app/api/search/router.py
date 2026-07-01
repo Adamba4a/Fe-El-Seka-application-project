@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -125,6 +126,10 @@ async def _ai_rank(
         raise AIServiceUnavailableError("No candidates with coordinates for AI scoring")
 
     scored = await ai_client.score_candidates(passenger_req, ai_features)
+
+    if len({s.match_score_pct for s in scored}) == 1:
+        raise AIServiceUnavailableError("All AI scores identical — degrading to overlap_pct sort")
+
     ranked_ids = await ai_client.rank_candidates(scored)
 
     score_lookup = {s.ride_id: s for s in scored}
@@ -190,8 +195,13 @@ async def search_rides(
             departure_at,
         )
         ai_active = True
-    except AIServiceUnavailableError:
-        logger.warning("AI search fallback: sorting by overlap_pct desc")
+    except AIServiceUnavailableError as exc:
+        logger.warning(json.dumps({
+            "event": "ai_search_fallback",
+            "reason": "identical_scores" if "identical" in str(exc).lower() else type(exc).__name__,
+            "candidate_count": len(all_candidates),
+            "fallback": "overlap_pct_desc",
+        }))
         all_candidates = sorted(all_candidates, key=lambda c: c.compatibility.overlap_pct, reverse=True)
 
     candidates_out = []

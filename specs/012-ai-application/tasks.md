@@ -111,13 +111,13 @@
 
 **Independent Test**: Stop `services/ai`. Both `POST /search/rides` (within 1s, `ai_ranking_active: false`) and `POST /rides` (deterministic fare, HTTP 201) succeed. Restart AI service; next requests use AI again automatically.
 
-- [ ] T019 [P] [US3] Add structured fallback log to `services/api/app/services/search_service.py` — when AI fallback activates (either `AIServiceUnavailableError` or all-identical scores), emit a structured log entry: `{"event": "ai_search_fallback", "reason": "<exception class or 'identical_scores'>", "candidate_count": N, "fallback": "overlap_pct_desc"}`
+- [x] T019 [P] [US3] Add structured fallback log to `services/api/app/services/search_service.py` — when AI fallback activates (either `AIServiceUnavailableError` or all-identical scores), emit a structured log entry: `{"event": "ai_search_fallback", "reason": "<exception class or 'identical_scores'>", "candidate_count": N, "fallback": "overlap_pct_desc"}`
 
-- [ ] T020 [P] [US3] Add structured fallback log to `services/api/app/services/ride_service.py` — when fare fallback activates, emit: `{"event": "ai_fare_fallback", "reason": "<exception class or 'invalid_fare'>", "fallback_fare_egp": "<value>", "formula": "distance_km/15*fuel+safety"}`
+- [x] T020 [P] [US3] Add structured fallback log to `services/api/app/services/ride_service.py` — when fare fallback activates, emit: `{"event": "ai_fare_fallback", "reason": "<exception class or 'invalid_fare'>", "fallback_fare_egp": "<value>", "formula": "distance_km/15*fuel+safety"}`
 
-- [ ] T021 [P] [US3] Add per-call request/response log to `services/api/app/services/ai_client.py` — after each `score_candidates()`, `rank_candidates()`, and `get_fare()` call (success or failure), emit: `{"event": "ai_prediction_call", "endpoint": "/predict/...", "input_shape": N, "model_version": "<version or null>", "latency_ms": N, "fallback_triggered": bool}`
+- [x] T021 [P] [US3] Add per-call request/response log to `services/api/app/services/ai_client.py` — after each `score_candidates()`, `rank_candidates()`, and `get_fare()` call (success or failure), emit: `{"event": "ai_prediction_call", "endpoint": "/predict/...", "input_shape": N, "model_version": "<version or null>", "latency_ms": N, "fallback_triggered": bool}`
 
-- [ ] T022 [US3] Verify stateless recovery in `services/api/app/services/ai_client.py` — confirm that `httpx.AsyncClient` shared via `app.state` requires no manual reconnect logic after AI service restarts; add a one-line comment at the client initialisation site: `# Stateless: auto-reconnects on next request after AI service restart — no manual reset needed`
+- [x] T022 [US3] Verify stateless recovery in `services/api/app/services/ai_client.py` — confirm that `httpx.AsyncClient` shared via `app.state` requires no manual reconnect logic after AI service restarts; add a one-line comment at the client initialisation site: `# Stateless: auto-reconnects on next request after AI service restart — no manual reset needed`
 
 **Checkpoint**: All three user stories fully functional with observability in place — run quickstart.md Scenarios 4 and 5 to verify fallback end-to-end.
 
@@ -127,7 +127,7 @@
 
 **Purpose**: Final validation, type safety check, and visual verification.
 
-- [ ] T023 [P] Run `pnpm --filter main build` and confirm zero TypeScript errors across all new/modified files: `search.ts`, `rides.ts`, `MatchScoreBadge.tsx`, `search/results/page.tsx`, `rides/[id]/page.tsx`, `rides/create/page.tsx`
+- [x] T023 [P] Run `pnpm --filter main build` and confirm zero TypeScript errors across all new/modified files: `search.ts`, `rides.ts`, `MatchScoreBadge.tsx`, `search/results/page.tsx`, `rides/[id]/page.tsx`, `rides/create/page.tsx`
 
 - [ ] T024 [P] Run quickstart.md Scenario 1 — `POST /api/v1/search/rides` returns `ai_ranking_active: true` and `match_score_pct` values in descending order on each candidate
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import logging
+import time
 from decimal import ROUND_HALF_UP, Decimal
 
 import httpx
@@ -24,6 +26,7 @@ class AIServiceUnavailableError(Exception):
 
 async def init(base_url: str) -> httpx.AsyncClient:
     global _client
+    # Stateless: auto-reconnects on next request after AI service restart — no manual reset needed
     _client = httpx.AsyncClient(base_url=base_url, timeout=httpx.Timeout(1.0))
     return _client
 
@@ -47,24 +50,42 @@ async def score_candidates(
 ) -> list[ScoredCandidate]:
     client = _get()
     request = AIMatchScoreRequest(passenger_request=passenger_req, candidates=candidates)
+    _t0 = time.monotonic()
+    _fallback = False
+    _model_ver = None
+    resp_json: dict | None = None
     try:
         resp = await client.post(
             "/predict/match-score",
             json=request.model_dump(mode="json"),
         )
         resp.raise_for_status()
+        resp_json = resp.json()
+        _model_ver = resp_json.get("model_version")
     except httpx.TimeoutException as exc:
+        _fallback = True
         logger.warning("AI match-score timed out")
         raise AIServiceUnavailableError("AI service timed out") from exc
     except httpx.RequestError as exc:
+        _fallback = True
         logger.warning("AI match-score unreachable: %s", exc)
         raise AIServiceUnavailableError("AI service unreachable") from exc
     except httpx.HTTPStatusError as exc:
+        _fallback = True
         logger.warning("AI match-score returned %d", exc.response.status_code)
         raise AIServiceUnavailableError(f"AI service error {exc.response.status_code}") from exc
+    finally:
+        logger.info(json.dumps({
+            "event": "ai_prediction_call",
+            "endpoint": "/predict/match-score",
+            "input_shape": len(candidates),
+            "model_version": _model_ver,
+            "latency_ms": round((time.monotonic() - _t0) * 1000),
+            "fallback_triggered": _fallback,
+        }))
 
     results: list[ScoredCandidate] = []
-    for s in resp.json()["scores"]:
+    for s in resp_json["scores"]:
         clamped = max(0.0, min(1.0, s["match_score"]))
         results.append(
             ScoredCandidate(
@@ -84,41 +105,77 @@ async def rank_candidates(scored: list[ScoredCandidate]) -> list[str]:
             for s in scored
         ]
     }
+    _t0 = time.monotonic()
+    _fallback = False
+    _model_ver = None
+    resp_json: dict | None = None
     try:
         resp = await client.post("/predict/ride-ranking", json=payload)
         resp.raise_for_status()
+        resp_json = resp.json()
+        _model_ver = resp_json.get("model_version")
     except httpx.TimeoutException as exc:
+        _fallback = True
         logger.warning("AI ride-ranking timed out")
         raise AIServiceUnavailableError("AI service timed out") from exc
     except httpx.RequestError as exc:
+        _fallback = True
         logger.warning("AI ride-ranking unreachable: %s", exc)
         raise AIServiceUnavailableError("AI service unreachable") from exc
     except httpx.HTTPStatusError as exc:
+        _fallback = True
         logger.warning("AI ride-ranking returned %d", exc.response.status_code)
         raise AIServiceUnavailableError(f"AI service error {exc.response.status_code}") from exc
+    finally:
+        logger.info(json.dumps({
+            "event": "ai_prediction_call",
+            "endpoint": "/predict/ride-ranking",
+            "input_shape": len(scored),
+            "model_version": _model_ver,
+            "latency_ms": round((time.monotonic() - _t0) * 1000),
+            "fallback_triggered": _fallback,
+        }))
 
-    return resp.json()["ranked"]
+    return resp_json["ranked"]
 
 
 async def get_fare(req: AIPriceRequest) -> Decimal:
     client = _get()
+    _t0 = time.monotonic()
+    _fallback = False
+    _model_ver = None
+    resp_json: dict | None = None
     try:
         resp = await client.post(
             "/predict/price-recommendation",
             json=req.model_dump(mode="json"),
         )
         resp.raise_for_status()
+        resp_json = resp.json()
+        _model_ver = resp_json.get("model_version")
     except httpx.TimeoutException as exc:
+        _fallback = True
         logger.warning("AI price-recommendation timed out")
         raise AIServiceUnavailableError("AI service timed out") from exc
     except httpx.RequestError as exc:
+        _fallback = True
         logger.warning("AI price-recommendation unreachable: %s", exc)
         raise AIServiceUnavailableError("AI service unreachable") from exc
     except httpx.HTTPStatusError as exc:
+        _fallback = True
         logger.warning("AI price-recommendation returned %d", exc.response.status_code)
         raise AIServiceUnavailableError(f"AI service error {exc.response.status_code}") from exc
+    finally:
+        logger.info(json.dumps({
+            "event": "ai_prediction_call",
+            "endpoint": "/predict/price-recommendation",
+            "input_shape": 1,
+            "model_version": _model_ver,
+            "latency_ms": round((time.monotonic() - _t0) * 1000),
+            "fallback_triggered": _fallback,
+        }))
 
-    fare = resp.json()["recommended_fare"]
+    fare = resp_json["recommended_fare"]
     min_egp = Decimal(str(fare["min_egp"]))
     max_egp = Decimal(str(fare["max_egp"]))
     result = ((min_egp + max_egp) / 2).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
