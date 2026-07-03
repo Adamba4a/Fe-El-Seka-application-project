@@ -199,7 +199,7 @@ ipython_config.py
 *.pth
 *.bin
 *.safetensors
-models/
+services/ai/data/models/
 model_registry/
 checkpoints/
 
@@ -321,6 +321,7 @@ allure-report/
 # Build & Cache
 # =============================================================================
 .cache/
+services/ai/cache/
 .parcel-cache/
 .eslintcache
 .stylelintcache
