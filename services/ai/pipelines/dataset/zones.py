@@ -25,10 +25,10 @@ ZONES: list[CairoZone] = [
     CairoZone("Ain Shams",            "district",      30.1191, 31.3272, 0.04),
     CairoZone("Cairo University",     "university",    30.0260, 31.2097, 0.06),
     CairoZone("AUC New Cairo",        "university",    30.0209, 31.4997, 0.04),
-    CairoZone("Ain Shams University", "university",    30.1199, 31.3220, 0.03),
-    CairoZone("Helwan University",    "university",    29.8421, 31.3340, 0.02),
+    CairoZone("Ain Shams University", "university",    30.1199, 31.3220, 0.02),
+    CairoZone("Helwan University",    "university",    29.8421, 31.3340, 0.01),
     CairoZone("Smart Village",        "business_zone", 30.0730, 30.9710, 0.05),
-    CairoZone("New Admin Capital",    "business_zone", 30.0130, 31.6990, 0.03),
+    CairoZone("New Admin Capital",    "business_zone", 30.0130, 31.6990, 0.02),
 ]
 
 assert abs(sum(z.weight for z in ZONES) - 1.0) < 1e-9, "Zone weights must sum to 1.0"

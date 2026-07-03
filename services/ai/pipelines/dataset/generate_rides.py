@@ -17,6 +17,8 @@ _MIN_RECORDS_PER_ZONE = 1_000
 _MATCH_DEST_THRESHOLD_KM = 5.0
 _MATCH_TIME_WINDOW_MIN = 30
 _DEG_TO_KM = 111.0
+_POSITIVE_ATTEMPT_PROB = 0.35
+_POSITIVE_TIME_JITTER_HOURS = 0.4  # 24 min, safely under the 30 min window
 
 
 def _euclidean_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -72,11 +74,20 @@ def generate_rides(n: int = 100_000) -> pd.DataFrame:
     for _ in range(n):
         p_origin = ZONES[rng.choice(len(ZONES), p=weights)]
         p_dest = ZONES[rng.choice(len(ZONES), p=weights)]
-        d_origin = ZONES[rng.choice(len(ZONES), p=weights)]
-        d_dest = ZONES[rng.choice(len(ZONES), p=weights)]
-
         p_hour = _sample_departure_hour(rng)
-        d_hour = _sample_departure_hour(rng)
+
+        if rng.random() < _POSITIVE_ATTEMPT_PROB:
+            # Construct a plausible carpool match: same origin/destination zone,
+            # departure close in time — real matches are geographically scarce
+            # but not vanishingly rare, per research.md Decision 2.
+            d_origin = p_origin
+            d_dest = p_dest
+            jitter = rng.uniform(-_POSITIVE_TIME_JITTER_HOURS, _POSITIVE_TIME_JITTER_HOURS)
+            d_hour = float(np.clip(p_hour + jitter, 0.0, 23.999))
+        else:
+            d_origin = ZONES[rng.choice(len(ZONES), p=weights)]
+            d_dest = ZONES[rng.choice(len(ZONES), p=weights)]
+            d_hour = _sample_departure_hour(rng)
 
         # Apply Gaussian noise to centroid for realistic coordinate variation
         p_o_lat = p_origin.centroid_lat + rng.normal(0, _COORD_NOISE_STD)
@@ -116,10 +127,16 @@ def generate_rides(n: int = 100_000) -> pd.DataFrame:
             topup_rows = []
             for _ in range(deficit):
                 p_dest = ZONES[rng.choice(len(ZONES), p=weights)]
-                d_origin = ZONES[rng.choice(len(ZONES), p=weights)]
-                d_dest = ZONES[rng.choice(len(ZONES), p=weights)]
                 p_hour = _sample_departure_hour(rng)
-                d_hour = _sample_departure_hour(rng)
+                if rng.random() < _POSITIVE_ATTEMPT_PROB:
+                    d_origin = zone
+                    d_dest = p_dest
+                    jitter = rng.uniform(-_POSITIVE_TIME_JITTER_HOURS, _POSITIVE_TIME_JITTER_HOURS)
+                    d_hour = float(np.clip(p_hour + jitter, 0.0, 23.999))
+                else:
+                    d_origin = ZONES[rng.choice(len(ZONES), p=weights)]
+                    d_dest = ZONES[rng.choice(len(ZONES), p=weights)]
+                    d_hour = _sample_departure_hour(rng)
                 p_o_lat = zone.centroid_lat + rng.normal(0, _COORD_NOISE_STD)
                 p_o_lng = zone.centroid_lng + rng.normal(0, _COORD_NOISE_STD)
                 p_d_lat = p_dest.centroid_lat + rng.normal(0, _COORD_NOISE_STD)

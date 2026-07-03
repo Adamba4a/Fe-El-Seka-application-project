@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
 
-from app.config import get_settings
 from app.services.model_registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
@@ -17,12 +16,7 @@ _MODEL_FILES = {
 
 def upload_all_models(version: str) -> None:
     """Upload all three model artifacts; write latest.json only after all succeed."""
-    settings = get_settings()
-    registry = ModelRegistry(
-        supabase_url=settings.supabase_url,
-        supabase_key=settings.supabase_service_role_key,
-        bucket=settings.model_registry_bucket,
-    )
+    registry = ModelRegistry()
 
     uploaded: list[str] = []
 
