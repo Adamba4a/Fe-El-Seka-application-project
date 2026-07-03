@@ -10,6 +10,7 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:postgres@supabase_db_fe-el-seka:5432/postgres
       SUPABASE_URL: http://supabase_kong_fe-el-seka:8000
+      AI_SERVICE_URL: http://ai:8000
     volumes:
       - ./services/api/app:/app/app
     networks:
