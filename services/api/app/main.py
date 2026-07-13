@@ -40,6 +40,7 @@ from app.services.notification_dispatcher import notification_dispatcher_loop
 from app.services.notification_service import email_retry_loop
 from app.services import ai_client as ai_client_module
 from app.services.pricing_service import init_pricing_config, pricing_config_refresh_loop
+from app.services.ranking_config_service import init_ranking_config, ranking_config_refresh_loop
 
 
 @asynccontextmanager
@@ -47,6 +48,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     pool = await create_pool(settings.database_url)
     app.state.pool = pool
     await init_pricing_config()
+    await init_ranking_config()
     try:
         await initialize_fcm()
     except Exception as exc:
@@ -55,11 +57,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     email_task = asyncio.create_task(email_retry_loop())
     expiry_task = asyncio.create_task(booking_expiry_loop())
     pricing_task = asyncio.create_task(pricing_config_refresh_loop())
+    ranking_task = asyncio.create_task(ranking_config_refresh_loop())
     dispatcher_task = asyncio.create_task(notification_dispatcher_loop())
     reminder_task = asyncio.create_task(driver_reminder_loop())
     yield
     reminder_task.cancel()
     dispatcher_task.cancel()
+    ranking_task.cancel()
     pricing_task.cancel()
     expiry_task.cancel()
     email_task.cancel()

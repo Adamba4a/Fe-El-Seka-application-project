@@ -49,12 +49,15 @@ async def persist_match_events(
     score_map: dict[str, int],
     ai_scored: bool,
     model_version: Optional[str],
+    explored_ride_id: Optional[str] = None,
 ) -> None:
     """Fire-and-forget entry point: persist one search_sessions row and one
-    match_events row per shown candidate. Called via asyncio.create_task from
-    the search request path — must never raise, since the search response has
-    already been (or is about to be) sent regardless of this task's outcome
-    (NFR-001)."""
+    match_events row per shown candidate. Called via FastAPI BackgroundTasks
+    from the search request path — must never raise, since the search
+    response has already been (or is about to be) sent regardless of this
+    task's outcome (NFR-001). `explored_ride_id`, if set, marks the single
+    candidate (already reordered to rank 1 by ranking_config_service) whose
+    row should be flagged exploration_selected."""
     if not ranked_candidates:
         return
     try:
@@ -97,7 +100,7 @@ async def persist_match_events(
                         _build_feature_vector(candidate, predicted_score_pct),
                         predicted_score,
                         idx,
-                        False,  # exploration_selected — set by ranking_config_service (User Story 2)
+                        explored_ride_id is not None and str(candidate.ride_id) == explored_ride_id,
                         ai_scored,
                         model_version if ai_scored else None,
                     ))

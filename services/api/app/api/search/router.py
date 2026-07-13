@@ -17,6 +17,7 @@ from app.models.route import GeoPoint
 from app.services import ai_client
 from app.services import candidate_service
 from app.services import match_logging_service
+from app.services import ranking_config_service
 from app.services.ai_client import AIServiceUnavailableError
 from app.services.route_service import RouteServiceUnavailableError
 from app.utils.zone_lookup import nearest_zone
@@ -210,6 +211,8 @@ async def search_rides(
         }))
         all_candidates = sorted(all_candidates, key=lambda c: c.compatibility.overlap_pct, reverse=True)
 
+    all_candidates, explored_ride_id = ranking_config_service.apply_exploration(all_candidates)
+
     candidates_out = []
     for c in all_candidates:
         prof = profiles.get(c.driver_id, {})
@@ -239,7 +242,7 @@ async def search_rides(
     )
     background_tasks.add_task(
         match_logging_service.persist_match_events,
-        search_ctx, all_candidates, score_map, ai_active, model_version,
+        search_ctx, all_candidates, score_map, ai_active, model_version, explored_ride_id,
     )
 
     return JSONResponse({

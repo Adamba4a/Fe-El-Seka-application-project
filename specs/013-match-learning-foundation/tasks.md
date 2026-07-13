@@ -85,12 +85,12 @@ recording them — matches spec.md's stated story dependency).
 
 ### Implementation for User Story 2
 
-- [ ] T017 [P] [US2] Create `services/api/app/services/ranking_config_service.py` with `init_ranking_config()`, `ranking_config_refresh_loop()`, `get_exploration_rate() -> float`, mirroring `services/api/app/services/pricing_service.py`'s singleton-config-table + cached-refresh-loop pattern
-- [ ] T018 [US2] Add `apply_exploration(ranked_candidates) -> tuple[list, str | None]` to `services/api/app/services/ranking_config_service.py`, implementing the single-swap epsilon-greedy algorithm from `research.md` R2 (promote one uniformly-random candidate from positions 2..N to position 1 with probability `get_exploration_rate()`) — depends on T017
-- [ ] T019 [US2] Wire `ranking_config_service.init_ranking_config()` and `asyncio.create_task(ranking_config_service.ranking_config_refresh_loop())` into `services/api/app/main.py`'s `lifespan()`, alongside the existing `pricing_config` startup/shutdown calls — depends on T017
-- [ ] T020 [US2] In `services/api/app/api/search/router.py`'s `search_rides()`, call `ranking_config_service.apply_exploration()` on the final ranked candidate list (both AI and fallback paths, per FR-006/FR-007) before the T010 logging call, so the promoted candidate's final `rank_position` is what gets logged — depends on T018, T010
-- [ ] T021 [US2] Extend `match_logging_service.persist_match_events()` (from T008) to accept and persist the `exploration_selected` flag/promoted-candidate-id produced by T020 — depends on T008, T020
-- [ ] T022 [US2] Run `quickstart.md` Scenarios 4 and 6 locally and confirm the exploration distribution matches the configured rate and updates without a restart — depends on T020, T021
+- [X] T017 [P] [US2] Create `services/api/app/services/ranking_config_service.py` with `init_ranking_config()`, `ranking_config_refresh_loop()`, `get_exploration_rate() -> float`, mirroring `services/api/app/services/pricing_service.py`'s singleton-config-table + cached-refresh-loop pattern
+- [X] T018 [US2] Add `apply_exploration(ranked_candidates) -> tuple[list, str | None]` to `services/api/app/services/ranking_config_service.py`, implementing the single-swap epsilon-greedy algorithm from `research.md` R2 (promote one uniformly-random candidate from positions 2..N to position 1 with probability `get_exploration_rate()`) — depends on T017
+- [X] T019 [US2] Wire `ranking_config_service.init_ranking_config()` and `asyncio.create_task(ranking_config_service.ranking_config_refresh_loop())` into `services/api/app/main.py`'s `lifespan()`, alongside the existing `pricing_config` startup/shutdown calls — depends on T017
+- [X] T020 [US2] In `services/api/app/api/search/router.py`'s `search_rides()`, call `ranking_config_service.apply_exploration()` on the final ranked candidate list (both AI and fallback paths, per FR-006/FR-007) before the T010 logging call, so the promoted candidate's final `rank_position` is what gets logged — depends on T018, T010
+- [X] T021 [US2] Extend `match_logging_service.persist_match_events()` (from T008) to accept and persist the `exploration_selected` flag/promoted-candidate-id produced by T020 — depends on T008, T020
+- [X] T022 [US2] Run `quickstart.md` Scenarios 4 and 6 locally and confirm the exploration distribution matches the configured rate and updates without a restart — depends on T020, T021
 
 **Checkpoint**: User Stories 1 and 2 both work independently — exploration is visible in logged data and tunable without a deploy.
 
