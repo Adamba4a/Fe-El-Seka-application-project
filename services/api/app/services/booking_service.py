@@ -11,6 +11,7 @@ import asyncpg
 from fastapi import HTTPException
 
 from app.core.database import get_pool
+from app.services import match_logging_service
 from app.services.notification_service import enqueue_booking_notification
 
 logger = logging.getLogger(__name__)
@@ -147,6 +148,9 @@ async def create_booking(
 
         # 5. Audit log
         await _insert_audit_log(conn, booking_id, "created", passenger_id, "passenger", None, "pending")
+        await match_logging_service.record_outcome(
+            conn, ride_id, passenger_id, "requested", {"booking_id": str(booking_id)},
+        )
 
         # 6. Notifications
         driver_id = ride["driver_id"]
@@ -203,6 +207,9 @@ async def confirm_booking(
         )
 
         await _insert_audit_log(conn, booking_id, "confirmed", driver_id, "driver", "pending", "confirmed")
+        await match_logging_service.record_outcome(
+            conn, ride_id, row["passenger_id"], "accepted", {"booking_id": str(booking_id)},
+        )
 
         await enqueue_booking_notification(
             conn,
@@ -314,6 +321,10 @@ async def reject_booking(
                     },
                 )
                 fallback_applied = True
+                await match_logging_service.record_outcome(
+                    conn, ride_id, row["passenger_id"], "accepted",
+                    {"booking_id": str(booking_id), "fallback_applied": True},
+                )
                 return {"id": booking_id, "status": "confirmed", "cancelled_by": None, "fallback_applied": True}
 
         # No fallback — cancel the booking and release the seat
@@ -336,6 +347,10 @@ async def reject_booking(
         )
 
         await _insert_audit_log(conn, booking_id, "rejected", driver_id, "driver", "pending", "cancelled", {"reason": reason})
+        await match_logging_service.record_outcome(
+            conn, ride_id, row["passenger_id"], "rejected",
+            {"booking_id": str(booking_id), "reason": reason},
+        )
 
         await enqueue_booking_notification(
             conn,
@@ -437,6 +452,10 @@ async def cancel_booking(
         await _insert_audit_log(
             conn, booking_id, "cancelled", caller_id, caller_role,
             prev_status, "cancelled", {"reason": reason},
+        )
+        await match_logging_service.record_outcome(
+            conn, row["ride_id"], row["passenger_id"], "cancelled",
+            {"booking_id": str(booking_id), "cancelled_by": cancelled_by_val, "reason": reason},
         )
 
         if caller_role == "passenger":
@@ -592,13 +611,16 @@ async def complete_ride_bookings(conn, ride_id: uuid.UUID) -> int:
         UPDATE bookings
         SET status = 'completed'
         WHERE ride_id = $1 AND status = 'confirmed'
-        RETURNING id
+        RETURNING id, passenger_id
         """,
         ride_id,
     )
     for row in rows:
         await _insert_audit_log(
             conn, row["id"], "completed", None, "system", "confirmed", "completed"
+        )
+        await match_logging_service.record_outcome(
+            conn, ride_id, row["passenger_id"], "completed", {"booking_id": str(row["id"])},
         )
     return len(rows)
 

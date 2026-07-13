@@ -60,7 +60,7 @@ def _candidate_route_payload(
 async def score_candidates(
     passenger_req: PassengerRequestFeatures,
     candidates: list[CandidateFeatures],
-) -> list[ScoredCandidate]:
+) -> tuple[list[ScoredCandidate], str | None]:
     client = _get()
     payload = {
         "candidates": [_candidate_route_payload(passenger_req, c) for c in candidates]
@@ -109,7 +109,7 @@ async def score_candidates(
                 match_score_pct=round(clamped * 100),
             )
         )
-    return results
+    return results, _model_ver
 
 
 async def rank_candidates(

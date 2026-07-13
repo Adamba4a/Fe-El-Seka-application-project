@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import uuid
@@ -16,6 +17,7 @@ from app.models.ai import CandidateFeatures, PassengerRequestFeatures, ZoneCentr
 from app.models.route import GeoPoint
 from app.services import ai_client
 from app.services import candidate_service
+from app.services import match_logging_service
 from app.services.ai_client import AIServiceUnavailableError
 from app.services.route_service import RouteServiceUnavailableError
 from app.utils.zone_lookup import nearest_zone
@@ -87,8 +89,8 @@ async def _ai_rank(
     dest_lat: float,
     dest_lng: float,
     departure_at: datetime,
-) -> tuple[list, dict[str, int]]:
-    """Return (ranked_candidates, score_map). Raises AIServiceUnavailableError on failure."""
+) -> tuple[list, dict[str, int], Optional[str]]:
+    """Return (ranked_candidates, score_map, model_version). Raises AIServiceUnavailableError on failure."""
     # Real coordinates go straight into the AI request — zone snapping is only used
     # here to derive a human-readable label, never to substitute for the actual GPS
     # point sent to the model.
@@ -128,7 +130,7 @@ async def _ai_rank(
     if not ai_features:
         raise AIServiceUnavailableError("No candidates with coordinates for AI scoring")
 
-    scored = await ai_client.score_candidates(passenger_req, ai_features)
+    scored, model_version = await ai_client.score_candidates(passenger_req, ai_features)
 
     if len({s.match_score_pct for s in scored}) == 1:
         raise AIServiceUnavailableError("All AI scores identical — degrading to overlap_pct sort")
@@ -149,7 +151,7 @@ async def _ai_rank(
     ranked_candidates = [cand_lookup[s.ride_id] for s in final_scored if s.ride_id in cand_lookup]
     score_map = {s.ride_id: s.match_score_pct for s in final_scored}
 
-    return ranked_candidates, score_map
+    return ranked_candidates, score_map, model_version
 
 
 # ── POST /api/v1/search/rides ─────────────────────────────────────────────────
@@ -187,9 +189,10 @@ async def search_rides(
 
     ai_active = False
     score_map: dict[str, int] = {}
+    model_version: Optional[str] = None
 
     try:
-        all_candidates, score_map = await _ai_rank(
+        all_candidates, score_map, model_version = await _ai_rank(
             all_candidates,
             body.origin.lat,
             body.origin.lng,
@@ -224,6 +227,21 @@ async def search_rides(
             "match_score_pct": score_map.get(str(c.ride_id)),
             "compatibility": _shape_compatibility(c.compatibility),
         })
+
+    search_ctx = match_logging_service.SearchContext(
+        passenger_id=uuid.UUID(str(_profile["id"])),
+        origin_lat=body.origin.lat,
+        origin_lng=body.origin.lng,
+        destination_lat=body.destination.lat,
+        destination_lng=body.destination.lng,
+        desired_departure_at=departure_at,
+        ai_available=ai_active,
+    )
+    asyncio.create_task(
+        match_logging_service.persist_match_events(
+            search_ctx, all_candidates, score_map, ai_active, model_version,
+        )
+    )
 
     return JSONResponse({
         "candidates": candidates_out,

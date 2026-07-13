@@ -440,7 +440,7 @@ async def get_ride_passenger_detail(
                 estimated_pickup_detour_km=max(0.0, compat.pickup_walk_m / 1000),
                 estimated_dropoff_distance_km=max(0.0, compat.dropoff_walk_m / 1000),
             )
-            scored = await _ai.score_candidates(passenger_req, [candidate_feat])
+            scored, _ = await _ai.score_candidates(passenger_req, [candidate_feat])
             if scored:
                 match_score_pct = scored[0].match_score_pct
         except Exception:
