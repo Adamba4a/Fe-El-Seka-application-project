@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -159,6 +158,7 @@ async def _ai_rank(
 @router.post("/rides")
 async def search_rides(
     body: SearchRidesRequest,
+    background_tasks: BackgroundTasks,
     _profile: dict = Depends(get_current_verified_passenger),
 ) -> JSONResponse:
     origin = GeoPoint(lat=body.origin.lat, lng=body.origin.lng)
@@ -237,10 +237,9 @@ async def search_rides(
         desired_departure_at=departure_at,
         ai_available=ai_active,
     )
-    asyncio.create_task(
-        match_logging_service.persist_match_events(
-            search_ctx, all_candidates, score_map, ai_active, model_version,
-        )
+    background_tasks.add_task(
+        match_logging_service.persist_match_events,
+        search_ctx, all_candidates, score_map, ai_active, model_version,
     )
 
     return JSONResponse({

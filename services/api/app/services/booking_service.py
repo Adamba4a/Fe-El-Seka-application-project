@@ -573,6 +573,10 @@ async def _expire_pending_bookings(pool) -> None:
                 await _insert_audit_log(
                     conn, locked["id"], "expired", None, "system", "pending", "cancelled"
                 )
+                await match_logging_service.record_outcome(
+                    conn, locked["ride_id"], locked["passenger_id"], "cancelled",
+                    {"booking_id": str(locked["id"]), "cancelled_by": "system", "reason": "booking_expired"},
+                )
 
                 await enqueue_booking_notification(
                     conn,
