@@ -525,10 +525,10 @@ This only works if the data needed to learn from is captured correctly from day 
 | TBD | demand-forecasting |
 | TBD | fraud-detection |
 
-### 044 — match-event-instrumentation
+### 044 — match-event-instrumentation ✅ Complete (013-match-learning-foundation)
 **Ship at or before public launch.** Training data cannot be reconstructed retroactively — if it isn't logged from day one, it never existed. Every candidate ride shown to a passenger must be logged with its full feature vector (overlap, pickup/dropoff walk, price, time, rank position, predicted score), and every downstream event tied back to it: viewed, requested, driver accepted/rejected, completed, cancelled, and (once 032-ratings-system ships) rated.
 
-### 045 — ranking-exploration-strategy
+### 045 — ranking-exploration-strategy ✅ Complete (013-match-learning-foundation)
 **Ship at or before public launch.** If the ranker only ever surfaces its own top-scored candidates, the platform only ever collects feedback on candidates the model already believes are good — it can never learn that a borderline candidate (e.g. a longer walk, decent overlap) would actually have been accepted, because it rarely gets shown high enough to be chosen. Requires deliberately injecting controlled randomization into ranking (e.g. epsilon-greedy or occasional rank perturbation) purely to collect counterfactual outcome data. Skipping this turns "learning from real users" into "confirming whatever the launch model already believed."
 
 ### 046 — real-outcome-dataset-pipeline

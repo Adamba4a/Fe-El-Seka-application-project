@@ -106,9 +106,9 @@ still returns correct results within its existing performance target (`quickstar
 
 ### Implementation for User Story 3
 
-- [ ] T023 [US3] Wrap all DB calls inside `match_logging_service.persist_match_events()` in try/except so any failure is caught and logged as structured JSON (matching the existing `ai_search_fallback`/`ai_prediction_call` logging convention in `services/api/app/api/search/router.py` and `services/api/app/services/ai_client.py`), never raised out of the `asyncio.create_task` — depends on T008
-- [ ] T024 [US3] Review `services/api/app/api/search/router.py`'s `search_rides()` to confirm the logging task from T010 is never `await`ed and that a `task.add_done_callback` (or equivalent) logs any unexpected exception without affecting the response already sent — depends on T010, T023
-- [ ] T025 [US3] Run `quickstart.md` Scenario 5 (simulate a persistence-path failure) locally and confirm the search response is unaffected and the failure is visible in logs — depends on T023, T024
+- [X] T023 [US3] Wrap all DB calls inside `match_logging_service.persist_match_events()` in try/except so any failure is caught and logged as structured JSON (matching the existing `ai_search_fallback`/`ai_prediction_call` logging convention in `services/api/app/api/search/router.py` and `services/api/app/services/ai_client.py`), never raised out of the `asyncio.create_task` — depends on T008
+- [X] T024 [US3] Review `services/api/app/api/search/router.py`'s `search_rides()` to confirm the logging task from T010 is never `await`ed and that a `task.add_done_callback` (or equivalent) logs any unexpected exception without affecting the response already sent — depends on T010, T023
+- [X] T025 [US3] Run `quickstart.md` Scenario 5 (simulate a persistence-path failure) locally and confirm the search response is unaffected and the failure is visible in logs — depends on T023, T024
 
 **Checkpoint**: All three user stories are independently functional. Feature is launch-ready.
 
@@ -118,9 +118,9 @@ still returns correct results within its existing performance target (`quickstar
 
 **Purpose**: Final validation and observability groundwork for the Phase 13 items this feature feeds (046-049).
 
-- [ ] T026 [P] Add structured JSON logging for `match_event_persist_failure` (from T023) and `exploration_applied` (from T018/T020) events, following the existing `ai_prediction_call`/`ai_search_fallback` log-event naming convention, for future observability (feeds Phase 13 item 049)
-- [ ] T027 [P] Update `docs/implementation-roadmap.md` to mark Phase 13 items 044 (match-event-instrumentation) and 045 (ranking-exploration-strategy) complete
-- [ ] T028 Run the full `quickstart.md` validation (all 6 scenarios) end-to-end as a final regression pass — depends on all prior phases
+- [X] T026 [P] Add structured JSON logging for `match_event_persist_failure` (from T023) and `exploration_applied` (from T018/T020) events, following the existing `ai_prediction_call`/`ai_search_fallback` log-event naming convention, for future observability (feeds Phase 13 item 049)
+- [X] T027 [P] Update `docs/implementation-roadmap.md` to mark Phase 13 items 044 (match-event-instrumentation) and 045 (ranking-exploration-strategy) complete
+- [X] T028 Run the full `quickstart.md` validation (all 6 scenarios) end-to-end as a final regression pass — depends on all prior phases
 
 ---
 

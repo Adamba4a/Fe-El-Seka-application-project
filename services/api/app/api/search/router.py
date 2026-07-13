@@ -212,6 +212,12 @@ async def search_rides(
         all_candidates = sorted(all_candidates, key=lambda c: c.compatibility.overlap_pct, reverse=True)
 
     all_candidates, explored_ride_id = ranking_config_service.apply_exploration(all_candidates)
+    logger.info(json.dumps({
+        "event": "exploration_applied",
+        "exploration_triggered": explored_ride_id is not None,
+        "candidate_count": len(all_candidates),
+        "promoted_ride_id": explored_ride_id,
+    }))
 
     candidates_out = []
     for c in all_candidates:
