@@ -23,7 +23,7 @@ independent implementation and testing of each.
 
 **Purpose**: Create the migration file this feature will build on.
 
-- [ ] T001 Create `supabase/migrations/20260714000001_phase13_match_learning.sql` with a header comment describing scope (search_sessions, match_events, match_outcomes, ranking_config), per `plan.md` Source Code section
+- [X] T001 Create `supabase/migrations/20260714000001_phase13_match_learning.sql` with a header comment describing scope (search_sessions, match_events, match_outcomes, ranking_config), per `plan.md` Source Code section
 
 ---
 
@@ -33,12 +33,12 @@ independent implementation and testing of each.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 Add `match_outcome_transition` ENUM (`'requested','accepted','rejected','completed','cancelled','rated'`) and the `search_sessions` table (columns + `(passenger_id, created_at DESC)` index) to `supabase/migrations/20260714000001_phase13_match_learning.sql`, per `data-model.md`
-- [ ] T003 Add the `match_events` table (columns + `(search_id)` index + `(candidate_ride_id, passenger_id, created_at DESC)` index) to `supabase/migrations/20260714000001_phase13_match_learning.sql`, per `data-model.md` — depends on T002 (FK to `search_sessions`)
-- [ ] T004 Add the `match_outcomes` table (columns + `(match_event_id, transition_at ASC)` index) to `supabase/migrations/20260714000001_phase13_match_learning.sql`, per `data-model.md` — depends on T003 (FK to `match_events`) and T002 (uses the ENUM)
-- [ ] T005 [P] Add the `ranking_config` singleton table, seed row (`exploration_rate = 0.1250`), and `updated_at` trigger (mirroring `pricing_config`'s trigger pattern) to `supabase/migrations/20260714000001_phase13_match_learning.sql`, per `data-model.md`
-- [ ] T006 Enable RLS with no public policies on all four new tables (`search_sessions`, `match_events`, `match_outcomes`, `ranking_config`) in `supabase/migrations/20260714000001_phase13_match_learning.sql` — depends on T002-T005
-- [ ] T007 Apply the migration locally (`supabase db reset` or `supabase migration up`) and verify all four tables and the enum exist — depends on T006
+- [X] T002 Add `match_outcome_transition` ENUM (`'requested','accepted','rejected','completed','cancelled','rated'`) and the `search_sessions` table (columns + `(passenger_id, created_at DESC)` index) to `supabase/migrations/20260714000001_phase13_match_learning.sql`, per `data-model.md`
+- [X] T003 Add the `match_events` table (columns + `(search_id)` index + `(candidate_ride_id, passenger_id, created_at DESC)` index) to `supabase/migrations/20260714000001_phase13_match_learning.sql`, per `data-model.md` — depends on T002 (FK to `search_sessions`)
+- [X] T004 Add the `match_outcomes` table (columns + `(match_event_id, transition_at ASC)` index) to `supabase/migrations/20260714000001_phase13_match_learning.sql`, per `data-model.md` — depends on T003 (FK to `match_events`) and T002 (uses the ENUM)
+- [X] T005 [P] Add the `ranking_config` singleton table, seed row (`exploration_rate = 0.1250`), and `updated_at` trigger (mirroring `pricing_config`'s trigger pattern) to `supabase/migrations/20260714000001_phase13_match_learning.sql`, per `data-model.md`
+- [X] T006 Enable RLS with no public policies on all four new tables (`search_sessions`, `match_events`, `match_outcomes`, `ranking_config`) in `supabase/migrations/20260714000001_phase13_match_learning.sql` — depends on T002-T005
+- [X] T007 Apply the migration locally (`supabase db reset` or `supabase migration up`) and verify all four tables and the enum exist — depends on T006
 
 **Checkpoint**: Schema exists. All user stories can now begin.
 
