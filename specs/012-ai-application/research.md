@@ -71,22 +71,13 @@ def nearest_zone(lat: float, lng: float) -> tuple[str, dict]:
 
 ---
 
-## 4. System Fare Derivation from AI Price Range
+## 4. System Fare Derivation from AI Price Range — Superseded 2026-07-04
 
-**Decision**: System fare = `round((min_egp + max_egp) / 2, 2)` computed with `decimal.Decimal`; stored as `NUMERIC(10, 2)` in `price_per_seat`.
+**Original decision**: System fare = `round((min_egp + max_egp) / 2, 2)` from an AI price range, computed with `decimal.Decimal`; stored as `NUMERIC(10, 2)` in `price_per_seat`.
 
-**Rationale**: The AI pricing model (`/predict/price-recommendation`) returns a range `[min_egp, max_egp]` where `min_egp ≈ point_estimate × 0.8` and `max_egp ≈ point_estimate × 1.2`. The midpoint equals the model's point estimate. Using the midpoint produces the model's best single-value fare prediction and is consistent with how the model was trained.
+**Why superseded**: The AI pricing model (`price_recommender`) was trained to approximate the exact deterministic formula `pricing_service.calculate_fare()` already computes (`fuel_cost + commission + safety_margin`) — a redundant approximation of a known formula, not a genuine prediction task. It added staleness risk (fuel price drift required a training-time reference-price scaling hack) and an extra network call/failure mode for no accuracy benefit over calling the formula directly.
 
-**Implementation**:
-```python
-from decimal import Decimal, ROUND_HALF_UP
-
-def derive_fare(min_egp: float, max_egp: float) -> Decimal:
-    mid = (Decimal(str(min_egp)) + Decimal(str(max_egp))) / 2
-    return mid.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-```
-
-**Validation**: If `fare <= 0`, reject and use the deterministic fallback. The AI service contract guarantees `min_egp ≥ 10.0`, so this case only occurs on malformed responses.
+**Current decision**: System fare = `pricing_service.calculate_fare(distance_km, seat_count).per_seat_price_egp`, called in-process at ride creation. No AI call, no min/max range, no fallback path — the formula is the only source of truth and cannot fail or return an invalid value.
 
 **Alternatives considered**: Always use `min_egp`. Rejected — systematically underprices the route by ~20%. Always use `max_egp`. Rejected — systematically overprices by ~20%.
 

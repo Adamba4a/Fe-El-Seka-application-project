@@ -30,7 +30,7 @@
 
 **⚠️ CRITICAL**: T005 (AI client) depends on T002, T003, T004. T002 and T003 are parallel. T004 is independent.
 
-- [x] T002 [P] Implement all Pydantic AI schemas in `services/api/app/models/ai.py` — `ZoneCentroid`, `PassengerRequestFeatures`, `CandidateFeatures`, `ScoredCandidate`, `AIMatchScoreRequest`, `AIMatchScoreResponse`, `AIRankingRequest`, `AIRankingResponse`, `AIPriceRequest`, `AIPriceResponse` — exact field names and types from `data-model.md` §Python Pydantic Schemas
+- [x] T002 [P] Implement all Pydantic AI schemas in `services/api/app/models/ai.py` — `ZoneCentroid`, `PassengerRequestFeatures`, `CandidateFeatures`, `ScoredCandidate`, `AIMatchScoreRequest`, `AIMatchScoreResponse`, `AIRankingRequest`, `AIRankingResponse`, ~~`AIPriceRequest`, `AIPriceResponse`~~ *(removed 2026-07-04 — pricing is deterministic-only)* — exact field names and types from `data-model.md` §Python Pydantic Schemas
 
 - [x] T003 [P] Implement Cairo zone centroid table and `nearest_zone(lat, lng)` in `services/api/app/utils/zone_lookup.py` — 13-district `CAIRO_ZONES` list with exact lat/lng values from `research.md` §3; `nearest_zone()` uses minimum Euclidean distance; returns `(zone_name: str, centroid: dict[str, float])`
 
@@ -39,7 +39,7 @@
 - [x] T005 Implement `services/api/app/services/ai_client.py` with four async methods and `AIServiceUnavailableError` exception (depends on T002, T003, T004):
   - `score_candidates(passenger_req: PassengerRequestFeatures, candidates: list[CandidateFeatures]) -> list[ScoredCandidate]` — POST `/predict/match-score`; clamp scores to [0.0, 1.0]; convert to `match_score_pct = round(score * 100)`; raise `AIServiceUnavailableError` on timeout / connect error / HTTP 503
   - `rank_candidates(scored: list[ScoredCandidate]) -> list[str]` — POST `/predict/ride-ranking`; returns ordered `ride_id` list
-  - `get_fare(req: AIPriceRequest) -> Decimal` — POST `/predict/price-recommendation`; derive fare as `Decimal((min_egp + max_egp) / 2).quantize(Decimal("0.01"), ROUND_HALF_UP)`; validate `> 0`; raise `AIServiceUnavailableError` on failure or invalid fare
+  - ~~`get_fare(req: AIPriceRequest) -> Decimal` — POST `/predict/price-recommendation`~~ *(removed 2026-07-04 — see Phase 4 note; fare uses `pricing_service.calculate_fare()` directly, no AI call)*
   - `is_available() -> bool` — GET `/health`; returns `True` if status is `"ok"` or `"degraded"`; returns `False` on timeout or connect error
 
 **Checkpoint**: Foundation complete — all three user stories can now proceed in parallel.
@@ -79,21 +79,22 @@
 
 ## Phase 4: User Story 2 — Fare Assigned by System at Ride Creation (Priority: P2)
 
-**Goal**: Driver ride creation no longer accepts a price input. The system computes a fare via the AI pricing model (or deterministic fallback) and returns it in the creation response. The driver sees the fare on the confirmation screen. The fare cannot be changed after creation.
+> **Superseded (2026-07-04)**: The AI pricing model (`price_recommender`) was removed — it approximated the same exact formula `pricing_service.calculate_fare()` already computes, with no genuine prediction value, plus staleness and latency/failure risk. T015 and T016 below describe the original AI-call + fallback design; the system now always calls `pricing_service.calculate_fare(distance_km, seat_count)` directly, with no AI call and no fallback branch.
+
+**Goal**: Driver ride creation no longer accepts a price input. The system computes a fare via `pricing_service.calculate_fare()` and returns it in the creation response. The driver sees the fare on the confirmation screen. The fare cannot be changed after creation.
 
 **Independent Test**: `POST /api/v1/rides` without `price_per_seat` returns a system-assigned fare. A PATCH attempt to change the fare is rejected. The driver creation form has no price field; the confirmation screen shows the fare read-only.
 
 - [x] T014 [P] [US2] Remove `price_per_seat` from `CreateRideRequest` Pydantic schema in `services/api/app/api/rides/router.py`; confirm `UpdateRideRequest` (PATCH body) also has no `price_per_seat` field; add `price_per_seat: str` (read-only) to `CreateRideResponse`
 
-- [x] T015 [P] [US2] Implement `_compute_ai_fare()` and `_compute_fallback_fare()` helpers in `services/api/app/services/ride_service.py` (depends on T005):
-  - `_compute_ai_fare(req: AIPriceRequest) -> Decimal` — call `ai_client.get_fare()`; returns midpoint fare; propagates `AIServiceUnavailableError`
-  - `_compute_fallback_fare(distance_km: float, pricing_config: dict) -> Decimal` — formula: `Decimal(distance_km / 15.0) * Decimal(str(pricing_config["fuel_price_per_litre"])) + Decimal(str(pricing_config["safety_margin"]))`; quantize to `"0.01"`; read `pricing_config` via a single `SELECT * FROM pricing_config LIMIT 1`
+- [x] T015 [P] [US2] ~~Implement `_compute_ai_fare()` and `_compute_fallback_fare()` helpers~~ *(superseded — deleted; `create_ride()` calls `pricing_service.calculate_fare()` directly)*:
+  - ~~`_compute_ai_fare(req: AIPriceRequest) -> Decimal` — call `ai_client.get_fare()`; returns midpoint fare; propagates `AIServiceUnavailableError`~~
+  - ~~`_compute_fallback_fare(distance_km: float, pricing_config: dict) -> Decimal`~~ — this formula is now the *only* fare path, invoked directly, not a fallback
 
 - [x] T016 [US2] Extend `create_ride()` in `services/api/app/services/ride_service.py` (depends on T014, T015):
-  1. After OSRM route computation (which gives `estimated_distance_km`), call `nearest_zone()` on driver origin and destination coordinates to get zone names and centroids
-  2. Build `AIPriceRequest` and call `_compute_ai_fare()`
-  3. On `AIServiceUnavailableError` or fare ≤ 0: call `_compute_fallback_fare()`
-  4. Assign computed fare to `price_per_seat` in the ride INSERT statement — `price_per_seat` is never taken from the request body in this function
+  1. After OSRM route computation (which gives `route_distance_km`), call `pricing_service.calculate_fare(route_distance_km, total_seats)`
+  2. Assign `fare.per_seat_price_egp` to `price_per_seat` in the ride INSERT statement — `price_per_seat` is never taken from the request body in this function
+  3. ~~Steps involving zone lookups, `AIPriceRequest`, `_compute_ai_fare()`, and the ≤0 fallback check~~ — removed; there is nothing to fall back from
 
 - [x] T017 [P] [US2] Update TypeScript types in `apps/main/src/lib/api/rides.ts` — remove `price_per_seat` from `CreateRideRequest` interface; add `price_per_seat: string` to `CreateRideResponse` interface
 
@@ -113,9 +114,9 @@
 
 - [x] T019 [P] [US3] Add structured fallback log to `services/api/app/services/search_service.py` — when AI fallback activates (either `AIServiceUnavailableError` or all-identical scores), emit a structured log entry: `{"event": "ai_search_fallback", "reason": "<exception class or 'identical_scores'>", "candidate_count": N, "fallback": "overlap_pct_desc"}`
 
-- [x] T020 [P] [US3] Add structured fallback log to `services/api/app/services/ride_service.py` — when fare fallback activates, emit: `{"event": "ai_fare_fallback", "reason": "<exception class or 'invalid_fare'>", "fallback_fare_egp": "<value>", "formula": "distance_km/15*fuel+safety"}`
+- [x] T020 [P] [US3] ~~Add structured fallback log for fare fallback in `ride_service.py`~~ *(superseded 2026-07-04 — removed; pricing has no AI call and no fallback branch to log)*
 
-- [x] T021 [P] [US3] Add per-call request/response log to `services/api/app/services/ai_client.py` — after each `score_candidates()`, `rank_candidates()`, and `get_fare()` call (success or failure), emit: `{"event": "ai_prediction_call", "endpoint": "/predict/...", "input_shape": N, "model_version": "<version or null>", "latency_ms": N, "fallback_triggered": bool}`
+- [x] T021 [P] [US3] Add per-call request/response log to `services/api/app/services/ai_client.py` — after each `score_candidates()` and `rank_candidates()` call (success or failure), emit: `{"event": "ai_prediction_call", "endpoint": "/predict/...", "input_shape": N, "model_version": "<version or null>", "latency_ms": N, "fallback_triggered": bool}` *(`get_fare()` removed 2026-07-04 along with AI pricing)*
 
 - [x] T022 [US3] Verify stateless recovery in `services/api/app/services/ai_client.py` — confirm that `httpx.AsyncClient` shared via `app.state` requires no manual reconnect logic after AI service restarts; add a one-line comment at the client initialisation site: `# Stateless: auto-reconnects on next request after AI service restart — no manual reset needed`
 

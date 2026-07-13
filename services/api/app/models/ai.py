@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
@@ -31,41 +30,7 @@ class CandidateFeatures(BaseModel):
     estimated_dropoff_distance_km: float = Field(ge=0.0)
 
 
-class AIMatchScoreRequest(BaseModel):
-    passenger_request: PassengerRequestFeatures
-    candidates: list[CandidateFeatures] = Field(min_length=1, max_length=20)
-
-
 class ScoredCandidate(BaseModel):
     ride_id: str
     match_score: float
     match_score_pct: int
-
-
-class AIMatchScoreResponse(BaseModel):
-    model_version: str
-    scores: list[ScoredCandidate]
-
-
-class AIRankingRequest(BaseModel):
-    candidates: list[ScoredCandidate]
-
-
-class AIRankingResponse(BaseModel):
-    model_version: str
-    ranked: list[str]
-
-
-class AIPriceRequest(BaseModel):
-    origin_zone: str
-    destination_zone: str
-    origin_centroid: ZoneCentroid
-    destination_centroid: ZoneCentroid
-    estimated_distance_km: float = Field(gt=0.0)
-    departure_at: datetime
-
-
-class AIPriceResponse(BaseModel):
-    model_version: str
-    min_egp: Decimal
-    max_egp: Decimal

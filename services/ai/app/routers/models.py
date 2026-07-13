@@ -3,24 +3,18 @@ import logging
 import joblib
 from fastapi import APIRouter, Request
 
-from app.config import get_settings
 from app.models.registry import ReloadRequest, ReloadResponse
 from app.services.model_registry import ModelRegistry, RegistryError
 
 router = APIRouter(tags=["models"])
 logger = logging.getLogger(__name__)
 
-_ALL_MODEL_TYPES = ["match_score", "ride_ranker", "price_recommender"]
+_ALL_MODEL_TYPES = ["match_score", "ride_ranker"]
 
 
 @router.post("/reload", response_model=ReloadResponse)
 def reload_models(body: ReloadRequest, request: Request) -> ReloadResponse:
-    settings = get_settings()
-    registry = ModelRegistry(
-        supabase_url=settings.supabase_url,
-        supabase_key=settings.supabase_service_role_key,
-        bucket=settings.model_registry_bucket,
-    )
+    registry = ModelRegistry()
 
     targets = [body.model_type] if body.model_type else _ALL_MODEL_TYPES
     reloaded: list[str] = []

@@ -178,13 +178,13 @@ Phase 9 removes `price_per_seat` from the request body. The system computes and 
 | Field | Phase 6 | Phase 9 |
 |-------|---------|---------|
 | `price_per_seat` (request) | Driver-provided, required | Removed — system-computed |
-| `price_per_seat` (response) | Echoed from request | System-assigned fare (AI model or deterministic fallback) |
+| `price_per_seat` (response) | Echoed from request | System-assigned fare (deterministic formula) |
 
 **Behaviour**:
-- Fare is computed by the AI pricing model (`/predict/price-recommendation` on `services/ai`) using origin zone, destination zone, route distance, and departure time.
-- If AI is unavailable or returns an invalid fare (≤0), the deterministic fallback formula is used: `(distance_km / 15.0) × fuel_price_per_litre + safety_margin` (values from `pricing_config` table).
-- The fare is never zero or negative in the response — the system always assigns a valid positive fare.
-- Ride creation does not fail due to AI service unavailability (NFR-006).
+- *(Superseded 2026-07-04 — pricing was originally an AI model call with a deterministic fallback; the AI pricing model was removed as a redundant approximation of the same formula. Fare is now always computed directly.)*
+- Fare is computed by `pricing_service.calculate_fare(route_distance_km, total_seats)` — `(distance_km / fuel_efficiency_km_per_l) × fuel_price_per_litre + commission + safety_margin`, split across seats (values from `pricing_config` table).
+- The fare is never zero or negative in the response — it is a fixed arithmetic formula that always produces a valid positive value.
+- Ride creation has no AI dependency and cannot fail due to AI service unavailability (NFR-006 is trivially satisfied for pricing).
 
 **Error responses** (unchanged from Phase 6):
 - `403` — Driver not verified

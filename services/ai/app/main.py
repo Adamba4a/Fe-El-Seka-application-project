@@ -17,7 +17,6 @@ def _load_models(app: FastAPI) -> None:
     model_state: dict[str, dict | None] = {
         "match_score": None,
         "ride_ranker": None,
-        "price_recommender": None,
     }
 
     for model_type in model_state:

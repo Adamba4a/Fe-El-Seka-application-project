@@ -12,7 +12,9 @@
 
 ## Business Objective *(mandatory)*
 
-Deploy the trained AI models into the live passenger search and driver ride creation flows — replacing deterministic ordering with AI-powered match scoring and ranking for passengers, and replacing manual pricing with a system-assigned fare computed by the AI pricing model at ride creation — fulfilling Fe El Seka's mandatory AI-powered transportation intelligence requirement for the competition.
+Deploy the trained AI models into the live passenger search flow — replacing deterministic ordering with AI-powered match scoring and ranking for passengers — and assign every ride a system-computed fare from a deterministic pricing formula at ride creation, fulfilling Fe El Seka's mandatory AI-powered transportation intelligence requirement for the competition.
+
+> **Post-MVP amendment (2026-07-04)**: The AI pricing model (`price_recommender`) described in User Story 2 below was removed. It was trained to approximate the exact deterministic formula `pricing_service.calculate_fare()` already computes (fuel cost + commission + safety margin) — a redundant approximation of a known formula, not a genuine prediction task, and it introduced staleness risk (fuel price drift) and an unnecessary network round-trip/failure mode for no accuracy benefit. Fares are now always computed directly by `pricing_service.calculate_fare()`; there is no AI call, no fallback branch, and no invalid-value handling for pricing — the formula cannot fail or return an out-of-range value. User Story 2 and the fare-related requirements below are kept as a historical record of the original design. AI match scoring and ranking (User Story 1) are unaffected and remain AI-powered.
 
 **Constitutional Domain**: AI-Augmented Transportation (Principle IV)
 
@@ -57,6 +59,8 @@ When a passenger searches for rides, the returned list is ordered by AI-predicte
 
 ### User Story 2 — Fare Assigned by System at Ride Creation (Priority: P2)
 
+> **Superseded (2026-07-04)**: "AI pricing model" below now means the deterministic `pricing_service.calculate_fare()` formula — see the amendment note at the top of this document. There is no separate fallback path for pricing since the formula never fails.
+
 When a driver creates a new ride, the platform automatically computes and assigns the fare using the AI pricing model in a single creation call. The driver sees the system-assigned fare on the success/confirmation screen after the ride is created. The fare is final and immutable — there is no preview step and no modification is possible.
 
 **Why this priority**: Platform-controlled pricing is a core business rule that ensures fare consistency and prevents manipulation. It is a key differentiator from manual driver pricing.
@@ -75,17 +79,17 @@ When a driver creates a new ride, the platform automatically computes and assign
 
 ### User Story 3 — Graceful Degradation When AI Is Unavailable (Priority: P3)
 
-When the AI service is unreachable or returns an unrecoverable error, passengers continue to receive ride results ordered by route overlap percentage, and drivers still have a fare assigned at ride creation — with no error surfaced to either user.
+When the AI service is unreachable or returns an unrecoverable error, passengers continue to receive ride results ordered by route overlap percentage — with no error surfaced. *(The fare-assignment leg of this story is superseded 2026-07-04: ride creation no longer depends on the AI service at all, since fares are computed by the deterministic `pricing_service.calculate_fare()` formula, so there is nothing to degrade.)*
 
 **Why this priority**: The AI service must enhance the experience, not become a single point of failure. Core platform flows must always be available.
 
-**Independent Test**: A developer stops the AI service, submits a passenger search, and confirms valid ordered results are returned with no error — then confirms a driver can still create a ride with a fare assigned.
+**Independent Test**: A developer stops the AI service and submits a passenger search, and confirms valid ordered results are returned with no error.
 
 **Acceptance Scenarios**:
 
 1. **Given** the AI service is unreachable, **When** a passenger submits a ride search, **Then** the system detects the failure within 1 second and returns candidate rides ordered by route overlap percentage instead.
 2. **Given** fallback ordering is applied, **When** the passenger receives the response, **Then** the response contains a valid, non-empty ride list with no error message and no indication that AI scoring was unavailable.
-3. **Given** the AI service is unreachable, **When** a driver creates a ride, **Then** the system assigns the deterministic fallback fare and the ride is created successfully.
+3. ~~Given the AI service is unreachable, when a driver creates a ride, then the system assigns the deterministic fallback fare~~ — not applicable; ride creation was never AI-dependent to begin with.
 4. **Given** the AI service recovers and becomes reachable again, **When** the next search request arrives, **Then** the system automatically resumes AI-powered scoring and ranking without requiring a restart or manual intervention.
 
 ---
@@ -96,7 +100,7 @@ When the AI service is unreachable or returns an unrecoverable error, passengers
 - What happens if only one candidate ride exists? The system must still return it with a match score — scoring a single result is valid.
 - What happens if the feature engineering step cannot produce a valid feature vector for a specific candidate due to missing attributes? That candidate must be excluded from results entirely; the remaining candidates are scored normally.
 - What happens if all candidates score identically (e.g., all 0.0 during a model failure)? The system must fall back to deterministic overlap ordering rather than returning an arbitrarily ordered tie.
-- What happens if a ride is created when the AI pricing model is partially loaded but not yet ready? The system must detect the unready state, apply the fallback fare, and not block ride creation.
+- ~~What happens if a ride is created when the AI pricing model is partially loaded but not yet ready?~~ Not applicable — pricing is computed in-process by `pricing_service.calculate_fare()`, no model loading involved.
 - What happens if all candidate rides score below 20%? The system must add back the top 3 highest-scoring candidates (or fewer if fewer exist) rather than returning an empty result set.
 - What happens if fewer than 3 total candidates exist and all score below 20%? All available candidates are returned regardless of score — the minimum count guarantee takes precedence over the quality threshold.
 
@@ -123,12 +127,14 @@ When the AI service is unreachable or returns an unrecoverable error, passengers
 
 #### System-Assigned Fare
 
-- **FR-009**: When a driver creates a ride, the system MUST compute and assign a fare using the AI pricing model within the same single ride creation call, before the ride record is persisted. No separate fare preview endpoint exists.
-- **FR-010**: The fare MUST be computed using at minimum: origin zone, destination zone, estimated route distance, and time of day.
+*(FR-009, FR-013, FR-014 superseded 2026-07-04 — pricing is deterministic-only, see amendment note at top of document.)*
+
+- **FR-009**: When a driver creates a ride, the system MUST compute and assign a fare using `pricing_service.calculate_fare()` within the same single ride creation call, before the ride record is persisted. No separate fare preview endpoint exists.
+- **FR-010**: The fare MUST be computed using at minimum: route distance and current fuel price.
 - **FR-011**: Drivers MUST NOT be able to modify the system-assigned fare through any user interface or API endpoint.
 - **FR-012**: The system-assigned fare MUST be expressed in Egyptian Pounds (EGP) as a positive, non-zero value.
-- **FR-013**: When the AI pricing service is unavailable, the system MUST assign a deterministic fallback fare and continue ride creation without surfacing an error to the driver.
-- **FR-014**: If the AI pricing model returns a zero, negative, or otherwise invalid fare, the system MUST reject the result, apply the deterministic fallback fare, and log the anomaly.
+- **FR-013**: ~~When the AI pricing service is unavailable, the system MUST assign a deterministic fallback fare and continue ride creation without surfacing an error to the driver.~~ Not applicable — there is no AI pricing service to be unavailable; the formula always runs in-process.
+- **FR-014**: ~~If the AI pricing model returns a zero, negative, or otherwise invalid fare, the system MUST reject the result, apply the deterministic fallback fare, and log the anomaly.~~ Not applicable — the formula is a fixed arithmetic expression and cannot return an invalid value.
 
 ### Key Entities
 
@@ -136,7 +142,7 @@ When the AI service is unreachable or returns an unrecoverable error, passengers
 |--------|-------------|
 | **AI Match Score** | A numeric value (0.0–1.0) representing the AI-predicted compatibility between a passenger's route request and a specific candidate driver ride. Displayed to passengers as a whole-number percentage (e.g., "85% match"). Ephemeral — computed per search request and returned in the API response; not stored in the database. |
 | **AI-Ranked Results** | The ordered list of candidate rides returned to a passenger, sorted by descending AI match score (or by route overlap percentage when fallback is active). |
-| **System Fare** | The platform-computed and platform-assigned price in EGP for a driver's ride, set at ride creation time by the AI pricing model and immutable thereafter. |
+| **System Fare** | The platform-computed and platform-assigned price in EGP for a driver's ride, set at ride creation time by the deterministic `pricing_service.calculate_fare()` formula and immutable thereafter. |
 | **Prediction Feature Vector** | The structured set of numeric attributes derived from a ride candidate, passed to the AI service as input for scoring and ranking. |
 | **Fallback Ordering** | The deterministic ranking of candidates by route overlap percentage, activated transparently when the AI service is unavailable or returns an unrecoverable error. |
 
@@ -151,14 +157,14 @@ When the AI service is unreachable or returns an unrecoverable error, passengers
 - **SC-003**: When the AI service is stopped, passengers receive valid ordered search results within 1 second of the AI timeout — confirmed by timing fallback activation in test conditions.
 - **SC-004**: Every ride created after Phase 9 is deployed carries a system-assigned fare — zero rides exist in the database without a fare value.
 - **SC-005**: No driver action through any available interface results in a changed fare on an existing ride — confirmed by attempting a fare modification via UI and API and verifying both are rejected.
-- **SC-006**: The AI pricing model produces a positive, non-zero fare for all route combinations covered by the synthetic training dataset used in the competition demo.
+- **SC-006**: ~~The AI pricing model produces a positive, non-zero fare for all route combinations covered by the synthetic training dataset used in the competition demo.~~ Superseded — `pricing_service.calculate_fare()` produces a positive, non-zero fare for every route by construction (fixed arithmetic formula).
 
 ---
 
 ## Non-Functional Requirements *(mandatory)*
 
 - **NFR-001**: The AI scoring and ranking step MUST add no more than 500ms to the total search response time at p95 for a batch of up to 20 candidate rides.
-- **NFR-002**: The AI pricing call at ride creation MUST complete within 200ms at p95 under normal operating conditions.
+- **NFR-002**: ~~The AI pricing call at ride creation MUST complete within 200ms at p95 under normal operating conditions.~~ Superseded — pricing is an in-process formula call with no network round-trip, effectively sub-millisecond.
 - **NFR-003**: The system MUST detect AI service unavailability within 1 second (via health check or a failed prediction call) and activate the appropriate fallback path.
 - **NFR-004**: Match scores and system fares MUST be deterministic for identical inputs — the same candidate and passenger request MUST always produce the same score given the same loaded model version.
 - **NFR-005**: All AI prediction calls MUST be logged with: request input shape, model version used, response latency, and whether the fallback path was activated.
@@ -168,7 +174,7 @@ When the AI service is unreachable or returns an unrecoverable error, passengers
 
 ## Dependencies *(mandatory)*
 
-- **Internal — Phase 2 (AI Foundation)**: Trained model artifacts (match score, ride ranking, price recommendation) and the prediction API endpoints must be available and loaded. Phase 9 is a consumer of those endpoints — it does not train or manage models.
+- **Internal — Phase 2 (AI Foundation)**: Trained model artifacts (match score, ride ranking) and the prediction API endpoints must be available and loaded. Phase 9 is a consumer of those endpoints — it does not train or manage models. *(The price recommendation model originally listed here was removed 2026-07-04; fare is not an AI Foundation dependency.)*
 - **Internal — Phase 5 (Route Intelligence)**: The deterministic route overlap engine must be producing candidate rides with precomputed overlap ratios, detour distances, and zone attributes — these are the direct inputs to the AI feature vector.
 - **Internal — Phase 4 (Ride Management)**: The driver ride creation flow must be in place. Phase 9 inserts the system fare assignment step into that existing flow.
 - **Internal — Phase 6 (Passenger Experience)**: The passenger ride search and results display must be in place. Phase 9 wires AI scores and ranking into the existing results pipeline.
@@ -205,7 +211,7 @@ When the AI service is unreachable or returns an unrecoverable error, passengers
 
 - The AI service from Phase 2 is running and has at least one trained model version loaded in the registry before Phase 9 is demonstrated at the competition.
 - Route overlap ratio, detour distance, and zone attributes computed by Phase 5 are available on each candidate ride object at search time — no additional database queries are needed to build the feature vector.
-- The fallback deterministic fare reuses the Phase 5 pricing formula (base fare + per-km rate) — no new fallback formula is required for Phase 9.
+- ~~The fallback deterministic fare reuses the Phase 5 pricing formula~~ — superseded; the Phase 5 formula (`pricing_service.calculate_fare()`) is now the only fare computation, always used, not a fallback.
 - The competition demo environment runs the AI service and main backend on the same local machine; internal network latency between them is negligible and does not affect the 500ms p95 target.
 - MVP scale is ≤1,000 active users; AI scoring for batches of up to 20 candidate rides per search is the expected maximum batch size.
 - The synthetic training dataset produces models with sufficient quality to generate meaningful, non-uniform match scores across different candidate rides — scores are not all concentrated at a single value.

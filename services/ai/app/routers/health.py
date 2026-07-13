@@ -31,6 +31,5 @@ def get_health(request: Request) -> HealthResponse:
         models=ModelVersions(
             match_score=version_of("match_score"),
             ride_ranker=version_of("ride_ranker"),
-            price_recommender=version_of("price_recommender"),
         ),
     )

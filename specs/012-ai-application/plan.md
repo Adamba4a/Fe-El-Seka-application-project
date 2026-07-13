@@ -99,22 +99,20 @@ services/api/app/services/
                              #     → fallback: sort by overlap_pct descending, no threshold filter
 └── ride_service.py          # EXTEND — create_ride():
                              #   1. price_per_seat removed from CreateRideRequest
-                             #   2. After OSRM route computation, call ai_client.get_fare()
-                             #      with zone centroids + estimated_distance_km + departure_at
-                             #   3. Derive fare = Decimal((min_egp + max_egp) / 2).quantize(...)
-                             #   4. Validate fare > 0; on invalid/unavailable: deterministic fallback
-                             #   5. Set price_per_seat = fare in ride INSERT
-                             #   Fallback fare formula (from pricing_config):
-                             #     (distance_km / 15.0) * fuel_price_per_litre + safety_margin
+                             #   2. After OSRM route computation, call
+                             #      pricing_service.calculate_fare(distance_km, seat_count)
+                             #   3. Set price_per_seat = fare in ride INSERT
+                             #   (Superseded 2026-07-04 — steps 2-4 of the original AI-pricing
+                             #   design, ai_client.get_fare() + fallback, were removed; fare is
+                             #   always the deterministic formula, no AI call, no fallback branch)
 
 # ── Backend — New Models ──────────────────────────────────────────────────────
 services/api/app/models/
 └── ai.py                    # NEW — Pydantic schemas for AI service communication:
                              #       ZoneCentroid, PassengerRequestFeatures,
-                             #       CandidateFeatures, ScoredCandidate,
-                             #       AIMatchScoreRequest, AIMatchScoreResponse,
-                             #       AIRankingRequest, AIRankingResponse,
-                             #       AIPriceRequest, AIPriceResponse
+                             #       CandidateFeatures, ScoredCandidate
+                             #       (AIPriceRequest/AIPriceResponse removed 2026-07-04 —
+                             #       pricing is deterministic-only, no AI call)
 
 # ── Backend — Zone Utility ────────────────────────────────────────────────────
 services/api/app/utils/

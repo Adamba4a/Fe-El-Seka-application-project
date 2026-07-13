@@ -58,24 +58,3 @@ class RankedRide(BaseModel):
 class RideRankingResponse(BaseModel):
     ranked: list[RankedRide]
     model_version: str
-
-
-class PriceRequest(BaseModel):
-    origin_zone: str
-    destination_zone: str
-    origin_centroid: ZoneCoords
-    destination_centroid: ZoneCoords
-    estimated_distance_km: float = Field(..., gt=0.0)
-    departure_at: datetime
-
-
-class FareRange(BaseModel):
-    min_egp: float
-    max_egp: float
-    currency: str = "EGP"
-
-
-class PriceResponse(BaseModel):
-    model_version: str
-    model_type: str = "price_recommender"
-    recommended_fare: FareRange

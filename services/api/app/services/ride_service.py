@@ -1,18 +1,13 @@
 from __future__ import annotations
 
 import json
-import logging
 import uuid
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 
 from app.core.database import get_pool
-from app.services.pricing_service import calculate_fare, get_pricing_config
-from app.models.ai import AIPriceRequest, ZoneCentroid
-from app.services import ai_client as _ai_module
-from app.services.ai_client import AIServiceUnavailableError as _AIError
-from app.utils.zone_lookup import nearest_zone as _nearest_zone
+from app.services.pricing_service import calculate_fare
 from app.models.ride import (
     CoordinatesSchema,
     CreateRideRequest,
@@ -105,18 +100,6 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-async def _compute_ai_fare(req: AIPriceRequest) -> Decimal:
-    return await _ai_module.get_fare(req)
-
-
-def _compute_fallback_fare(distance_km: float, pricing_config: dict) -> Decimal:
-    fuel = Decimal(str(pricing_config["fuel_price_per_litre"]))
-    safety = Decimal(str(pricing_config["safety_margin"]))
-    return (Decimal(str(distance_km / 15.0)) * fuel + safety).quantize(
-        Decimal("0.01"), rounding=ROUND_HALF_UP
-    )
-
-
 async def _fetch_own_ride(conn, ride_id: uuid.UUID, driver_id: uuid.UUID) -> dict:
     row = await conn.fetchrow(
         f"SELECT {_RIDE_COLS} FROM rides WHERE id = $1",
@@ -143,6 +126,7 @@ async def create_ride(
     fuel_cost_egp: float,
     platform_commission_egp: float,
     safety_margin_egp: float,
+    price_per_seat: float,
 ) -> RideResponse:
     olat = payload.origin.coordinates.lat
     olng = payload.origin.coordinates.lng
@@ -167,26 +151,7 @@ async def create_ride(
             f"Seat count must be between 1 and your vehicle's capacity ({vehicle_seat_count}).",
         )
 
-    origin_zone, origin_centroid = _nearest_zone(olat, olng)
-    dest_zone, dest_centroid = _nearest_zone(dlat, dlng)
-    ai_price_req = AIPriceRequest(
-        origin_zone=origin_zone,
-        destination_zone=dest_zone,
-        origin_centroid=ZoneCentroid(**origin_centroid),
-        destination_centroid=ZoneCentroid(**dest_centroid),
-        estimated_distance_km=max(0.01, float(route_distance_km)),
-        departure_at=dep,
-    )
-    try:
-        price_per_seat = await _compute_ai_fare(ai_price_req)
-    except _AIError as exc:
-        price_per_seat = _compute_fallback_fare(route_distance_km, get_pricing_config())
-        logger.warning(json.dumps({
-            "event": "ai_fare_fallback",
-            "reason": type(exc).__name__,
-            "fallback_fare_egp": str(price_per_seat),
-            "formula": "distance_km/15*fuel+safety",
-        }))
+    price_per_seat = Decimal(str(price_per_seat))
 
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -280,8 +245,6 @@ async def create_ride(
 # ─────────────────────────────────────────────────────────────────────────────
 # List rides
 # ─────────────────────────────────────────────────────────────────────────────
-
-logger = logging.getLogger(__name__)
 
 VALID_STATUSES = {"scheduled", "in_progress", "completed", "cancelled"}
 

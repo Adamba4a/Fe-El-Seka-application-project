@@ -118,6 +118,7 @@ async def create_ride(
             fuel_cost_egp=fare.fuel_cost_egp,
             platform_commission_egp=fare.platform_commission_egp,
             safety_margin_egp=fare.safety_margin_egp,
+            price_per_seat=fare.per_seat_price_egp,
         )
     except RideServiceError as exc:
         return _service_error_response(exc)

@@ -18,7 +18,6 @@ def _make_version() -> str:
 
 def main() -> None:
     from pipelines.training.train_match_score import TrainingGateError, train_match_score
-    from pipelines.training.train_price import train_price_recommender
     from pipelines.training.train_ranker import train_ride_ranker
 
     logger.info("=== Training Pipeline Start ===")
@@ -43,9 +42,6 @@ def main() -> None:
 
     logger.info("--- Training ride_ranker ---")
     train_ride_ranker(features_df, version)
-
-    logger.info("--- Training price_recommender ---")
-    train_price_recommender(features_df, version)
 
     logger.info("--- Uploading to Supabase Storage ---")
     from pipelines.training.upload import upload_all_models

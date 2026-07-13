@@ -6,8 +6,6 @@ from fastapi import APIRouter, HTTPException, Request
 from app.models.prediction import (
     MatchScoreBatchRequest,
     MatchScoreResponse,
-    PriceRequest,
-    PriceResponse,
     RideRankingBatchRequest,
     RideRankingResponse,
 )
@@ -51,19 +49,5 @@ def predict_ride_ranking(body: RideRankingBatchRequest, request: Request) -> Rid
     logger.info(
         "endpoint=ride_ranking model_version=%s batch_size=%d response_time_ms=%.1f",
         result.model_version, len(body.candidates), elapsed_ms,
-    )
-    return result
-
-
-@router.post("/price-recommendation", response_model=PriceResponse)
-def predict_price(body: PriceRequest, request: Request) -> PriceResponse:
-    slot = _get_model(request, "price_recommender")
-    t0 = time.perf_counter()
-    from app.services.price_recommender import predict_price as _predict
-    result = _predict(body, slot)
-    elapsed_ms = (time.perf_counter() - t0) * 1000
-    logger.info(
-        "endpoint=price_recommendation model_version=%s response_time_ms=%.1f",
-        result.model_version, elapsed_ms,
     )
     return result

@@ -4,7 +4,6 @@ from pydantic import BaseModel
 class ModelVersions(BaseModel):
     match_score: str | None = None
     ride_ranker: str | None = None
-    price_recommender: str | None = None
 
 
 class HealthResponse(BaseModel):

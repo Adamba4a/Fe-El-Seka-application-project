@@ -14,7 +14,7 @@ Phase 9 requires **no database migration**. The existing `rides.price_per_seat N
 
 | Column | Type | Constraint | Change in Phase 9 |
 |--------|------|------------|-------------------|
-| `price_per_seat` | `NUMERIC(10, 2)` | `NOT NULL, CHECK (price_per_seat > 0)` | Now populated by the AI pricing model (or deterministic fallback) at ride creation. No longer accepted from the driver's request body. |
+| `price_per_seat` | `NUMERIC(10, 2)` | `NOT NULL, CHECK (price_per_seat > 0)` | Now populated by `pricing_service.calculate_fare()` at ride creation. No longer accepted from the driver's request body. |
 
 ### Fare Immutability (Application Layer)
 
@@ -26,7 +26,6 @@ Phase 9 requires **no database migration**. The existing `rides.price_per_seat N
 
 ```python
 from __future__ import annotations
-from decimal import Decimal
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -81,20 +80,9 @@ class AIRankingResponse(BaseModel):
     ranked: list[str]               # ride_id strings, best match first
 
 
-class AIPriceRequest(BaseModel):
-    origin_zone: str
-    destination_zone: str
-    origin_centroid: ZoneCentroid
-    destination_centroid: ZoneCentroid
-    estimated_distance_km: float = Field(gt=0.0)
-    departure_at: datetime
-
-
-class AIPriceResponse(BaseModel):
-    model_version: str
-    min_egp: Decimal
-    max_egp: Decimal                # System fare = round((min + max) / 2, 2)
 ```
+
+> **Superseded (2026-07-04)**: `AIPriceRequest`/`AIPriceResponse` and the AI pricing model were removed. The model was trained to approximate the exact deterministic formula `pricing_service.calculate_fare()` already computes — pure redundant approximation risk with no genuine prediction value. The system fare is now always `pricing_service.calculate_fare(distance_km, seat_count)`, computed in-process with no AI call.
 
 ---
 
