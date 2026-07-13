@@ -316,7 +316,10 @@ async def assess_compatibility(
     detour_minutes = 0
     is_compatible = False
 
-    if overlap_ok and pickup_ok and dropoff_ok:
+    # Pickup walk distance is informational only (surfaced to the passenger as
+    # pickup_walk_m) — it no longer gates standard-match eligibility. The passenger
+    # decides whether the walk is acceptable, or requests a paid premium pickup instead.
+    if overlap_ok and dropoff_ok:
         detour_km, detour_minutes = await calculate_detour(
             driver_origin,
             pickup_nearest_wkt,
@@ -329,7 +332,9 @@ async def assess_compatibility(
             detour_km <= max_detour_km and detour_minutes <= max_detour_minutes
         )
 
-    # Premium pickup — walk exceeds standard but driver detour is within premium limit
+    # Premium pickup — walk exceeds standard; offered as a paid door-to-door option
+    # regardless of how large the driver's detour is. No distance cap: the fee scales
+    # with the real detour, and the driver can accept or decline the specific request.
     premium_pickup_available = False
     premium_pickup_detour_km = 0.0
     premium_pickup_fee_egp = None
@@ -342,10 +347,9 @@ async def assess_compatibility(
             original_distance_km,
             original_duration_minutes,
         )
-        if p_km <= max_premium_detour_km:
-            premium_pickup_available = True
-            premium_pickup_detour_km = p_km
-            premium_pickup_fee_egp = calculate_premium_detour_fee(p_km)
+        premium_pickup_available = True
+        premium_pickup_detour_km = p_km
+        premium_pickup_fee_egp = calculate_premium_detour_fee(p_km)
 
     # Premium dropoff — same logic for the dropoff side
     premium_dropoff_available = False
