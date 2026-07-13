@@ -9,8 +9,6 @@ from datetime import datetime
 
 import numpy as np
 
-from pipelines.dataset.zones import zone_by_name
-
 logger = logging.getLogger(__name__)
 
 FEATURE_NAMES = [
@@ -32,8 +30,29 @@ FEATURE_NAMES = [
 
 _DEG_TO_KM = 111.0  # approximate km per degree latitude
 
+# Monotonic direction per FEATURE_NAMES entry, shared by both training scripts
+# (train_match_score.py, train_ranker.py): +1 = score must never decrease as
+# the feature increases, -1 = score must never increase, 0 = unconstrained.
+# Prevents the model from learning erratic behaviour in sparsely-populated
+# corners of feature space, e.g. real-world inputs combining high overlap with
+# a large pickup detour — a combination the synthetic "good corridor"
+# distribution rarely produces (see research.md, 2026-07-04 calibration fix).
+MATCH_QUALITY_MONOTONE_CONSTRAINTS = (
+    0, 0, 0, 0,   # passenger_origin_lat/lng, passenger_dest_lat/lng
+    0, 0, 0, 0,   # driver_origin_lat/lng, driver_dest_lat/lng
+    1,            # overlap_ratio: more overlap must never lower the score
+    -1,           # pickup_detour_km: more detour must never raise the score
+    -1,           # dropoff_distance_km: more distance must never raise the score
+    -1,           # dest_zone_distance_km: further-apart destinations must never raise the score
+    0, 0,         # departure_hour_sin/cos
+)
+
 
 def _zone_centroid(zone_name: str) -> tuple[float, float]:
+    # Training-only path (see build_feature_vector below) — imported lazily so the
+    # serving container, which never calls it, doesn't need the pipelines package.
+    from pipelines.dataset.zones import zone_by_name
+
     zone = zone_by_name.get(zone_name)
     if zone is None:
         raise ValueError(f"Unknown zone: '{zone_name}'. Known zones: {list(zone_by_name.keys())}")

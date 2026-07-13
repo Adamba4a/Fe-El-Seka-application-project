@@ -92,17 +92,19 @@ services/ai/
 │   ├── config.py                    # pydantic-settings: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, etc.
 │   ├── models/                      # Pydantic request/response schemas
 │   │   ├── health.py                # HealthResponse schema
-│   │   ├── prediction.py            # MatchScoreRequest/Response, RankingRequest/Response, PriceRequest/Response
+│   │   ├── prediction.py            # MatchScoreRequest/Response, RankingRequest/Response
+│   │   │                            #   (PriceRequest/Response removed 2026-07-04)
 │   │   └── registry.py              # ReloadRequest/Response, ModelVersionInfo
 │   ├── routers/                     # FastAPI route handlers
 │   │   ├── health.py                # GET /health
-│   │   ├── predict.py               # POST /predict/match-score, /predict/ride-ranking, /predict/price-recommendation
+│   │   ├── predict.py               # POST /predict/match-score, /predict/ride-ranking
+│   │   │                            #   (/predict/price-recommendation removed 2026-07-04)
 │   │   └── models.py                # POST /models/reload
 │   └── services/                    # Business logic (pure functions, no HTTP dependencies)
 │       ├── feature_engineering.py   # Zone centroid lookup + feature vector construction (shared: training & serving)
 │       ├── match_scorer.py          # Load + call match score XGBoost model
 │       ├── ride_ranker.py           # Load + call ride ranking XGBoost model
-│       ├── price_recommender.py     # Load + call price Scikit-Learn model
+│       │                            # (price_recommender.py removed 2026-07-04)
 │       └── model_registry.py        # Supabase Storage: upload, download, get-latest, reload
 ├── pipelines/
 │   ├── dataset/
@@ -116,7 +118,7 @@ services/ai/
 │   └── training/
 │       ├── train_match_score.py     # XGBoost binary classifier; AUC-ROC ≥ 0.65 gate
 │       ├── train_ranker.py          # XGBoost ranker (LambdaRank or pointwise on match scores)
-│       ├── train_price.py           # Scikit-Learn Ridge regression; ±20% for min/max range
+│       │                            # (train_price.py removed 2026-07-04 — see prediction-api.md)
 │       ├── evaluate.py              # AUC-ROC, NDCG, MAE utilities
 │       ├── upload.py                # Upload .joblib + metadata.json to Supabase Storage
 │       └── run.py                   # Entry point: python -m pipelines.training.run
@@ -128,7 +130,7 @@ services/ai/
 │   ├── unit/
 │   │   ├── test_feature_engineering.py   # Feature vector determinism + zone centroid correctness
 │   │   ├── test_match_scorer.py          # Score clamping, valid range
-│   │   └── test_price_recommender.py     # Output range > 0, currency EGP
+│   │   │                                 # (test_price_recommender.py removed 2026-07-04)
 │   └── integration/
 │       ├── test_health_endpoint.py       # Health statuses (ok/degraded/unavailable)
 │       └── test_prediction_endpoints.py  # Round-trip prediction calls with mock models

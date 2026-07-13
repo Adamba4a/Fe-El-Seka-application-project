@@ -33,7 +33,7 @@ nodes, edges = ox.graph_to_gdfs(G)
 
 | Zone | Type | Centroid (approx.) | Weight |
 |---|---|---|---|
-| Downtown Cairo | district | 30.0444, 31.2357 | 0.10 |
+| Downtown Cairo | district | 30.0444, 31.2357 | 0.06 |
 | Maadi | district | 30.0131, 31.2089 | 0.09 |
 | Zamalek | district | 30.0598, 31.2214 | 0.05 |
 | Heliopolis | district | 30.0912, 31.3217 | 0.08 |
@@ -47,10 +47,14 @@ nodes, edges = ox.graph_to_gdfs(G)
 | Ain Shams | district | 30.1191, 31.3272 | 0.04 |
 | Cairo University | university | 30.0260, 31.2097 | 0.06 |
 | AUC New Cairo | university | 30.0209, 31.4997 | 0.04 |
-| Ain Shams University | university | 30.1199, 31.3220 | 0.03 |
-| Helwan University | university | 29.8421, 31.3340 | 0.02 |
+| Ain Shams University | university | 30.1199, 31.3220 | 0.02 |
+| Helwan University | university | 29.8421, 31.3340 | 0.01 |
 | Smart Village | business_zone | 30.0730, 30.9710 | 0.05 |
-| New Admin Capital | business_zone | 30.0130, 31.6990 | 0.03 |
+| New Admin Capital | business_zone | 30.0130, 31.6990 | 0.02 |
+| El Shorouk | district | 30.1296, 31.6318 | 0.02 |
+| Madinaty | district | 30.0917, 31.6381 | 0.02 |
+
+This table (and the identical list in `services/api/app/utils/zone_lookup.py`, used for serving-time zone snapping) previously omitted Cairo's satellite cities — coordinates there snapped to the nearest of the original 13/18 zones, sometimes tens of km off, degrading AI feature quality for those routes. Both lists must be kept in sync.
 
 **Departure time distribution**: Bimodal — 40% morning peak (7–9am, normally distributed μ=8h, σ=0.5h), 40% evening peak (4–7pm, μ=17h, σ=0.75h), 20% off-peak (uniform across remaining hours).
 
@@ -59,12 +63,22 @@ nodes, edges = ox.graph_to_gdfs(G)
 **Minimum zone representation**: Every zone must appear as origin or destination in at least 1,000 records to prevent model bias.
 
 **Label generation for match score training**:
+
+> **Superseded (2026-07-04)**: The original scheme below labelled a pair `1` based on a hard zone-identity/time threshold, and separately computed `overlap_ratio`/`pickup_detour_km`/`dropoff_distance_km` as an *exact deterministic function* of zone-centroid distance (e.g. exactly `1.0`/`0km` whenever the pair's zones matched). Every positive example therefore had identical, boundary-value features. This taught the trained model a brittle "same zone name ⇒ match" shortcut: on real serving-time inputs from `route_service` — which are continuous and never land exactly on `1.0`/`0km` — a genuinely great match (92.68% overlap, 2.69km/0.33km walks) scored near-zero. See the retraining fix below.
+>
+> **Current scheme**: `generate_rides.py` samples `overlap_ratio`/`pickup_detour_km`/`dropoff_distance_km` continuously per row (Beta distributions for `overlap_ratio`, Exponential distributions for the detour/walk distances), parameterized differently for "same corridor" pairs (same passenger/driver origin & destination zone, departure within a small jitter window) vs. "random pair" rows. `match_label` is then drawn from a logistic function of these same continuous features plus Bernoulli noise, rather than a hard threshold — mirroring how `route_service.assess_compatibility()` judges real candidates on a continuum. `pipelines/features/engineer.py` reads these three fields directly from the row instead of re-deriving them from zone names. Verified on the 2026-07-04 retrain: 32.8% positive rate on the 100k-row corpus, match_score AUC-ROC 0.9831, and the score-cliff behavior is gone (smooth, monotonic scores across realistic overlap/detour ranges).
+
+<details>
+<summary>Original (superseded) scheme</summary>
+
 A synthetic pair (passenger request, candidate driver ride) is labelled `1` (good match) when all three conditions hold:
 1. Destination zones are the same or adjacent (within 5km centroid distance)
 2. Departure times are within 30 minutes of each other
 3. Driver's origin is in the same or adjacent zone as passenger's origin
 
 Otherwise labelled `0`. This produces a realistic ~30–40% positive rate consistent with carpooling match scarcity.
+
+</details>
 
 **Alternatives considered**:
 - Random uniform origin/destination: No geographic realism; model learns nothing about Cairo commute patterns.
@@ -130,12 +144,14 @@ Otherwise labelled `0`. This produces a realistic ~30–40% positive rate consis
 - **Output**: Sorted ride IDs descending by predicted score
 
 ### Price Recommendation Model (Scikit-Learn Ridge Regression)
-- **Target**: Synthetic fare (EGP) computed as: `fare = base_fare + per_km_rate × distance_km + peak_surcharge`
-  - `base_fare = 15 EGP`, `per_km_rate = 3.5 EGP/km`, `peak_surcharge = 10 EGP if peak else 0`
-  - Gaussian noise σ=5 EGP added to simulate real driver pricing variation
+- **Target**: Cost-recovery total-trip baseline (EGP), matching `services/api`'s deterministic fallback/edit-repricing formula (`pricing_service.calculate_fare`) so AI and non-AI pricing never disagree: `fare = (distance_km / fuel_efficiency_km_per_l) × fuel_price_per_l × (1 + commission_rate) + safety_margin`
+  - `fuel_efficiency_km_per_l = 13.0`, `fuel_price_per_l = 15 EGP` (training-time reference), `commission_rate = 0.20`, `safety_margin = 5 EGP`
+  - Gaussian noise σ=2 EGP added for realistic variance
+  - This is a **total-trip** value, not per-seat — the model has no `seat_count` feature (trip fuel cost doesn't depend on it). `services/api` divides the served estimate by the ride's `total_seats` to get the per-seat price.
 - **Algorithm**: `Ridge(alpha=1.0)` — linear model appropriate for a synthetically generated linear target
-- **Features used**: `passenger_origin_lat`, `passenger_origin_lng`, `passenger_dest_lat`, `passenger_dest_lng`, `dest_zone_distance_km`, `departure_hour_sin`, `departure_hour_cos` (7 features)
-- **Output**: Point estimate; served as `min_egp = max(10, estimate × 0.8)`, `max_egp = estimate × 1.2`
+- **Features used**: `passenger_origin_lat`, `passenger_origin_lng`, `passenger_dest_lat`, `passenger_dest_lng`, `trip_distance_km`, `departure_hour_sin`, `departure_hour_cos` (7 features)
+  - The 5th feature is the passenger's own origin→destination distance, computed directly in `train_price.py` from the passenger lat/lng columns — **not** the shared `dest_zone_distance_km` column from the 14-feature engineered dataframe (that column is a match-quality signal: distance between a passenger's destination and a *driver's* destination, semantically unrelated to trip length). Serving fills this slot with `estimated_distance_km` (the ride's real route distance), so training must use the matching quantity or the model learns a spurious relationship.
+- **Output**: Point estimate; served as `min_egp = max(10, estimate × 0.8)`, `max_egp = estimate × 1.2` (total-trip range; caller divides by seats)
 - **Metric**: Mean Absolute Error (MAE) in EGP; no minimum threshold enforced for MVP
 
 ---
@@ -151,17 +167,13 @@ model-registry/                        (Supabase Storage bucket)
 │   │   ├── model.joblib               (serialized XGBClassifier)
 │   │   └── metadata.json              (version, date, record_count, metrics)
 │   └── latest.json                    ({"version": "2026-06-13T14:30:22Z"})
-├── ride_ranker/
-│   ├── 2026-06-13T14:30:22Z/
-│   │   ├── model.joblib
-│   │   └── metadata.json
-│   └── latest.json
-└── price_recommender/
+└── ride_ranker/
     ├── 2026-06-13T14:30:22Z/
     │   ├── model.joblib
     │   └── metadata.json
     └── latest.json
 ```
+*(A third `price_recommender/` directory existed before that model was removed 2026-07-04 — see `contracts/prediction-api.md`.)*
 
 **metadata.json structure**:
 ```json

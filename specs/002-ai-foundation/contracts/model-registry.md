@@ -2,6 +2,8 @@
 
 **Service**: `services/ai` pipelines + AI serving layer | **Feature**: `002-ai-foundation` | **Date**: 2026-06-13
 
+> **Superseded (2026-07-04)**: `price_recommender` was removed — see `contracts/prediction-api.md` for rationale. Only `match_score` and `ride_ranker` are registered, trained, and served now. References to `price_recommender` below are historical.
+
 ---
 
 ## Storage Bucket
@@ -21,17 +23,13 @@ model-registry/                            (bucket root)
 │   │   ├── model.joblib                   (serialized XGBClassifier)
 │   │   └── metadata.json                  (training metadata)
 │   └── latest.json                        (pointer to current production version)
-├── ride_ranker/
-│   ├── {version}/
-│   │   ├── model.joblib
-│   │   └── metadata.json
-│   └── latest.json
-└── price_recommender/
+└── ride_ranker/
     ├── {version}/
     │   ├── model.joblib
     │   └── metadata.json
     └── latest.json
 ```
+*(A third `price_recommender/` directory existed before that model was removed 2026-07-04.)*
 
 **`{version}`** is a UTC ISO 8601 datetime string with colons replaced by hyphens for path safety:
 - Original: `2026-06-13T14:30:22Z`
@@ -49,7 +47,7 @@ A joblib-serialized Python object. Contents by model type:
 |---|---|
 | `match_score` | `xgboost.XGBClassifier` instance (fitted) |
 | `ride_ranker` | `xgboost.XGBClassifier` instance (fitted) |
-| `price_recommender` | `sklearn.linear_model.Ridge` instance (fitted) |
+| ~~`price_recommender`~~ | ~~`sklearn.linear_model.Ridge` instance (fitted)~~ — removed 2026-07-04 |
 
 Loaded via: `joblib.load(local_path)` after downloading from Storage.
 
@@ -110,9 +108,9 @@ Written atomically **after** all other files for a version are confirmed uploade
 The training pipeline MUST follow this exact sequence when uploading a new model version:
 
 ```
-1. Complete training + validation for all three models
+1. Complete training + validation for both models
 2. If AUC-ROC < 0.65 for match_score → abort, do NOT upload anything
-3. For each model_type in [match_score, ride_ranker, price_recommender]:
+3. For each model_type in [match_score, ride_ranker]:
    a. Serialize model to local data/models/{model_type}.joblib
    b. Write local data/models/{model_type}_metadata.json
    c. Upload model.joblib → model-registry/{model_type}/{version_path}/model.joblib
@@ -120,6 +118,7 @@ The training pipeline MUST follow this exact sequence when uploading a new model
 4. For each model_type (only after all uploads in step 3 succeed):
    a. Write latest.json → model-registry/{model_type}/latest.json
 ```
+*(Originally "all three models" / `[match_score, ride_ranker, price_recommender]` — `price_recommender` removed 2026-07-04.)*
 
 If any upload in step 3 fails, the sequence aborts. `latest.json` files are NOT updated for any model type. This prevents a partial upload from being served.
 
@@ -128,7 +127,7 @@ If any upload in step 3 fails, the sequence aborts. `latest.json` files are NOT 
 ## Download Sequence (AI service startup / reload)
 
 ```
-1. For each model_type in [match_score, ride_ranker, price_recommender]:
+1. For each model_type in [match_score, ride_ranker]:
    a. Download model-registry/{model_type}/latest.json
    b. Parse {"version": "<version>"} → resolve version_path
    c. Download model-registry/{model_type}/{version_path}/model.joblib to temp file

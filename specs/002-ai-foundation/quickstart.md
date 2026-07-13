@@ -103,18 +103,18 @@ uv run python -m pipelines.training.run
 1. Loads `data/features/features.parquet`
 2. Trains match score model (XGBoost) → validates AUC-ROC ≥ 0.65 gate
 3. Trains ride ranker model (XGBoost)
-4. Trains price recommendation model (Scikit-Learn Ridge)
-5. Writes `.joblib` + `metadata.json` files to `data/models/`
-6. Uploads all artifacts to Supabase Storage `model-registry` bucket
-7. Writes `latest.json` for each model type after all uploads succeed
+4. Writes `.joblib` + `metadata.json` files to `data/models/`
+5. Uploads all artifacts to Supabase Storage `model-registry` bucket
+6. Writes `latest.json` for each model type after all uploads succeed
+
+*(A price recommendation model training step existed here before `price_recommender` was removed 2026-07-04 — see `contracts/prediction-api.md`.)*
 
 **Verify** (SC-003, FR-016, FR-017):
 ```bash
 # Check local artifacts
 ls data/models/
 # Expected: match_score.joblib, match_score_metadata.json,
-#           ride_ranker.joblib, ride_ranker_metadata.json,
-#           price_recommender.joblib, price_recommender_metadata.json
+#           ride_ranker.joblib, ride_ranker_metadata.json
 
 # Check AUC-ROC gate passed
 uv run python -c "
@@ -137,14 +137,13 @@ import os
 url = os.environ['SUPABASE_URL']
 key = os.environ['SUPABASE_SERVICE_ROLE_KEY']
 sb = create_client(url, key)
-for model in ['match_score', 'ride_ranker', 'price_recommender']:
+for model in ['match_score', 'ride_ranker']:
     latest = sb.storage.from_('model-registry').download(f'{model}/latest.json')
     print(f'{model}: {latest.decode()}')
 "
 # Expected (one line per model):
 # match_score: {"version": "2026-06-13T...Z"}
 # ride_ranker: {"version": "2026-06-13T...Z"}
-# price_recommender: {"version": "2026-06-13T...Z"}
 ```
 
 ---
@@ -165,11 +164,10 @@ Expected response:
 ```json
 {
   "status": "ok",
-  "models_loaded": 3,
+  "models_loaded": 2,
   "model_versions": {
     "match_score": "2026-06-13T...",
-    "ride_ranker": "2026-06-13T...",
-    "price_recommender": "2026-06-13T..."
+    "ride_ranker": "2026-06-13T..."
   },
   "version": "0.1.0"
 }
@@ -210,51 +208,40 @@ curl -X POST http://localhost:8001/predict/match-score \
 ```
 Expected: `"match_score"` ∈ [0.0, 1.0], response within 500ms.
 
-**Price recommendation** (SC-005, FR-021):
-```bash
-curl -X POST http://localhost:8001/predict/price-recommendation \
-  -H "Content-Type: application/json" \
-  -d '{
-    "origin_zone": "Downtown Cairo",
-    "destination_zone": "Maadi",
-    "origin_centroid": {"lat": 30.0444, "lng": 31.2357},
-    "destination_centroid": {"lat": 30.0131, "lng": 31.2089},
-    "estimated_distance_km": 12.5,
-    "departure_at": "2026-06-13T08:00:00Z"
-  }'
-```
-Expected: `min_egp` ≥ 10.0, `max_egp` > `min_egp`, `currency` = `"EGP"`, response within 200ms.
+**~~Price recommendation~~ (SC-005, FR-021) — removed 2026-07-04**: `/predict/price-recommendation` no longer exists. Fares are computed directly by `pricing_service.calculate_fare()` in `services/api`; there is nothing to validate here anymore.
 
 ---
 
 ## Step 6 — Validate Partial Model Availability (FR-002a)
 
-Stop the service. Edit `app/services/model_registry.py` to skip loading `price_recommender`. Restart the service.
+Stop the service. Edit `app/services/model_registry.py` to skip loading `ride_ranker`. Restart the service.
 
 ```bash
 curl http://localhost:8001/health
-# Expected: "status": "degraded", "models_loaded": 2
+# Expected: "status": "degraded", "models_loaded": 1
 
-curl -X POST http://localhost:8001/predict/price-recommendation -d '{...}'
+curl -X POST http://localhost:8001/predict/ride-ranking -d '{...}'
 # Expected: HTTP 503
-# Body: {"error": "model_not_loaded", "model_type": "price_recommender", ...}
+# Body: {"error": "model_not_loaded", "model_type": "ride_ranker", ...}
 
 curl -X POST http://localhost:8001/predict/match-score -d '{...}'
 # Expected: HTTP 200 (match score still works)
 ```
 
+*(Prior to 2026-07-04 this step used `price_recommender` as the skipped model; it was removed, so `ride_ranker` is used here instead.)*
+
 ---
 
 ## Step 7 — Validate Hot Reload (FR-023)
 
-With service running and all 3 models loaded:
+With service running and both models loaded:
 ```bash
 curl -X POST http://localhost:8001/models/reload -H "Content-Type: application/json" -d '{}'
 ```
 Expected:
 ```json
 {
-  "reloaded": ["match_score", "ride_ranker", "price_recommender"],
+  "reloaded": ["match_score", "ride_ranker"],
   "versions": { ... }
 }
 ```

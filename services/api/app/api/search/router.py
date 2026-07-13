@@ -89,14 +89,17 @@ async def _ai_rank(
     departure_at: datetime,
 ) -> tuple[list, dict[str, int]]:
     """Return (ranked_candidates, score_map). Raises AIServiceUnavailableError on failure."""
-    p_origin_zone, p_origin_centroid = nearest_zone(origin_lat, origin_lng)
-    p_dest_zone, p_dest_centroid = nearest_zone(dest_lat, dest_lng)
+    # Real coordinates go straight into the AI request — zone snapping is only used
+    # here to derive a human-readable label, never to substitute for the actual GPS
+    # point sent to the model.
+    p_origin_zone, _ = nearest_zone(origin_lat, origin_lng)
+    p_dest_zone, _ = nearest_zone(dest_lat, dest_lng)
 
     passenger_req = PassengerRequestFeatures(
         origin_zone=p_origin_zone,
         destination_zone=p_dest_zone,
-        origin_centroid=ZoneCentroid(**p_origin_centroid),
-        destination_centroid=ZoneCentroid(**p_dest_centroid),
+        origin_centroid=ZoneCentroid(lat=origin_lat, lng=origin_lng),
+        destination_centroid=ZoneCentroid(lat=dest_lat, lng=dest_lng),
         departure_at=departure_at,
     )
 
@@ -106,15 +109,15 @@ async def _ai_rank(
     for c in capped:
         if c.driver_origin_lat is None:
             continue
-        d_origin_zone, d_origin_centroid = nearest_zone(c.driver_origin_lat, c.driver_origin_lng)
-        d_dest_zone, d_dest_centroid = nearest_zone(c.driver_dest_lat, c.driver_dest_lng)
+        d_origin_zone, _ = nearest_zone(c.driver_origin_lat, c.driver_origin_lng)
+        d_dest_zone, _ = nearest_zone(c.driver_dest_lat, c.driver_dest_lng)
         ai_features.append(
             CandidateFeatures(
                 ride_id=str(c.ride_id),
                 driver_origin_zone=d_origin_zone,
                 driver_destination_zone=d_dest_zone,
-                driver_origin_centroid=ZoneCentroid(**d_origin_centroid),
-                driver_dest_centroid=ZoneCentroid(**d_dest_centroid),
+                driver_origin_centroid=ZoneCentroid(lat=c.driver_origin_lat, lng=c.driver_origin_lng),
+                driver_dest_centroid=ZoneCentroid(lat=c.driver_dest_lat, lng=c.driver_dest_lng),
                 driver_departure_at=c.departure_time,
                 estimated_overlap_ratio=max(0.0, min(1.0, c.compatibility.overlap_pct / 100)),
                 estimated_pickup_detour_km=max(0.0, c.compatibility.pickup_walk_m / 1000),
@@ -130,7 +133,7 @@ async def _ai_rank(
     if len({s.match_score_pct for s in scored}) == 1:
         raise AIServiceUnavailableError("All AI scores identical — degrading to overlap_pct sort")
 
-    ranked_ids = await ai_client.rank_candidates(scored)
+    ranked_ids = await ai_client.rank_candidates(passenger_req, ai_features)
 
     score_lookup = {s.ride_id: s for s in scored}
     ranked_scored = [score_lookup[rid] for rid in ranked_ids if rid in score_lookup]

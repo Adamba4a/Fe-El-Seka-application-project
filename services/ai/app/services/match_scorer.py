@@ -27,7 +27,7 @@ def predict_scores(request: MatchScoreBatchRequest, model_state: dict) -> MatchS
         feature_rows.append(vec)
 
     X = np.array(feature_rows)
-    raw_scores = model.predict_proba(X)[:, 1]
+    raw_scores = model.predict(X)
     clamped = np.clip(raw_scores, 0.0, 1.0)
 
     scores = [

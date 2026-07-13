@@ -49,15 +49,24 @@ A single synthetic ride record produced by the dataset pipeline. Stored as rows 
 | `destination_lng` | `float` | Destination coordinate (zone centroid + Gaussian noise) |
 | `departure_at` | `datetime` (UTC) | Departure time; bimodal distribution reflecting Cairo peak hours |
 | `estimated_distance_km` | `float` | Euclidean distance between origin and destination centroids (km) |
+| `driver_origin_zone` | `str` | Name of the paired driver's origin CairoZone |
+| `driver_dest_zone` | `str` | Name of the paired driver's destination CairoZone |
+| `driver_departure_hour` | `float` | Paired driver's departure hour (fractional, 0–24) |
 | `is_driver` | `bool` | True = driver ride; False = passenger request |
+| `overlap_ratio` | `float` | Sampled route-overlap ratio, 0.0–1.0 (see Superseded note below) |
+| `pickup_detour_km` | `float` | Sampled pickup-detour distance (km) (see Superseded note below) |
+| `dropoff_distance_km` | `float` | Sampled dropoff-walk distance (km) (see Superseded note below) |
 | `match_label` | `int` | 0 or 1 — synthetic match quality label (see research.md Decision 2) |
+
+> **Superseded (2026-07-04)**: `overlap_ratio`/`pickup_detour_km`/`dropoff_distance_km` were originally computed in `pipelines/features/engineer.py` as an *exact deterministic function* of zone-centroid distance (e.g. exactly `1.0`/`0km` whenever passenger and driver shared the same origin/destination zone). This taught the match_score model a brittle "same zone name ⇒ match" shortcut that collapsed on realistic, continuous real-world inputs from `route_service` (e.g. a genuine 92.68% overlap / 2.69km walk scored near-zero). Fixed by sampling these three fields directly and continuously in `generate_rides.py` (Beta distributions for `overlap_ratio`, Exponential for the detour/walk distances, parameterized differently for "same corridor" vs. "random pair" rows) and deriving `match_label` as a probabilistic logistic function of these same continuous values plus Bernoulli noise, instead of a hard zone-identity threshold. `engineer.py` now reads these three fields directly from the row instead of re-deriving them from zone names.
 
 **Constraints**:
 - Minimum 100,000 records total
 - Minimum 1,000 records per zone (as origin or destination)
 - No null values in any field
-- `match_label` positive rate: 30–40% (enforced by label generation logic)
+- `match_label` positive rate: 30–40% (enforced by label generation logic; verified 32.8% on the 2026-07-04 corpus)
 - `estimated_distance_km` > 0
+- `overlap_ratio` ∈ [0.0, 1.0]; `pickup_detour_km`/`dropoff_distance_km` ≥ 0.0
 
 **Lifecycle**: Created by `pipelines/dataset/generate_rides.py` → consumed by `pipelines/features/engineer.py`
 
@@ -103,7 +112,7 @@ A versioned, serialized model stored in the Supabase Storage model registry. Per
 
 | Field | Type | Source | Description |
 |---|---|---|---|
-| `model_type` | `enum` | training pipeline | One of: `match_score`, `ride_ranker`, `price_recommender` |
+| `model_type` | `enum` | training pipeline | One of: `match_score`, `ride_ranker` (`price_recommender` removed 2026-07-04) |
 | `version` | `str` | training pipeline | UTC ISO 8601 timestamp of training run completion (e.g., `"2026-06-13T14:30:22Z"`) |
 | `training_date` | `str` | training pipeline | Same as `version` (UTC ISO 8601) |
 | `dataset_record_count` | `int` | training pipeline | Number of records used in training split |
@@ -118,7 +127,7 @@ A versioned, serialized model stored in the Supabase Storage model registry. Per
 |---|---|---|---|
 | `match_score` | `auc_roc` | float | ≥ 0.65 (training run fails if below) |
 | `ride_ranker` | `auc_roc` | float | no gate for MVP |
-| `price_recommender` | `mae_egp` | float | no gate for MVP |
+| ~~`price_recommender`~~ | ~~`mae_egp`~~ | ~~float~~ | removed 2026-07-04 |
 
 **Storage paths** (within bucket `model-registry`):
 
@@ -189,27 +198,9 @@ model_type:     "ride_ranker"
 ranked:         list[str]   (ride_id values, descending match quality)
 ```
 
-### PriceRequest
+### ~~PriceRequest~~ / ~~PriceResponse~~ — Removed 2026-07-04
 
-```
-origin_zone:              str
-destination_zone:         str
-origin_centroid:          {lat: float, lng: float}
-destination_centroid:     {lat: float, lng: float}
-estimated_distance_km:    float
-departure_at:             datetime (UTC)
-```
-
-### PriceResponse
-
-```
-model_version:      str
-model_type:         "price_recommender"
-recommended_fare:
-  min_egp:          float  (≥ 10 EGP floor)
-  max_egp:          float
-  currency:         "EGP"
-```
+`price_recommender` was removed; fares are computed directly by `pricing_service.calculate_fare()` in `services/api`, with no request to `services/ai`. See `contracts/prediction-api.md` for rationale.
 
 ---
 
@@ -236,17 +227,17 @@ Returned by `GET /health`. Extended from the Phase 1 backend health check format
 
 ```
 status:          "ok" | "degraded" | "unavailable"
-models_loaded:   int  (0–3)
+models_loaded:   int  (0–2)
 model_versions:
   match_score:          str | null
   ride_ranker:          str | null
-  price_recommender:    str | null
 version:         str  (AI service version from config, e.g., "0.1.0")
 ```
+*(`models_loaded` was 0–3 and `model_versions` included `price_recommender` before it was removed 2026-07-04.)*
 
 **Status rules**:
-- `ok`: all 3 models loaded
-- `degraded`: 1 or 2 models loaded (or 0 models but service is running)
+- `ok`: both models loaded
+- `degraded`: 1 model loaded (or 0 models but service is running)
 - `unavailable`: service is starting up or has crashed (not reachable)
 
 ---

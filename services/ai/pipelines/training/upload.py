@@ -10,12 +10,11 @@ _MODELS_DIR = Path(__file__).parent.parent.parent / "data" / "models"
 _MODEL_FILES = {
     "match_score": ("match_score.joblib", "match_score_metadata.json"),
     "ride_ranker": ("ride_ranker.joblib", "ride_ranker_metadata.json"),
-    "price_recommender": ("price_recommender.joblib", "price_recommender_metadata.json"),
 }
 
 
 def upload_all_models(version: str) -> None:
-    """Upload all three model artifacts; write latest.json only after all succeed."""
+    """Upload all model artifacts; write latest.json only after all succeed."""
     registry = ModelRegistry()
 
     uploaded: list[str] = []

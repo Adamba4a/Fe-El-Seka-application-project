@@ -30,7 +30,7 @@ def rank_candidates(request: RideRankingBatchRequest, model_state: dict) -> Ride
         candidate_ids.append(c.candidate_id)
 
     X = np.array(feature_rows)
-    scores = np.clip(model.predict_proba(X)[:, 1], 0.0, 1.0)
+    scores = np.clip(model.predict(X), 0.0, 1.0)
 
     order = np.argsort(scores)[::-1]
     ranked = [

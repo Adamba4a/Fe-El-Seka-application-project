@@ -59,16 +59,18 @@
 
 ## Phase 4: User Story 2 — Train AI Prediction Models (Priority: P2)
 
-**Goal**: Run the training pipeline and produce three versioned, joblib-serialized model artifacts uploaded to the Supabase Storage `model-registry` bucket, with match score AUC-ROC ≥ 0.65 confirmed.
+> **Superseded (2026-07-04)**: T016 (price model training) was removed along with the `price_recommender` model — see `contracts/prediction-api.md`. The pipeline now trains and uploads two models, not three.
 
-**Independent Test**: `uv run python -m pipelines.training.run` completes without errors; `data/models/` contains 3 `.joblib` files and 3 `_metadata.json` files; `match_score_metadata.json` shows `"gate_passed": true` and `"auc_roc" >= 0.65` (see `quickstart.md § Step 3`).
+**Goal**: Run the training pipeline and produce two versioned, joblib-serialized model artifacts uploaded to the Supabase Storage `model-registry` bucket, with match score AUC-ROC ≥ 0.65 confirmed.
+
+**Independent Test**: `uv run python -m pipelines.training.run` completes without errors; `data/models/` contains 2 `.joblib` files and 2 `_metadata.json` files; `match_score_metadata.json` shows `"gate_passed": true` and `"auc_roc" >= 0.65` (see `quickstart.md § Step 3`).
 
 - [X] T013 [P] [US2] Implement evaluation utilities in `services/ai/pipelines/training/evaluate.py`: `auc_roc_score`, `mae_score`, `build_metadata`
 - [X] T014 [US2] Implement match score model training in `services/ai/pipelines/training/train_match_score.py`: stratified 80/20 split; `XGBClassifier(objective="binary:logistic", n_estimators=200, max_depth=6, learning_rate=0.1, subsample=0.8, colsample_bytree=0.8, eval_metric="auc", random_state=42)`; **GATE: raise `TrainingGateError` if AUC-ROC < 0.65**; serialize to `data/models/match_score.joblib`; write metadata
 - [X] T015 [P] [US2] Implement ride ranker model training in `services/ai/pipelines/training/train_ranker.py`: same XGBClassifier architecture; serialize to `data/models/ride_ranker.joblib`; write metadata (no gate)
-- [X] T016 [P] [US2] Implement price recommendation model training in `services/ai/pipelines/training/train_price.py`: synthetic fare labels `15 + 3.5*dist + 10*peak + N(0,5)`; `Ridge(alpha=1.0)` on 7 price features; serialize to `data/models/price_recommender.joblib`; write metadata with MAE
-- [X] T017 [US2] Implement model upload script in `services/ai/pipelines/training/upload.py`: upload all 3 models and metadata; write `latest.json` ONLY after all uploads succeed
-- [X] T018 [US2] Implement training pipeline entry point in `services/ai/pipelines/training/run.py`: generate UTC ISO version at start; load features.parquet; train match_score (gate hard-stop), ranker, price; call upload; log metrics summary
+- [X] T016 [P] [US2] ~~Implement price recommendation model training in `train_price.py`~~ *(removed 2026-07-04 — file deleted, see amendment above)*
+- [X] T017 [US2] Implement model upload script in `services/ai/pipelines/training/upload.py`: upload all models and metadata; write `latest.json` ONLY after all uploads succeed *(uploads 2 models, not 3, as of 2026-07-04)*
+- [X] T018 [US2] Implement training pipeline entry point in `services/ai/pipelines/training/run.py`: generate UTC ISO version at start; load features.parquet; train match_score (gate hard-stop), then ranker; call upload; log metrics summary *(price training step removed 2026-07-04)*
 
 **Checkpoint**: US2 is fully functional. All three models trained, artifacts in `data/models/`, registry updated. `match_score_metadata.json` shows `gate_passed: true`.
 
@@ -76,22 +78,24 @@
 
 ## Phase 5: User Story 3 — AI Service Serves Predictions (Priority: P3)
 
-**Goal**: Start the AI service; it loads all 3 models from the registry and serves match scores, rankings, and price recommendations via HTTP within latency targets.
+> **Superseded (2026-07-04)**: T020, T025, T027 originally included the price recommender / `/predict/price-recommendation`; that model and endpoint were removed. The service now loads and serves 2 models, not 3.
 
-**Independent Test**: `GET /health` returns `"status": "ok"`; `POST /predict/match-score` with valid body returns scores in [0.0, 1.0] within 500ms; `POST /predict/price-recommendation` returns `recommended_price_egp ≥ 10.0` within 200ms (see `quickstart.md § Steps 4–5`).
+**Goal**: Start the AI service; it loads both models from the registry and serves match scores and rankings via HTTP within latency targets.
+
+**Independent Test**: `GET /health` returns `"status": "ok"`; `POST /predict/match-score` with valid body returns scores in [0.0, 1.0] within 500ms (see `quickstart.md § Steps 4–5`).
 
 - [X] T019 [P] [US3] Create Pydantic schemas in `services/ai/app/models/health.py`: `ModelVersions`, `HealthResponse`
-- [X] T020 [P] [US3] Create Pydantic schemas in `services/ai/app/models/prediction.py`: `ZoneCoords`, `MatchScoreBatchRequest`, `MatchScoreResponse`, `RideRankingBatchRequest`, `RideRankingResponse`, `PriceRequest`, `PriceResponse`
+- [X] T020 [P] [US3] Create Pydantic schemas in `services/ai/app/models/prediction.py`: `ZoneCoords`, `MatchScoreBatchRequest`, `MatchScoreResponse`, `RideRankingBatchRequest`, `RideRankingResponse`, ~~`PriceRequest`, `PriceResponse`~~ *(removed 2026-07-04)*
 - [X] T021 [P] [US3] Create Pydantic schemas in `services/ai/app/models/registry.py` and `services/ai/app/models/errors.py`: `ReloadRequest`, `ReloadResponse`, `ErrorResponse`
-- [X] T022 [US3] Create FastAPI application with lifespan in `services/ai/app/main.py`: `@asynccontextmanager` lifespan loads 3 models at startup; `app.state.models` dict; graceful None on load failure; mount routers for health, predict, models
+- [X] T022 [US3] Create FastAPI application with lifespan in `services/ai/app/main.py`: `@asynccontextmanager` lifespan loads models at startup (2 as of 2026-07-04, originally 3); `app.state.models` dict; graceful None on load failure; mount routers for health, predict, models
 - [X] T023 [P] [US3] Implement match scorer service in `services/ai/app/services/match_scorer.py`: `predict_scores()` using `build_feature_vector_from_coords`; `np.clip()` to [0.0, 1.0]
 - [X] T024 [P] [US3] Implement ride ranker service in `services/ai/app/services/ride_ranker.py`: `rank_candidates()` returning sorted `RideRankingResponse`
-- [X] T025 [P] [US3] Implement price recommender service in `services/ai/app/services/price_recommender.py`: `predict_price()` with `min_egp = max(10.0, raw_price)` floor
+- [X] T025 [P] [US3] ~~Implement price recommender service in `services/ai/app/services/price_recommender.py`~~ *(removed 2026-07-04 — file deleted, see `contracts/prediction-api.md`)*
 - [X] T026 [US3] Implement health router in `services/ai/app/routers/health.py`: `GET /health` reads `app.state.models` synchronously (NO I/O); returns `HealthResponse`
-- [X] T027 [US3] Implement prediction router in `services/ai/app/routers/predict.py`: `POST /predict/match-score`, `POST /predict/ride-ranking`, `POST /predict/price-recommendation`; per-endpoint 503 guards (T029); structured logging (T030)
+- [X] T027 [US3] Implement prediction router in `services/ai/app/routers/predict.py`: `POST /predict/match-score`, `POST /predict/ride-ranking`, ~~`POST /predict/price-recommendation`~~ *(removed 2026-07-04)*; per-endpoint 503 guards (T029); structured logging (T030)
 - [X] T028 [US3] Implement models reload router in `services/ai/app/routers/models.py`: `POST /models/reload`; reload all or targeted models; return `ReloadResponse`
 
-**Checkpoint**: US3 is fully functional. Start service with `uv run uvicorn app.main:app --port 8001`, health returns `"ok"`, all 3 prediction endpoints return valid responses within latency targets.
+**Checkpoint**: US3 is fully functional. Start service with `uv run uvicorn app.main:app --port 8001`, health returns `"ok"`, both prediction endpoints return valid responses within latency targets.
 
 ---
 
@@ -99,7 +103,7 @@
 
 **Goal**: Each prediction endpoint returns a structured HTTP 503 when its model is not loaded; health endpoint reports `"degraded"` with loaded model count; all responses conform to the `ErrorResponse` contract so the main backend can detect and fall back.
 
-**Independent Test**: Start service without uploading models (empty registry) — health returns `"degraded"`; call any prediction endpoint — receive HTTP 503; load only match_score model — POST /predict/match-score returns 200, POST /predict/price-recommendation still returns 503 (see `quickstart.md § Step 6`).
+**Independent Test**: Start service without uploading models (empty registry) — health returns `"degraded"`; call any prediction endpoint — receive HTTP 503; load only match_score model — POST /predict/match-score returns 200, POST /predict/ride-ranking still returns 503 (see `quickstart.md § Step 6`; updated 2026-07-04 to use `ride_ranker` since `price_recommender` no longer exists).
 
 - [X] T029 [US4] Per-endpoint model-not-loaded guard in `services/ai/app/routers/predict.py`: implemented in `_get_model()` helper; returns HTTP 503 with structured detail message per missing model type; all three endpoints guard independently
 - [X] T030 [US4] Structured request/response logging in `services/ai/app/routers/predict.py`: INFO level on success (endpoint, model_version, batch_size, response_time_ms); WARNING on 503; uses Python `logging` module

@@ -2,6 +2,8 @@
 
 **Service**: `services/ai` | **Feature**: `002-ai-foundation` | **Date**: 2026-06-13
 
+> **Superseded (2026-07-04)**: `price_recommender` and `POST /predict/price-recommendation` were removed. The model approximated the exact deterministic formula `pricing_service.calculate_fare()` (in `services/api`) already computes — a redundant approximation, not a genuine prediction task, with staleness and latency/failure risk and no accuracy benefit. Fares are now computed in-process by `services/api`, with no call to `services/ai`. The service now serves only `match_score` and `ride_ranker`. Sections below referencing `price_recommender` are kept for historical reference and are struck through where no longer accurate.
+
 Base URL (local): `http://localhost:8001`
 
 All request and response bodies are JSON (`Content-Type: application/json`).
@@ -18,19 +20,19 @@ Returns the service health status and loaded model inventory.
 ```json
 {
   "status": "ok",
-  "models_loaded": 3,
+  "models_loaded": 2,
   "model_versions": {
     "match_score": "2026-06-13T14:30:22Z",
-    "ride_ranker": "2026-06-13T14:30:22Z",
-    "price_recommender": "2026-06-13T14:30:22Z"
+    "ride_ranker": "2026-06-13T14:30:22Z"
   },
   "version": "0.1.0"
 }
 ```
+*(`models_loaded` was 3 and `model_versions` included `price_recommender` before it was removed 2026-07-04.)*
 
 **Status values**:
-- `"ok"` — all 3 models loaded and ready
-- `"degraded"` — service is running but 0–2 models are loaded
+- `"ok"` — both models loaded and ready
+- `"degraded"` — service is running but 0–1 models are loaded
 - `"unavailable"` — service is unreachable (connection refused or timeout)
 
 **Notes**:
@@ -152,9 +154,12 @@ Returns candidate ride IDs ordered from best to worst predicted match quality.
 
 ---
 
-## POST /predict/price-recommendation
+## ~~POST /predict/price-recommendation~~ — Removed 2026-07-04
 
-Returns a recommended fare range for a given ride.
+This endpoint, and the `price_recommender` model behind it, were removed. It was trained to approximate the exact deterministic formula `pricing_service.calculate_fare()` already computes in `services/api` — redundant approximation of a known formula, not a genuine prediction task. Fares are now computed directly by `services/api` with no call into `services/ai`. The request/response shapes below are kept for historical reference only.
+
+<details>
+<summary>Original contract (historical)</summary>
 
 **Request**:
 ```json
@@ -167,10 +172,6 @@ Returns a recommended fare range for a given ride.
   "departure_at": "2026-06-13T08:00:00Z"
 }
 ```
-
-**Constraints**:
-- `estimated_distance_km` > 0
-- `departure_at` must be a valid UTC ISO 8601 datetime
 
 **Response 200**:
 ```json
@@ -185,13 +186,7 @@ Returns a recommended fare range for a given ride.
 }
 ```
 
-**Notes**:
-- `min_egp` has a hard floor of 10 EGP (enforced by serving layer regardless of model output)
-- `min_egp = max(10.0, point_estimate × 0.8)`, `max_egp = point_estimate × 1.2`
-- `currency` is always `"EGP"` for MVP
-- Target latency: ≤ 200ms p95 (NFR-001)
-
-**Response 503**: same structure with `"model_type": "price_recommender"`.
+</details>
 
 ---
 
@@ -210,14 +205,14 @@ to reload specific models only.
 **Response 200**:
 ```json
 {
-  "reloaded": ["match_score", "ride_ranker", "price_recommender"],
+  "reloaded": ["match_score", "ride_ranker"],
   "versions": {
     "match_score": "2026-06-13T14:30:22Z",
-    "ride_ranker": "2026-06-13T14:30:22Z",
-    "price_recommender": "2026-06-13T14:30:22Z"
+    "ride_ranker": "2026-06-13T14:30:22Z"
   }
 }
 ```
+*(`price_recommender` was a third entry here before it was removed 2026-07-04.)*
 
 **Notes**:
 - In-flight requests to prediction endpoints are not interrupted during reload
@@ -231,10 +226,11 @@ to reload specific models only.
 ```json
 {
   "error": "model_not_loaded | invalid_input | internal_error",
-  "model_type": "match_score | ride_ranker | price_recommender | null",
+  "model_type": "match_score | ride_ranker | null",
   "message": "Human-readable description of the error"
 }
 ```
+*(`price_recommender` was a third valid `model_type` value before it was removed 2026-07-04.)*
 
 HTTP status codes:
 - `200` — success
