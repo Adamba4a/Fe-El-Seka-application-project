@@ -506,18 +506,44 @@ Features deferred until after the competition. The MVP architecture is designed 
 
 ---
 
-## Phase 13 — Advanced AI
+## Phase 13 — Advanced AI & Continuous Learning
 
-**Goal:** Extend AI capabilities once real ride data is available.
+**Goal:** Replace the synthetic-data-bootstrapped models (002-ai-foundation / 029-031) with models that learn from real passenger and driver behavior, without regressing quality or silently reinforcing the launch model's own biases.
+
+**Context:** The MVP AI models (match score, ride ranker, pricing) are trained entirely on synthetically generated rides because no real usage exists yet at competition time. That synthetic model is a *seed*, not an endpoint — its coefficients approximate reasonable matching behavior but were never validated against real human decisions. Once the platform has live traffic, real accept/reject/complete/cancel/rate signals are a far stronger training source than anything synthetically generated, because they capture actual revealed passenger and driver preference (walking tolerance, price sensitivity, timing patterns) directly, without anyone having to guess it.
+
+This only works if the data needed to learn from is captured correctly from day one — see 044 and 045 below, which must ship at or before public launch, not after.
 
 | ID | Name |
 |---|---|
+| 044 | match-event-instrumentation |
+| 045 | ranking-exploration-strategy |
+| 046 | real-outcome-dataset-pipeline |
+| 047 | production-retraining-pipeline |
+| 048 | shadow-deployment-rollout |
+| 049 | model-monitoring-drift-detection |
 | TBD | demand-forecasting |
 | TBD | fraud-detection |
-| TBD | ai-dataset-pipeline-v2 (real data) |
-| TBD | ai-training-pipeline-v2 (production retraining) |
 
-**Deliverables:** Demand prediction per zone/time, fraud and anomaly detection, model retraining on live ride data
+### 044 — match-event-instrumentation
+**Ship at or before public launch.** Training data cannot be reconstructed retroactively — if it isn't logged from day one, it never existed. Every candidate ride shown to a passenger must be logged with its full feature vector (overlap, pickup/dropoff walk, price, time, rank position, predicted score), and every downstream event tied back to it: viewed, requested, driver accepted/rejected, completed, cancelled, and (once 032-ratings-system ships) rated.
+
+### 045 — ranking-exploration-strategy
+**Ship at or before public launch.** If the ranker only ever surfaces its own top-scored candidates, the platform only ever collects feedback on candidates the model already believes are good — it can never learn that a borderline candidate (e.g. a longer walk, decent overlap) would actually have been accepted, because it rarely gets shown high enough to be chosen. Requires deliberately injecting controlled randomization into ranking (e.g. epsilon-greedy or occasional rank perturbation) purely to collect counterfactual outcome data. Skipping this turns "learning from real users" into "confirming whatever the launch model already believed."
+
+### 046 — real-outcome-dataset-pipeline
+Depends on accumulated real traffic volume (expect weeks-to-months, not days). ETL job joining logged match events to their outcomes into labeled training examples, with a defined signal-strength hierarchy (completed + highly rated > completed unrated > booked-not-completed > shown-not-booked; cancellations require care since they're an ambiguous signal, not automatically a negative). Includes data-quality filtering (bot/fraud/spam removal) and a documented data-retention/anonymization policy for behavioral data (Egypt PDPL 151/2020 awareness).
+
+### 047 — production-retraining-pipeline
+Automated retraining on the real-outcome dataset. Evaluated against held-out **real** data, not synthetic AUC, and gated as champion-vs-challenger: a new model version is only promoted if it beats the currently-live model on a fixed real-world benchmark. Carries forward the calibration and monotonicity fixes established in the 2026-07-04 match-score recalibration (see 002-ai-foundation research.md) so retraining can't silently reintroduce miscalibrated scores.
+
+### 048 — shadow-deployment-rollout
+New model versions run in shadow mode first — predictions logged but not shown to users — compared against the live model and against real outcomes over a burn-in period, then rolled out gradually (percentage of traffic) rather than swapped in blind. Builds on the existing model registry/versioning already in place for match_score and ride_ranker.
+
+### 049 — model-monitoring-drift-detection
+Ongoing tracking of prediction distributions and acceptance rates per zone/time so a degrading model is caught by monitoring, not by user complaints. Includes periodic human spot-audits of live model decisions, especially in the early low-volume period.
+
+**Deliverables:** Full instrumentation and exploration strategy live at launch; automated real-data retraining pipeline with champion/challenger gating; shadow deployment and gradual rollout; drift monitoring; demand prediction per zone/time; fraud and anomaly detection.
 
 ---
 
@@ -567,7 +593,8 @@ The platform is considered production-ready when:
 - [ ] Production infrastructure is hardened and monitored
 - [ ] Arabic/RTL localization is complete
 - [ ] Digital payment integration is live
-- [ ] AI models are retrained on real ride data
+- [ ] Match-event instrumentation and ranking exploration are live in production
+- [ ] AI models have completed at least one real-outcome retraining cycle and beaten the launch model on held-out real data
 
 ---
 
