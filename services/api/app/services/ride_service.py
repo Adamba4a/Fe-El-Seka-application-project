@@ -47,7 +47,8 @@ _RIDE_COLS = """
     notes, created_at, updated_at,
     route_distance_km, route_duration_minutes,
     fuel_cost_egp, platform_commission_egp, safety_margin_egp, price_source,
-    started_at, completed_at
+    started_at, completed_at,
+    ST_AsGeoJSON(route_geometry) AS route_geometry_geojson
 """
 
 
@@ -93,6 +94,9 @@ def _to_response(row: dict) -> RideResponse:
         price_source=row["price_source"],
         started_at=row["started_at"],
         completed_at=row["completed_at"],
+        route_geometry=(
+            json.loads(row["route_geometry_geojson"]) if row["route_geometry_geojson"] else None
+        ),
     )
 
 
@@ -185,9 +189,9 @@ async def create_ride(
             from app.services import wallet_service as _ws
             from app.services.commission_service import check_available_balance, create_reservation
 
-            max_commission = (Decimal(str(fuel_cost_egp)) * Decimal("0.20")).quantize(
-                Decimal("0.01"), rounding=ROUND_HALF_UP
-            )
+            max_commission = (
+                Decimal(str(fuel_cost_egp)) * Decimal("0.20") + Decimal(str(safety_margin_egp))
+            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             wallet = await _ws.get_wallet_with_lock(conn, driver_id)
 
             if not check_available_balance(wallet, max_commission):

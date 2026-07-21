@@ -50,6 +50,8 @@ class BookingListItem(BaseModel):
     status: str
     driver_display_name: Optional[str]
     departure_datetime: Optional[datetime]
+    origin_address: Optional[str] = None
+    destination_address: Optional[str] = None
     per_seat_price: str
     total_price: str
     premium_pickup_requested: bool

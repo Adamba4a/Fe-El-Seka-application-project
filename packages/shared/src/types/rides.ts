@@ -28,6 +28,7 @@ export interface Ride {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  route_geometry: object | null;
 }
 
 export interface RideHistoryEntry {

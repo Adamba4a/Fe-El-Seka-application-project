@@ -4,7 +4,7 @@ import { AppShell } from "@/components/layout/AppShell";
 
 export const dynamic = "force-dynamic";
 
-export default async function DriverLayout({ children }: { children: React.ReactNode }) {
+export default async function AppGroupLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -15,9 +15,7 @@ export default async function DriverLayout({ children }: { children: React.React
     .eq("id", user.id)
     .single();
 
-  // Only redirect if we got a definitive answer that this user is not a driver.
-  // A null profile caused by a transient DB error should not bounce the driver out.
-  if (!error && profile && profile.role !== "driver") redirect("/");
+  const isDriver = !error && profile?.role === "driver";
 
-  return <AppShell variant="driver">{children}</AppShell>;
+  return <AppShell variant={isDriver ? "driver" : "passenger"}>{children}</AppShell>;
 }

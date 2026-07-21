@@ -33,6 +33,42 @@ export interface RideSearchResponse {
   ai_ranking_active: boolean;
 }
 
+export interface NearbyRide {
+  ride_id: string;
+  driver: {
+    display_name: string | null;
+    avatar_url: string | null;
+    is_verified: boolean;
+  };
+  departure_datetime: string;
+  available_seats: number;
+  per_seat_price: string;
+  origin_address: string;
+  destination_address: string;
+  destination_lat: number;
+  destination_lng: number;
+  distance_meters: number;
+}
+
+export async function getNearbyRides(
+  token: string,
+  lat: number,
+  lng: number,
+  limit = 2
+): Promise<NearbyRide[]> {
+  const query = new URLSearchParams({
+    lat: String(lat),
+    lng: String(lng),
+    limit: String(limit),
+  });
+  const res = await fetch(`${env.apiUrl}/api/v1/search/nearby?${query}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json.rides;
+}
+
 export async function searchRides(
   token: string,
   params: {

@@ -2,9 +2,18 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { BookingCard } from "@/components/bookings/BookingCard";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { createClient } from "@/lib/supabase/client";
+import { getRide } from "@/lib/api/rides";
 import { useBookingStatus } from "@/lib/hooks/useBookingStatus";
+import type { Ride } from "@fe-el-seka/shared";
+
+const RideDetailMap = dynamic(
+  () => import("@/components/bookings/RideDetailMap").then((m) => ({ default: m.RideDetailMap })),
+  { ssr: false, loading: () => <div className="w-full h-56 bg-surface-bg rounded-xl animate-pulse" /> }
+);
 
 type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 
@@ -56,6 +65,22 @@ export default function DriverRideBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [ride, setRide] = useState<Ride | null>(null);
+  const [mapBooking, setMapBooking] = useState<DriverBooking | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      try {
+        const detail = await getRide(session.access_token, rideId);
+        setRide(detail.ride);
+      } catch {
+        // Map view falls back to hidden if the ride can't be loaded
+      }
+    })();
+  }, [rideId]);
 
   const fetchBookings = useCallback(async () => {
     try {
@@ -222,6 +247,7 @@ export default function DriverRideBookingsPage() {
               booking={booking}
               onConfirm={() => handleConfirm(booking.booking_id)}
               onReject={() => handleReject(booking.booking_id)}
+              onViewMap={ride ? () => setMapBooking(booking) : undefined}
               actionLoading={actionLoading === booking.booking_id}
             />
           ))
@@ -244,11 +270,29 @@ export default function DriverRideBookingsPage() {
               booking={booking}
               cancelAvailable={true}
               onCancel={() => handleCancel(booking.booking_id)}
+              onViewMap={ride ? () => setMapBooking(booking) : undefined}
               actionLoading={actionLoading === booking.booking_id}
             />
           ))
         )}
       </section>
+
+      <BottomSheet isOpen={!!mapBooking} onClose={() => setMapBooking(null)}>
+        {mapBooking && ride && (
+          <div className="space-y-3 pt-1">
+            <h2 className="text-base font-semibold text-content-primary">
+              {mapBooking.passenger.display_name ?? "Passenger"}'s pickup &amp; dropoff
+            </h2>
+            <RideDetailMap
+              routeGeometry={ride.route_geometry}
+              boardingPoint={mapBooking.boarding_point}
+              alightingPoint={mapBooking.alighting_point}
+              origin={ride.origin.coordinates}
+              destination={ride.destination.coordinates}
+            />
+          </div>
+        )}
+      </BottomSheet>
     </div>
   );
 }

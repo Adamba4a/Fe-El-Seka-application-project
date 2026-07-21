@@ -44,6 +44,7 @@ interface DriverVariantProps {
   onConfirm?: () => void;
   onReject?: () => void;
   onCancel?: () => void;
+  onViewMap?: () => void;
   actionLoading?: boolean;
   /** Set false to hide cancel until Phase 7 endpoint is live */
   cancelAvailable?: boolean;
@@ -103,7 +104,7 @@ export function BookingCard(props: BookingCardProps) {
   }
 
   // Driver variant
-  const { booking, onConfirm, onReject, onCancel, actionLoading, cancelAvailable = false } = props;
+  const { booking, onConfirm, onReject, onCancel, onViewMap, actionLoading, cancelAvailable = false } = props;
   const isPending = booking.status === "pending";
   const isConfirmed = booking.status === "confirmed";
   const passengerName = booking.passenger.display_name ?? "Passenger";
@@ -139,16 +140,27 @@ export function BookingCard(props: BookingCardProps) {
           </div>
         </div>
 
-        <div className="text-xs text-content-muted space-y-1">
-          <p>
-            <span className="font-medium text-content-primary">Boarding: </span>
-            {formatCoord(booking.boarding_point)}
-          </p>
-          <p>
-            <span className="font-medium text-content-primary">Alighting: </span>
-            {formatCoord(booking.alighting_point)}
-          </p>
-        </div>
+        {onViewMap ? (
+          <button
+            type="button"
+            onClick={onViewMap}
+            className="w-full flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-surface-bg border border-transparent hover:border-border-default text-content-secondary transition-colors"
+          >
+            <span>View pickup &amp; dropoff on map</span>
+            <span className="text-content-muted">→</span>
+          </button>
+        ) : (
+          <div className="text-xs text-content-muted space-y-1">
+            <p>
+              <span className="font-medium text-content-primary">Boarding: </span>
+              {formatCoord(booking.boarding_point)}
+            </p>
+            <p>
+              <span className="font-medium text-content-primary">Alighting: </span>
+              {formatCoord(booking.alighting_point)}
+            </p>
+          </div>
+        )}
 
         {(booking.premium_pickup_requested || booking.premium_dropoff_requested) && (
           <div className="rounded-lg bg-amber-50 border border-amber-200 p-2 text-xs text-amber-800 space-y-0.5">

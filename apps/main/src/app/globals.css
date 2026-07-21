@@ -36,4 +36,17 @@
   --color-status-in-progress-bg:   #FEF3C7;
   --color-status-completed-bg:     #DCFCE7;
   --color-status-cancelled-bg:     #FEE2E2;
+
+  /* Dashboard shell (007-frontend-redesign) — scoped to shared TopBar/BottomNav
+     and the two dashboard pages only. Deliberately separate from --color-brand-*
+     so the rest of the app is untouched by this redesign pass. */
+  --color-dash-bg:                 #F4FAFD;
+  --color-dash-surface:            #FFFFFF;
+  --color-dash-primary:            #16587B;
+  --color-dash-navy:               #00405D;
+  --color-dash-text-muted:         #41484E;
+  --color-dash-border:             #E3EAEE;
+  --color-dash-badge-bg:           #E3F2FF;
+  --color-dash-badge-confirmed:    #16587B;
+  --color-dash-badge-pending:      #16587B;
 }

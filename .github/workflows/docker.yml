@@ -35,7 +35,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Scan API image
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: fe-el-seka-api:scan
           exit-code: "1"
@@ -66,7 +66,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Scan AI image
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: fe-el-seka-ai:scan
           exit-code: "1"
@@ -94,11 +94,16 @@ jobs:
           file: apps/main/Dockerfile
           load: true
           tags: fe-el-seka-main:scan
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_NOMINATIM_URL=${{ vars.NEXT_PUBLIC_NOMINATIM_URL }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Scan frontend image
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: fe-el-seka-main:scan
           exit-code: "1"
@@ -152,5 +157,10 @@ jobs:
           tags: |
             ghcr.io/adamba4a/fe-el-seka-main:latest
             ghcr.io/adamba4a/fe-el-seka-main:${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_NOMINATIM_URL=${{ vars.NEXT_PUBLIC_NOMINATIM_URL }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

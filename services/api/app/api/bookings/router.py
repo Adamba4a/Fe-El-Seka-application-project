@@ -94,7 +94,7 @@ async def list_bookings(
                 b.premium_pickup_requested, b.premium_dropoff_requested,
                 b.premium_pickup_fee, b.premium_dropoff_fee,
                 b.created_at, b.confirmed_at, b.cancelled_at,
-                r.departure_datetime,
+                r.departure_datetime, r.origin_address, r.destination_address,
                 p.display_name AS driver_display_name
             FROM bookings b
             JOIN rides r ON r.id = b.ride_id
@@ -122,6 +122,8 @@ async def list_bookings(
             status=r["status"],
             driver_display_name=r["driver_display_name"],
             departure_datetime=r["departure_datetime"],
+            origin_address=r["origin_address"],
+            destination_address=r["destination_address"],
             per_seat_price=f"{float(r['per_seat_price']):.2f}",
             total_price=f"{float(r['total_price']):.2f}",
             premium_pickup_requested=r["premium_pickup_requested"],

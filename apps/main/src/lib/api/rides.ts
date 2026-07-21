@@ -45,6 +45,31 @@ export async function listRides(
   return json;
 }
 
+export interface RideBookingItem {
+  booking_id: string;
+  passenger: {
+    display_name: string | null;
+    avatar_url: string | null;
+  };
+  status: "pending" | "confirmed" | "cancelled" | "completed";
+  per_seat_price: string;
+  total_price: string;
+}
+
+export async function listRideBookings(
+  token: string,
+  rideId: string,
+  status?: string
+): Promise<RideBookingItem[]> {
+  const query = status ? `?status=${status}` : "";
+  const res = await fetch(`${base}/api/v1/rides/${rideId}/bookings${query}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json.bookings;
+}
+
 export async function getRide(token: string, id: string): Promise<RideDetailResponse> {
   const res = await fetch(`${base}/api/v1/rides/${id}`, {
     headers: { Authorization: `Bearer ${token}` },

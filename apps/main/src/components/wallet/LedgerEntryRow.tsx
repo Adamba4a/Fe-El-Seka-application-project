@@ -39,7 +39,7 @@ export function LedgerEntryRow({ entry }: Props) {
           <span>{relativeTime(entry.created_at)}</span>
           {entry.ride_id && entry.type === "COMMISSION_DEBIT" && (
             <Link
-              href={`/rides/${entry.ride_id}`}
+              href={`/rides/${entry.ride_id}/manage`}
               className="text-brand-primary underline"
             >
               View ride

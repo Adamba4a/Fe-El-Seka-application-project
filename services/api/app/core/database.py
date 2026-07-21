@@ -22,7 +22,13 @@ async def create_pool(database_url: str) -> asyncpg.Pool:  # type: ignore[type-a
     global _pool
     if _pool is not None:
         return _pool
-    _pool = await asyncpg.create_pool(database_url, min_size=1, max_size=10, init=_init_connection)
+    # statement_cache_size=0: Supabase's transaction-mode pgbouncer pooler
+    # (port 6543) hands out a different backend connection per query, so
+    # asyncpg's per-connection prepared-statement cache goes stale and
+    # raises "prepared statement already exists" — disable it entirely.
+    _pool = await asyncpg.create_pool(
+        database_url, min_size=1, max_size=10, init=_init_connection, statement_cache_size=0
+    )
     return _pool
 
 

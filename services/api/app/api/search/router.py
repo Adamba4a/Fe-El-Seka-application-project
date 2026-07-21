@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -152,6 +152,61 @@ async def _ai_rank(
     score_map = {s.ride_id: s.match_score_pct for s in final_scored}
 
     return ranked_candidates, score_map, model_version
+
+
+# ── GET /api/v1/search/nearby ─────────────────────────────────────────────────
+# Lightweight dashboard preview — no destination, no AI ranking, no route service
+# call. Just the closest scheduled rides with open seats to a pickup point.
+
+@router.get("/nearby")
+async def nearby_rides(
+    lat: float = Query(..., ge=-90, le=90),
+    lng: float = Query(..., ge=-180, le=180),
+    limit: int = Query(2, ge=1, le=5),
+    _profile: dict = Depends(get_current_verified_passenger),
+) -> JSONResponse:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT
+                r.id, r.departure_datetime, r.available_seats, r.price_per_seat,
+                r.origin_address, r.destination_address,
+                ST_Y(r.destination_coordinates::geometry) AS destination_lat,
+                ST_X(r.destination_coordinates::geometry) AS destination_lng,
+                ST_Distance(r.origin_coordinates, ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography) AS distance_m,
+                p.display_name, p.profile_photo_path AS avatar_url, p.verification_status
+            FROM rides r
+            JOIN profiles p ON p.id = r.driver_id
+            WHERE r.status = 'scheduled'
+              AND r.available_seats > 0
+              AND r.departure_datetime > now()
+            ORDER BY r.origin_coordinates <-> ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography
+            LIMIT $3
+            """,
+            lat, lng, limit,
+        )
+
+    rides_out = [
+        {
+            "ride_id": str(r["id"]),
+            "driver": {
+                "display_name": r["display_name"],
+                "avatar_url": r["avatar_url"],
+                "is_verified": r["verification_status"] == "verified",
+            },
+            "departure_datetime": r["departure_datetime"].isoformat(),
+            "available_seats": r["available_seats"],
+            "per_seat_price": f"{float(r['price_per_seat']):.2f}",
+            "origin_address": r["origin_address"],
+            "destination_address": r["destination_address"],
+            "destination_lat": float(r["destination_lat"]),
+            "destination_lng": float(r["destination_lng"]),
+            "distance_meters": round(float(r["distance_m"])),
+        }
+        for r in rows
+    ]
+    return JSONResponse({"rides": rides_out})
 
 
 # ── POST /api/v1/search/rides ─────────────────────────────────────────────────

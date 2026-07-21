@@ -75,6 +75,7 @@ class RideResponse(BaseModel):
     price_source: Optional[str] = None
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    route_geometry: Optional[dict] = None
 
 
 class RideDetailResponse(BaseModel):

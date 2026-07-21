@@ -40,6 +40,15 @@ const config: Config = {
           "completed-bg":     "var(--color-status-completed-bg)",
           "cancelled-bg":     "var(--color-status-cancelled-bg)",
         },
+        dash: {
+          bg:              "var(--color-dash-bg)",
+          surface:         "var(--color-dash-surface)",
+          primary:         "var(--color-dash-primary)",
+          navy:            "var(--color-dash-navy)",
+          "text-muted":    "var(--color-dash-text-muted)",
+          border:          "var(--color-dash-border)",
+          "badge-bg":      "var(--color-dash-badge-bg)",
+        },
       },
       fontSize: {
         h1:        ["1.875rem", { lineHeight: "1.2", fontWeight: "700" }],
