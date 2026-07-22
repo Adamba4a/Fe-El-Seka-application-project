@@ -188,7 +188,7 @@ export function BookingCard(props: BookingCardProps) {
               type="button"
               onClick={onReject}
               disabled={actionLoading}
-              className="flex-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-red-500 hover:bg-red-600 text-white disabled:opacity-50 transition-colors"
+              className="flex-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-destructive text-content-inverse disabled:opacity-50 transition-colors"
             >
               Reject
             </button>
@@ -200,7 +200,7 @@ export function BookingCard(props: BookingCardProps) {
             type="button"
             onClick={onCancel}
             disabled={actionLoading}
-            className="w-full px-3 py-1.5 rounded-lg text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+            className="w-full px-3 py-1.5 rounded-lg text-sm font-medium border border-border-default text-content-destructive hover:bg-status-cancelled-bg disabled:opacity-50 transition-colors"
           >
             Cancel Booking
           </button>

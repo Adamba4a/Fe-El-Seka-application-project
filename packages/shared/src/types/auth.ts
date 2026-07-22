@@ -24,6 +24,15 @@ export interface RefreshRequest {
   refresh_token: string;
 }
 
+export interface PasswordSignInRequest {
+  email: string;
+  password: string;
+}
+
+export interface SetPasswordRequest {
+  new_password: string;
+}
+
 export interface AdminLoginRequest {
   email: string;
   password: string;

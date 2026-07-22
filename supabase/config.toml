@@ -44,10 +44,30 @@ double_confirm_changes = true
 enable_confirmations = true
 max_frequency = "5s"
 
+# sign_in_with_otp({"email": ...}) uses this template for RETURNING users
+# (an account already exists for that email). Without it, Supabase sends its
+# default magic-link-only email (a link, no code) — the frontend expects a
+# 6-digit code (see apps/main/src/app/(auth)/otp/page.tsx), so this template
+# must render {{ .Token }}, not just {{ .ConfirmationURL }}.
+[auth.email.template.magic_link]
+subject = "Your Triplyy sign-in code"
+content_path = "./supabase/templates/magic_link.html"
+
+# sign_in_with_otp({"email": ...}) uses THIS template instead of magic_link
+# for a BRAND NEW email (Supabase treats first-time OTP sign-in as a signup).
+# The stock "Confirm signup" template's link redirects to redirect_to with an
+# implicit-flow token in the URL fragment that this app never consumes,
+# landing on "/" unauthenticated -> middleware bounces to /login -> the user
+# clicks "sign in" again -> same new-signup path -> infinite loop. Rendering
+# code-only here (no link) matches the code-entry flow at /otp.
+[auth.email.template.confirmation]
+subject = "Your Triplyy sign-in code"
+content_path = "./supabase/templates/confirmation.html"
+
 [auth.sms]
 enable_signup = true
 enable_confirmations = false
-template = "Your Fe El Seka OTP is {{ .Code }}"
+template = "Your Triplyy OTP is {{ .Code }}"
 max_frequency = "5s"
 
 [analytics]

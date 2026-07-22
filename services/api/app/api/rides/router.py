@@ -67,7 +67,7 @@ def _service_error_response(exc: RideServiceError) -> JSONResponse:
 # POST /api/v1/rides
 # ─────────────────────────────────────────────────────────────────────────────
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_ride(
     payload: CreateRideRequest,
     profile: dict = Depends(get_current_verified_driver),
@@ -129,7 +129,7 @@ async def create_ride(
 # GET /api/v1/rides
 # ─────────────────────────────────────────────────────────────────────────────
 
-@router.get("/")
+@router.get("")
 async def list_rides(
     status_filter: Optional[str] = Query(None, alias="status"),
     page: int = Query(1, ge=1),

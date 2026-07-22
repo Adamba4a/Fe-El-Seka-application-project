@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 FUEL_EFFICIENCY_KM_PER_L: float = 13.0
 PLATFORM_COMMISSION_RATE: float = 0.20
+FARE_SPLIT_SEATS: int = 3
 
 _DEFAULTS: dict[str, Any] = {
     "fuel_price_per_litre": 15.00,
@@ -78,14 +79,17 @@ def get_pricing_config() -> dict[str, Any]:
     return dict(_config_cache)
 
 
-def _calc_fee_from_distance(distance_km: float, seat_count: int) -> dict[str, float]:
+def _calc_fee_from_distance(
+    distance_km: float, seat_count: int, split_by: int | None = None
+) -> dict[str, float]:
     config = get_pricing_config()
     fuel_price = float(config["fuel_price_per_litre"])
     safety = float(config["safety_margin"])
 
     fuel_cost = (distance_km / FUEL_EFFICIENCY_KM_PER_L) * fuel_price
     commission = fuel_cost * PLATFORM_COMMISSION_RATE
-    per_seat = round((fuel_cost + commission + safety) / seat_count)
+    divisor = split_by if split_by is not None else seat_count
+    per_seat = round((fuel_cost + commission + safety) / divisor)
     total = per_seat * seat_count
 
     return {
@@ -99,7 +103,7 @@ def _calc_fee_from_distance(distance_km: float, seat_count: int) -> dict[str, fl
 
 def calculate_fare(distance_km: float, seat_count: int) -> FareEstimateResponse:
     config = get_pricing_config()
-    fees = _calc_fee_from_distance(distance_km, seat_count)
+    fees = _calc_fee_from_distance(distance_km, seat_count, split_by=FARE_SPLIT_SEATS)
     logger.info(
         "calculate_fare distance_km=%.3f fuel_price=%.2f seat_count=%d per_seat=%.2f",
         distance_km,

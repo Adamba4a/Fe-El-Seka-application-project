@@ -29,7 +29,7 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold">Admin Sign In</h1>
-          <p className="text-gray-500 text-sm mt-1">Fe El Seka Admin Panel</p>
+          <p className="text-gray-500 text-sm mt-1">Triplyy Admin Panel</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

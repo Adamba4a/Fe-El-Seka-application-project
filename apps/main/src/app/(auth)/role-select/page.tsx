@@ -34,7 +34,9 @@ export default function RoleSelectPage() {
         setError(msg ?? "Could not save role. Please try again.");
         return;
       }
-      router.push("/profile");
+      // Google users already have provider-managed auth — a local password
+      // is optional (available later from Settings), not part of onboarding.
+      router.push(session.user.app_metadata?.provider === "google" ? "/profile" : "/set-password");
     } catch {
       setError("Unexpected error. Please try again.");
     } finally {
@@ -46,7 +48,7 @@ export default function RoleSelectPage() {
     <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-h2 text-content-primary">How will you use Fe El Seka?</h1>
+          <h1 className="text-h2 text-content-primary">How will you use Triplyy?</h1>
           <p className="text-body-sm text-content-muted mt-1">This cannot be changed later</p>
         </div>
 

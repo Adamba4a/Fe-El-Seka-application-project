@@ -10,7 +10,14 @@ async function parseErrorResponse(res: Response): Promise<{ error?: string; mess
     return { message: `Server error (${res.status}). Please try again.` };
   }
   try {
-    return await res.json();
+    const body = await res.json();
+    // FastAPI's default HTTPException handler wraps our {error, message} dict
+    // under a "detail" key ({"detail": {"error": ..., "message": ...}}) —
+    // unwrap it so callers can check err.error / err.message directly.
+    if (body && typeof body === "object" && body.detail && typeof body.detail === "object") {
+      return body.detail;
+    }
+    return body;
   } catch {
     return { message: `Server error (${res.status}). Please try again.` };
   }
@@ -34,6 +41,28 @@ export async function verifyOtp(email: string, otp: string): Promise<SessionResp
   });
   if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
+}
+
+export async function signInWithPassword(email: string, password: string): Promise<SessionResponse> {
+  const res = await fetch(`${base}/api/auth/sign-in-with-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.json();
+}
+
+export async function setPassword(accessToken: string, newPassword: string): Promise<void> {
+  const res = await fetch(`${base}/api/auth/password`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ new_password: newPassword }),
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
 }
 
 export async function refreshToken(refresh_token: string): Promise<{ access_token: string; expires_in: number }> {

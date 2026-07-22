@@ -26,7 +26,7 @@ export default async function Home() {
     return (
       <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
         <div className="w-full max-w-sm text-center space-y-4">
-          <h1 className="text-h2 text-content-primary">Fe El Seka</h1>
+          <h1 className="text-h2 text-content-primary">Triplyy</h1>
           <p className="text-body-sm text-content-destructive">Your account has been suspended. Please contact support.</p>
         </div>
       </main>
@@ -45,7 +45,7 @@ export default async function Home() {
   return (
     <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm text-center space-y-4">
-        <h1 className="text-h2 text-content-primary">Fe El Seka</h1>
+        <h1 className="text-h2 text-content-primary">Triplyy</h1>
         <PendingApprovalWait />
       </div>
     </main>

@@ -28,6 +28,8 @@ export type {
   SessionResponse,
   RefreshRequest,
   AdminLoginRequest,
+  PasswordSignInRequest,
+  SetPasswordRequest,
 } from "./types/auth";
 
 export type {

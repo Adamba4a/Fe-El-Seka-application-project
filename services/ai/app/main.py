@@ -47,7 +47,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
-        title="Fe El Seka AI Service",
+        title="Triplyy AI Service",
         version=settings.ai_version,
         lifespan=lifespan,
     )

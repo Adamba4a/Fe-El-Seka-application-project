@@ -1,4 +1,4 @@
-# Running Fe El Seka Locally
+# Running Triplyy Locally
 
 ## Prerequisites
 

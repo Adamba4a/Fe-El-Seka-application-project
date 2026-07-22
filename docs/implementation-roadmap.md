@@ -1,4 +1,4 @@
-# Fe El Seka — Implementation Roadmap
+# Triplyy — Implementation Roadmap
 
 **Version**: 1.0.0
 **Date**: 2026-06-12
@@ -8,7 +8,7 @@
 
 ## Project Overview
 
-Fe El Seka is an Egyptian AI-powered route-sharing and carpooling platform.
+Triplyy is an Egyptian AI-powered route-sharing and carpooling platform.
 
 Drivers create rides because they are already traveling to a destination.
 Passengers discover and join existing rides that match their routes.

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ProfileEditor } from "./ProfileEditor";
+import { env } from "@/lib/env";
 import type { Profile, Vehicle, VehicleUpdateRequestRecord } from "@fe-el-seka/shared";
 
 export default function SettingsProfilePage() {
@@ -29,7 +30,7 @@ export default function SettingsProfilePage() {
 
         setAccessToken(token);
 
-        const profileRes = await fetch("/api/profiles/me", {
+        const profileRes = await fetch(`${env.apiUrl}/api/profiles/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -44,8 +45,8 @@ export default function SettingsProfilePage() {
 
         if (profileData.role === "driver") {
           const [vehicleRes, updateRes] = await Promise.all([
-            fetch("/api/vehicles/me", { headers: { Authorization: `Bearer ${token}` } }),
-            fetch("/api/vehicles/me/update-request", { headers: { Authorization: `Bearer ${token}` } }),
+            fetch(`${env.apiUrl}/api/vehicles/me`, { headers: { Authorization: `Bearer ${token}` } }),
+            fetch(`${env.apiUrl}/api/vehicles/me/update-request`, { headers: { Authorization: `Bearer ${token}` } }),
           ]);
           if (vehicleRes.ok) setVehicle((await vehicleRes.json()) as Vehicle);
           if (updateRes.ok) setPendingUpdate((await updateRes.json()) as VehicleUpdateRequestRecord);

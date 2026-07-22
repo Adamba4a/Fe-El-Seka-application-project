@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { updateMe, uploadPhoto } from "@/lib/api/profiles";
 import { updateMyVehicle, requestVehicleUpdate } from "@/lib/api/vehicles";
+import { PasswordSettings } from "./PasswordSettings";
 import type { Profile, Vehicle, VehicleUpdateRequestRecord } from "@fe-el-seka/shared";
 
 const currentYear = new Date().getFullYear();
@@ -260,6 +261,8 @@ export function ProfileEditor({
           onUpdateRequested={setPendingUpdate}
         />
       )}
+
+      <PasswordSettings accessToken={accessToken} />
 
       <div className="pt-4 border-t border-border-default">
         <a

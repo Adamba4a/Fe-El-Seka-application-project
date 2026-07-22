@@ -107,6 +107,69 @@ def verify_otp(email: str, otp: str) -> dict:
     }
 
 
+def sign_in_with_password(email: str, password: str) -> dict:
+    sb = _supabase()
+    try:
+        resp = sb.auth.sign_in_with_password({"email": email, "password": password})
+    except Exception:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error": "invalid_credentials",
+                "message": "Incorrect email or password.",
+            },
+        )
+
+    if not resp.session or not resp.user:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error": "invalid_credentials",
+                "message": "Incorrect email or password.",
+            },
+        )
+
+    session = resp.session
+    user = resp.user
+
+    profile_resp = sb.table("profiles").select("id").eq("id", user.id).execute()
+    is_new_user = not bool(profile_resp.data)
+
+    if not is_new_user:
+        (
+            sb.table("profiles")
+            .update({"last_login_at": datetime.now(timezone.utc).isoformat()})
+            .eq("id", user.id)
+            .execute()
+        )
+
+    return {
+        "access_token": session.access_token,
+        "refresh_token": session.refresh_token,
+        "expires_in": session.expires_in or 3600,
+        "user": {
+            "id": user.id,
+            "email": user.email or email,
+            "is_new_user": is_new_user,
+        },
+    }
+
+
+def set_password(user_id: str, new_password: str) -> None:
+    sb = _supabase()
+    try:
+        sb.auth.admin.update_user_by_id(user_id, {"password": new_password})
+    except Exception as exc:
+        logger.error("Failed to set password for user %s: %s", user_id, exc)
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "error": "password_update_failed",
+                "message": "Could not update password. Try again.",
+            },
+        )
+
+
 def refresh_session(refresh_token: str) -> dict:
     sb = _supabase()
     try:

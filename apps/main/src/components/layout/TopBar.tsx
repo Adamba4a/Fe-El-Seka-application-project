@@ -93,7 +93,7 @@ export function TopBar({ variant, userName, avatarUrl, notificationCount = 0 }: 
             </div>
           </div>
         ) : (
-          <span className="text-2xl font-bold text-dash-navy">Fe El Seka</span>
+          <span className="text-2xl font-bold text-dash-navy">Triplyy</span>
         )}
 
         <div className="flex items-center gap-4">

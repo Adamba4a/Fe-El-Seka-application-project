@@ -314,7 +314,7 @@ export default function PassengerBookingDetailPage() {
         <button
           type="button"
           onClick={() => setShowConfirm(true)}
-          className="w-full rounded-xl border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2.5 text-sm font-medium transition-colors"
+          className="w-full rounded-xl border border-border-default text-content-destructive hover:bg-status-cancelled-bg px-4 py-2.5 text-sm font-medium transition-colors"
         >
           Cancel Booking
         </button>
@@ -332,7 +332,7 @@ export default function PassengerBookingDetailPage() {
                 type="button"
                 onClick={handleCancel}
                 disabled={cancelling}
-                className="flex-1 rounded-xl bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 rounded-xl bg-surface-destructive text-content-inverse px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {cancelling && <Spinner />}
                 {cancelling ? "Cancelling…" : "Yes, Cancel"}

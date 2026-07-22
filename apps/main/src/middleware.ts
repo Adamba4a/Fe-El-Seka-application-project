@@ -1,7 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { resolveOrigin } from "@/lib/request-origin";
 
-const PUBLIC_PATHS = ["/login", "/otp", "/signout"];
+const PUBLIC_PATHS = ["/login", "/otp", "/signout", "/auth"];
 // /signout must work even when a user IS authenticated (it clears a bad session).
 // Do NOT redirect authenticated users away from it.
 const ALLOW_AUTHENTICATED = ["/signout"];
@@ -22,6 +23,7 @@ function isPassengerRoute(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  const origin = resolveOrigin(request);
 
   // Must use NextResponse.next({ request }) and reassign on cookie writes —
   // this is required for Supabase SSR to refresh the session cookie properly.
@@ -51,12 +53,12 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user && !isPublic) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/login", origin));
   }
 
   const canPassThrough = ALLOW_AUTHENTICATED.some((p) => pathname.startsWith(p));
   if (user && isPublic && !canPassThrough) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/", origin));
   }
 
   // For passenger routes, enforce verification_status = 'approved'
@@ -68,7 +70,7 @@ export async function middleware(request: NextRequest) {
       .single();
 
     if (profile && profile.verification_status !== "verified") {
-      return NextResponse.redirect(new URL("/onboarding/verify-id", request.url));
+      return NextResponse.redirect(new URL("/onboarding/verify-id", origin));
     }
   }
 

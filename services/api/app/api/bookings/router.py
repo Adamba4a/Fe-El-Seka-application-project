@@ -24,7 +24,7 @@ router = APIRouter()
 
 # ── POST /api/v1/bookings ────────────────────────────────────────────────────
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def book_ride(
     body: BookingCreateRequest,
     profile: dict = Depends(get_current_verified_passenger),
@@ -66,7 +66,7 @@ async def book_ride(
 
 # ── GET /api/v1/bookings  (T037) ────────────────────────────────────────────
 
-@router.get("/")
+@router.get("")
 async def list_bookings(
     status_filter: Optional[str] = Query(None, alias="status"),
     page: int = Query(1, ge=1),

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Fe El Seka Admin",
-  description: "Fe El Seka platform administration",
+  title: "Triplyy Admin",
+  description: "Triplyy platform administration",
 };
 
 export default function RootLayout({

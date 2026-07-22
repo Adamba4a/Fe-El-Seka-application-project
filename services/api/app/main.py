@@ -74,7 +74,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(
-    title="Fe El Seka API",
+    title="Triplyy API",
     version=settings.api_version,
     lifespan=lifespan,
 )

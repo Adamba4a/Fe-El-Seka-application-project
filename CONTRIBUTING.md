@@ -1,4 +1,4 @@
-# Contributing to Fe El Seka
+# Contributing to Triplyy
 
 ## Branch Naming
 

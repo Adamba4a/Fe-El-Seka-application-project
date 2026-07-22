@@ -9,24 +9,43 @@ export type { SearchLocation, SearchBbox };
 interface RideSearchFormProps {
   loading?: boolean;
   onSearch: (origin: SearchLocation, destination: SearchLocation) => void;
+  // External coordinate props — when provided, the page owns pin-drop via a full-screen map
+  // (mirrors RideForm's externalOrigin/externalDestination pattern)
+  externalOrigin?: SearchLocation;
+  externalDestination?: SearchLocation;
+  onRequestOriginMap?: () => void;
+  onRequestDestinationMap?: () => void;
 }
 
 const inputClass =
   "w-full border border-border-default rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-primary transition-colors bg-surface-card";
 
-export function RideSearchForm({ loading, onSearch }: RideSearchFormProps) {
+export function RideSearchForm({
+  loading, onSearch, externalOrigin, externalDestination, onRequestOriginMap, onRequestDestinationMap,
+}: RideSearchFormProps) {
   const [originText, setOriginText] = useState("");
   const [destText, setDestText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [geocoding, setGeocoding] = useState(false);
-  const [geocodedOrigin, setGeocodedOrigin] = useState<SearchLocation | null>(null);
-  const [geocodedDest, setGeocodedDest] = useState<SearchLocation | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setGeocodedOrigin(null);
-    setGeocodedDest(null);
+
+    if (onRequestOriginMap) {
+      // Map-driven mode — origin/destination already resolved via pin-drop
+      if (!externalOrigin) { setError("Please select an origin on the map."); return; }
+      if (!externalDestination) { setError("Please select a destination on the map."); return; }
+      if (
+        Math.abs(externalOrigin.lat - externalDestination.lat) < 1e-4 &&
+        Math.abs(externalOrigin.lng - externalDestination.lng) < 1e-4
+      ) {
+        setError("Origin and destination must be different locations.");
+        return;
+      }
+      onSearch(externalOrigin, externalDestination);
+      return;
+    }
 
     if (!originText.trim()) { setError("Please enter an origin address."); return; }
     if (!destText.trim()) { setError("Please enter a destination address."); return; }
@@ -46,8 +65,6 @@ export function RideSearchForm({ loading, onSearch }: RideSearchFormProps) {
         return;
       }
 
-      setGeocodedOrigin(origin);
-      setGeocodedDest(dest);
       onSearch(origin, dest);
     } finally {
       setGeocoding(false);
@@ -58,39 +75,75 @@ export function RideSearchForm({ loading, onSearch }: RideSearchFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1">
-        <label className="block text-sm font-medium text-content-secondary">From</label>
-        <input
-          type="text"
-          placeholder="e.g. Nasr City, Cairo"
-          value={originText}
-          onChange={(e) => setOriginText(e.target.value)}
-          className={inputClass}
-          disabled={busy}
-        />
-      </div>
-
-      <div className="space-y-1">
-        <label className="block text-sm font-medium text-content-secondary">To</label>
-        <input
-          type="text"
-          placeholder="e.g. Maadi, Cairo"
-          value={destText}
-          onChange={(e) => setDestText(e.target.value)}
-          className={inputClass}
-          disabled={busy}
-        />
-      </div>
-
-      {error && <p className="text-sm text-content-destructive">{error}</p>}
-
-      {/* Confirm geocoded locations so user can verify before results load */}
-      {(geocodedOrigin || geocodedDest) && !error && (
-        <div className="rounded-xl bg-surface-bg border border-border-default px-3 py-2 space-y-1 text-xs text-content-muted">
-          {geocodedOrigin && <p>📍 From: <span className="text-content-secondary">{geocodedOrigin.address}</span></p>}
-          {geocodedDest && <p>🏁 To: <span className="text-content-secondary">{geocodedDest.address}</span></p>}
+      {onRequestOriginMap ? (
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-content-secondary">From</label>
+          {externalOrigin ? (
+            <div className="flex items-center justify-between bg-surface-bg border border-border-default rounded-xl px-3 py-2">
+              <p className="text-sm text-content-secondary truncate">📍 {externalOrigin.address}</p>
+              <button type="button" onClick={onRequestOriginMap} className="text-sm text-brand-primary ml-2 shrink-0">
+                Change
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onRequestOriginMap}
+              className="w-full border border-dashed border-border-default rounded-xl px-3 py-4 text-sm text-content-muted hover:border-brand-primary transition-colors"
+            >
+              📍 Select origin on map
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-content-secondary">From</label>
+          <input
+            type="text"
+            placeholder="e.g. Nasr City, Cairo"
+            value={originText}
+            onChange={(e) => setOriginText(e.target.value)}
+            className={inputClass}
+            disabled={busy}
+          />
         </div>
       )}
+
+      {onRequestDestinationMap ? (
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-content-secondary">To</label>
+          {externalDestination ? (
+            <div className="flex items-center justify-between bg-surface-bg border border-border-default rounded-xl px-3 py-2">
+              <p className="text-sm text-content-secondary truncate">🏁 {externalDestination.address}</p>
+              <button type="button" onClick={onRequestDestinationMap} className="text-sm text-brand-primary ml-2 shrink-0">
+                Change
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onRequestDestinationMap}
+              className="w-full border border-dashed border-border-default rounded-xl px-3 py-4 text-sm text-content-muted hover:border-brand-primary transition-colors"
+            >
+              🏁 Select destination on map
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-content-secondary">To</label>
+          <input
+            type="text"
+            placeholder="e.g. Maadi, Cairo"
+            value={destText}
+            onChange={(e) => setDestText(e.target.value)}
+            className={inputClass}
+            disabled={busy}
+          />
+        </div>
+      )}
+
+      {error && <p className="text-sm text-content-destructive">{error}</p>}
 
       <button
         type="submit"

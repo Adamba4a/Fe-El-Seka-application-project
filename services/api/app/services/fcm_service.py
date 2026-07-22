@@ -51,7 +51,7 @@ _NOTIFICATION_TEMPLATES: dict[str, tuple[str, str]] = {
     ),
     "ride_completed": (
         "Ride Completed",
-        "Your ride is complete. Thank you for using Fe El Seka!",
+        "Your ride is complete. Thank you for using Triplyy!",
     ),
 }
 
@@ -115,7 +115,7 @@ async def send_push_notifications(
 
     title, body = _NOTIFICATION_TEMPLATES.get(
         event_type,
-        ("Fe El Seka", "You have a new notification."),
+        ("Triplyy", "You have a new notification."),
     )
 
     multicast_msg = messaging.MulticastMessage(

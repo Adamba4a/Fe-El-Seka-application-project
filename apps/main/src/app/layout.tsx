@@ -3,7 +3,7 @@ import "./globals.css";
 import "leaflet/dist/leaflet.css";
 
 export const metadata: Metadata = {
-  title: "Fe El Seka",
+  title: "Triplyy",
   description: "AI-powered route-sharing and carpooling platform",
 };
 
