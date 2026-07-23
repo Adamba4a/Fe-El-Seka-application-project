@@ -16,7 +16,13 @@ from fastapi.responses import JSONResponse
 from app.core.database import get_pool
 from app.dependencies.auth import get_current_user
 from app.dependencies.verification import get_current_verified_driver
-from app.models.booking import BookingCancelRequest, DriverBookingItem, DriverBookingListResponse, DriverConfirmResponse, DriverRejectResponse
+from app.models.booking import (
+    BookingCancelRequest,
+    DriverBookingItem,
+    DriverBookingListResponse,
+    DriverConfirmResponse,
+    DriverRejectResponse,
+)
 from app.models.location import LocationUpdateRequest
 from app.models.ride import (
     CancelRideRequest,
@@ -24,8 +30,13 @@ from app.models.ride import (
     EditRideRequest,
 )
 from app.models.route import GeoPoint
-from app.services import ride_service, route_service, storage_service
-from app.services import booking_service, location_service
+from app.services import (
+    booking_service,
+    location_service,
+    ride_service,
+    route_service,
+    storage_service,
+)
 from app.services.location_service import LocationServiceError
 from app.services.pricing_service import calculate_fare, get_pricing_config
 from app.services.ride_service import RideServiceError
@@ -413,7 +424,11 @@ async def get_ride_passenger_detail(
     match_score_pct = None
     if departure_at is not None:
         try:
-            from app.models.ai import CandidateFeatures, PassengerRequestFeatures, ZoneCentroid
+            from app.models.ai import (
+                CandidateFeatures,
+                PassengerRequestFeatures,
+                ZoneCentroid,
+            )
             from app.services import ai_client as _ai
             from app.utils.zone_lookup import nearest_zone as _nz
 

@@ -14,11 +14,13 @@ from app.core.database import get_pool
 from app.dependencies.verification import get_current_verified_passenger
 from app.models.ai import CandidateFeatures, PassengerRequestFeatures, ZoneCentroid
 from app.models.route import GeoPoint
-from app.services import ai_client
-from app.services import candidate_service
-from app.services import match_logging_service
-from app.services import ranking_config_service
-from app.services import storage_service
+from app.services import (
+    ai_client,
+    candidate_service,
+    match_logging_service,
+    ranking_config_service,
+    storage_service,
+)
 from app.services.ai_client import AIServiceUnavailableError
 from app.services.route_service import RouteServiceUnavailableError
 from app.utils.zone_lookup import nearest_zone
