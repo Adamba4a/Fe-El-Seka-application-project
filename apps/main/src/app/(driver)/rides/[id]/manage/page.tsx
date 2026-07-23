@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { createClient } from "@/lib/supabase/client";
 import { getRide, startRide, completeRide, cancelRide } from "@/lib/api/rides";
 import { reportLocation } from "@/lib/api/location";
@@ -11,6 +12,11 @@ import { RideHistoryLog } from "@/components/rides/RideHistoryLog";
 import { StartCompleteActions } from "@/components/rides/StartCompleteActions";
 import { BottomSheet, Spinner } from "@/components";
 import type { Ride, RideHistoryEntry } from "@fe-el-seka/shared";
+
+const RideDetailMap = dynamic(
+  () => import("@/components/bookings/RideDetailMap").then((m) => ({ default: m.RideDetailMap })),
+  { ssr: false, loading: () => <div className="w-full h-56 bg-surface-bg rounded-xl animate-pulse" /> }
+);
 
 function bearingDeg(from: GeolocationPosition, to: GeolocationPosition): number {
   const lat1 = (from.coords.latitude * Math.PI) / 180;
@@ -206,6 +212,14 @@ export default function RideManagePage() {
             <p className="text-body-sm font-medium text-content-primary">{formatDate(ride.departure_datetime)}</p>
           </div>
         </div>
+
+        <RideDetailMap
+          routeGeometry={ride.route_geometry}
+          boardingPoint={null}
+          alightingPoint={null}
+          origin={ride.origin.coordinates}
+          destination={ride.destination.coordinates}
+        />
 
         <div className="grid grid-cols-3 gap-4 pt-2 border-t border-border-default">
           <div className="text-center">

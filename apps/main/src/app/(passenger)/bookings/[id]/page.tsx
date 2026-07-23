@@ -3,10 +3,16 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { BookingStatusBadge } from "@/components/bookings/BookingStatusBadge";
 import { Spinner } from "@/components/ui/Spinner";
 import { createClient } from "@/lib/supabase/client";
 import { useBookingStatus } from "@/lib/hooks/useBookingStatus";
+
+const RideDetailMap = dynamic(
+  () => import("@/components/bookings/RideDetailMap").then((m) => ({ default: m.RideDetailMap })),
+  { ssr: false, loading: () => <div className="w-full h-56 bg-surface-bg rounded-xl animate-pulse" /> }
+);
 
 type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 
@@ -25,6 +31,7 @@ interface BookingDetail {
   premium_dropoff_fee?: string | null;
   boarding_point: { lat: number; lng: number };
   alighting_point: { lat: number; lng: number };
+  route_geometry: object | null;
   cancellation_reason?: string | null;
   late_cancellation: boolean;
   created_at: string;
@@ -233,6 +240,15 @@ export default function PassengerBookingDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Route map */}
+      <RideDetailMap
+        routeGeometry={booking.route_geometry}
+        boardingPoint={booking.boarding_point}
+        alightingPoint={booking.alighting_point}
+        origin={booking.boarding_point}
+        destination={booking.alighting_point}
+      />
 
       {/* Route points */}
       <div className="rounded-xl border border-border-default bg-surface-card">

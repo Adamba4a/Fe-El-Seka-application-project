@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import uuid
 from typing import Optional
 
@@ -168,6 +169,7 @@ async def get_booking(
                 ST_Y(b.passenger_dropoff_point::geometry) AS alighting_lat,
                 ST_X(b.passenger_dropoff_point::geometry) AS alighting_lng,
                 r.departure_datetime, r.driver_id,
+                ST_AsGeoJSON(r.route_geometry) AS route_geometry_geojson,
                 p.display_name AS driver_display_name,
                 p.profile_photo_path AS driver_avatar_url
             FROM bookings b
@@ -208,6 +210,9 @@ async def get_booking(
         "premium_dropoff_fee": f"{float(b['premium_dropoff_fee']):.2f}" if b["premium_dropoff_fee"] is not None else None,
         "boarding_point": {"lat": b["boarding_lat"], "lng": b["boarding_lng"]},
         "alighting_point": {"lat": b["alighting_lat"], "lng": b["alighting_lng"]},
+        "route_geometry": (
+            json.loads(b["route_geometry_geojson"]) if b["route_geometry_geojson"] else None
+        ),
         "cancellation_reason": b["cancellation_reason"],
         "late_cancellation": b["late_cancellation"],
         "created_at": b["created_at"].isoformat(),
