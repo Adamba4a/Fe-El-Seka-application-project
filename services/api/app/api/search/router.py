@@ -266,6 +266,27 @@ async def search_rides(
         }))
         all_candidates = sorted(all_candidates, key=lambda c: c.compatibility.overlap_pct, reverse=True)
 
+    # Score stays the primary sort key (already applied above, both paths). Within
+    # that order, prefer candidates whose departure time is closest to the
+    # passenger's desired time — earlier or later, symmetric — as a secondary
+    # signal, most relevant when several candidates share a score.
+    if ai_active:
+        all_candidates = sorted(
+            all_candidates,
+            key=lambda c: (
+                -score_map.get(str(c.ride_id), 0),
+                abs((c.departure_time - departure_at).total_seconds()),
+            ),
+        )
+    else:
+        all_candidates = sorted(
+            all_candidates,
+            key=lambda c: (
+                -c.compatibility.overlap_pct,
+                abs((c.departure_time - departure_at).total_seconds()),
+            ),
+        )
+
     all_candidates, explored_ride_id = ranking_config_service.apply_exploration(all_candidates)
     logger.info(json.dumps({
         "event": "exploration_applied",

@@ -8,7 +8,7 @@ export type { SearchLocation, SearchBbox };
 
 interface RideSearchFormProps {
   loading?: boolean;
-  onSearch: (origin: SearchLocation, destination: SearchLocation) => void;
+  onSearch: (origin: SearchLocation, destination: SearchLocation, departureAt: string) => void;
   // External coordinate props — when provided, the page owns pin-drop via a full-screen map
   // (mirrors RideForm's externalOrigin/externalDestination pattern)
   externalOrigin?: SearchLocation;
@@ -20,17 +20,26 @@ interface RideSearchFormProps {
 const inputClass =
   "w-full border border-border-default rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-primary transition-colors bg-surface-card";
 
+// datetime-local inputs need "YYYY-MM-DDTHH:mm" in local time, not UTC
+function toDatetimeLocalValue(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function RideSearchForm({
   loading, onSearch, externalOrigin, externalDestination, onRequestOriginMap, onRequestDestinationMap,
 }: RideSearchFormProps) {
   const [originText, setOriginText] = useState("");
   const [destText, setDestText] = useState("");
+  const [departureLocal, setDepartureLocal] = useState(() => toDatetimeLocalValue(new Date()));
   const [error, setError] = useState<string | null>(null);
   const [geocoding, setGeocoding] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const departureAt = departureLocal ? new Date(departureLocal).toISOString() : new Date().toISOString();
 
     if (onRequestOriginMap) {
       // Map-driven mode — origin/destination already resolved via pin-drop
@@ -43,7 +52,7 @@ export function RideSearchForm({
         setError("Origin and destination must be different locations.");
         return;
       }
-      onSearch(externalOrigin, externalDestination);
+      onSearch(externalOrigin, externalDestination, departureAt);
       return;
     }
 
@@ -65,7 +74,7 @@ export function RideSearchForm({
         return;
       }
 
-      onSearch(origin, dest);
+      onSearch(origin, dest, departureAt);
     } finally {
       setGeocoding(false);
     }
@@ -142,6 +151,18 @@ export function RideSearchForm({
           />
         </div>
       )}
+
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-content-secondary">Departure time</label>
+        <input
+          type="datetime-local"
+          value={departureLocal}
+          min={toDatetimeLocalValue(new Date())}
+          onChange={(e) => setDepartureLocal(e.target.value)}
+          className={inputClass}
+          disabled={busy}
+        />
+      </div>
 
       {error && <p className="text-sm text-content-destructive">{error}</p>}
 

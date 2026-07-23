@@ -69,6 +69,7 @@ export default function SearchPage() {
   const handleSearch = async (
     searchOrigin: SearchLocation,
     searchDestination: SearchLocation,
+    departureAt: string,
   ) => {
     setLoading(true);
     setError(null);
@@ -87,7 +88,7 @@ export default function SearchPage() {
           origin: { lat: searchOrigin.lat, lng: searchOrigin.lng },
           destination: { lat: searchDestination.lat, lng: searchDestination.lng },
           dest_bbox: searchDestination.bbox ?? null,
-          desired_departure_at: new Date().toISOString(),
+          desired_departure_at: departureAt,
         }),
       });
 
@@ -103,7 +104,7 @@ export default function SearchPage() {
       }
 
       setCandidates(json.candidates ?? []);
-      setSearchMeta({ origin: searchOrigin, destination: searchDestination, departure_at: new Date().toISOString() });
+      setSearchMeta({ origin: searchOrigin, destination: searchDestination, departure_at: departureAt });
       setPhase("results");
       setSheetOpen(true);
     } catch {
@@ -163,9 +164,18 @@ export default function SearchPage() {
       <BottomSheet isOpen={sheetOpen} onClose={() => setSheetOpen(false)} maxHeightPercent={80}>
         {phase === "form" || loading ? (
           <div className="space-y-4">
-            <div>
-              <h1 className="text-h3 text-content-primary">Find a Ride</h1>
-              <p className="text-sm text-content-muted mt-1">Tap the map to set your route.</p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="text-content-muted hover:text-content-secondary"
+              >
+                ←
+              </button>
+              <div>
+                <h1 className="text-h3 text-content-primary">Find a Ride</h1>
+                <p className="text-sm text-content-muted mt-1">Tap the map to set your route.</p>
+              </div>
             </div>
 
             <RideSearchForm
@@ -180,17 +190,26 @@ export default function SearchPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-content-muted">
-                {candidates.length} ride{candidates.length !== 1 ? "s" : ""} found
-              </p>
+            <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={handleNewSearch}
-                className="text-sm text-brand-primary font-medium"
+                onClick={() => router.back()}
+                className="text-content-muted hover:text-content-secondary"
               >
-                New search
+                ←
               </button>
+              <div className="flex-1 flex items-center justify-between">
+                <p className="text-sm text-content-muted">
+                  {candidates.length} ride{candidates.length !== 1 ? "s" : ""} found
+                </p>
+                <button
+                  type="button"
+                  onClick={handleNewSearch}
+                  className="text-sm text-brand-primary font-medium"
+                >
+                  New search
+                </button>
+              </div>
             </div>
 
             {candidates.length === 0 ? (
