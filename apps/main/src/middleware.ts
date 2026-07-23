@@ -1,6 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { resolveOrigin } from "@/lib/request-origin";
+import {
+  SESSION_MAX_AGE_MS,
+  SESSION_STARTED_COOKIE,
+  SESSION_STARTED_COOKIE_MAX_AGE_SECONDS,
+} from "@/lib/auth/session-age";
 
 const PUBLIC_PATHS = ["/login", "/otp", "/signout", "/auth"];
 // /signout must work even when a user IS authenticated (it clears a bad session).
@@ -51,6 +56,33 @@ export async function middleware(request: NextRequest) {
   // Supabase server and the session cookie is refreshed when needed.
   // This must stay directly after createServerClient with no logic in between.
   const { data: { user } } = await supabase.auth.getUser();
+
+  // Enforce a 24h absolute session cap. Supabase's refresh-token rotation has
+  // no built-in max lifetime (it's a sliding 60-day window), so without this
+  // an active user is effectively signed in forever.
+  if (user) {
+    const startedAtRaw = request.cookies.get(SESSION_STARTED_COOKIE)?.value;
+    const startedAt = startedAtRaw ? Number(startedAtRaw) : NaN;
+
+    if (Number.isFinite(startedAt) && Date.now() - startedAt > SESSION_MAX_AGE_MS) {
+      await supabase.auth.signOut();
+      const redirectResponse = NextResponse.redirect(new URL("/login", origin));
+      supabaseResponse.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
+      redirectResponse.cookies.delete(SESSION_STARTED_COOKIE);
+      return redirectResponse;
+    }
+
+    if (!Number.isFinite(startedAt)) {
+      // First request we've seen this session (fresh login, or an existing
+      // session from before this cap existed) — start the 24h clock now.
+      supabaseResponse.cookies.set(SESSION_STARTED_COOKIE, String(Date.now()), {
+        path: "/",
+        maxAge: SESSION_STARTED_COOKIE_MAX_AGE_SECONDS,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
+  }
 
   if (!user && !isPublic) {
     return NextResponse.redirect(new URL("/login", origin));

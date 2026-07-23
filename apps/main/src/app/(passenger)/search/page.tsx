@@ -175,7 +175,7 @@ export default function SearchPage() {
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => router.back()}
+                onClick={() => router.push("/dashboard")}
                 className="text-content-muted hover:text-content-secondary"
               >
                 ←
@@ -201,7 +201,7 @@ export default function SearchPage() {
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => router.back()}
+                onClick={() => router.push("/dashboard")}
                 className="text-content-muted hover:text-content-secondary"
               >
                 ←

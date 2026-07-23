@@ -28,6 +28,12 @@ export default async function Home() {
         <div className="w-full max-w-sm text-center space-y-4">
           <h1 className="text-h2 text-content-primary">Triplyy</h1>
           <p className="text-body-sm text-content-destructive">Your account has been suspended. Please contact support.</p>
+          <a
+            href="/signout"
+            className="inline-block py-3 px-4 border border-border-default rounded-xl text-body-sm text-content-secondary font-medium hover:bg-surface-bg transition-colors"
+          >
+            Sign out
+          </a>
         </div>
       </main>
     );
