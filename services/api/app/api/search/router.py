@@ -22,6 +22,7 @@ from app.services import (
     storage_service,
 )
 from app.services.ai_client import AIServiceUnavailableError
+from app.services.pricing_service import get_pricing_config
 from app.services.route_service import RouteServiceUnavailableError
 from app.utils.zone_lookup import nearest_zone
 
@@ -176,6 +177,11 @@ async def nearby_rides(
     limit: int = Query(2, ge=1, le=5),
     _profile: dict = Depends(get_current_verified_passenger),
 ) -> JSONResponse:
+    # "Nearby" must mean actually nearby — ordering by distance with no cap
+    # returns the closest N rides in the whole system even if the closest one
+    # is 76km away when there's nothing genuinely close by.
+    max_nearby_m = float(get_pricing_config()["max_nearby_endpoint_km"]) * 1000
+
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
@@ -192,10 +198,11 @@ async def nearby_rides(
             WHERE r.status = 'scheduled'
               AND r.available_seats > 0
               AND r.departure_datetime > now()
+              AND ST_DWithin(r.origin_coordinates, ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography, $4)
             ORDER BY r.origin_coordinates <-> ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography
             LIMIT $3
             """,
-            lat, lng, limit,
+            lat, lng, limit, max_nearby_m,
         )
 
     rides_out = [
