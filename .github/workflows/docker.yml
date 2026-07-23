@@ -110,22 +110,23 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: false
 
-  push:
-    name: Push to GHCR
+  # Each service pushes independently so a pre-existing, unrelated CVE in one
+  # image's base layer (caught by its own Trivy scan) can't block deploys of
+  # the other two — e.g. a frontend-only fix shouldn't wait on the api/ai
+  # images passing their scans.
+  push-api:
+    name: Push API to GHCR
     runs-on: ubuntu-latest
-    needs: [build-scan-api, build-scan-ai, build-scan-main]
+    needs: build-scan-api
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-
       - uses: docker/setup-buildx-action@v3
-
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Push API image
         uses: docker/build-push-action@v5
         with:
@@ -137,6 +138,19 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  push-ai:
+    name: Push AI to GHCR
+    runs-on: ubuntu-latest
+    needs: build-scan-ai
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push AI image
         uses: docker/build-push-action@v5
         with:
@@ -148,6 +162,19 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  push-main:
+    name: Push Frontend to GHCR
+    runs-on: ubuntu-latest
+    needs: build-scan-main
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push frontend image
         uses: docker/build-push-action@v5
         with:
