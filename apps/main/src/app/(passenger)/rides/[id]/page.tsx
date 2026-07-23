@@ -50,6 +50,22 @@ interface DetailResponse {
   match_score_pct: number | null;
 }
 
+interface PreviewRide {
+  id: string;
+  status: string;
+  driver: DriverInfo;
+  departure_datetime: string;
+  available_seats: number;
+  per_seat_price: string;
+  origin_address: string;
+  destination_address: string;
+  origin: { lat: number; lng: number };
+  destination: { lat: number; lng: number };
+  route_geometry: object | null;
+  route_distance_km: number;
+  route_duration_minutes: number | null;
+}
+
 type PremiumOption = "standard" | "premium_pickup" | "premium_dropoff" | "premium_both";
 
 function formatDeparture(iso: string) {
@@ -67,6 +83,10 @@ export default function PassengerRideDetailPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  // No origin/dest in the URL yet → this is a bare dashboard-card click, show
+  // the lightweight preview instead of the full pickup/dropoff match view.
+  const hasParams = searchParams.has("origin_lat") && searchParams.has("dest_lat");
+
   const originLat = parseFloat(searchParams.get("origin_lat") ?? "30.0626");
   const originLng = parseFloat(searchParams.get("origin_lng") ?? "31.2497");
   const destLat = parseFloat(searchParams.get("dest_lat") ?? "30.0444");
@@ -74,6 +94,7 @@ export default function PassengerRideDetailPage() {
   const departureAt = searchParams.get("departure_at");
 
   const [detail, setDetail] = useState<DetailResponse | null>(null);
+  const [preview, setPreview] = useState<PreviewRide | null>(null);
   const [loading, setLoading] = useState(true);
   const [gone, setGone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +109,19 @@ export default function PassengerRideDetailPage() {
         const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { router.push("/login"); return; }
+
+        if (!hasParams) {
+          const res = await fetch(`${env.apiUrl}/api/v1/rides/${id}/preview`, {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+
+          if (res.status === 410 || res.status === 404) { setGone(true); return; }
+          if (!res.ok) { setError("Failed to load ride details."); return; }
+
+          const json = await res.json();
+          setPreview(json.ride);
+          return;
+        }
 
         const params = new URLSearchParams({
           origin_lat: String(originLat),
@@ -113,7 +147,7 @@ export default function PassengerRideDetailPage() {
       }
     }
     load();
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, hasParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
@@ -133,6 +167,101 @@ export default function PassengerRideDetailPage() {
           className="text-sm text-brand-primary font-medium"
         >
           Search for another ride
+        </button>
+      </div>
+    );
+  }
+
+  if (!hasParams) {
+    if (error || !preview) {
+      return (
+        <div className="py-16 text-center">
+          <p className="text-sm text-content-destructive">{error ?? "Something went wrong."}</p>
+        </div>
+      );
+    }
+
+    const noSeats = preview.available_seats === 0;
+
+    return (
+      <div className="space-y-6">
+        <button
+          type="button"
+          onClick={() => router.push("/dashboard")}
+          className="text-content-muted hover:text-content-secondary text-sm"
+        >
+          ← Back
+        </button>
+
+        <div className="flex items-center gap-3 p-4 bg-surface-card border border-border-default rounded-xl">
+          {preview.driver.avatar_url ? (
+            <img
+              src={preview.driver.avatar_url}
+              alt={preview.driver.display_name ?? "Driver"}
+              className="w-12 h-12 rounded-full object-cover shrink-0"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-surface-bg flex items-center justify-center shrink-0 text-base font-semibold text-content-secondary">
+              {(preview.driver.display_name ?? "?")[0].toUpperCase()}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-content-primary truncate">
+              {preview.driver.display_name ?? "Driver"}
+            </p>
+            {preview.driver.is_verified && (
+              <span className="text-xs text-green-600 font-medium">Verified driver</span>
+            )}
+          </div>
+        </div>
+
+        <RideDetailMap
+          routeGeometry={preview.route_geometry}
+          boardingPoint={null}
+          alightingPoint={null}
+          origin={preview.origin}
+          destination={preview.destination}
+        />
+
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between text-content-secondary">
+            <span>Route</span>
+            <span className="font-medium text-content-primary text-right">
+              {preview.origin_address} → {preview.destination_address}
+            </span>
+          </div>
+          <div className="flex justify-between text-content-secondary">
+            <span>Departure</span>
+            <span className="font-medium text-content-primary">{formatDeparture(preview.departure_datetime)}</span>
+          </div>
+          {preview.route_duration_minutes != null && (
+            <div className="flex justify-between text-content-secondary">
+              <span>Ride time</span>
+              <span className="font-medium text-content-primary">{preview.route_duration_minutes} min</span>
+            </div>
+          )}
+          <div className="flex justify-between text-content-secondary">
+            <span>Available seats</span>
+            <span className={`font-medium ${noSeats ? "text-content-destructive" : "text-content-primary"}`}>
+              {noSeats ? "Full" : preview.available_seats}
+            </span>
+          </div>
+          <div className="flex justify-between text-content-secondary">
+            <span>Price per seat</span>
+            <span className="font-medium text-content-primary">EGP {preview.per_seat_price}</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          disabled={noSeats}
+          onClick={() => {
+            const params = new URLSearchParams({ departure_at: preview.departure_datetime });
+            router.push(`/rides/${id}/book?${params}`);
+          }}
+          className="w-full bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-colors"
+        >
+          {noSeats ? "No Seats Available" : "Book Seat"}
         </button>
       </div>
     );

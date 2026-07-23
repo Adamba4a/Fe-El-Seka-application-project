@@ -2,16 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth/hooks";
 import { getMe } from "@/lib/api/profiles";
 import { getNearbyRides, type NearbyRide } from "@/lib/api/search";
 import { listBookings, type PassengerBooking } from "@/lib/api/bookings";
 import type { Profile } from "@fe-el-seka/shared";
-import type { SearchLocation } from "@/lib/geocode";
 import { AvailableRideCard } from "@/components/passenger/AvailableRideCard";
 import { JoinedRideCard } from "@/components/passenger/JoinedRideCard";
-import { DestinationPrompt } from "@/components/passenger/DestinationPrompt";
 
 function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -41,28 +38,12 @@ type GeoState = "idle" | "loading" | "granted" | "denied";
 
 export function PassengerDashboard() {
   const session = useSession();
-  const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [nearby, setNearby] = useState<NearbyRide[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(true);
   const [geoState, setGeoState] = useState<GeoState>("idle");
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [joined, setJoined] = useState<PassengerBooking[]>([]);
   const [joinedLoading, setJoinedLoading] = useState(true);
-  const [joiningRide, setJoiningRide] = useState<NearbyRide | null>(null);
-
-  function handleDestinationConfirm(dest: SearchLocation) {
-    if (!joiningRide || !coords) return;
-    const params = new URLSearchParams({
-      origin_lat: String(coords.lat),
-      origin_lng: String(coords.lng),
-      dest_lat: String(dest.lat),
-      dest_lng: String(dest.lng),
-      departure_at: joiningRide.departure_datetime,
-    });
-    setJoiningRide(null);
-    router.push(`/rides/${joiningRide.ride_id}?${params}`);
-  }
 
   useEffect(() => {
     if (!session?.access_token) return;
@@ -91,7 +72,6 @@ export function PassengerDashboard() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setGeoState("granted");
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         getNearbyRides(token, pos.coords.latitude, pos.coords.longitude, 2)
           .then(setNearby)
           .catch(() => {})
@@ -147,7 +127,7 @@ export function PassengerDashboard() {
           {nearby.map((ride) => (
             <AvailableRideCard
               key={ride.ride_id}
-              onJoin={() => setJoiningRide(ride)}
+              rideId={ride.ride_id}
               departureLabel={formatDepartureLabel(ride.departure_datetime)}
               originAddress={ride.origin_address}
               destinationAddress={ride.destination_address}
@@ -186,12 +166,6 @@ export function PassengerDashboard() {
           ))}
         </div>
       )}
-
-      <DestinationPrompt
-        isOpen={!!joiningRide}
-        onClose={() => setJoiningRide(null)}
-        onConfirm={handleDestinationConfirm}
-      />
     </div>
   );
 }

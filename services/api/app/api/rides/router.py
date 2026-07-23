@@ -329,6 +329,81 @@ async def start_ride(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# GET /api/v1/rides/{ride_id}/preview
+# ─────────────────────────────────────────────────────────────────────────────
+# Lightweight, passenger-facing ride summary that needs no origin/destination —
+# powers the dashboard "tap a nearby ride card" preview, before the passenger
+# has picked a pickup/dropoff (that's what passenger-detail is for).
+
+@router.get("/{ride_id}/preview")
+async def get_ride_preview(
+    ride_id: uuid.UUID,
+    _user: dict = Depends(get_current_user),
+):
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            SELECT
+                r.id, r.status, r.departure_datetime,
+                r.available_seats, r.price_per_seat,
+                r.origin_address, r.destination_address,
+                r.route_distance_km, r.route_duration_minutes,
+                ST_AsGeoJSON(r.route_geometry) AS route_geometry_geojson,
+                ST_Y(r.origin_coordinates::geometry)       AS origin_lat,
+                ST_X(r.origin_coordinates::geometry)       AS origin_lng,
+                ST_Y(r.destination_coordinates::geometry)  AS destination_lat,
+                ST_X(r.destination_coordinates::geometry)  AS destination_lng,
+                p.display_name, p.profile_photo_path AS avatar_url, p.verification_status
+            FROM rides r
+            JOIN profiles p ON p.id = r.driver_id
+            WHERE r.id = $1
+            """,
+            ride_id,
+        )
+
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "not_found", "message": "Ride not found"},
+        )
+
+    ride = dict(row)
+
+    if ride["status"] in ("cancelled", "completed"):
+        raise HTTPException(
+            status_code=410,
+            detail={"error": "ride_gone", "message": "This ride is no longer available"},
+        )
+
+    route_geojson = json.loads(ride["route_geometry_geojson"]) if ride["route_geometry_geojson"] else None
+
+    return JSONResponse({
+        "ride": {
+            "id": str(ride["id"]),
+            "status": ride["status"],
+            "driver": {
+                "display_name": ride["display_name"],
+                "avatar_url": storage_service.generate_signed_url(
+                    "profile-photos", ride["avatar_url"]
+                ),
+                "is_verified": ride["verification_status"] == "verified",
+            },
+            "departure_datetime": ride["departure_datetime"].isoformat(),
+            "available_seats": ride["available_seats"],
+            "per_seat_price": f"{float(ride['price_per_seat']):.2f}",
+            "origin_address": ride["origin_address"],
+            "destination_address": ride["destination_address"],
+            "origin": {"lat": ride["origin_lat"], "lng": ride["origin_lng"]},
+            "destination": {"lat": ride["destination_lat"], "lng": ride["destination_lng"]},
+            "route_geometry": route_geojson,
+            "route_distance_km": float(ride["route_distance_km"] or 0),
+            "route_duration_minutes": ride["route_duration_minutes"],
+        },
+    })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # GET /api/v1/rides/{ride_id}/passenger-detail
 # ─────────────────────────────────────────────────────────────────────────────
 

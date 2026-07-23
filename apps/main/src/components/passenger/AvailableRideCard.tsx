@@ -1,7 +1,8 @@
 import { useState } from "react";
+import Link from "next/link";
 
 interface AvailableRideCardProps {
-  onJoin: () => void;
+  rideId: string;
   departureLabel: string;
   originAddress: string;
   destinationAddress: string;
@@ -33,7 +34,7 @@ function DriverAvatar({ name, avatarUrl }: { name: string | null; avatarUrl: str
 }
 
 export function AvailableRideCard({
-  onJoin,
+  rideId,
   departureLabel,
   originAddress,
   destinationAddress,
@@ -44,7 +45,10 @@ export function AvailableRideCard({
   isVerified,
 }: AvailableRideCardProps) {
   return (
-    <div className="bg-dash-surface rounded-2xl p-4 border border-dash-border">
+    <Link
+      href={`/rides/${rideId}`}
+      className="block bg-dash-surface rounded-2xl p-4 border border-dash-border"
+    >
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-semibold tracking-wide text-dash-primary">{departureLabel}</span>
         <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-dash-badge-bg text-dash-primary">
@@ -72,14 +76,6 @@ export function AvailableRideCard({
           <p className="text-xs text-dash-text-muted">per seat</p>
         </div>
       </div>
-
-      <button
-        type="button"
-        onClick={onJoin}
-        className="mt-3 block w-full text-center rounded-xl bg-dash-primary text-white font-semibold py-2.5"
-      >
-        Join Ride
-      </button>
-    </div>
+    </Link>
   );
 }
