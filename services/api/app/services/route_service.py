@@ -312,80 +312,112 @@ async def assess_compatibility(
 
     dropoff_ok = dropoff_walk_m <= max_dropoff_walk or driver_dest_in_bbox
 
-    detour_km = 0.0
-    detour_minutes = 0
-    is_compatible = False
+    # Pickup-side and dropoff-side each need their own conditional OSRM
+    # route calls (standard detour, premium detour, nearby-endpoint fallback).
+    # The two sides are independent of each other, so run them concurrently
+    # instead of stacking their OSRM round-trips one after another.
 
-    # Pickup walk distance is informational only (surfaced to the passenger as
-    # pickup_walk_m) — it no longer gates standard-match eligibility. The passenger
-    # decides whether the walk is acceptable, or requests a paid premium pickup instead.
-    if overlap_ok and dropoff_ok:
-        detour_km, detour_minutes = await calculate_detour(
-            driver_origin,
-            pickup_nearest_wkt,
-            dropoff_nearest_wkt,
-            driver_dest,
-            original_distance_km,
-            original_duration_minutes,
+    async def _pickup_side() -> tuple[bool, float, float | None]:
+        # Premium pickup — walk exceeds standard; offered as a paid door-to-door
+        # option regardless of how large the driver's detour is. No distance cap:
+        # the fee scales with the real detour, and the driver can accept or
+        # decline the specific request.
+        if not pickup_ok:
+            p_km, _ = await calculate_premium_detour(
+                driver_origin,
+                passenger_origin,
+                driver_dest,
+                original_distance_km,
+                original_duration_minutes,
+            )
+            return True, p_km, calculate_premium_detour_fee(p_km)
+        return False, 0.0, None
+
+    async def _dropoff_side() -> tuple[
+        float, int, bool, bool, float, float | None, bool, float, int
+    ]:
+        detour_km = 0.0
+        detour_minutes = 0
+        is_compatible = False
+        premium_dropoff_available = False
+        premium_dropoff_detour_km = 0.0
+        premium_dropoff_fee_egp = None
+        nearby_endpoint_available = False
+        nearby_endpoint_distance_km = 0.0
+        nearby_endpoint_duration_minutes = 0
+
+        # Pickup walk distance is informational only (surfaced to the passenger
+        # as pickup_walk_m) — it no longer gates standard-match eligibility. The
+        # passenger decides whether the walk is acceptable, or requests a paid
+        # premium pickup instead.
+        if overlap_ok and dropoff_ok:
+            detour_km, detour_minutes = await calculate_detour(
+                driver_origin,
+                pickup_nearest_wkt,
+                dropoff_nearest_wkt,
+                driver_dest,
+                original_distance_km,
+                original_duration_minutes,
+            )
+            is_compatible = (
+                detour_km <= max_detour_km and detour_minutes <= max_detour_minutes
+            )
+
+        # Premium dropoff — same logic for the dropoff side
+        if not dropoff_ok:
+            d_km, _ = await calculate_premium_detour(
+                driver_origin,
+                passenger_destination,
+                driver_dest,
+                original_distance_km,
+                original_duration_minutes,
+            )
+            if d_km <= max_premium_detour_km:
+                premium_dropoff_available = True
+                premium_dropoff_detour_km = d_km
+                premium_dropoff_fee_egp = calculate_premium_detour_fee(d_km)
+
+        # Nearby endpoint — last-resort fallback when the passenger's destination
+        # is beyond both the walk and premium-detour range of the driver's route,
+        # but the driver's own endpoint is still a reasonably short trip away from
+        # it. Unlike premium dropoff, the driver makes no detour at all — they
+        # already end their route there — so there's no fee, just a distance to
+        # surface to the passenger.
+        if overlap_ok and not dropoff_ok and not premium_dropoff_available:
+            max_nearby_endpoint_km = float(config["max_nearby_endpoint_km"])
+            endpoint_route = await calculate_route(driver_dest, passenger_destination)
+            if endpoint_route.is_routable and endpoint_route.distance_km <= max_nearby_endpoint_km:
+                nearby_endpoint_available = True
+                nearby_endpoint_distance_km = endpoint_route.distance_km
+                nearby_endpoint_duration_minutes = endpoint_route.duration_minutes
+
+        return (
+            detour_km,
+            detour_minutes,
+            is_compatible,
+            premium_dropoff_available,
+            premium_dropoff_detour_km,
+            premium_dropoff_fee_egp,
+            nearby_endpoint_available,
+            nearby_endpoint_distance_km,
+            nearby_endpoint_duration_minutes,
         )
-        is_compatible = (
-            detour_km <= max_detour_km and detour_minutes <= max_detour_minutes
-        )
 
-    # Premium pickup — walk exceeds standard; offered as a paid door-to-door option
-    # regardless of how large the driver's detour is. No distance cap: the fee scales
-    # with the real detour, and the driver can accept or decline the specific request.
-    premium_pickup_available = False
-    premium_pickup_detour_km = 0.0
-    premium_pickup_fee_egp = None
-
-    if not pickup_ok:
-        p_km, _ = await calculate_premium_detour(
-            driver_origin,
-            passenger_origin,
-            driver_dest,
-            original_distance_km,
-            original_duration_minutes,
-        )
-        premium_pickup_available = True
-        premium_pickup_detour_km = p_km
-        premium_pickup_fee_egp = calculate_premium_detour_fee(p_km)
-
-    # Premium dropoff — same logic for the dropoff side
-    premium_dropoff_available = False
-    premium_dropoff_detour_km = 0.0
-    premium_dropoff_fee_egp = None
-
-    if not dropoff_ok:
-        d_km, _ = await calculate_premium_detour(
-            driver_origin,
-            passenger_destination,
-            driver_dest,
-            original_distance_km,
-            original_duration_minutes,
-        )
-        if d_km <= max_premium_detour_km:
-            premium_dropoff_available = True
-            premium_dropoff_detour_km = d_km
-            premium_dropoff_fee_egp = calculate_premium_detour_fee(d_km)
-
-    # Nearby endpoint — last-resort fallback when the passenger's destination
-    # is beyond both the walk and premium-detour range of the driver's route,
-    # but the driver's own endpoint is still a reasonably short trip away from
-    # it. Unlike premium dropoff, the driver makes no detour at all — they
-    # already end their route there — so there's no fee, just a distance to
-    # surface to the passenger.
-    nearby_endpoint_available = False
-    nearby_endpoint_distance_km = 0.0
-    nearby_endpoint_duration_minutes = 0
-
-    if overlap_ok and not dropoff_ok and not premium_dropoff_available:
-        max_nearby_endpoint_km = float(config["max_nearby_endpoint_km"])
-        endpoint_route = await calculate_route(driver_dest, passenger_destination)
-        if endpoint_route.is_routable and endpoint_route.distance_km <= max_nearby_endpoint_km:
-            nearby_endpoint_available = True
-            nearby_endpoint_distance_km = endpoint_route.distance_km
-            nearby_endpoint_duration_minutes = endpoint_route.duration_minutes
+    (
+        premium_pickup_available,
+        premium_pickup_detour_km,
+        premium_pickup_fee_egp,
+    ), (
+        detour_km,
+        detour_minutes,
+        is_compatible,
+        premium_dropoff_available,
+        premium_dropoff_detour_km,
+        premium_dropoff_fee_egp,
+        nearby_endpoint_available,
+        nearby_endpoint_distance_km,
+        nearby_endpoint_duration_minutes,
+    ) = await asyncio.gather(_pickup_side(), _dropoff_side())
 
     return CompatibilityResult(
         overlap_pct=round(overlap_pct, 2),

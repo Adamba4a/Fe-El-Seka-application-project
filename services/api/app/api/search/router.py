@@ -18,6 +18,7 @@ from app.services import ai_client
 from app.services import candidate_service
 from app.services import match_logging_service
 from app.services import ranking_config_service
+from app.services import storage_service
 from app.services.ai_client import AIServiceUnavailableError
 from app.services.route_service import RouteServiceUnavailableError
 from app.utils.zone_lookup import nearest_zone
@@ -64,7 +65,12 @@ async def _fetch_driver_profiles(driver_ids: list[uuid.UUID]) -> dict[uuid.UUID,
             """,
             driver_ids,
         )
-    return {row["id"]: dict(row) for row in rows}
+    profiles = {row["id"]: dict(row) for row in rows}
+    for profile in profiles.values():
+        profile["avatar_url"] = storage_service.generate_signed_url(
+            "profile-photos", profile["avatar_url"]
+        )
+    return profiles
 
 
 def _shape_compatibility(c) -> dict:
@@ -195,7 +201,9 @@ async def nearby_rides(
             "ride_id": str(r["id"]),
             "driver": {
                 "display_name": r["display_name"],
-                "avatar_url": r["avatar_url"],
+                "avatar_url": storage_service.generate_signed_url(
+                    "profile-photos", r["avatar_url"]
+                ),
                 "is_verified": r["verification_status"] == "verified",
             },
             "departure_datetime": r["departure_datetime"].isoformat(),

@@ -24,7 +24,7 @@ from app.models.ride import (
     EditRideRequest,
 )
 from app.models.route import GeoPoint
-from app.services import ride_service, route_service
+from app.services import ride_service, route_service, storage_service
 from app.services import booking_service, location_service
 from app.services.location_service import LocationServiceError
 from app.services.pricing_service import calculate_fare, get_pricing_config
@@ -452,7 +452,9 @@ async def get_ride_passenger_detail(
             "status": ride["status"],
             "driver": {
                 "display_name": ride["display_name"],
-                "avatar_url": ride["avatar_url"],
+                "avatar_url": storage_service.generate_signed_url(
+                    "profile-photos", ride["avatar_url"]
+                ),
                 "is_verified": ride["verification_status"] == "verified",
             },
             "departure_datetime": ride["departure_datetime"].isoformat(),
@@ -545,7 +547,9 @@ async def list_ride_bookings(
             booking_id=r["booking_id"],
             passenger={
                 "display_name": r["passenger_display_name"],
-                "avatar_url": r["passenger_avatar_url"],
+                "avatar_url": storage_service.generate_signed_url(
+                    "profile-photos", r["passenger_avatar_url"]
+                ),
             },
             status=r["status"],
             per_seat_price=f"{float(r['per_seat_price']):.2f}",

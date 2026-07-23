@@ -85,7 +85,7 @@ export default function PassengerBookingsPage() {
   const fetchBookings = useCallback(async () => {
     try {
       setError(null);
-      const data = await apiFetch("/api/v1/bookings/");
+      const data = await apiFetch("/api/v1/bookings");
       setBookings(data.bookings ?? []);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load bookings");

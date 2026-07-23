@@ -16,7 +16,7 @@ from app.models.booking import (
     BookingListItem,
     BookingListResponse,
 )
-from app.services import booking_service
+from app.services import booking_service, storage_service
 from app.services.booking_service import create_booking
 
 router = APIRouter()
@@ -197,7 +197,9 @@ async def get_booking(
         "ride_id": str(b["ride_id"]),
         "status": b["status"],
         "driver_display_name": b["driver_display_name"],
-        "driver_avatar_url": b["driver_avatar_url"],
+        "driver_avatar_url": storage_service.generate_signed_url(
+            "profile-photos", b["driver_avatar_url"]
+        ),
         "departure_datetime": b["departure_datetime"].isoformat() if b["departure_datetime"] else None,
         "per_seat_price": f"{float(b['per_seat_price']):.2f}",
         "total_price": f"{float(b['total_price']):.2f}",
