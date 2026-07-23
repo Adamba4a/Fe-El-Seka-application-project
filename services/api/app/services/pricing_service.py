@@ -23,6 +23,7 @@ _DEFAULTS: dict[str, Any] = {
     "max_detour_km": 3.00,
     "max_detour_minutes": 10,
     "max_premium_detour_km": 5.00,
+    "max_nearby_endpoint_km": 15.00,
     "time_window_minutes": 30,
 }
 

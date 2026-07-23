@@ -155,6 +155,7 @@ async def generate_candidates(
 
     standard: list[RideCandidate] = []
     premium: list[RideCandidate] = []
+    nearby: list[RideCandidate] = []
 
     for item in raw_results:
         if isinstance(item, RouteServiceUnavailableError):
@@ -184,6 +185,8 @@ async def generate_candidates(
             standard.append(RideCandidate(candidate_type="standard", **base))
         elif compat.premium_pickup_available or compat.premium_dropoff_available:
             premium.append(RideCandidate(candidate_type="premium", **base))
+        elif compat.nearby_endpoint_available:
+            nearby.append(RideCandidate(candidate_type="nearby_endpoint", **base))
 
     standard.sort(key=lambda r: r.compatibility.overlap_pct, reverse=True)
     premium.sort(
@@ -192,17 +195,20 @@ async def generate_candidates(
             + (r.compatibility.premium_dropoff_fee_egp or 0.0)
         )
     )
+    nearby.sort(key=lambda r: r.compatibility.nearby_endpoint_distance_km)
 
     elapsed_ms = round((time.monotonic() - t0) * 1000)
     logger.info(
-        "Stage 2: %d standard, %d premium (from %d Stage 1 candidates) elapsed_ms=%d",
+        "Stage 2: %d standard, %d premium, %d nearby (from %d Stage 1 candidates) elapsed_ms=%d",
         len(standard),
         len(premium),
+        len(nearby),
         len(rides),
         elapsed_ms,
     )
     return CandidateListResponse(
         standard=standard,
         premium=premium,
-        total_count=len(standard) + len(premium),
+        nearby=nearby,
+        total_count=len(standard) + len(premium) + len(nearby),
     )

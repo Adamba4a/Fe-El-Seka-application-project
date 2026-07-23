@@ -369,6 +369,24 @@ async def assess_compatibility(
             premium_dropoff_detour_km = d_km
             premium_dropoff_fee_egp = calculate_premium_detour_fee(d_km)
 
+    # Nearby endpoint — last-resort fallback when the passenger's destination
+    # is beyond both the walk and premium-detour range of the driver's route,
+    # but the driver's own endpoint is still a reasonably short trip away from
+    # it. Unlike premium dropoff, the driver makes no detour at all — they
+    # already end their route there — so there's no fee, just a distance to
+    # surface to the passenger.
+    nearby_endpoint_available = False
+    nearby_endpoint_distance_km = 0.0
+    nearby_endpoint_duration_minutes = 0
+
+    if overlap_ok and not dropoff_ok and not premium_dropoff_available:
+        max_nearby_endpoint_km = float(config["max_nearby_endpoint_km"])
+        endpoint_route = await calculate_route(driver_dest, passenger_destination)
+        if endpoint_route.is_routable and endpoint_route.distance_km <= max_nearby_endpoint_km:
+            nearby_endpoint_available = True
+            nearby_endpoint_distance_km = endpoint_route.distance_km
+            nearby_endpoint_duration_minutes = endpoint_route.duration_minutes
+
     return CompatibilityResult(
         overlap_pct=round(overlap_pct, 2),
         pickup_walk_m=round(pickup_walk_m, 1),
@@ -382,4 +400,7 @@ async def assess_compatibility(
         premium_dropoff_available=premium_dropoff_available,
         premium_dropoff_detour_km=round(premium_dropoff_detour_km, 3),
         premium_dropoff_fee_egp=premium_dropoff_fee_egp,
+        nearby_endpoint_available=nearby_endpoint_available,
+        nearby_endpoint_distance_km=round(nearby_endpoint_distance_km, 3),
+        nearby_endpoint_duration_minutes=nearby_endpoint_duration_minutes,
     )

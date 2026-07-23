@@ -35,6 +35,14 @@ class CompatibilityResult(BaseModel):
     premium_dropoff_detour_km: float
     premium_dropoff_fee_egp: Optional[float] = None
 
+    # No detour required — the driver already ends their route near the
+    # passenger's real destination; the passenger arranges their own onward
+    # transport from there. Only computed when neither a standard nor a
+    # premium dropoff match applies.
+    nearby_endpoint_available: bool = False
+    nearby_endpoint_distance_km: float = 0.0
+    nearby_endpoint_duration_minutes: int = 0
+
 
 class RideCandidate(BaseModel):
     ride_id: UUID
@@ -59,6 +67,7 @@ class CandidateSearchRequest(BaseModel):
 class CandidateListResponse(BaseModel):
     standard: list[RideCandidate]
     premium: list[RideCandidate]
+    nearby: list[RideCandidate] = []
     total_count: int
 
 

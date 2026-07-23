@@ -10,7 +10,7 @@ export interface RideCandidate {
   departure_datetime: string;
   available_seats: number;
   per_seat_price: string;
-  candidate_type: "standard" | "premium";
+  candidate_type: "standard" | "premium" | "nearby_endpoint";
   match_score_pct: number | null;
   compatibility: {
     overlap_percentage: number;
@@ -23,6 +23,9 @@ export interface RideCandidate {
     premium_pickup_fee: number | null;
     premium_dropoff_available: boolean;
     premium_dropoff_fee: number | null;
+    nearby_endpoint_available: boolean;
+    nearby_endpoint_distance_km: number;
+    nearby_endpoint_duration_minutes: number;
   };
 }
 

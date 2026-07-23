@@ -19,19 +19,47 @@ interface NominatimResult {
   boundingbox?: [string, string, string, string]; // [south, north, west, east]
 }
 
+function toBbox(boundingbox?: [string, string, string, string]): SearchBbox | null {
+  if (!boundingbox) return null;
+  return {
+    south: parseFloat(boundingbox[0]),
+    north: parseFloat(boundingbox[1]),
+    west: parseFloat(boundingbox[2]),
+    east: parseFloat(boundingbox[3]),
+  };
+}
+
 // Greater Cairo bounding box (west, north, east, south)
 const CAIRO_VIEWBOX = "30.7,30.5,32.2,29.7";
 
 function toSearchLocation(r: NominatimResult): SearchLocation {
-  const bbox: SearchBbox | null = r.boundingbox
-    ? {
-        south: parseFloat(r.boundingbox[0]),
-        north: parseFloat(r.boundingbox[1]),
-        west: parseFloat(r.boundingbox[2]),
-        east: parseFloat(r.boundingbox[3]),
-      }
-    : null;
-  return { lat: parseFloat(r.lat), lng: parseFloat(r.lon), address: r.display_name, bbox };
+  return { lat: parseFloat(r.lat), lng: parseFloat(r.lon), address: r.display_name, bbox: toBbox(r.boundingbox) };
+}
+
+// Reverse-geocodes a map pin to the bounding box of its enclosing city/district
+// (zoom=10 ≈ city level), not the pin's own precise address. Used so a
+// destination picked by dropping a pin still benefits from the same
+// area-level dropoff matching that typing a district name gives — a driver
+// whose route ends anywhere inside that area counts as a valid dropoff even
+// if the exact drop point is a few km from the pin (see route_service's
+// driver_dest_in_bbox check).
+export async function reverseGeocodeAreaBbox(lat: number, lng: number): Promise<SearchBbox | null> {
+  const params = new URLSearchParams({
+    lat: String(lat),
+    lon: String(lng),
+    format: "json",
+    zoom: "10",
+  });
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?${params}`, {
+      headers: { "Accept-Language": "en" },
+    });
+    if (!res.ok) return null;
+    const result: NominatimResult = await res.json();
+    return toBbox(result.boundingbox);
+  } catch {
+    return null;
+  }
 }
 
 export async function geocodeAddress(query: string): Promise<SearchLocation | null> {

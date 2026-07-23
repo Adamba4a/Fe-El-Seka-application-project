@@ -79,6 +79,9 @@ def _shape_compatibility(c) -> dict:
         "premium_pickup_fee": c.premium_pickup_fee_egp,
         "premium_dropoff_available": c.premium_dropoff_available,
         "premium_dropoff_fee": c.premium_dropoff_fee_egp,
+        "nearby_endpoint_available": c.nearby_endpoint_available,
+        "nearby_endpoint_distance_km": c.nearby_endpoint_distance_km,
+        "nearby_endpoint_duration_minutes": c.nearby_endpoint_duration_minutes,
     }
 
 
@@ -233,7 +236,7 @@ async def search_rides(
             content={"error": "routing_unavailable", "message": "Route service unavailable — please try again shortly"},
         )
 
-    all_candidates = list(result.standard) + list(result.premium)
+    all_candidates = list(result.standard) + list(result.premium) + list(result.nearby)
 
     if not all_candidates:
         return JSONResponse({"candidates": [], "total": 0, "no_rides_found": True, "ai_ranking_active": False})

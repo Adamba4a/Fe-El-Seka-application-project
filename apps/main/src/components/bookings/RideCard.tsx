@@ -12,7 +12,7 @@ export interface RideCandidate {
   departure_datetime: string;
   available_seats: number;
   per_seat_price: string;
-  candidate_type: "standard" | "premium";
+  candidate_type: "standard" | "premium" | "nearby_endpoint";
   match_score_pct: number | null;
   compatibility: {
     overlap_percentage: number;
@@ -23,6 +23,9 @@ export interface RideCandidate {
     premium_pickup_fee: number | null;
     premium_dropoff_available: boolean;
     premium_dropoff_fee: number | null;
+    nearby_endpoint_available: boolean;
+    nearby_endpoint_distance_km: number;
+    nearby_endpoint_duration_minutes: number;
   };
 }
 
@@ -57,6 +60,7 @@ interface RideCardProps {
 
 export function RideCard({ candidate, onClick }: RideCardProps) {
   const isPremium = candidate.candidate_type === "premium";
+  const isNearbyEndpoint = candidate.candidate_type === "nearby_endpoint";
   const totalPremiumFee =
     (candidate.compatibility.premium_pickup_fee ?? 0) +
     (candidate.compatibility.premium_dropoff_fee ?? 0);
@@ -95,6 +99,11 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
                 PREMIUM
               </span>
             )}
+            {isNearbyEndpoint && (
+              <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                NEARBY DROP-OFF
+              </span>
+            )}
             <span className="text-sm font-semibold text-content-primary">
               EGP {candidate.per_seat_price}
               {isPremium && totalPremiumFee > 0 && (
@@ -109,6 +118,14 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
         )}
 
         <OverlapBar pct={candidate.compatibility.overlap_percentage} />
+
+        {isNearbyEndpoint && (
+          <p className="text-xs text-blue-700 bg-blue-50 rounded-lg px-2 py-1.5">
+            Driver ends ~{candidate.compatibility.nearby_endpoint_distance_km.toFixed(1)} km
+            ({candidate.compatibility.nearby_endpoint_duration_minutes} min) from your destination —
+            you&apos;ll need your own transport for the rest of the way.
+          </p>
+        )}
 
         <div className="flex items-center justify-between text-xs text-content-muted">
           <span>{candidate.available_seats} seat{candidate.available_seats !== 1 ? "s" : ""} available</span>

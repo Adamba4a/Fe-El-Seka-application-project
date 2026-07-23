@@ -8,6 +8,7 @@ import { RideSearchForm, type SearchLocation } from "@/components/bookings/RideS
 import { RideCard, type RideCandidate } from "@/components/bookings/RideCard";
 import { BottomSheet } from "@/components";
 import { env } from "@/lib/env";
+import { reverseGeocodeAreaBbox, type SearchBbox } from "@/lib/geocode";
 import type { Location, Coordinates } from "@fe-el-seka/shared";
 
 const RideMap = dynamic(
@@ -17,9 +18,9 @@ const RideMap = dynamic(
 
 type Phase = "form" | "results";
 
-function toSearchLocation(loc?: Location): SearchLocation | undefined {
+function toSearchLocation(loc?: Location, bbox?: SearchBbox | null): SearchLocation | undefined {
   if (!loc) return undefined;
-  return { lat: loc.coordinates.lat, lng: loc.coordinates.lng, address: loc.address };
+  return { lat: loc.coordinates.lat, lng: loc.coordinates.lng, address: loc.address, bbox };
 }
 
 export default function SearchPage() {
@@ -37,9 +38,10 @@ export default function SearchPage() {
   const [sheetOpen, setSheetOpen] = useState(true);
   const [origin, setOrigin] = useState<Location | undefined>();
   const [destination, setDestination] = useState<Location | undefined>();
+  const [destinationBbox, setDestinationBbox] = useState<SearchBbox | null>(null);
   const [selecting, setSelecting] = useState<"origin" | "destination" | null>(null);
 
-  const handlePinDrop = (coords: Coordinates, address: string) => {
+  const handlePinDrop = async (coords: Coordinates, address: string) => {
     const loc: Location = { coordinates: coords, address };
     if (selecting === "origin") {
       setOrigin(loc);
@@ -48,6 +50,11 @@ export default function SearchPage() {
       setDestination(loc);
       setSelecting(null);
       setSheetOpen(true); // Reopen form after destination is placed
+      // Widens dropoff matching to "driver ends anywhere in this area", not just
+      // a tight walk radius around the exact pin — mirrors what typing a district
+      // name used to give before Search became map-driven.
+      const bbox = await reverseGeocodeAreaBbox(coords.lat, coords.lng);
+      setDestinationBbox(bbox);
     }
   };
 
@@ -59,6 +66,7 @@ export default function SearchPage() {
   const handleRequestDestinationMap = () => {
     setSheetOpen(false);
     setSelecting("destination");
+    setDestinationBbox(null);
   };
 
   const handleBackToForm = () => {
@@ -182,7 +190,7 @@ export default function SearchPage() {
               loading={loading}
               onSearch={handleSearch}
               externalOrigin={toSearchLocation(origin)}
-              externalDestination={toSearchLocation(destination)}
+              externalDestination={toSearchLocation(destination, destinationBbox)}
               onRequestOriginMap={handleRequestOriginMap}
               onRequestDestinationMap={handleRequestDestinationMap}
             />
