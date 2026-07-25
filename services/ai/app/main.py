@@ -1,12 +1,15 @@
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 
 from app.config import get_settings
-from app.routers import health, models, predict
+from app.routers import health, models, predict, verification
 
 logger = logging.getLogger(__name__)
+
+WEIGHTS_DIR = Path(__file__).resolve().parent / "models" / "weights"
 
 
 def _load_models(app: FastAPI) -> None:
@@ -36,10 +39,23 @@ def _load_models(app: FastAPI) -> None:
     app.state.models = model_state
 
 
+def _load_face_models(app: FastAPI) -> None:
+    from app.services.face_service import load_face_models
+
+    try:
+        detector, recognizer = load_face_models(WEIGHTS_DIR)
+        app.state.face_models = {"detector": detector, "recognizer": recognizer}
+        logger.info("Loaded face-match models from %s", WEIGHTS_DIR)
+    except Exception as exc:
+        app.state.face_models = None
+        logger.warning("Could not load face-match models — /verify/identity face match will be unavailable: %s", exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("AI service starting — loading models...")
     _load_models(app)
+    _load_face_models(app)
     yield
     logger.info("AI service shutting down")
 
@@ -55,6 +71,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router, prefix="/ai")
     app.include_router(predict.router, prefix="/predict")
     app.include_router(models.router, prefix="/models")
+    app.include_router(verification.router, prefix="/verify")
     return app
 
 

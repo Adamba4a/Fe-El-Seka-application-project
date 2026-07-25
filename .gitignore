@@ -210,6 +210,9 @@ data/processed/
 data/interim/
 data/external/
 datasets/
+
+# Real ID/license/selfie calibration samples — never commit, local-only
+services/ai/data/verification_testdata/
 *.csv
 *.parquet
 *.feather

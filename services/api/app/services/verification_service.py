@@ -1,8 +1,12 @@
-from fastapi import HTTPException, UploadFile
+import logging
+
+from fastapi import BackgroundTasks, HTTPException, UploadFile
 from supabase import create_client
 
 from app.core.config import settings
-from app.services import storage_service
+from app.services import ai_client, storage_service
+
+logger = logging.getLogger(__name__)
 
 _ALLOWED_TYPES = {"image/jpeg", "image/png"}
 _MAX_DOC_BYTES = 10 * 1024 * 1024  # 10 MB
@@ -51,13 +55,14 @@ async def submit_documents(
     front_id: UploadFile,
     back_id: UploadFile,
     license: UploadFile | None,
+    background_tasks: BackgroundTasks,
 ) -> dict:
     sb = _supabase()
 
     # Check lock
     profile = (
         sb.table("profiles")
-        .select("is_submission_locked")
+        .select("is_submission_locked, display_name, profile_photo_path")
         .eq("id", user_id)
         .single()
         .execute()
@@ -183,6 +188,22 @@ async def submit_documents(
         .execute()
     )
 
+    # Advisory-only AI triage: runs after the response is sent so OCR/face-match
+    # latency never delays the signup flow. Failure/timeout just leaves the
+    # ai_* columns NULL — the existing pending_review -> admin review path is
+    # unaffected either way.
+    background_tasks.add_task(
+        _run_ai_verification,
+        submission_id=submission_id,
+        submission_type=submission_type,
+        display_name=(profile or {}).get("display_name") or "",
+        front_data=front_data,
+        front_content_type=front_id.content_type,
+        back_data=back_data,
+        back_content_type=back_id.content_type,
+        profile_photo_path=(profile or {}).get("profile_photo_path"),
+    )
+
     return {
         "submission_id": submission_id,
         "status": "pending_review",
@@ -229,3 +250,52 @@ def get_status(user_id: str) -> dict:
         "rejection_reason": sub["rejection_reason"] if sub else None,
         "lockout_message": lockout_message,
     }
+
+
+async def _run_ai_verification(
+    submission_id: str,
+    submission_type: str,
+    display_name: str,
+    front_data: bytes,
+    front_content_type: str,
+    back_data: bytes,
+    back_content_type: str,
+    profile_photo_path: str | None,
+) -> None:
+    try:
+        selfie = None
+        if profile_photo_path:
+            selfie_data = storage_service.download_file("profile-photos", profile_photo_path)
+            if selfie_data:
+                selfie = (selfie_data, "image/jpeg")
+
+        readout = await ai_client.verify_submission(
+            front_id=(front_data, front_content_type),
+            back_id=(back_data, back_content_type),
+            selfie=selfie,
+            display_name=display_name,
+            submission_type=submission_type,
+        )
+        if not readout:
+            return
+
+        ocr = readout.get("ocr") or {}
+        face = readout.get("face")
+        _supabase().table("verification_submissions").update({
+            "ai_ocr_text_front": ocr.get("extracted_text_front"),
+            "ai_ocr_text_back": ocr.get("extracted_text_back"),
+            "ai_name_match_score": ocr.get("name_match_score"),
+            "ai_face_match_score": face.get("match_score") if face else None,
+            "ai_id_face_detected": face.get("id_face_detected") if face else None,
+            "ai_selfie_face_detected": face.get("selfie_face_detected") if face else None,
+            "ai_image_quality": readout.get("image_quality"),
+            "ai_reasons": readout.get("reasons"),
+            "ai_model_version": readout.get("model_version"),
+            "ai_processed_at": readout.get("processed_at"),
+        }).eq("id", submission_id).execute()
+    except Exception:
+        logger.warning(
+            "AI verification read-out failed for submission %s",
+            submission_id,
+            exc_info=True,
+        )

@@ -86,6 +86,21 @@ def get_submission(
     p = row.get("profiles") or {}
     doc_urls = storage_service.get_identity_document_urls(row)
 
+    ai_readout = None
+    if row.get("ai_processed_at"):
+        ai_readout = {
+            "name_match_score": row.get("ai_name_match_score"),
+            "ocr_text_front": row.get("ai_ocr_text_front"),
+            "ocr_text_back": row.get("ai_ocr_text_back"),
+            "face_match_score": row.get("ai_face_match_score"),
+            "id_face_detected": row.get("ai_id_face_detected"),
+            "selfie_face_detected": row.get("ai_selfie_face_detected"),
+            "image_quality": row.get("ai_image_quality"),
+            "reasons": row.get("ai_reasons"),
+            "model_version": row.get("ai_model_version"),
+            "processed_at": str(row.get("ai_processed_at")),
+        }
+
     return {
         "submission_id": row["id"],
         "user_id": row["user_id"],
@@ -95,6 +110,7 @@ def get_submission(
         "submitted_at": str(row["submitted_at"]),
         "attempt_number": row["attempt_number"],
         "document_signed_urls": doc_urls,
+        "ai_readout": ai_readout,
     }
 
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile, status
 
 from app.dependencies.auth import get_current_user
 from app.models.verification import StatusResponse, SubmissionResponse
@@ -13,6 +13,7 @@ router = APIRouter()
     status_code=status.HTTP_201_CREATED,
 )
 async def submit_documents(
+    background_tasks: BackgroundTasks,
     front_id: UploadFile = File(...),
     back_id: UploadFile = File(...),
     license: UploadFile | None = File(None),
@@ -24,6 +25,7 @@ async def submit_documents(
         front_id=front_id,
         back_id=back_id,
         license=license,
+        background_tasks=background_tasks,
     )
 
 

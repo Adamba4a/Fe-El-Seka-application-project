@@ -6,6 +6,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import type { AdminSubmissionDetail } from "@fe-el-seka/shared";
 import { getSubmission, approve, reject, unlock } from "@/lib/api/admin-verification";
 import { DocumentViewer } from "@/components/verification/DocumentViewer";
+import { AIReadout } from "@/components/verification/AIReadout";
 import { ApproveButton } from "@/components/verification/ApproveButton";
 import { RejectForm } from "@/components/verification/RejectForm";
 import { UnlockButton } from "@/components/verification/UnlockButton";
@@ -77,6 +78,8 @@ export default function SubmissionDetailPage({ params }: { params: { submission_
       </dl>
 
       <DocumentViewer signedUrls={docUrls} labels={labels} />
+
+      <AIReadout readout={detail.ai_readout} userName={detail.user_name} />
 
       <div className="flex flex-wrap gap-3 pt-2">
         <ApproveButton onApprove={handleApprove} />

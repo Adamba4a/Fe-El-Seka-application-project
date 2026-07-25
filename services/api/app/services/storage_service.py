@@ -47,6 +47,16 @@ def get_identity_document_urls(submission: dict) -> dict:
     return urls
 
 
+def download_file(bucket: str, path: str) -> bytes | None:
+    if not path:
+        return None
+    sb = _supabase()
+    try:
+        return sb.storage.from_(bucket).download(path)
+    except Exception:
+        return None
+
+
 def upload_file(bucket: str, path: str, data: bytes, content_type: str) -> str:
     sb = _supabase()
     sb.storage.from_(bucket).upload(

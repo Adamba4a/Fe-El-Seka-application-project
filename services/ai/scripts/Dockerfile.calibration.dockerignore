@@ -1,0 +1,10 @@
+# Per-Dockerfile ignore file (BuildKit) for scripts/Dockerfile.calibration --
+# overrides the root .dockerignore, which excludes scripts/ and models/ since
+# the production Dockerfile doesn't need them. This calibration image needs both.
+.venv/
+__pycache__/
+*.pyc
+.git/
+.mypy_cache/
+.ruff_cache/
+data/

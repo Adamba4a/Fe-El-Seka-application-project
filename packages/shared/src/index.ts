@@ -48,6 +48,8 @@ export type {
   AdminQueueItem,
   AdminQueueResponse,
   AdminSubmissionDetail,
+  AIImageQualityFlags,
+  AIReadout,
 } from "./types/verification";
 
 export type {

@@ -54,6 +54,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         logging.getLogger(__name__).warning("FCM initialization skipped: %s", exc)
     app.state.ai_http_client = await ai_client_module.init(settings.ai_service_url)
+    app.state.ai_verify_http_client = await ai_client_module.init_verify(settings.ai_service_url)
     email_task = asyncio.create_task(email_retry_loop())
     expiry_task = asyncio.create_task(booking_expiry_loop())
     pricing_task = asyncio.create_task(pricing_config_refresh_loop())
@@ -68,7 +69,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     expiry_task.cancel()
     email_task.cancel()
     await ai_client_module.close()
+    await ai_client_module.close_verify()
     app.state.ai_http_client = None
+    app.state.ai_verify_http_client = None
     await close_pool()
     app.state.pool = None
 

@@ -32,10 +32,34 @@ export interface AdminQueueResponse {
   items: AdminQueueItem[];
 }
 
+export interface AIImageQualityFlags {
+  blur_score: number;
+  glare_ratio: number;
+  is_blurry: boolean;
+  is_glare: boolean;
+}
+
+// Advisory-only hint surfaced next to the document viewer — never a decision.
+// null means no AI read-out is available (AI was unreachable, or the
+// submission predates this feature), not "AI checked and found nothing".
+export interface AIReadout {
+  name_match_score: number | null;
+  ocr_text_front: string | null;
+  ocr_text_back: string | null;
+  face_match_score: number | null;
+  id_face_detected: boolean | null;
+  selfie_face_detected: boolean | null;
+  image_quality: Record<string, AIImageQualityFlags> | null;
+  reasons: string[] | null;
+  model_version: string | null;
+  processed_at: string | null;
+}
+
 export interface AdminSubmissionDetail extends AdminQueueItem {
   document_signed_urls: {
     front_id: string;
     back_id: string;
     license?: string;
   };
+  ai_readout: AIReadout | null;
 }

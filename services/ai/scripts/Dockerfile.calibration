@@ -1,0 +1,38 @@
+# One-off image for running scripts/validate_verification_accuracy.py against a
+# real calibration corpus. Matches the production runtime (python:3.11-slim +
+# tesseract-ocr + tesseract-ocr-ara) so OCR results are representative of what
+# services/ai will actually see -- not built or pushed as part of the normal
+# CI/deploy pipeline (see Dockerfile for that).
+#
+# Build:
+#   cd services/ai
+#   docker build -f scripts/Dockerfile.calibration -t fe-el-seka-ai-calibration .
+# Run:
+#   docker run --rm -v "<calibration-data-dir>:/data:ro" fe-el-seka-ai-calibration --data-dir /data
+
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr tesseract-ocr-ara \
+    libgl1 libglib2.0-0 libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /app
+
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+
+# Experimental, calibration-only: stronger OCR/face-match models being compared
+# against the Tesseract/SFace defaults before committing either to
+# services/ai's real pyproject.toml dependencies.
+RUN uv pip install --python /app/.venv/bin/python onnxruntime paddleocr paddlepaddle
+
+COPY app/ ./app/
+COPY scripts/ ./scripts/
+
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
+
+ENTRYPOINT ["python", "scripts/validate_verification_accuracy.py"]

@@ -31,8 +31,22 @@ class AdminQueueResponse(BaseModel):
     items: list[AdminQueueItem]
 
 
+class AIReadout(BaseModel):
+    name_match_score: float | None
+    ocr_text_front: str | None
+    ocr_text_back: str | None
+    face_match_score: float | None
+    id_face_detected: bool | None
+    selfie_face_detected: bool | None
+    image_quality: dict | None
+    reasons: list[str] | None
+    model_version: str | None
+    processed_at: str | None
+
+
 class AdminSubmissionDetail(AdminQueueItem):
     document_signed_urls: dict
+    ai_readout: AIReadout | None = None
 
 
 class RejectRequest(BaseModel):
