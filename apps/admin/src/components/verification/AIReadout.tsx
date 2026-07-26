@@ -47,9 +47,15 @@ export function AIReadout({ readout, userName }: AIReadoutProps) {
         </div>
         <div>
           <div className="text-gray-500 text-xs mb-1">Selfie / ID face match</div>
-          {readout.face_match_score !== null
-            ? scoreBadge(readout.face_match_score, 0.6)
-            : <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs">No selfie on file</span>}
+          {readout.face_match_score !== null ? (
+            scoreBadge(readout.face_match_score, 0.6)
+          ) : readout.selfie_face_detected === false ? (
+            <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs">No face detected in selfie</span>
+          ) : readout.id_face_detected === false ? (
+            <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs">No face detected in ID photo</span>
+          ) : (
+            <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs">No selfie on file</span>
+          )}
         </div>
       </div>
 
