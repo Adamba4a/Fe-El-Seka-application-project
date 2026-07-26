@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 
 from app.models.verification import ImageQualityFlags
+from app.services.document_crop import find_and_crop_document
 
 BLUR_SCORE_THRESHOLD = 100.0
 GLARE_RATIO_THRESHOLD = 0.05
@@ -19,8 +20,15 @@ def glare_ratio(img_bgr: np.ndarray) -> float:
 
 
 def assess_quality(img_bgr: np.ndarray) -> ImageQualityFlags:
-    blur = blur_score(img_bgr)
-    glare = glare_ratio(img_bgr)
+    # Measure against the card itself, not the surrounding photo -- a bright
+    # background (white table, hand) otherwise reads as "significant glare"
+    # even when the card has none. Falls back to the full frame if no
+    # confident card-like quad is found.
+    cropped = find_and_crop_document(img_bgr)
+    measured = cropped if cropped is not None else img_bgr
+
+    blur = blur_score(measured)
+    glare = glare_ratio(measured)
     return ImageQualityFlags(
         blur_score=blur,
         glare_ratio=glare,
