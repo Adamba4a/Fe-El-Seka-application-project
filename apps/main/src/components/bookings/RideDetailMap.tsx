@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { TILE_URL, TILE_ATTRIBUTION, TILE_MAX_ZOOM } from "../../lib/map-tiles";
 
 export interface LatLng {
   lat: number;
@@ -45,9 +46,9 @@ export function RideDetailMap({
       const map = L.map(containerRef.current!).setView([center.lat, center.lng], 13);
       mapRef.current = map;
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19,
+      L.tileLayer(TILE_URL, {
+        attribution: TILE_ATTRIBUTION,
+        maxZoom: TILE_MAX_ZOOM,
       }).addTo(map);
 
       // Blue driver route polyline

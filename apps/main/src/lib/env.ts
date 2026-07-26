@@ -23,4 +23,7 @@ export const env = {
   // container directly without going through nginx. Falls back to the public
   // URL in local dev where BACKEND_INTERNAL_URL is not set.
   serverApiUrl: process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL!,
+  // Optional: raster tile provider key (see lib/map-tiles.ts). Missing in
+  // local dev is fine — falls back to OSM's raw tile server there.
+  mapTilerKey: process.env.NEXT_PUBLIC_MAPTILER_KEY,
 } as const;

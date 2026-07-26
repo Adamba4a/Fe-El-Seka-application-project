@@ -5,6 +5,7 @@ import { resolveOrigin } from "@/lib/request-origin";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
+  const next = request.nextUrl.searchParams.get("next");
   const origin = resolveOrigin(request);
 
   if (!code) {
@@ -31,6 +32,16 @@ export async function GET(request: NextRequest) {
 
   if (error || !data.session) {
     return NextResponse.redirect(new URL("/login?error=oauth_failed", origin));
+  }
+
+  // Password-recovery links carry an explicit `next` (e.g. /set-password) and
+  // skip the OAuth-only new-vs-existing-user check below entirely.
+  if (next) {
+    const response = NextResponse.redirect(new URL(next, origin));
+    cookiesToApply.forEach(({ name, value, options }) =>
+      response.cookies.set(name, value, options)
+    );
+    return response;
   }
 
   let redirectPath = "/";

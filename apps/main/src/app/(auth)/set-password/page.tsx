@@ -1,13 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { setPassword, signInWithPassword } from "@/lib/api/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
 
 export default function SetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <SetPasswordForm />
+    </Suspense>
+  );
+}
+
+function SetPasswordForm() {
   const router = useRouter();
+  const isReset = useSearchParams().get("reason") === "reset";
   const [accessToken, setAccessToken] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPasswordValue] = useState("");
@@ -70,9 +79,13 @@ export default function SetPasswordPage() {
     <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-h2 text-content-primary">Set a password</h1>
+          <h1 className="text-h2 text-content-primary">
+            {isReset ? "Reset your password" : "Set a password"}
+          </h1>
           <p className="text-body-sm text-content-muted mt-1">
-            Skip the code next time by setting a password now
+            {isReset
+              ? "Choose a new password for your account"
+              : "Skip the code next time by setting a password now"}
           </p>
         </div>
 
@@ -108,16 +121,18 @@ export default function SetPasswordPage() {
             className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
           >
             {loading && <Spinner />}
-            {loading ? "Saving…" : "Set Password"}
+            {loading ? "Saving…" : isReset ? "Reset Password" : "Set Password"}
           </button>
-          <button
-            type="button"
-            onClick={() => router.push("/profile")}
-            disabled={loading}
-            className="w-full text-center text-body-sm text-content-muted hover:underline"
-          >
-            Skip for now
-          </button>
+          {!isReset && (
+            <button
+              type="button"
+              onClick={() => router.push("/profile")}
+              disabled={loading}
+              className="w-full text-center text-body-sm text-content-muted hover:underline"
+            >
+              Skip for now
+            </button>
+          )}
         </form>
       </div>
     </main>

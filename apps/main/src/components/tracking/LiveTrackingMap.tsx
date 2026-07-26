@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { DriverLocationData } from "../../lib/api/location";
+import { TILE_URL, TILE_ATTRIBUTION, TILE_MAX_ZOOM } from "../../lib/map-tiles";
 
 interface LiveTrackingMapProps {
   location: DriverLocationData | null;
@@ -35,9 +36,9 @@ export function LiveTrackingMap({ location, isStale }: LiveTrackingMapProps) {
       const map = L.map(containerRef.current!).setView(CAIRO_CENTER, 14);
       mapRef.current = map;
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19,
+      L.tileLayer(TILE_URL, {
+        attribution: TILE_ATTRIBUTION,
+        maxZoom: TILE_MAX_ZOOM,
       }).addTo(map);
     });
 

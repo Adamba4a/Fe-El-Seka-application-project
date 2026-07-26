@@ -45,8 +45,11 @@ def _get() -> httpx.AsyncClient:
 async def init_verify(base_url: str) -> httpx.AsyncClient:
     global _verify_client
     # Separate client from `_client`: OCR + face-match is much slower than the
-    # 1s ride-matching calls, so it needs its own generous timeout.
-    _verify_client = httpx.AsyncClient(base_url=base_url, timeout=httpx.Timeout(12.0))
+    # 1s ride-matching calls, so it needs its own generous timeout. Runs from a
+    # BackgroundTask after the submission response is already sent, so a long
+    # timeout costs nothing user-facing; production has observed cold-start
+    # inference (Tesseract + ONNX face models) take >12s on a fresh container.
+    _verify_client = httpx.AsyncClient(base_url=base_url, timeout=httpx.Timeout(30.0))
     return _verify_client
 
 

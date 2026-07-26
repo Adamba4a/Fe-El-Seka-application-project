@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Coordinates } from "@fe-el-seka/shared";
+import { TILE_URL, TILE_ATTRIBUTION, TILE_MAX_ZOOM } from "../../lib/map-tiles";
 
 interface RideMapProps {
   label?: string;
@@ -91,9 +92,9 @@ export function RideMap({ label, initialCoordinates, onPinDrop, fullScreen = fal
       const map = L.map(containerRef.current!).setView(center, 12);
       mapRef.current = map;
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19,
+      L.tileLayer(TILE_URL, {
+        attribution: TILE_ATTRIBUTION,
+        maxZoom: TILE_MAX_ZOOM,
       }).addTo(map);
 
       if (initialCoordinates) {
