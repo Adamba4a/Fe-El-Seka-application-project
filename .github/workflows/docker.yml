@@ -103,6 +103,7 @@ jobs:
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
             NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
             NEXT_PUBLIC_NOMINATIM_URL=${{ vars.NEXT_PUBLIC_NOMINATIM_URL }}
+            NEXT_PUBLIC_MAPTILER_KEY=${{ vars.NEXT_PUBLIC_MAPTILER_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -194,5 +195,6 @@ jobs:
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
             NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
             NEXT_PUBLIC_NOMINATIM_URL=${{ vars.NEXT_PUBLIC_NOMINATIM_URL }}
+            NEXT_PUBLIC_MAPTILER_KEY=${{ vars.NEXT_PUBLIC_MAPTILER_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
