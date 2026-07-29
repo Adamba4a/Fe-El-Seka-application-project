@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Spinner } from "@/components/ui/Spinner";
 import { createClient } from "@/lib/supabase/client";
 
@@ -12,6 +12,7 @@ interface BookingSummary {
   ride_id: string;
   status: BookingStatus;
   passenger_id: string;
+  passenger_display_name?: string;
 }
 
 const REPORT_CATEGORIES: { value: string; label: string }[] = [
@@ -51,8 +52,6 @@ export default function DriverRateReportPage() {
   const params = useParams<{ bookingId: string }>();
   const bookingId = params.bookingId;
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const passengerName = searchParams.get("name") || "your passenger";
 
   const [booking, setBooking] = useState<BookingSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -164,7 +163,9 @@ export default function DriverRateReportPage() {
           {/* Rate the passenger */}
           <div className="rounded-xl border border-border-default bg-surface-card">
             <div className="p-4 space-y-3">
-              <p className="font-medium text-content-primary">Rate {passengerName}</p>
+              <p className="font-medium text-content-primary">
+                Rate {booking.passenger_display_name ?? "your passenger"}
+              </p>
 
               {ratingState === "done" ? (
                 <p className="text-sm text-green-700">

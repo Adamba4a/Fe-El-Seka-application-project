@@ -171,10 +171,13 @@ async def get_booking(
                 r.departure_datetime, r.driver_id,
                 ST_AsGeoJSON(r.route_geometry) AS route_geometry_geojson,
                 p.display_name AS driver_display_name,
-                p.profile_photo_path AS driver_avatar_url
+                p.profile_photo_path AS driver_avatar_url,
+                pp.display_name AS passenger_display_name,
+                pp.profile_photo_path AS passenger_avatar_url
             FROM bookings b
             JOIN rides r ON r.id = b.ride_id
             JOIN profiles p ON p.id = r.driver_id
+            JOIN profiles pp ON pp.id = b.passenger_id
             WHERE b.id = $1
             """,
             booking_id,
@@ -202,6 +205,10 @@ async def get_booking(
         "driver_display_name": b["driver_display_name"],
         "driver_avatar_url": storage_service.generate_signed_url(
             "profile-photos", b["driver_avatar_url"]
+        ),
+        "passenger_display_name": b["passenger_display_name"],
+        "passenger_avatar_url": storage_service.generate_signed_url(
+            "profile-photos", b["passenger_avatar_url"]
         ),
         "departure_datetime": b["departure_datetime"].isoformat() if b["departure_datetime"] else None,
         "per_seat_price": f"{float(b['per_seat_price']):.2f}",

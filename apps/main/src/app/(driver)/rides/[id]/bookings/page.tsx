@@ -297,9 +297,7 @@ export default function DriverRideBookingsPage() {
                 <p className="text-xs text-content-muted">EGP {booking.total_price}</p>
               </div>
               <Link
-                href={`/ratings/${booking.booking_id}?name=${encodeURIComponent(
-                  booking.passenger.display_name ?? "your passenger"
-                )}`}
+                href={`/ratings/${booking.booking_id}`}
                 className="shrink-0 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white px-3 py-1.5 text-xs font-semibold transition-colors"
               >
                 Rate &amp; Report
