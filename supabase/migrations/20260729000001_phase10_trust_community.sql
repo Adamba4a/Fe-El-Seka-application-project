@@ -27,12 +27,11 @@ CREATE TABLE public.ratings (
     rater_role  rater_role NOT NULL,
     stars       SMALLINT NOT NULL CHECK (stars BETWEEN 1 AND 5),
     comment     TEXT CHECK (char_length(comment) <= 500),
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
--- At most one rating per direction per booking (FR-005)
-CREATE UNIQUE INDEX idx_ratings_booking_rater_unique
-    ON public.ratings (booking_id, rater_id);
+    -- At most one rating per direction per booking (FR-005)
+    CONSTRAINT ratings_booking_rater_unique UNIQUE (booking_id, rater_id)
+);
 
 -- Ratee's own anonymized comment list (FR-007)
 CREATE INDEX idx_ratings_ratee_created
@@ -125,8 +124,23 @@ ALTER TABLE public.profiles
 
 -- ── admin_audit_logs: extend action_type, add report_id reference ───────────
 
-ALTER TABLE public.admin_audit_logs
-    DROP CONSTRAINT IF EXISTS admin_audit_logs_action_type_check;
+-- Drop whatever the action_type CHECK constraint is actually named (don't assume the
+-- Postgres-default auto-generated name survived unchanged) to avoid silently adding a second,
+-- conflicting CHECK that would reject every 'warned' write at runtime.
+DO $$
+DECLARE
+    existing_constraint text;
+BEGIN
+    SELECT conname INTO existing_constraint
+    FROM pg_constraint
+    WHERE conrelid = 'public.admin_audit_logs'::regclass
+      AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%action_type%';
+
+    IF existing_constraint IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE public.admin_audit_logs DROP CONSTRAINT %I', existing_constraint);
+    END IF;
+END $$;
 
 ALTER TABLE public.admin_audit_logs
     ADD CONSTRAINT admin_audit_logs_action_type_check
