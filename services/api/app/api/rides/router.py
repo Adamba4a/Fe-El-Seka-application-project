@@ -604,6 +604,7 @@ async def list_ride_bookings(
         query = """
             SELECT
                 b.id              AS booking_id,
+                b.passenger_id,
                 b.status,
                 b.per_seat_price,
                 b.total_price,
@@ -635,6 +636,7 @@ async def list_ride_bookings(
     items = [
         DriverBookingItem(
             booking_id=r["booking_id"],
+            passenger_id=r["passenger_id"],
             passenger={
                 "display_name": r["passenger_display_name"],
                 "avatar_url": storage_service.generate_signed_url(

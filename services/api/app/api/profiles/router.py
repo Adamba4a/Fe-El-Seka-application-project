@@ -1,11 +1,14 @@
+import uuid
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from supabase import create_client
 
 from app.core.config import settings
+from app.core.database import get_pool
 from app.dependencies.auth import get_current_user
 from app.models.profile import ProfileResponse, ProfileSetup, ProfileUpdate
-from app.services import profile_service
+from app.services import profile_service, rating_service
 
 router = APIRouter()
 _bearer = HTTPBearer()
@@ -89,3 +92,29 @@ async def upload_photo(
     profile: dict = Depends(get_current_user),
 ) -> dict:
     return await profile_service.upload_profile_photo(profile["id"], photo)
+
+
+@router.get("/{user_id}/rating")
+async def get_rating_summary(
+    user_id: uuid.UUID,
+    profile: dict = Depends(get_current_user),
+) -> dict:
+    caller_id = uuid.UUID(str(profile["id"]))
+    if user_id != caller_id:
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "forbidden", "message": "You can only view your own rating summary"},
+        )
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        summary = await rating_service.get_own_rating_summary(conn, user_id)
+
+    return {
+        "rating_avg": summary["rating_avg"],
+        "rating_count": summary["rating_count"],
+        "comments": [
+            {"comment": c["comment"], "created_at": c["created_at"].isoformat()}
+            for c in summary["comments"]
+        ],
+    }

@@ -79,6 +79,7 @@ class PassengerSummary(BaseModel):
 
 class DriverBookingItem(BaseModel):
     booking_id: UUID
+    passenger_id: UUID
     passenger: PassengerSummary
     status: str
     per_seat_price: str

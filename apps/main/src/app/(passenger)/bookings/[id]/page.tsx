@@ -280,6 +280,17 @@ export default function PassengerBookingDetailPage() {
         </Link>
       )}
 
+      {/* Rate & report — available once the ride is completed */}
+      {booking.status === "completed" && (
+        <Link
+          href={`/ratings/${booking.booking_id}`}
+          className="flex items-center justify-center gap-2 w-full rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white px-4 py-3 text-sm font-semibold transition-colors"
+        >
+          <span>⭐</span>
+          Rate &amp; Report
+        </Link>
+      )}
+
       {/* Price breakdown */}
       <div className="rounded-xl border border-border-default bg-surface-card">
         <div className="p-4 space-y-2">

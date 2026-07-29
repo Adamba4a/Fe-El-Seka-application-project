@@ -197,6 +197,8 @@ async def get_booking(
         "booking_id": str(b["id"]),
         "ride_id": str(b["ride_id"]),
         "status": b["status"],
+        "passenger_id": str(b["passenger_id"]),
+        "driver_id": str(b["driver_id"]),
         "driver_display_name": b["driver_display_name"],
         "driver_avatar_url": storage_service.generate_signed_url(
             "profile-photos", b["driver_avatar_url"]

@@ -25,6 +25,8 @@ from app.api.health import router as health_router
 from app.api.internal.revocation_router import router as internal_router
 from app.api.internal.route_intelligence_router import router as route_intelligence_router
 from app.api.profiles.router import router as profiles_router
+from app.api.ratings.router import router as ratings_router
+from app.api.reports.router import router as reports_router
 from app.api.routes.router import router as routes_router
 from app.api.bookings.router import router as bookings_router
 from app.api.rides.router import router as rides_router
@@ -153,6 +155,8 @@ app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
 app.include_router(rides_router, prefix="/api/v1/rides", tags=["rides"])
 app.include_router(search_router, prefix="/api/v1/search", tags=["search"])
 app.include_router(bookings_router, prefix="/api/v1/bookings", tags=["bookings"])
+app.include_router(ratings_router, prefix="/api/v1/ratings", tags=["ratings"])
+app.include_router(reports_router, prefix="/api/v1/reports", tags=["reports"])
 app.include_router(wallet_router, prefix="/api/v1/drivers/me", tags=["wallet"])
 app.include_router(internal_router, prefix="/api/v1/internal", tags=["internal"])
 app.include_router(routes_router, prefix="/api/routes", tags=["routes"])

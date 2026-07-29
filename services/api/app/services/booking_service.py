@@ -612,10 +612,11 @@ async def complete_ride_bookings(conn, ride_id: uuid.UUID) -> int:
     """Transition all confirmed bookings for a ride to completed. Idempotent."""
     rows = await conn.fetch(
         """
-        UPDATE bookings
+        UPDATE bookings b
         SET status = 'completed'
-        WHERE ride_id = $1 AND status = 'confirmed'
-        RETURNING id, passenger_id
+        FROM rides r
+        WHERE b.ride_id = $1 AND b.status = 'confirmed' AND r.id = b.ride_id
+        RETURNING b.id, b.passenger_id, r.driver_id
         """,
         ride_id,
     )
@@ -625,6 +626,26 @@ async def complete_ride_bookings(conn, ride_id: uuid.UUID) -> int:
         )
         await match_logging_service.record_outcome(
             conn, ride_id, row["passenger_id"], "completed", {"booking_id": str(row["id"])},
+        )
+        await _enqueue_fcm_notification(
+            conn,
+            "rating_prompt",
+            row["passenger_id"],
+            {
+                "ride_id": str(ride_id),
+                "booking_id": str(row["id"]),
+                "deep_link": f"/(passenger)/ratings/{row['id']}",
+            },
+        )
+        await _enqueue_fcm_notification(
+            conn,
+            "rating_prompt",
+            row["driver_id"],
+            {
+                "ride_id": str(ride_id),
+                "booking_id": str(row["id"]),
+                "deep_link": f"/(driver)/ratings/{row['id']}",
+            },
         )
     return len(rows)
 

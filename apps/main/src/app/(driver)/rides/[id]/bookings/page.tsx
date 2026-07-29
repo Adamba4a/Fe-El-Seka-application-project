@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -19,6 +20,7 @@ type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 
 interface DriverBooking {
   booking_id: string;
+  passenger_id: string;
   status: BookingStatus;
   passenger: { display_name?: string; avatar_url?: string };
   per_seat_price: string;
@@ -195,6 +197,7 @@ export default function DriverRideBookingsPage() {
 
   const pending = bookings.filter((b) => b.status === "pending");
   const confirmed = bookings.filter((b) => b.status === "confirmed");
+  const completed = bookings.filter((b) => b.status === "completed");
 
   if (loading) {
     return (
@@ -276,6 +279,35 @@ export default function DriverRideBookingsPage() {
           ))
         )}
       </section>
+
+      {completed.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            Completed ({completed.length})
+          </h2>
+          {completed.map((booking) => (
+            <div
+              key={booking.booking_id}
+              className="rounded-xl border border-border-default bg-surface-card p-4 flex items-center justify-between gap-3"
+            >
+              <div className="min-w-0">
+                <p className="font-medium text-sm text-content-primary truncate">
+                  {booking.passenger.display_name ?? "Passenger"}
+                </p>
+                <p className="text-xs text-content-muted">EGP {booking.total_price}</p>
+              </div>
+              <Link
+                href={`/ratings/${booking.booking_id}?name=${encodeURIComponent(
+                  booking.passenger.display_name ?? "your passenger"
+                )}`}
+                className="shrink-0 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white px-3 py-1.5 text-xs font-semibold transition-colors"
+              >
+                Rate &amp; Report
+              </Link>
+            </div>
+          ))}
+        </section>
+      )}
 
       <BottomSheet isOpen={!!mapBooking} onClose={() => setMapBooking(null)}>
         {mapBooking && ride && (

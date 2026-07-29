@@ -53,6 +53,10 @@ _NOTIFICATION_TEMPLATES: dict[str, tuple[str, str]] = {
         "Ride Completed",
         "Your ride is complete. Thank you for using Triplyy!",
     ),
+    "rating_prompt": (
+        "Rate Your Ride",
+        "How was your ride? Tap to leave a rating.",
+    ),
 }
 
 # FCM error codes that mark a token as permanently invalid (should be deregistered)

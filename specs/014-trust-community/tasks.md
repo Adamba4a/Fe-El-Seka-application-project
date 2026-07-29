@@ -84,33 +84,33 @@ reveal timing matches FR-008 (`quickstart.md` Scenario 1).
 
 ### Implementation for User Story 1
 
-- [ ] T010 [P] [US1] Create `services/api/app/services/rating_service.py` with
+- [X] T010 [P] [US1] Create `services/api/app/services/rating_service.py` with
   `submit_rating(conn, booking_id, rater_id, stars, comment) -> dict`: validates the booking is
   `completed` (FR-003), the rater is a party to it (FR-004), no existing rating for
   `(booking_id, rater_id)` (FR-005), and no more than 14 days have elapsed since the ride's
   `completed_at` (FR-011); inserts the rating row and recalculates the ratee's `profiles.rating_avg`/
   `rating_count` in the same transaction (FR-006, NFR-002), per `data-model.md` and `contracts/api.md`
-- [ ] T011 [US1] Add `get_own_rating_summary(conn, user_id) -> dict` to
+- [X] T011 [US1] Add `get_own_rating_summary(conn, user_id) -> dict` to
   `services/api/app/services/rating_service.py`: returns `rating_avg`/`rating_count` (`null` average
   when count is 0, FR-010) and an anonymized comment list excluding rater identity (FR-007) and any
   rating not yet revealed per the FR-008 double-blind rule (counterpart-rated OR 14 days elapsed) —
   depends on T010 (same file)
-- [ ] T012 [US1] In `services/api/app/services/rating_service.py`'s `submit_rating()`, call
+- [X] T012 [US1] In `services/api/app/services/rating_service.py`'s `submit_rating()`, call
   `match_logging_service.record_outcome(conn, ride_id, passenger_id, 'rated', {"stars": stars})`
   when a linked `match_outcomes` row exists for the booking (FR-009), reusing the correlation
   lookup pattern from `013-match-learning-foundation`'s `match_logging_service.py` — depends on T010
-- [ ] T013 [US1] Create `services/api/app/api/ratings/router.py` with `POST /ratings` and
+- [X] T013 [US1] Create `services/api/app/api/ratings/router.py` with `POST /ratings` and
   `GET /profiles/{user_id}/rating` per `contracts/api.md`, including the `403` restriction that
   `user_id` must equal the authenticated caller — depends on T010, T011, T012
-- [ ] T014 [US1] Register the ratings router in `services/api/app/main.py` — depends on T013
-- [ ] T015 [US1] In `services/api/app/services/booking_service.py`'s `complete_ride_bookings()`,
+- [X] T014 [US1] Register the ratings router in `services/api/app/main.py` — depends on T013
+- [X] T015 [US1] In `services/api/app/services/booking_service.py`'s `complete_ride_bookings()`,
   enqueue a `notification_events` row per completed booking prompting both parties to rate,
   reusing the existing `notification_dispatcher.py` delivery path (`research.md` R5) — depends on T009
-- [ ] T016 [P] [US1] Add the post-ride rating prompt and own-rating view under
+- [X] T016 [P] [US1] Add the post-ride rating prompt and own-rating view under
   `apps/main/src/app/(passenger)/ratings/` — depends on T014
-- [ ] T017 [P] [US1] Add the post-ride rating prompt and own-rating view under
+- [X] T017 [P] [US1] Add the post-ride rating prompt and own-rating view under
   `apps/main/src/app/(driver)/ratings/` — depends on T014
-- [ ] T018 [US1] Run `quickstart.md` Scenario 1 locally and confirm rating submission, duplicate
+- [X] T018 [US1] Run `quickstart.md` Scenario 1 locally and confirm rating submission, duplicate
   rejection, non-completed-booking rejection, non-party rejection, and double-blind reveal all
   behave as specified — depends on T015, T016, T017
 
@@ -134,23 +134,23 @@ per spec.md's stated story independence.
 
 ### Implementation for User Story 2
 
-- [ ] T019 [P] [US2] Create `services/api/app/services/report_service.py` with
+- [X] T019 [P] [US2] Create `services/api/app/services/report_service.py` with
   `submit_report(conn, ride_id, booking_id, reporter_id, reported_user_id, category, description) ->
   dict`: validates the reporter was a party to the ride/booking and is not reporting themselves
   (FR-013), category and description are present (FR-014), and the ride is `in_progress` or
   `completed` (FR-015); inserts the report row with `status = 'open'`, per `data-model.md` and
   `contracts/api.md`
-- [ ] T020 [US2] Add `get_own_reports(conn, user_id) -> list[dict]` to
+- [X] T020 [US2] Add `get_own_reports(conn, user_id) -> list[dict]` to
   `services/api/app/services/report_service.py`, returning status-only history excluding resolution
   fields (FR-016) — depends on T019 (same file)
-- [ ] T021 [US2] Create `services/api/app/api/reports/router.py` with `POST /reports` and
+- [X] T021 [US2] Create `services/api/app/api/reports/router.py` with `POST /reports` and
   `GET /reports/mine` per `contracts/api.md` — depends on T019, T020
-- [ ] T022 [US2] Register the reports router in `services/api/app/main.py` — depends on T021
-- [ ] T023 [P] [US2] Add the "Report a concern" entry point (category selector + description) under
+- [X] T022 [US2] Register the reports router in `services/api/app/main.py` — depends on T021
+- [X] T023 [P] [US2] Add the "Report a concern" entry point (category selector + description) under
   `apps/main/src/app/(passenger)/ratings/` — depends on T022
-- [ ] T024 [P] [US2] Add the "Report a concern" entry point under
+- [X] T024 [P] [US2] Add the "Report a concern" entry point under
   `apps/main/src/app/(driver)/ratings/` — depends on T022
-- [ ] T025 [US2] Run `quickstart.md` Scenario 2 locally and confirm report submission, rejection
+- [X] T025 [US2] Run `quickstart.md` Scenario 2 locally and confirm report submission, rejection
   cases, and the soft-flag-only behavior (FR-017 — no restriction on the reported user immediately
   after filing) all behave as specified — depends on T023, T024
 
