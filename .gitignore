@@ -156,6 +156,7 @@ lib64/
 MANIFEST
 # Next.js lib source is not a Python virtualenv lib — un-ignore it
 !apps/main/src/lib/
+!apps/admin/src/lib/
 
 # Test / coverage
 .pytest_cache/

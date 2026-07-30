@@ -468,13 +468,13 @@ This document defines two tracks:
 
 Features deferred until after the competition. The MVP architecture is designed so all of these add cleanly without structural changes.
 
-## Phase 10 — Trust & Community
+## Phase 10 — Trust & Community ✅ Complete (014-trust-community)
 
 | ID | Name |
 |---|---|
-| 032 | ratings-system |
-| 033 | reporting-system |
-| 034 | safety-moderation |
+| 032 | ratings-system ✅ Complete |
+| 033 | reporting-system ✅ Complete |
+| 034 | safety-moderation ✅ Complete |
 
 **Deliverables:** Driver + passenger ratings, user reporting, moderation workflows
 

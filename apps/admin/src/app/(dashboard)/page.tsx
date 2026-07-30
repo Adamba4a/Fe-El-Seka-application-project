@@ -6,10 +6,11 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const supabase = createAdminClient();
 
-  const [pending, pendingVehicleUpdates, total] = await Promise.all([
+  const [pending, pendingVehicleUpdates, total, openReports] = await Promise.all([
     supabase.from("verification_submissions").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
     supabase.from("vehicle_update_requests").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
     supabase.from("profiles").select("id", { count: "exact", head: true }),
+    supabase.from("reports").select("id", { count: "exact", head: true }).in("status", ["open", "under_review"]),
   ]);
 
   return (
@@ -27,6 +28,10 @@ export default async function DashboardPage() {
         <Link href="/users" className="block border rounded-lg p-5 hover:bg-gray-50">
           <p className="text-3xl font-bold">{total.count ?? 0}</p>
           <p className="text-sm text-gray-500 mt-1">Total users</p>
+        </Link>
+        <Link href="/moderation" className="block border rounded-lg p-5 hover:bg-gray-50">
+          <p className="text-3xl font-bold">{openReports.count ?? 0}</p>
+          <p className="text-sm text-gray-500 mt-1">Open reports</p>
         </Link>
       </div>
     </main>

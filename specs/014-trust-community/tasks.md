@@ -174,20 +174,20 @@ testing, though the flagged-users half (FR-019) only depends on Foundational sch
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Create `services/api/app/services/moderation_service.py` with
+- [X] T026 [P] [US3] Create `services/api/app/services/moderation_service.py` with
   `init_moderation_config()`, `moderation_config_refresh_loop()`, and
   `get_flagging_thresholds() -> dict`, mirroring
   `services/api/app/services/ranking_config_service.py`'s singleton-config-table + cached-refresh-
   loop pattern (`research.md` R3)
-- [ ] T027 [US3] Add `list_flagged_users(conn) -> list[dict]` to
+- [X] T027 [US3] Add `list_flagged_users(conn) -> list[dict]` to
   `services/api/app/services/moderation_service.py`, implementing FR-019: rolling average over the
   most recent `rating_window` ratings below `rating_floor` (with at least `rating_min_count`
   ratings received), OR `report_count_threshold`+ reports within `report_window_days` — depends on
   T026 (same file)
-- [ ] T028 [P] [US3] Extend `services/api/app/services/audit_service.py`'s `append_log()` with an
+- [X] T028 [P] [US3] Extend `services/api/app/services/audit_service.py`'s `append_log()` with an
   optional `report_id: str | None = None` parameter, passed through to the new
   `admin_audit_logs.report_id` column
-- [ ] T029 [US3] Add `resolve_report(conn, report_id, admin_id, action, reason) -> dict` to
+- [X] T029 [US3] Add `resolve_report(conn, report_id, admin_id, action, reason) -> dict` to
   `services/api/app/services/moderation_service.py`: for `warn`, calls
   `audit_service.append_log(..., 'warned', ..., report_id=report_id, reason=reason)` with no
   account state change; for `suspend`, sets `profiles.verification_status = 'suspended'` (FR-021,
@@ -195,26 +195,26 @@ testing, though the flagged-users half (FR-019) only depends on Foundational sch
   `dismiss`, no account state change; all three mark the report `resolved`/`dismissed` and enqueue a
   `notification_events` row informing the affected user without exposing reporter identity (FR-025)
   — depends on T027, T028
-- [ ] T030 [US3] Add `reinstate_user(conn, user_id, admin_id, reason) -> dict` to
+- [X] T030 [US3] Add `reinstate_user(conn, user_id, admin_id, reason) -> dict` to
   `services/api/app/services/moderation_service.py`: sets `profiles.verification_status = 'verified'`
   (FR-022), calls `audit_service.append_log(..., 'reinstated', ...)`, enqueues a `notification_events`
   row — depends on T029 (same file)
-- [ ] T031 [US3] Create `services/api/app/api/admin/moderation_router.py` with
+- [X] T031 [US3] Create `services/api/app/api/admin/moderation_router.py` with
   `GET /admin/moderation/queue`, `GET /admin/moderation/flagged`,
   `POST /admin/moderation/reports/{report_id}/review`,
   `POST /admin/moderation/reports/{report_id}/resolve`,
   `POST /admin/moderation/users/{user_id}/reinstate`, mirroring
   `services/api/app/api/admin/verification_router.py`'s shape and `get_current_admin` auth (FR-018,
   FR-020, FR-026) — depends on T027, T029, T030
-- [ ] T032 [US3] Register the moderation router in `services/api/app/main.py`; wire
+- [X] T032 [US3] Register the moderation router in `services/api/app/main.py`; wire
   `moderation_service.init_moderation_config()` and
   `asyncio.create_task(moderation_service.moderation_config_refresh_loop())` into the `lifespan()`
   function alongside the existing `pricing_config`/`ranking_config` startup calls — depends on
   T026, T031
-- [ ] T033 [P] [US3] Add the moderation queue screen (open reports + flagged users, report detail,
+- [X] T033 [P] [US3] Add the moderation queue screen (open reports + flagged users, report detail,
   resolve action, reinstate action) under `apps/admin/src/app/(dashboard)/moderation/` — depends on
   T032
-- [ ] T034 [US3] Run `quickstart.md` Scenario 3 locally and confirm queue listing, flagged-user
+- [X] T034 [US3] Run `quickstart.md` Scenario 3 locally and confirm queue listing, flagged-user
   surfacing, warn/suspend/dismiss/reinstate actions, non-admin rejection, and outcome notifications
   all behave as specified — depends on T033
 
@@ -226,17 +226,17 @@ testing, though the flagged-users half (FR-019) only depends on Foundational sch
 
 **Purpose**: Final validation and documentation for Phase 10 (specs 032/033/034).
 
-- [ ] T035 [P] Review RLS policies on `ratings` and `reports` against NFR-005: confirm a rater/
+- [X] T035 [P] Review RLS policies on `ratings` and `reports` against NFR-005: confirm a rater/
   reporter sees only their own submissions/history, a ratee sees only their own aggregate and
   anonymized comments (never rater identity), and a reported user has no visibility into reports
   filed against them
-- [ ] T036 [P] Add structured JSON logging for each moderation action (admin identity, action type,
+- [X] T036 [P] Add structured JSON logging for each moderation action (admin identity, action type,
   target user, reason, duration) in `services/api/app/services/moderation_service.py`, per NFR-006
   and consistent with the existing observability convention used by `audit_service.py`/
   `verification_router.py`
-- [ ] T037 [P] Update `docs/implementation-roadmap.md` to mark Phase 10 specs 032
+- [X] T037 [P] Update `docs/implementation-roadmap.md` to mark Phase 10 specs 032
   (ratings-system), 033 (reporting-system), and 034 (safety-moderation) complete
-- [ ] T038 Run the full `quickstart.md` validation (all 3 scenarios) end-to-end as a final
+- [X] T038 Run the full `quickstart.md` validation (all 3 scenarios) end-to-end as a final
   regression pass — depends on all prior phases
 
 ---

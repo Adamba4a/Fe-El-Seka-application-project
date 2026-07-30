@@ -15,6 +15,7 @@ logging.basicConfig(
 )
 
 from app.api.users.router import router as users_router
+from app.api.admin.moderation_router import router as admin_moderation_router
 from app.api.admin.users_router import router as admin_users_router
 from app.api.admin.vehicle_updates_router import router as admin_vehicle_updates_router
 from app.api.admin.verification_router import router as admin_verification_router
@@ -41,6 +42,7 @@ from app.services.fcm_service import initialize_fcm
 from app.services.notification_dispatcher import notification_dispatcher_loop
 from app.services.notification_service import email_retry_loop
 from app.services import ai_client as ai_client_module
+from app.services.moderation_service import init_moderation_config, moderation_config_refresh_loop
 from app.services.pricing_service import init_pricing_config, pricing_config_refresh_loop
 from app.services.ranking_config_service import init_ranking_config, ranking_config_refresh_loop
 
@@ -51,6 +53,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.pool = pool
     await init_pricing_config()
     await init_ranking_config()
+    await init_moderation_config()
     try:
         await initialize_fcm()
     except Exception as exc:
@@ -61,11 +64,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     expiry_task = asyncio.create_task(booking_expiry_loop())
     pricing_task = asyncio.create_task(pricing_config_refresh_loop())
     ranking_task = asyncio.create_task(ranking_config_refresh_loop())
+    moderation_task = asyncio.create_task(moderation_config_refresh_loop())
     dispatcher_task = asyncio.create_task(notification_dispatcher_loop())
     reminder_task = asyncio.create_task(driver_reminder_loop())
     yield
     reminder_task.cancel()
     dispatcher_task.cancel()
+    moderation_task.cancel()
     ranking_task.cancel()
     pricing_task.cancel()
     expiry_task.cancel()
@@ -149,6 +154,11 @@ app.include_router(
 app.include_router(
     admin_wallet_router,
     prefix="/api/admin/drivers",
+    tags=["admin"],
+)
+app.include_router(
+    admin_moderation_router,
+    prefix="/api/admin/moderation",
     tags=["admin"],
 )
 app.include_router(users_router, prefix="/api/v1/users", tags=["users"])

@@ -57,6 +57,14 @@ _NOTIFICATION_TEMPLATES: dict[str, tuple[str, str]] = {
         "Rate Your Ride",
         "How was your ride? Tap to leave a rating.",
     ),
+    "moderation_outcome": (
+        "Account Notice",
+        "An admin has reviewed a report involving your account.",
+    ),
+    "moderation_reinstated": (
+        "Account Reinstated",
+        "Your account has been reinstated. You can resume booking and driving.",
+    ),
 }
 
 # FCM error codes that mark a token as permanently invalid (should be deregistered)
