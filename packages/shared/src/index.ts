@@ -38,6 +38,8 @@ export type {
   Profile,
   ProfileSetup,
   ProfileUpdate,
+  PublicProfile,
+  PublicRideSummary,
 } from "./types/user";
 
 export type {

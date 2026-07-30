@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import HTTPException, UploadFile
 from supabase import create_client
 
@@ -94,6 +96,81 @@ async def upload_profile_photo(user_id: str, file: UploadFile) -> dict:
     return {"profile_photo_url": signed_url}
 
 
+async def get_public_profile(conn, user_id: uuid.UUID) -> dict:
+    """Public-facing profile: name, photo, verification, rating, ride history. No email/PII."""
+    profile = await conn.fetchrow(
+        """
+        SELECT id, display_name, role, profile_photo_path, verification_status,
+               rating_avg, rating_count
+        FROM profiles
+        WHERE id = $1
+        """,
+        user_id,
+    )
+    if profile is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "not_found", "message": "Profile not found"},
+        )
+
+    if profile["role"] == "driver":
+        total_rides = await conn.fetchval(
+            "SELECT COUNT(*) FROM rides WHERE driver_id = $1 AND status = 'completed'",
+            user_id,
+        )
+        recent_rows = await conn.fetch(
+            """
+            SELECT origin_address, destination_address, departure_datetime
+            FROM rides
+            WHERE driver_id = $1 AND status = 'completed'
+            ORDER BY departure_datetime DESC
+            LIMIT 3
+            """,
+            user_id,
+        )
+    else:
+        total_rides = await conn.fetchval(
+            "SELECT COUNT(*) FROM bookings WHERE passenger_id = $1 AND status = 'completed'",
+            user_id,
+        )
+        recent_rows = await conn.fetch(
+            """
+            SELECT r.origin_address, r.destination_address, r.departure_datetime
+            FROM bookings b
+            JOIN rides r ON r.id = b.ride_id
+            WHERE b.passenger_id = $1 AND b.status = 'completed'
+            ORDER BY r.departure_datetime DESC
+            LIMIT 3
+            """,
+            user_id,
+        )
+
+    photo_url = None
+    if profile["profile_photo_path"]:
+        photo_url = storage_service.generate_signed_url(
+            "profile-photos", profile["profile_photo_path"]
+        )
+
+    return {
+        "id": str(profile["id"]),
+        "display_name": profile["display_name"],
+        "role": profile["role"],
+        "profile_photo_url": photo_url,
+        "verification_status": profile["verification_status"],
+        "rating_avg": float(profile["rating_avg"]) if profile["rating_avg"] is not None else None,
+        "rating_count": profile["rating_count"] or 0,
+        "total_rides": total_rides or 0,
+        "recent_rides": [
+            {
+                "origin_address": r["origin_address"],
+                "destination_address": r["destination_address"],
+                "departure_datetime": r["departure_datetime"].isoformat() if r["departure_datetime"] else None,
+            }
+            for r in recent_rows
+        ],
+    }
+
+
 def _format_profile(row: dict) -> dict:
     photo_url = None
     if row.get("profile_photo_path"):
@@ -108,5 +185,7 @@ def _format_profile(row: dict) -> dict:
         "profile_photo_url": photo_url,
         "verification_status": row["verification_status"],
         "is_submission_locked": row["is_submission_locked"],
+        "rating_avg": float(row["rating_avg"]) if row.get("rating_avg") is not None else None,
+        "rating_count": row.get("rating_count") or 0,
         "created_at": str(row["created_at"]),
     }

@@ -20,7 +20,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-EG", { year: "numeric", month: "short", day: "numeric" });
 }
 
-export default function PassengerRatingSummaryPage() {
+export default function RatingSummaryPage() {
   const [summary, setSummary] = useState<RatingSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

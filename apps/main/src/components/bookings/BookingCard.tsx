@@ -1,6 +1,7 @@
 "use client";
 
 import { BookingStatusBadge } from "./BookingStatusBadge";
+import { RatingBadge } from "@/components/ui/RatingBadge";
 
 type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 
@@ -21,7 +22,12 @@ interface PassengerBooking {
 interface DriverBooking {
   booking_id: string;
   status: BookingStatus;
-  passenger: { display_name?: string; avatar_url?: string };
+  passenger: {
+    display_name?: string;
+    avatar_url?: string;
+    rating_avg?: number | null;
+    rating_count?: number;
+  };
   per_seat_price: string;
   total_price: string;
   boarding_point: { lat: number; lng: number };
@@ -132,7 +138,13 @@ export function BookingCard(props: BookingCardProps) {
           )}
           <div className="flex-1 min-w-0">
             <p className="font-medium text-sm text-content-primary truncate">{passengerName}</p>
-            <BookingStatusBadge status={booking.status} />
+            <div className="flex items-center gap-2">
+              <BookingStatusBadge status={booking.status} />
+              <RatingBadge
+                ratingAvg={booking.passenger.rating_avg ?? null}
+                ratingCount={booking.passenger.rating_count ?? 0}
+              />
+            </div>
           </div>
           <div className="text-right text-sm shrink-0">
             <p className="font-semibold text-content-primary">EGP {booking.total_price}</p>

@@ -345,7 +345,7 @@ async def get_ride_preview(
         row = await conn.fetchrow(
             """
             SELECT
-                r.id, r.status, r.departure_datetime,
+                r.id, r.status, r.driver_id, r.departure_datetime,
                 r.available_seats, r.price_per_seat,
                 r.origin_address, r.destination_address,
                 r.route_distance_km, r.route_duration_minutes,
@@ -354,7 +354,8 @@ async def get_ride_preview(
                 ST_X(r.origin_coordinates::geometry)       AS origin_lng,
                 ST_Y(r.destination_coordinates::geometry)  AS destination_lat,
                 ST_X(r.destination_coordinates::geometry)  AS destination_lng,
-                p.display_name, p.profile_photo_path AS avatar_url, p.verification_status
+                p.display_name, p.profile_photo_path AS avatar_url, p.verification_status,
+                p.rating_avg, p.rating_count
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
             WHERE r.id = $1
@@ -383,11 +384,14 @@ async def get_ride_preview(
             "id": str(ride["id"]),
             "status": ride["status"],
             "driver": {
+                "id": str(ride["driver_id"]),
                 "display_name": ride["display_name"],
                 "avatar_url": storage_service.generate_signed_url(
                     "profile-photos", ride["avatar_url"]
                 ),
                 "is_verified": ride["verification_status"] == "verified",
+                "rating_avg": float(ride["rating_avg"]) if ride["rating_avg"] is not None else None,
+                "rating_count": ride["rating_count"],
             },
             "departure_datetime": ride["departure_datetime"].isoformat(),
             "available_seats": ride["available_seats"],
@@ -438,7 +442,8 @@ async def get_ride_passenger_detail(
                 ST_X(r.origin_coordinates::geometry)       AS origin_lng,
                 ST_Y(r.destination_coordinates::geometry)  AS destination_lat,
                 ST_X(r.destination_coordinates::geometry)  AS destination_lng,
-                p.display_name, p.profile_photo_path AS avatar_url, p.verification_status
+                p.display_name, p.profile_photo_path AS avatar_url, p.verification_status,
+                p.rating_avg, p.rating_count
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
             WHERE r.id = $1
@@ -541,11 +546,14 @@ async def get_ride_passenger_detail(
             "id": str(ride["id"]),
             "status": ride["status"],
             "driver": {
+                "id": str(ride["driver_id"]),
                 "display_name": ride["display_name"],
                 "avatar_url": storage_service.generate_signed_url(
                     "profile-photos", ride["avatar_url"]
                 ),
                 "is_verified": ride["verification_status"] == "verified",
+                "rating_avg": float(ride["rating_avg"]) if ride["rating_avg"] is not None else None,
+                "rating_count": ride["rating_count"],
             },
             "departure_datetime": ride["departure_datetime"].isoformat(),
             "available_seats": ride["available_seats"],
@@ -618,7 +626,9 @@ async def list_ride_bookings(
                 ST_Y(b.passenger_dropoff_point::geometry) AS alighting_lat,
                 ST_X(b.passenger_dropoff_point::geometry) AS alighting_lng,
                 p.display_name        AS passenger_display_name,
-                p.profile_photo_path  AS passenger_avatar_url
+                p.profile_photo_path  AS passenger_avatar_url,
+                p.rating_avg          AS passenger_rating_avg,
+                p.rating_count        AS passenger_rating_count
             FROM bookings b
             JOIN profiles p ON p.id = b.passenger_id
             WHERE b.ride_id = $1
@@ -642,6 +652,8 @@ async def list_ride_bookings(
                 "avatar_url": storage_service.generate_signed_url(
                     "profile-photos", r["passenger_avatar_url"]
                 ),
+                "rating_avg": float(r["passenger_rating_avg"]) if r["passenger_rating_avg"] is not None else None,
+                "rating_count": r["passenger_rating_count"],
             },
             status=r["status"],
             per_seat_price=f"{float(r['per_seat_price']):.2f}",

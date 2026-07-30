@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { MatchScoreBadge } from "@/components/search/MatchScoreBadge";
+import { RatingBadge } from "@/components/ui/RatingBadge";
+import Link from "next/link";
 import { env } from "@/lib/env";
 
 const RideDetailMap = dynamic(
@@ -15,9 +17,12 @@ const RideDetailMap = dynamic(
 );
 
 interface DriverInfo {
+  id: string;
   display_name: string | null;
   avatar_url: string | null;
   is_verified: boolean;
+  rating_avg: number | null;
+  rating_count: number;
 }
 
 interface PassengerContext {
@@ -209,10 +214,19 @@ export default function PassengerRideDetailPage() {
             <p className="font-semibold text-content-primary truncate">
               {preview.driver.display_name ?? "Driver"}
             </p>
-            {preview.driver.is_verified && (
-              <span className="text-xs text-green-600 font-medium">Verified driver</span>
-            )}
+            <div className="flex items-center gap-2">
+              {preview.driver.is_verified && (
+                <span className="text-xs text-green-600 font-medium">Verified driver</span>
+              )}
+              <RatingBadge ratingAvg={preview.driver.rating_avg} ratingCount={preview.driver.rating_count} />
+            </div>
           </div>
+          <Link
+            href={`/users/${preview.driver.id}`}
+            className="shrink-0 text-xs text-brand-primary hover:underline"
+          >
+            View Profile
+          </Link>
         </div>
 
         <RideDetailMap
@@ -374,10 +388,19 @@ export default function PassengerRideDetailPage() {
           <p className="font-semibold text-content-primary truncate">
             {ride.driver.display_name ?? "Driver"}
           </p>
-          {ride.driver.is_verified && (
-            <span className="text-xs text-green-600 font-medium">Verified driver</span>
-          )}
+          <div className="flex items-center gap-2">
+            {ride.driver.is_verified && (
+              <span className="text-xs text-green-600 font-medium">Verified driver</span>
+            )}
+            <RatingBadge ratingAvg={ride.driver.rating_avg} ratingCount={ride.driver.rating_count} />
+          </div>
         </div>
+        <Link
+          href={`/users/${ride.driver.id}`}
+          className="shrink-0 text-xs text-brand-primary hover:underline"
+        >
+          View Profile
+        </Link>
       </div>
 
       {detail.match_score_pct !== null && (

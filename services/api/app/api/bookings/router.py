@@ -183,17 +183,22 @@ async def get_booking(
             booking_id,
         )
 
-    if row is None:
-        return JSONResponse(
-            status_code=404,
-            content={"error": "not_found", "message": "Booking not found"},
-        )
+        if row is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "not_found", "message": "Booking not found"},
+            )
 
-    b = dict(row)
-    if b["passenger_id"] != caller_id and b["driver_id"] != caller_id:
-        return JSONResponse(
-            status_code=403,
-            content={"error": "forbidden", "message": "Access denied"},
+        b = dict(row)
+        if b["passenger_id"] != caller_id and b["driver_id"] != caller_id:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "forbidden", "message": "Access denied"},
+            )
+
+        already_rated = await conn.fetchval(
+            "SELECT 1 FROM ratings WHERE booking_id = $1 AND rater_id = $2",
+            booking_id, caller_id,
         )
 
     return {
@@ -224,6 +229,7 @@ async def get_booking(
         ),
         "cancellation_reason": b["cancellation_reason"],
         "late_cancellation": b["late_cancellation"],
+        "already_rated": already_rated is not None,
         "created_at": b["created_at"].isoformat(),
         "confirmed_at": b["confirmed_at"].isoformat() if b["confirmed_at"] else None,
         "cancelled_at": b["cancelled_at"].isoformat() if b["cancelled_at"] else None,

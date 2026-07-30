@@ -11,9 +11,12 @@ interface BookingSummary {
   booking_id: string;
   ride_id: string;
   status: BookingStatus;
+  passenger_id: string;
   driver_id: string;
+  passenger_display_name?: string;
   driver_display_name?: string;
   driver_avatar_url?: string;
+  already_rated: boolean;
 }
 
 const REPORT_CATEGORIES: { value: string; label: string }[] = [
@@ -49,12 +52,13 @@ async function apiFetch(path: string, options?: RequestInit) {
   return res.json();
 }
 
-export default function PassengerRateReportPage() {
+export default function RateReportPage() {
   const params = useParams<{ bookingId: string }>();
   const bookingId = params.bookingId;
   const router = useRouter();
 
   const [booking, setBooking] = useState<BookingSummary | null>(null);
+  const [selfId, setSelfId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,8 +76,14 @@ export default function PassengerRateReportPage() {
   useEffect(() => {
     (async () => {
       try {
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        setSelfId(session?.user.id ?? null);
         const data = await apiFetch(`/api/v1/bookings/${bookingId}`);
         setBooking(data);
+        if (data.already_rated) setRatingState("already");
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "Failed to load booking");
       } finally {
@@ -81,6 +91,14 @@ export default function PassengerRateReportPage() {
       }
     })();
   }, [bookingId]);
+
+  const isDriver = booking !== null && selfId === booking.driver_id;
+  const otherPartyId = booking ? (isDriver ? booking.passenger_id : booking.driver_id) : null;
+  const otherPartyLabel = booking
+    ? isDriver
+      ? booking.passenger_display_name ?? "your passenger"
+      : booking.driver_display_name ?? "your driver"
+    : "";
 
   async function submitRating() {
     if (stars < 1) return;
@@ -105,7 +123,7 @@ export default function PassengerRateReportPage() {
   }
 
   async function submitReport() {
-    if (!booking || description.trim().length === 0) return;
+    if (!booking || !otherPartyId || description.trim().length === 0) return;
     setReportState("submitting");
     setReportError(null);
     try {
@@ -114,7 +132,7 @@ export default function PassengerRateReportPage() {
         body: JSON.stringify({
           ride_id: booking.ride_id,
           booking_id: booking.booking_id,
-          reported_user_id: booking.driver_id,
+          reported_user_id: otherPartyId,
           category,
           description: description.trim(),
         }),
@@ -161,12 +179,10 @@ export default function PassengerRateReportPage() {
         </div>
       ) : (
         <>
-          {/* Rate the driver */}
+          {/* Rate the other party */}
           <div className="rounded-xl border border-border-default bg-surface-card">
             <div className="p-4 space-y-3">
-              <p className="font-medium text-content-primary">
-                Rate {booking.driver_display_name ?? "your driver"}
-              </p>
+              <p className="font-medium text-content-primary">Rate {otherPartyLabel}</p>
 
               {ratingState === "done" ? (
                 <p className="text-sm text-green-700">

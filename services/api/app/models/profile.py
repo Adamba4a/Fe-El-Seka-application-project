@@ -38,4 +38,24 @@ class ProfileResponse(BaseModel):
     profile_photo_url: str | None
     verification_status: str
     is_submission_locked: bool
+    rating_avg: float | None = None
+    rating_count: int = 0
     created_at: str
+
+
+class PublicRideSummary(BaseModel):
+    origin_address: str | None = None
+    destination_address: str | None = None
+    departure_datetime: str | None = None
+
+
+class PublicProfileResponse(BaseModel):
+    id: str
+    display_name: str
+    role: str
+    profile_photo_url: str | None
+    verification_status: str
+    rating_avg: float | None = None
+    rating_count: int = 0
+    total_rides: int = 0
+    recent_rides: list[PublicRideSummary] = []

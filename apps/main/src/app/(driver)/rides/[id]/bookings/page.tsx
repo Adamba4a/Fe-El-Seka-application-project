@@ -6,6 +6,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { RatingBadge } from "@/components/ui/RatingBadge";
 import { createClient } from "@/lib/supabase/client";
 import { getRide } from "@/lib/api/rides";
 import { useBookingStatus } from "@/lib/hooks/useBookingStatus";
@@ -22,7 +23,12 @@ interface DriverBooking {
   booking_id: string;
   passenger_id: string;
   status: BookingStatus;
-  passenger: { display_name?: string; avatar_url?: string };
+  passenger: {
+    display_name?: string;
+    avatar_url?: string;
+    rating_avg?: number | null;
+    rating_count?: number;
+  };
   per_seat_price: string;
   total_price: string;
   boarding_point: { lat: number; lng: number };
@@ -294,14 +300,28 @@ export default function DriverRideBookingsPage() {
                 <p className="font-medium text-sm text-content-primary truncate">
                   {booking.passenger.display_name ?? "Passenger"}
                 </p>
-                <p className="text-xs text-content-muted">EGP {booking.total_price}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-content-muted">EGP {booking.total_price}</p>
+                  <RatingBadge
+                    ratingAvg={booking.passenger.rating_avg ?? null}
+                    ratingCount={booking.passenger.rating_count ?? 0}
+                  />
+                </div>
               </div>
-              <Link
-                href={`/ratings/${booking.booking_id}`}
-                className="shrink-0 rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white px-3 py-1.5 text-xs font-semibold transition-colors"
-              >
-                Rate &amp; Report
-              </Link>
+              <div className="shrink-0 flex flex-col items-end gap-1.5">
+                <Link
+                  href={`/ratings/${booking.booking_id}`}
+                  className="rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white px-3 py-1.5 text-xs font-semibold transition-colors"
+                >
+                  Rate &amp; Report
+                </Link>
+                <Link
+                  href={`/users/${booking.passenger_id}`}
+                  className="text-xs text-brand-primary hover:underline"
+                >
+                  View Profile
+                </Link>
+              </div>
             </div>
           ))}
         </section>

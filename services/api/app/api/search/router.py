@@ -62,7 +62,8 @@ async def _fetch_driver_profiles(driver_ids: list[uuid.UUID]) -> dict[uuid.UUID,
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            SELECT id, display_name, profile_photo_path AS avatar_url, verification_status
+            SELECT id, display_name, profile_photo_path AS avatar_url, verification_status,
+                   rating_avg, rating_count
             FROM profiles
             WHERE id = ANY($1::uuid[])
             """,
@@ -192,7 +193,8 @@ async def nearby_rides(
                 ST_Y(r.destination_coordinates::geometry) AS destination_lat,
                 ST_X(r.destination_coordinates::geometry) AS destination_lng,
                 ST_Distance(r.origin_coordinates, ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography) AS distance_m,
-                p.display_name, p.profile_photo_path AS avatar_url, p.verification_status
+                p.display_name, p.profile_photo_path AS avatar_url, p.verification_status,
+                p.rating_avg, p.rating_count
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
             WHERE r.status = 'scheduled'
@@ -214,6 +216,8 @@ async def nearby_rides(
                     "profile-photos", r["avatar_url"]
                 ),
                 "is_verified": r["verification_status"] == "verified",
+                "rating_avg": float(r["rating_avg"]) if r["rating_avg"] is not None else None,
+                "rating_count": r["rating_count"],
             },
             "departure_datetime": r["departure_datetime"].isoformat(),
             "available_seats": r["available_seats"],
@@ -324,6 +328,8 @@ async def search_rides(
                 "display_name": prof.get("display_name"),
                 "avatar_url": prof.get("avatar_url"),
                 "is_verified": prof.get("verification_status") == "verified",
+                "rating_avg": float(prof["rating_avg"]) if prof.get("rating_avg") is not None else None,
+                "rating_count": prof.get("rating_count", 0),
             },
             "departure_datetime": c.departure_time.isoformat(),
             "available_seats": c.available_seats,

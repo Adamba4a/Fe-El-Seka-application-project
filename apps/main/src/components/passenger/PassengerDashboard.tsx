@@ -136,6 +136,8 @@ export function PassengerDashboard() {
               driverName={ride.driver.display_name}
               driverAvatarUrl={ride.driver.avatar_url}
               isVerified={ride.driver.is_verified}
+              driverRatingAvg={ride.driver.rating_avg}
+              driverRatingCount={ride.driver.rating_count}
             />
           ))}
         </div>

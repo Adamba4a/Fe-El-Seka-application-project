@@ -15,7 +15,27 @@ export interface Profile {
   profile_photo_url: string | null;
   verification_status: VerificationStatus;
   is_submission_locked: boolean;
+  rating_avg: number | null;
+  rating_count: number;
   created_at: string;
+}
+
+export interface PublicRideSummary {
+  origin_address: string | null;
+  destination_address: string | null;
+  departure_datetime: string | null;
+}
+
+export interface PublicProfile {
+  id: string;
+  display_name: string;
+  role: Role;
+  profile_photo_url: string | null;
+  verification_status: VerificationStatus;
+  rating_avg: number | null;
+  rating_count: number;
+  total_rides: number;
+  recent_rides: PublicRideSummary[];
 }
 
 export interface ProfileSetup {

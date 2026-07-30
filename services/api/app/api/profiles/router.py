@@ -7,7 +7,7 @@ from supabase import create_client
 from app.core.config import settings
 from app.core.database import get_pool
 from app.dependencies.auth import get_current_user
-from app.models.profile import ProfileResponse, ProfileSetup, ProfileUpdate
+from app.models.profile import ProfileResponse, ProfileSetup, ProfileUpdate, PublicProfileResponse
 from app.services import profile_service, rating_service
 
 router = APIRouter()
@@ -92,6 +92,16 @@ async def upload_photo(
     profile: dict = Depends(get_current_user),
 ) -> dict:
     return await profile_service.upload_profile_photo(profile["id"], photo)
+
+
+@router.get("/{user_id}/public", response_model=PublicProfileResponse)
+async def get_public_profile(
+    user_id: uuid.UUID,
+    profile: dict = Depends(get_current_user),
+) -> dict:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        return await profile_service.get_public_profile(conn, user_id)
 
 
 @router.get("/{user_id}/rating")

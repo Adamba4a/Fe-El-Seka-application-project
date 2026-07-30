@@ -1,4 +1,4 @@
-import type { Profile, ProfileSetup, ProfileUpdate } from "@fe-el-seka/shared";
+import type { Profile, ProfileSetup, ProfileUpdate, PublicProfile } from "@fe-el-seka/shared";
 import { env } from "../env";
 
 const base = env.apiUrl;
@@ -30,6 +30,14 @@ export async function updateMe(token: string, data: ProfileUpdate): Promise<Prof
     method: "PUT",
     headers: authHeaders(token),
     body: JSON.stringify(data),
+  });
+  if (!res.ok) throw await res.json();
+  return res.json();
+}
+
+export async function getPublicProfile(token: string, userId: string): Promise<PublicProfile> {
+  const res = await fetch(`${base}/api/profiles/${userId}/public`, {
+    headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw await res.json();
   return res.json();

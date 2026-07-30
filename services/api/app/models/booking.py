@@ -75,6 +75,8 @@ class BookingListResponse(BaseModel):
 class PassengerSummary(BaseModel):
     display_name: Optional[str]
     avatar_url: Optional[str]
+    rating_avg: Optional[float] = None
+    rating_count: int = 0
 
 
 class DriverBookingItem(BaseModel):

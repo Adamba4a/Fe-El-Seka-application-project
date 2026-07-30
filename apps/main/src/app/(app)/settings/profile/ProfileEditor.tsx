@@ -216,6 +216,27 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+// ─── Rating summary ───────────────────────────────────────────────────────────
+
+function RatingSummary({ ratingAvg, ratingCount }: { ratingAvg: number | null; ratingCount: number }) {
+  return (
+    <div className="bg-surface-bg rounded-xl p-4 flex items-center justify-between">
+      <span className="text-body-sm text-content-muted">Rating</span>
+      {ratingCount === 0 || ratingAvg === null ? (
+        <span className="text-body-sm text-content-muted">Not rated yet</span>
+      ) : (
+        <span className="inline-flex items-center gap-1 text-body-sm font-semibold text-amber-600">
+          <span aria-hidden="true">★</span>
+          {ratingAvg.toFixed(1)}
+          <span className="text-content-muted font-normal">
+            ({ratingCount} {ratingCount === 1 ? "rating" : "ratings"})
+          </span>
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ─── Main editor component ────────────────────────────────────────────────────
 
 export function ProfileEditor({
@@ -247,6 +268,7 @@ export function ProfileEditor({
         <h1 className="text-h3 text-content-primary">Edit Profile</h1>
       </div>
       {saved && <p className="text-body-sm text-status-completed">Profile saved!</p>}
+      <RatingSummary ratingAvg={initialProfile.rating_avg} ratingCount={initialProfile.rating_count} />
       <ProfileForm
         defaultValues={{ display_name: initialProfile.display_name, profile_photo_url: initialProfile.profile_photo_url }}
         onSubmit={handleProfileSubmit}

@@ -1,6 +1,7 @@
 "use client";
 
 import { MatchScoreBadge } from "@/components/search/MatchScoreBadge";
+import { RatingBadge } from "@/components/ui/RatingBadge";
 
 export interface RideCandidate {
   ride_id: string;
@@ -8,6 +9,8 @@ export interface RideCandidate {
     display_name: string | null;
     avatar_url: string | null;
     is_verified: boolean;
+    rating_avg: number | null;
+    rating_count: number;
   };
   departure_datetime: string;
   available_seats: number;
@@ -89,7 +92,10 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
               <p className="text-sm font-medium text-content-primary truncate">
                 {candidate.driver.display_name ?? "Driver"}
               </p>
-              <p className="text-xs text-content-muted">{formatDeparture(candidate.departure_datetime)}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-content-muted">{formatDeparture(candidate.departure_datetime)}</p>
+                <RatingBadge ratingAvg={candidate.driver.rating_avg} ratingCount={candidate.driver.rating_count} />
+              </div>
             </div>
           </div>
 

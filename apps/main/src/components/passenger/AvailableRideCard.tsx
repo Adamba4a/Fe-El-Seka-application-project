@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Link from "next/link";
+import { RatingBadge } from "@/components/ui/RatingBadge";
 
 interface AvailableRideCardProps {
   rideId: string;
@@ -11,6 +12,8 @@ interface AvailableRideCardProps {
   driverName: string | null;
   driverAvatarUrl: string | null;
   isVerified: boolean;
+  driverRatingAvg: number | null;
+  driverRatingCount: number;
 }
 
 function DriverAvatar({ name, avatarUrl }: { name: string | null; avatarUrl: string | null }) {
@@ -43,6 +46,8 @@ export function AvailableRideCard({
   driverName,
   driverAvatarUrl,
   isVerified,
+  driverRatingAvg,
+  driverRatingCount,
 }: AvailableRideCardProps) {
   return (
     <Link
@@ -67,7 +72,10 @@ export function AvailableRideCard({
           <DriverAvatar name={driverName} avatarUrl={driverAvatarUrl} />
           <div className="min-w-0">
             <p className="text-sm font-medium text-dash-navy truncate">{driverName ?? "Driver"}</p>
-            {isVerified && <p className="text-xs text-dash-primary">Verified driver</p>}
+            <div className="flex items-center gap-2">
+              {isVerified && <p className="text-xs text-dash-primary">Verified driver</p>}
+              <RatingBadge ratingAvg={driverRatingAvg} ratingCount={driverRatingCount} />
+            </div>
           </div>
         </div>
 

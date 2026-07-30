@@ -6,6 +6,8 @@ export interface RideCandidate {
     display_name: string | null;
     avatar_url: string | null;
     is_verified: boolean;
+    rating_avg: number | null;
+    rating_count: number;
   };
   departure_datetime: string;
   available_seats: number;
@@ -42,6 +44,8 @@ export interface NearbyRide {
     display_name: string | null;
     avatar_url: string | null;
     is_verified: boolean;
+    rating_avg: number | null;
+    rating_count: number;
   };
   departure_datetime: string;
   available_seats: number;
