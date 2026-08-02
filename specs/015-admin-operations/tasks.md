@@ -63,12 +63,12 @@ each can be implemented, tested, and shipped independently.
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] Add `GET /` to `services/api/app/api/admin/users_router.py`: search (`q` against `display_name`/`email`, `ILIKE`), filter (`role`, `status`), pagination — per `contracts/api.md` (FR-005–007)
-- [ ] T009 [US2] Add `GET /{user_id}` to `services/api/app/api/admin/users_router.py`: unified detail view composing profile + ride/booking history + ratings received + reports (filed by/against) + wallet-if-driver, per `data-model.md`'s payload shape — empty sections return empty arrays/zeroed aggregates, not errors (FR-008; same file as T008, sequential)
-- [ ] T010 [US2] Extend `suspend_user()` in `services/api/app/api/admin/users_router.py`: insert a `role == 'admin'` guard (`403 forbidden`) before the existing `verification_status` checks, and add a structured log entry (admin identity, action type, target user, duration) matching `moderation_service.py`'s `logger.info(json.dumps({...}))` pattern (FR-009, NFR-006; same file, sequential after T009)
-- [ ] T011 [P] [US2] Extend `apps/admin/src/lib/api/admin-users.ts`: add `list(token, {q, role, status, page})` and `getDetail(token, userId)` functions per `contracts/api.md`, alongside the existing `suspend()`/`reinstate()` (contract-driven; can be written in parallel with T008–T010)
-- [ ] T012 [P] [US2] Rebuild `apps/admin/src/app/(dashboard)/users/page.tsx`: search box, role filter, verification-status filter, pagination (FR-005–007; depends on T011)
-- [ ] T013 [P] [US2] Create `apps/admin/src/app/(dashboard)/users/[user_id]/page.tsx`: unified detail view (profile, rides/bookings, ratings, reports, wallet-if-driver), suspend/reinstate action with the suspend control hidden entirely for `role = 'admin'` targets (FR-008–011; depends on T011)
+- [X] T008 [US2] Add `GET /` to `services/api/app/api/admin/users_router.py`: search (`q` against `display_name`/`email`, `ILIKE`), filter (`role`, `status`), pagination — per `contracts/api.md` (FR-005–007)
+- [X] T009 [US2] Add `GET /{user_id}` to `services/api/app/api/admin/users_router.py`: unified detail view composing profile + ride/booking history + ratings received + reports (filed by/against) + wallet-if-driver, per `data-model.md`'s payload shape — empty sections return empty arrays/zeroed aggregates, not errors (FR-008; same file as T008, sequential)
+- [X] T010 [US2] Extend `suspend_user()` in `services/api/app/api/admin/users_router.py`: insert a `role == 'admin'` guard (`403 forbidden`) before the existing `verification_status` checks, and add a structured log entry (admin identity, action type, target user, duration) matching `moderation_service.py`'s `logger.info(json.dumps({...}))` pattern (FR-009, NFR-006; same file, sequential after T009)
+- [X] T011 [P] [US2] Extend `apps/admin/src/lib/api/admin-users.ts`: add `list(token, {q, role, status, page})` and `getDetail(token, userId)` functions per `contracts/api.md`, alongside the existing `suspend()`/`reinstate()` (contract-driven; can be written in parallel with T008–T010)
+- [X] T012 [P] [US2] Rebuild `apps/admin/src/app/(dashboard)/users/page.tsx`: search box, role filter, verification-status filter, pagination (FR-005–007; depends on T011)
+- [X] T013 [P] [US2] Create `apps/admin/src/app/(dashboard)/users/[user_id]/page.tsx`: unified detail view (profile, rides/bookings, ratings, reports, wallet-if-driver), suspend/reinstate action with the suspend control hidden entirely for `role = 'admin'` targets (FR-008–011; depends on T011)
 
 **Checkpoint**: US1 and US2 both independently functional.
 
@@ -82,11 +82,11 @@ each can be implemented, tested, and shipped independently.
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Extend `get_queue()` in `services/api/app/api/admin/verification_router.py`: add `q` search param (`ILIKE` against joined `profiles.display_name`/`email`) and compute `pending_seconds`/`is_aged` (`> 86400`) per row (FR-012, FR-013)
-- [ ] T015 [US3] Extend `get_history()` in `services/api/app/api/admin/verification_router.py`: add `q` search param and `outcome` filter (`approved`/`rejected`) (FR-013, FR-014; same file, sequential after T014)
-- [ ] T016 [P] [US3] Extend `apps/admin/src/lib/api/admin-verification.ts`: add the new `q`/`outcome` query params to the existing queue/history client calls per `contracts/api.md` (contract-driven; can be written in parallel with T014–T015)
-- [ ] T017 [P] [US3] Extend `apps/admin/src/app/(dashboard)/verification/page.tsx`: add a search box and a visual "pending >24h" flag per submission (FR-012, FR-013; depends on T016)
-- [ ] T018 [P] [US3] Extend `apps/admin/src/app/(dashboard)/verification/history/page.tsx`: add a search box, an outcome filter, and an "unlock for re-submission" action for locked users that calls the existing `POST /users/{user_id}/unlock` endpoint (FR-013, FR-014, FR-015; depends on T016)
+- [X] T014 [US3] Extend `get_queue()` in `services/api/app/api/admin/verification_router.py`: add `q` search param (`ILIKE` against joined `profiles.display_name`/`email`) and compute `pending_seconds`/`is_aged` (`> 86400`) per row (FR-012, FR-013)
+- [X] T015 [US3] Extend `get_history()` in `services/api/app/api/admin/verification_router.py`: add `q` search param and `outcome` filter (`approved`/`rejected`) (FR-013, FR-014; same file, sequential after T014)
+- [X] T016 [P] [US3] Extend `apps/admin/src/lib/api/admin-verification.ts`: add the new `q`/`outcome` query params to the existing queue/history client calls per `contracts/api.md` (contract-driven; can be written in parallel with T014–T015)
+- [X] T017 [P] [US3] Extend `apps/admin/src/app/(dashboard)/verification/page.tsx`: add a search box and a visual "pending >24h" flag per submission (FR-012, FR-013; depends on T016)
+- [X] T018 [P] [US3] Extend `apps/admin/src/app/(dashboard)/verification/history/page.tsx`: add a search box, an outcome filter, and an "unlock for re-submission" action for locked users that calls the existing `POST /users/{user_id}/unlock` endpoint (FR-013, FR-014, FR-015; depends on T016)
 
 **Checkpoint**: US1, US2, and US3 all independently functional.
 

@@ -24,6 +24,8 @@ export interface AdminQueueItem {
   submission_type: SubmissionType;
   submitted_at: string;
   attempt_number: number;
+  pending_seconds?: number;
+  is_aged?: boolean;
 }
 
 export interface AdminQueueResponse {

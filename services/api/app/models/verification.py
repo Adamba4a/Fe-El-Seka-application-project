@@ -23,6 +23,8 @@ class AdminQueueItem(BaseModel):
     submission_type: str
     submitted_at: str
     attempt_number: int
+    pending_seconds: int | None = None
+    is_aged: bool | None = None
 
 
 class AdminQueueResponse(BaseModel):

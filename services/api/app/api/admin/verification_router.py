@@ -22,6 +22,7 @@ def _supabase():
 @router.get("/queue", response_model=AdminQueueResponse)
 def get_queue(
     type: str | None = None,
+    q: str | None = None,
     page: int = 1,
     limit: int = 20,
     profile: dict = Depends(get_current_admin),
@@ -31,29 +32,38 @@ def get_queue(
         sb.table("verification_submissions")
         .select(
             "id, user_id, submission_type, submitted_at, attempt_number,"
-            " profiles(display_name, email)"
+            " profiles!inner(display_name, email)"
         )
         .eq("status", "pending_review")
         .order("submitted_at", desc=False)
     )
     if type:
         query = query.eq("submission_type", type)
+    if q:
+        query = query.or_(f"display_name.ilike.%{q}%,email.ilike.%{q}%", reference_table="profiles")
 
     count_resp = (
         sb.table("verification_submissions")
-        .select("id", count="exact")
+        .select("id, profiles!inner(id)", count="exact")
         .eq("status", "pending_review")
     )
     if type:
         count_resp = count_resp.eq("submission_type", type)
+    if q:
+        count_resp = count_resp.or_(f"display_name.ilike.%{q}%,email.ilike.%{q}%", reference_table="profiles")
     total = count_resp.execute().count or 0
 
     offset = (page - 1) * limit
     resp = query.range(offset, offset + limit - 1).execute()
 
+    now = datetime.datetime.now(datetime.timezone.utc)
     items = []
     for row in (resp.data or []):
         p = row.get("profiles") or {}
+        submitted_dt = datetime.datetime.fromisoformat(str(row["submitted_at"]).replace("Z", "+00:00"))
+        if submitted_dt.tzinfo is None:
+            submitted_dt = submitted_dt.replace(tzinfo=datetime.timezone.utc)
+        pending_seconds = int((now - submitted_dt).total_seconds())
         items.append({
             "submission_id": row["id"],
             "user_id": row["user_id"],
@@ -62,6 +72,8 @@ def get_queue(
             "submission_type": row["submission_type"],
             "submitted_at": str(row["submitted_at"]),
             "attempt_number": row["attempt_number"],
+            "pending_seconds": pending_seconds,
+            "is_aged": pending_seconds > 86400,
         })
     return {"total": total, "page": page, "items": items}
 
@@ -271,41 +283,63 @@ def unlock_user(
     return {"user_id": user_id, "is_submission_locked": False, "audit_log_id": audit_id}
 
 
+_VALID_OUTCOMES = ("approved", "rejected")
+
+
 @router.get("/history")
 def get_history(
+    q: str | None = None,
+    outcome: str | None = None,
     page: int = 1,
     limit: int = 20,
     profile: dict = Depends(get_current_admin),
 ) -> dict:
+    if outcome is not None and outcome not in _VALID_OUTCOMES:
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "validation_error", "message": f"outcome must be one of {', '.join(_VALID_OUTCOMES)}"},
+        )
+
     sb = _supabase()
     offset = (page - 1) * limit
-    resp = (
+
+    query = (
         sb.table("verification_submissions")
         .select(
-            "id, user_id, status, reviewed_at, reviewer_id, profiles(display_name)"
+            "id, user_id, status, reviewed_at, reviewer_id,"
+            " profiles!inner(display_name, email, is_submission_locked)"
         )
         .neq("status", "pending_review")
         .order("reviewed_at", desc=True)
-        .range(offset, offset + limit - 1)
-        .execute()
     )
+    if outcome:
+        query = query.eq("status", outcome)
+    if q:
+        query = query.or_(f"display_name.ilike.%{q}%,email.ilike.%{q}%", reference_table="profiles")
 
-    total_resp = (
+    total_query = (
         sb.table("verification_submissions")
-        .select("id", count="exact")
+        .select("id, profiles!inner(id)", count="exact")
         .neq("status", "pending_review")
-        .execute()
     )
-    total = total_resp.count or 0
+    if outcome:
+        total_query = total_query.eq("status", outcome)
+    if q:
+        total_query = total_query.or_(f"display_name.ilike.%{q}%,email.ilike.%{q}%", reference_table="profiles")
+    total = total_query.execute().count or 0
+
+    resp = query.range(offset, offset + limit - 1).execute()
 
     items = []
     for row in (resp.data or []):
         p = row.get("profiles") or {}
         items.append({
             "submission_id": row["id"],
+            "user_id": row["user_id"],
             "user_name": p.get("display_name", ""),
             "outcome": row["status"],
             "reviewed_by": row.get("reviewer_id", ""),
             "reviewed_at": str(row.get("reviewed_at", "")),
+            "is_locked": bool(p.get("is_submission_locked")),
         })
     return {"total": total, "page": page, "items": items}
