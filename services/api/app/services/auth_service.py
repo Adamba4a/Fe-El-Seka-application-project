@@ -202,17 +202,17 @@ def sign_out(user_id: str, token: str) -> None:
 
 
 def revoke_sessions(user_id: str) -> None:
-    """Used by admin suspend action to immediately cut off the user."""
+    """Best-effort GoTrue session kill on admin suspend.
+
+    `admin.sign_out` takes the *session's own* JWT, not a user id, so it can
+    never succeed here (the admin only ever has the target's id). Real
+    enforcement is `get_current_user`'s verification_status check, which
+    already blocks a suspended user's next API call regardless of whether
+    their existing GoTrue session is invalidated. Failures are logged and
+    swallowed so that check alone doesn't block the suspend action itself.
+    """
     sb = _supabase()
     try:
         sb.auth.admin.sign_out(user_id)
     except Exception as exc:
-        logger.error("Failed to revoke sessions for user %s: %s", user_id, exc)
-        raise HTTPException(
-            status_code=502,
-            detail={
-                "error": "revocation_failed",
-                "message": "User suspended in DB but session revocation"
-                " failed. Retry the suspend action.",
-            },
-        )
+        logger.warning("Best-effort session revocation skipped for user %s: %s", user_id, exc)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from decimal import Decimal
 from typing import Literal
 
@@ -10,43 +11,53 @@ Metric = Literal["rides_completed", "commission_collected_egp"]
 _ROLES = ("passenger", "driver", "admin")
 
 
-async def get_kpis(conn, period: Period) -> dict:
+async def get_kpis(pool, period: Period) -> dict:
     start, end = get_period_range(period)
 
-    role_rows = await conn.fetch("SELECT role, COUNT(*) AS count FROM profiles GROUP BY role")
+    (
+        role_rows,
+        rides_created,
+        rides_completed,
+        commission_collected,
+        pending_verifications,
+        open_reports,
+        drivers_at_or_below_zero,
+    ) = await asyncio.gather(
+        pool.fetch("SELECT role, COUNT(*) AS count FROM profiles GROUP BY role"),
+        pool.fetchval(
+            "SELECT COUNT(*) FROM rides WHERE created_at >= $1 AND created_at < $2", start, end
+        ),
+        pool.fetchval(
+            "SELECT COUNT(*) FROM rides WHERE completed_at >= $1 AND completed_at < $2", start, end
+        ),
+        pool.fetchval(
+            """
+            SELECT COALESCE(SUM(amount_egp), 0) FROM driver_ledger_entries
+            WHERE type = 'COMMISSION_DEBIT' AND created_at >= $1 AND created_at < $2
+            """,
+            start,
+            end,
+        ),
+        pool.fetchval(
+            "SELECT COUNT(*) FROM verification_submissions WHERE status = 'pending_review'"
+        ),
+        pool.fetchval(
+            "SELECT COUNT(*) FROM reports WHERE status IN ('open', 'under_review')"
+        ),
+        pool.fetchval(
+            """
+            SELECT COUNT(*) FROM profiles p
+            LEFT JOIN driver_wallets w ON w.driver_id = p.id
+            WHERE p.role = 'driver'
+              AND COALESCE(w.balance_egp, 0) - COALESCE(w.reserved_egp, 0) <= 0
+            """
+        ),
+    )
+
     users_by_role = {role: 0 for role in _ROLES}
     for row in role_rows:
         if row["role"] in users_by_role:
             users_by_role[row["role"]] = int(row["count"])
-
-    rides_created = await conn.fetchval(
-        "SELECT COUNT(*) FROM rides WHERE created_at >= $1 AND created_at < $2", start, end
-    )
-    rides_completed = await conn.fetchval(
-        "SELECT COUNT(*) FROM rides WHERE completed_at >= $1 AND completed_at < $2", start, end
-    )
-    commission_collected = await conn.fetchval(
-        """
-        SELECT COALESCE(SUM(amount_egp), 0) FROM driver_ledger_entries
-        WHERE type = 'COMMISSION_DEBIT' AND created_at >= $1 AND created_at < $2
-        """,
-        start,
-        end,
-    )
-    pending_verifications = await conn.fetchval(
-        "SELECT COUNT(*) FROM verification_submissions WHERE status = 'pending_review'"
-    )
-    open_reports = await conn.fetchval(
-        "SELECT COUNT(*) FROM reports WHERE status IN ('open', 'under_review')"
-    )
-    drivers_at_or_below_zero = await conn.fetchval(
-        """
-        SELECT COUNT(*) FROM profiles p
-        LEFT JOIN driver_wallets w ON w.driver_id = p.id
-        WHERE p.role = 'driver'
-          AND COALESCE(w.balance_egp, 0) - COALESCE(w.reserved_egp, 0) <= 0
-        """
-    )
 
     return {
         "period": period,
@@ -60,7 +71,7 @@ async def get_kpis(conn, period: Period) -> dict:
     }
 
 
-async def get_daily_trend(conn, period: Period, metric: Metric) -> dict:
+async def get_daily_trend(pool, period: Period, metric: Metric) -> dict:
     start, end = get_period_range(period)
     buckets = get_daily_buckets(start, end)
     dates = [b[0] for b in buckets]
@@ -68,7 +79,7 @@ async def get_daily_trend(conn, period: Period, metric: Metric) -> dict:
     ends = [b[2] for b in buckets]
 
     if metric == "rides_completed":
-        rows = await conn.fetch(
+        rows = await pool.fetch(
             """
             SELECT b.bucket_date, COUNT(r.id) AS value
             FROM unnest($1::date[], $2::timestamptz[], $3::timestamptz[])
@@ -84,7 +95,7 @@ async def get_daily_trend(conn, period: Period, metric: Metric) -> dict:
         )
         points = [{"date": r["bucket_date"].isoformat(), "value": int(r["value"])} for r in rows]
     else:
-        rows = await conn.fetch(
+        rows = await pool.fetch(
             """
             SELECT b.bucket_date, COALESCE(SUM(l.amount_egp), 0) AS value
             FROM unnest($1::date[], $2::timestamptz[], $3::timestamptz[])

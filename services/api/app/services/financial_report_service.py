@@ -37,7 +37,7 @@ async def get_report(conn, start: date, end: date) -> dict:
         """
         SELECT type, COALESCE(SUM(amount_egp), 0) AS total
         FROM driver_ledger_entries
-        WHERE created_at >= $1 AND created_at < $2 AND type = ANY($3::text[])
+        WHERE created_at >= $1 AND created_at < $2 AND type::text = ANY($3::text[])
         GROUP BY type
         """,
         start_dt,

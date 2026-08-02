@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.database import get_pool
@@ -26,12 +28,11 @@ async def get_overview(
         )
 
     pool = get_pool()
-    async with pool.acquire() as conn:
-        kpis = await dashboard_service.get_kpis(conn, period)
-        rides_trend = await dashboard_service.get_daily_trend(conn, period, "rides_completed")
-        commission_trend = await dashboard_service.get_daily_trend(
-            conn, period, "commission_collected_egp"
-        )
+    kpis, rides_trend, commission_trend = await asyncio.gather(
+        dashboard_service.get_kpis(pool, period),
+        dashboard_service.get_daily_trend(pool, period, "rides_completed"),
+        dashboard_service.get_daily_trend(pool, period, "commission_collected_egp"),
+    )
 
     return {
         **kpis,

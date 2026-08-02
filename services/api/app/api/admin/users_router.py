@@ -102,7 +102,7 @@ def get_user_detail(
         .maybe_single()
         .execute()
     )
-    if not p.data:
+    if not p or not p.data:
         raise HTTPException(status_code=404, detail={"error": "not_found", "message": "User not found"})
 
     row = p.data
@@ -205,7 +205,7 @@ def get_user_detail(
             .maybe_single()
             .execute()
         )
-        wallet_row = wallet_resp.data
+        wallet_row = wallet_resp.data if wallet_resp else None
         balance = Decimal(str(wallet_row["balance_egp"])) if wallet_row else Decimal("0.00")
         reserved = Decimal(str(wallet_row["reserved_egp"])) if wallet_row else Decimal("0.00")
         available = balance - reserved
