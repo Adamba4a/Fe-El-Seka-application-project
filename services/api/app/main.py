@@ -15,6 +15,8 @@ logging.basicConfig(
 )
 
 from app.api.users.router import router as users_router
+from app.api.admin.dashboard_router import router as admin_dashboard_router
+from app.api.admin.financial_router import router as admin_financial_router
 from app.api.admin.moderation_router import router as admin_moderation_router
 from app.api.admin.users_router import router as admin_users_router
 from app.api.admin.vehicle_updates_router import router as admin_vehicle_updates_router
@@ -137,6 +139,11 @@ app.include_router(
 )
 app.include_router(vehicles_router, prefix="/api/vehicles", tags=["vehicles"])
 app.include_router(
+    admin_dashboard_router,
+    prefix="/api/admin/dashboard",
+    tags=["admin"],
+)
+app.include_router(
     admin_verification_router,
     prefix="/api/admin/verification",
     tags=["admin"],
@@ -159,6 +166,11 @@ app.include_router(
 app.include_router(
     admin_moderation_router,
     prefix="/api/admin/moderation",
+    tags=["admin"],
+)
+app.include_router(
+    admin_financial_router,
+    prefix="/api/admin/financial",
     tags=["admin"],
 )
 app.include_router(users_router, prefix="/api/v1/users", tags=["users"])

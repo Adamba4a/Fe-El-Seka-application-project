@@ -19,7 +19,8 @@ export function SubmissionQueue({ items }: SubmissionQueueProps) {
           <th className="pb-2 pr-4 font-medium">Name</th>
           <th className="pb-2 pr-4 font-medium">Email</th>
           <th className="pb-2 pr-4 font-medium">Submitted</th>
-          <th className="pb-2 font-medium">Attempt</th>
+          <th className="pb-2 pr-4 font-medium">Attempt</th>
+          <th className="pb-2 font-medium">Age</th>
         </tr>
       </thead>
       <tbody>
@@ -32,8 +33,15 @@ export function SubmissionQueue({ items }: SubmissionQueueProps) {
             <td className="py-3 pr-4">{item.user_name}</td>
             <td className="py-3 pr-4 text-gray-500">{item.email}</td>
             <td className="py-3 pr-4 text-gray-500">{new Date(item.submitted_at).toLocaleString()}</td>
-            <td className="py-3">
+            <td className="py-3 pr-4">
               <span className="px-2 py-0.5 bg-gray-100 rounded text-xs">{item.attempt_number}/3</span>
+            </td>
+            <td className="py-3">
+              {item.is_aged && (
+                <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
+                  Pending &gt;24h
+                </span>
+              )}
             </td>
           </tr>
         ))}

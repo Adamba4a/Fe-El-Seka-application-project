@@ -1,24 +1,115 @@
-import { createAdminClient } from "@/lib/supabase/admin-client";
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { createAdminBrowserClient } from "@/lib/supabase/browser-client";
+import { list, type UserListItem, type UserRole, type VerificationStatus } from "@/lib/api/admin-users";
 
-export const dynamic = "force-dynamic";
+const sb = createAdminBrowserClient();
 
-export default async function UsersPage() {
-  const supabase = createAdminClient();
+const ROLES: { value: UserRole | ""; label: string }[] = [
+  { value: "", label: "All roles" },
+  { value: "passenger", label: "Passenger" },
+  { value: "driver", label: "Driver" },
+  { value: "admin", label: "Admin" },
+];
 
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, display_name, email, role, verification_status")
-    .order("role")
-    .order("display_name");
+const STATUSES: { value: VerificationStatus | ""; label: string }[] = [
+  { value: "", label: "All statuses" },
+  { value: "unverified", label: "Unverified" },
+  { value: "pending_review", label: "Pending review" },
+  { value: "verified", label: "Verified" },
+  { value: "rejected", label: "Rejected" },
+  { value: "suspended", label: "Suspended" },
+];
 
-  const users = profiles ?? [];
+const PAGE_SIZE = 20;
+
+export default function UsersPage() {
+  const [q, setQ] = useState("");
+  const [role, setRole] = useState<UserRole | "">("");
+  const [status, setStatus] = useState<VerificationStatus | "">("");
+  const [page, setPage] = useState(1);
+  const [items, setItems] = useState<UserListItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    const timeout = setTimeout(async () => {
+      try {
+        const { data: session } = await sb.auth.getSession();
+        const token = session.session?.access_token ?? "";
+        const res = await list(token, {
+          q: q.trim() || undefined,
+          role: role || undefined,
+          status: status || undefined,
+          page,
+        });
+        if (!cancelled) {
+          setItems(res.items);
+          setTotal(res.total);
+        }
+      } catch {
+        if (!cancelled) setError("Failed to load users.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [q, role, status, page]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <main className="p-8 space-y-6 max-w-4xl">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Users ({users.length})</h1>
+        <h1 className="text-xl font-semibold">Users ({total})</h1>
       </div>
+
+      <div className="flex flex-wrap gap-3">
+        <input
+          value={q}
+          onChange={(e) => {
+            setPage(1);
+            setQ(e.target.value);
+          }}
+          placeholder="Search name or email…"
+          className="border rounded px-3 py-1.5 text-sm w-64"
+        />
+        <select
+          value={role}
+          onChange={(e) => {
+            setPage(1);
+            setRole(e.target.value as UserRole | "");
+          }}
+          className="border rounded px-3 py-1.5 text-sm"
+        >
+          {ROLES.map((r) => (
+            <option key={r.value} value={r.value}>{r.label}</option>
+          ))}
+        </select>
+        <select
+          value={status}
+          onChange={(e) => {
+            setPage(1);
+            setStatus(e.target.value as VerificationStatus | "");
+          }}
+          className="border rounded px-3 py-1.5 text-sm"
+        >
+          {STATUSES.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {error && <p className="text-red-600 text-sm">{error}</p>}
 
       <table className="w-full text-sm border-collapse">
         <thead>
@@ -31,8 +122,8 @@ export default async function UsersPage() {
           </tr>
         </thead>
         <tbody>
-          {users.map((u) => (
-            <tr key={u.id} className="border-b hover:bg-gray-50">
+          {items.map((u) => (
+            <tr key={u.user_id} className="border-b hover:bg-gray-50">
               <td className="py-2 pr-4">{u.display_name || "—"}</td>
               <td className="py-2 pr-4 text-gray-600">{u.email}</td>
               <td className="py-2 pr-4 capitalize">{u.role}</td>
@@ -42,28 +133,48 @@ export default async function UsersPage() {
                   u.verification_status === "suspended" ? "bg-red-100 text-red-700" :
                   "bg-yellow-100 text-yellow-700"
                 }`}>
-                  {u.verification_status?.replace(/_/g, " ")}
+                  {u.verification_status.replace(/_/g, " ")}
                 </span>
               </td>
               <td className="py-2 flex gap-2">
-                <Link href={`/users/${u.id}`} className="text-blue-600 hover:underline">
+                <Link href={`/users/${u.user_id}`} className="text-blue-600 hover:underline">
                   Detail
                 </Link>
                 {u.role === "driver" && (
-                  <Link href={`/drivers/${u.id}/wallet`} className="text-green-600 hover:underline">
+                  <Link href={`/drivers/${u.user_id}/wallet`} className="text-green-600 hover:underline">
                     Wallet
                   </Link>
                 )}
               </td>
             </tr>
           ))}
-          {users.length === 0 && (
+          {!loading && items.length === 0 && (
             <tr>
-              <td colSpan={5} className="py-8 text-center text-gray-400">No users yet</td>
+              <td colSpan={5} className="py-8 text-center text-gray-400">No users found</td>
             </tr>
           )}
         </tbody>
       </table>
+
+      {loading && <p className="text-sm text-gray-400">Loading…</p>}
+
+      <div className="flex items-center gap-4 text-sm">
+        <button
+          disabled={page <= 1}
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          className="text-blue-600 hover:underline disabled:text-gray-300 disabled:no-underline"
+        >
+          Previous
+        </button>
+        <span className="text-gray-500">Page {page} of {totalPages}</span>
+        <button
+          disabled={page >= totalPages}
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          className="text-blue-600 hover:underline disabled:text-gray-300 disabled:no-underline"
+        >
+          Next
+        </button>
+      </div>
     </main>
   );
 }
