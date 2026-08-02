@@ -100,11 +100,11 @@ each can be implemented, tested, and shipped independently.
 
 ### Implementation for User Story 4
 
-- [ ] T019 [US4] Implement `get_report(conn, start, end)`, `get_driver_balances(conn)`, and `stream_report_csv(conn, start, end)` in `services/api/app/services/financial_report_service.py` (FR-017–021; uses `period.py`'s `get_trend_granularity` from T002; `get_driver_balances` `LEFT JOIN`s `driver_wallets` from `profiles` so wallet-less drivers appear at 0.00/at-risk per data-model.md)
-- [ ] T020 [US4] Implement `GET /report`, `GET /report/export` (`StreamingResponse`, `media_type="text/csv"`, no server-side file), and `GET /drivers/balances` in `services/api/app/api/admin/financial_router.py` per `contracts/api.md` (FR-017–021, NFR-007; depends on T019)
-- [ ] T021 [US4] Register `financial_router` in `services/api/app/main.py` under `prefix="/api/admin/financial"` (depends on T020)
-- [ ] T022 [P] [US4] Create `apps/admin/src/lib/api/admin-financial.ts` — fetch wrappers for `GET /report`, `GET /report/export`, `GET /drivers/balances` per `contracts/api.md` (contract-driven; can be written in parallel with T019–T021)
-- [ ] T023 [US4] Create `apps/admin/src/app/(dashboard)/financial/page.tsx`: date-range picker, commission/credits/debits/net-revenue totals, `recharts` trend, driver balance table (sorted ascending, at-risk flag), CSV export button (FR-017–021; depends on T022)
+- [X] T019 [US4] Implement `get_report(conn, start, end)`, `get_driver_balances(conn)`, and `stream_report_csv(conn, start, end)` in `services/api/app/services/financial_report_service.py` (FR-017–021; uses `period.py`'s `get_trend_granularity` from T002; `get_driver_balances` `LEFT JOIN`s `driver_wallets` from `profiles` so wallet-less drivers appear at 0.00/at-risk per data-model.md)
+- [X] T020 [US4] Implement `GET /report`, `GET /report/export` (`StreamingResponse`, `media_type="text/csv"`, no server-side file), and `GET /drivers/balances` in `services/api/app/api/admin/financial_router.py` per `contracts/api.md` (FR-017–021, NFR-007; depends on T019)
+- [X] T021 [US4] Register `financial_router` in `services/api/app/main.py` under `prefix="/api/admin/financial"` (depends on T020)
+- [X] T022 [P] [US4] Create `apps/admin/src/lib/api/admin-financial.ts` — fetch wrappers for `GET /report`, `GET /report/export`, `GET /drivers/balances` per `contracts/api.md` (contract-driven; can be written in parallel with T019–T021)
+- [X] T023 [US4] Create `apps/admin/src/app/(dashboard)/financial/page.tsx`: date-range picker, commission/credits/debits/net-revenue totals, `recharts` trend, driver balance table (sorted ascending, at-risk flag), CSV export button (FR-017–021; depends on T022)
 
 **Checkpoint**: All four user stories independently functional.
 
@@ -116,7 +116,7 @@ each can be implemented, tested, and shipped independently.
 
 - [ ] T024 [P] Run `quickstart.md` Scenarios 1–4 end-to-end against a locally seeded environment; confirm every step's expected outcome
 - [ ] T025 [P] Verify NFR-001 (≤500ms p95, dashboard/reports) and NFR-002 (≤300ms p95, user search) against a ~50,000-profile seeded dataset; if `ILIKE` search on `profiles.display_name`/`email` is slow at that scale, add a `pg_trgm` GIN index as a follow-up (not required to ship this phase, per NFR-002's target being the acceptance bar, not a specific index)
-- [ ] T026 Confirm every endpoint added/extended in this phase (`dashboard_router`, `financial_router`, and the new `users_router`/`verification_router` endpoints) rejects a non-admin caller with `403 forbidden` (FR-022, NFR-005)
+- [X] T026 Confirm every endpoint added/extended in this phase (`dashboard_router`, `financial_router`, and the new `users_router`/`verification_router` endpoints) rejects a non-admin caller with `403 forbidden` (FR-022, NFR-005)
 
 ---
 
