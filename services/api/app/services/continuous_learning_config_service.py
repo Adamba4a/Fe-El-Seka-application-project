@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import logging
 from typing import Any
 
 from app.core.database import get_pool
+
+# NUMERIC columns come back from asyncpg as decimal.Decimal; cast to float so
+# they interoperate with plain-float ML scores downstream (matches
+# pricing_service.py / ranking_config_service.py convention).
+_DECIMAL_FIELDS = ("promotion_margin", "rollback_margin", "alert_baseline_margin")
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +45,9 @@ async def _refresh_continuous_learning_config() -> None:
     row_dict = dict(row)
     row_dict.pop("id", None)
     row_dict.pop("updated_at", None)
+    for field in _DECIMAL_FIELDS:
+        if field in row_dict and row_dict[field] is not None:
+            row_dict[field] = float(row_dict[field])
     async with _config_lock:
         _config_cache.clear()
         _config_cache.update(row_dict)
@@ -76,8 +85,10 @@ async def continuous_learning_config_refresh_loop() -> None:
 
 
 def get_continuous_learning_config() -> dict[str, Any]:
+    """Returns a deep copy so callers can freely index/mutate the result
+    (e.g. rollout_step_pcts is a list) without corrupting the shared cache."""
     if not _config_loaded:
         logger.warning(
             "continuous_learning_config not yet loaded from DB — using hardcoded defaults"
         )
-    return dict(_config_cache)
+    return copy.deepcopy(_config_cache)
