@@ -258,6 +258,39 @@ class TestGenerateDatasetSnapshot:
 
 
 @pytest.mark.asyncio
+class TestCountEligibleRows:
+    async def test_counts_included_rows_without_uploading(self, monkeypatch):
+        conn = _FakeConn(fetch_rows=[
+            _row(transitions=["completed"], rating_stars=5),
+            _row(transitions=["completed"], rating_stars=5),
+        ])
+        pool = _FakePool(conn)
+        monkeypatch.setattr(svc, "get_pool", lambda: pool)
+
+        def _boom(*args, **kwargs):
+            raise AssertionError("count_eligible_rows must not touch Storage")
+
+        monkeypatch.setattr(svc.storage_service, "upload_file", _boom)
+
+        count = await svc.count_eligible_rows()
+
+        assert count == 2
+        assert conn.executed_params == []  # no dataset_snapshots insert either
+
+    async def test_excludes_suspended_rows_from_count(self, monkeypatch):
+        conn = _FakeConn(fetch_rows=[
+            _row(transitions=["completed"], rating_stars=5),
+            _row(transitions=["completed"], rating_stars=5, passenger_verification_status="suspended"),
+        ])
+        pool = _FakePool(conn)
+        monkeypatch.setattr(svc, "get_pool", lambda: pool)
+
+        count = await svc.count_eligible_rows()
+
+        assert count == 1
+
+
+@pytest.mark.asyncio
 class TestGetLabeledRowCount:
     async def test_returns_row_count_for_existing_snapshot(self, monkeypatch):
         conn = _FakeConn(fetchrow_result={"row_count": 42})

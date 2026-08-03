@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupShuffleSplit
 from xgboost import XGBRegressor
 
 from app.services.feature_engineering import (
@@ -69,14 +69,18 @@ def train_from_real_data(dataset_df: pd.DataFrame, model_type: str, version: str
     y_hard = features_df["match_label"].values
     groups = features_df["search_id"].values
 
-    (
-        X_train, X_val,
-        y_train_soft, y_val_soft,
-        y_train_hard, y_val_hard,
-        _groups_train, groups_val,
-    ) = train_test_split(
-        X, y_soft, y_hard, groups, test_size=0.20, random_state=42, stratify=y_hard
-    )
+    # GroupShuffleSplit (not train_test_split) so every candidate row from the
+    # same passenger search lands entirely in train or entirely in validation —
+    # a plain row-level split would leak same-search context across the split
+    # and make ranking_quality_score meaningless (it needs a search's full
+    # candidate set together to know whether the top pick was correct).
+    splitter = GroupShuffleSplit(n_splits=1, test_size=0.20, random_state=42)
+    train_idx, val_idx = next(splitter.split(X, y_hard, groups=groups))
+
+    X_train, X_val = X[train_idx], X[val_idx]
+    y_train_soft, y_val_soft = y_soft[train_idx], y_soft[val_idx]
+    y_val_hard = y_hard[val_idx]
+    groups_val = groups[val_idx]
 
     model = XGBRegressor(
         objective="reg:logistic",

@@ -45,16 +45,24 @@ async def _attempt_retrain(model_type: str) -> None:
     if not await _cadence_elapsed(model_type, config["retraining_cadence_hours"]):
         return
 
-    snapshot = await dataset_pipeline_service.generate_dataset_snapshot(model_type)
-    if snapshot["row_count"] < config["min_dataset_size"]:
+    # Cheap count-only pass before paying for a full Parquet write + Storage
+    # upload + dataset_snapshots insert — while below min_dataset_size (e.g.
+    # the platform's first weeks) no model_versions row is ever written, so
+    # _cadence_elapsed keeps returning True every single tick; without this
+    # check that would mean a full snapshot generated and uploaded hourly
+    # forever.
+    eligible_count = await dataset_pipeline_service.count_eligible_rows()
+    if eligible_count < config["min_dataset_size"]:
         logger.info(json.dumps({
             "event": "retraining_scheduler_tick",
             "model_type": model_type,
             "outcome": "skipped_insufficient_data",
-            "row_count": snapshot["row_count"],
+            "row_count": eligible_count,
             "min_dataset_size": config["min_dataset_size"],
         }))
         return
+
+    snapshot = await dataset_pipeline_service.generate_dataset_snapshot(model_type)
 
     try:
         result = await ai_client.retrain_model(

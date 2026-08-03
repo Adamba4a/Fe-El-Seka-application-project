@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import uuid
@@ -235,6 +236,23 @@ def _anonymize(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [{col: row[col] for col in _PARQUET_COLUMNS} for row in rows]
 
 
+async def count_eligible_rows() -> int:
+    """Cheap pre-check for retraining_scheduler_service.py: runs the same
+    join + exclusion filtering as generate_dataset_snapshot() but skips the
+    Parquet write, Storage upload, and dataset_snapshots insert. Without this,
+    an hourly scheduler that only discovers row_count < min_dataset_size
+    *after* generating a full snapshot would spam Storage with a new upload
+    and DB row every hour for as long as the platform is below threshold
+    (which can be for weeks after launch)."""
+    now = datetime.now(timezone.utc)
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        raw_records = await conn.fetch(_JOIN_QUERY)
+    raw_rows = [dict(r) for r in raw_records]
+    included, _excluded_count, _exclusion_summary = _process_rows(raw_rows, now)
+    return len(included)
+
+
 async def generate_dataset_snapshot(model_type: str) -> dict[str, Any]:
     """FR-001/002/003/004: joins real match events and outcomes into a labeled,
     anonymized Parquet dataset snapshot, uploads it to Storage, and records a
@@ -272,7 +290,13 @@ async def generate_dataset_snapshot(model_type: str) -> dict[str, Any]:
         pq.write_table(table, buf)
         parquet_bytes = buf.getvalue().to_pybytes()
 
-        storage_service.upload_file(_BUCKET, storage_path, parquet_bytes, "application/octet-stream")
+        # storage_service.upload_file is a synchronous network call (supabase-py
+        # has no async client) — running it inline on this coroutine would
+        # freeze the whole API event loop (all passenger/driver requests) for
+        # the duration of the upload, so it's pushed to a worker thread.
+        await asyncio.to_thread(
+            storage_service.upload_file, _BUCKET, storage_path, parquet_bytes, "application/octet-stream"
+        )
 
         async with pool.acquire() as conn:
             await conn.execute(
