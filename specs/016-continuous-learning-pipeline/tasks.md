@@ -59,17 +59,17 @@ Monorepo, backend-only (plan.md Structure Decision): `services/api/app/...`, `se
 
 > Write this test FIRST, ensure it FAILS before implementation
 
-- [ ] T008 [P] [US1] Unit test for `generate_dataset_snapshot()` — labeling hierarchy, cancellation handling, fraud/suspension exclusion, retention-window exclusion — in `services/api/tests/unit/test_dataset_pipeline_service.py`
+- [X] T008 [P] [US1] Unit test for `generate_dataset_snapshot()` — labeling hierarchy, cancellation handling, fraud/suspension exclusion, retention-window exclusion — in `services/api/tests/unit/test_dataset_pipeline_service.py`
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Implement the base query in `generate_dataset_snapshot()` (`services/api/app/services/dataset_pipeline_service.py`): join `match_events` to `match_outcomes`, and apply the FR-003 exclusion (accounts with `profiles.verification_status IN ('suspended','rejected')` or a `reports` row resolved `resolution_action = 'suspend'`)
-- [ ] T010 [US1] Add the FR-004 retention-window exclusion to `generate_dataset_snapshot()`, following the same PDPL 151/2020-driven window already governing `match_events`/`match_outcomes`
-- [ ] T011 [US1] Add FR-002 `signal_strength_tier` labeling to `generate_dataset_snapshot()` — `completed_highly_rated` / `completed_unrated` / `booked_not_completed` / `shown_not_booked`, with `'cancelled'` folded into `booked_not_completed` (never an automatic negative)
-- [ ] T012 [US1] Add the FR-004 anonymization step to `generate_dataset_snapshot()` — strip/verify no PII fields beyond opaque UUIDs are present before the Parquet write
-- [ ] T013 [US1] Add the Parquet write (`training-datasets/{model_type}/{snapshot_id}/dataset.parquet`) and the `dataset_snapshots` row insert (row_count, excluded_count, date range, exclusion_summary) to `generate_dataset_snapshot()`, atomic — insert only after upload succeeds, so a mid-run failure leaves no partial row (contracts/dataset-pipeline.md)
-- [ ] T014 [US1] Implement `get_labeled_row_count(model_type, snapshot_id)` in `services/api/app/services/dataset_pipeline_service.py`
-- [ ] T015 [US1] Add structured logging for dataset pipeline runs (start/success/failure) to `dataset_pipeline_service.py`, consistent with the existing `ai_prediction_call`-style log event convention
+- [X] T009 [US1] Implement the base query in `generate_dataset_snapshot()` (`services/api/app/services/dataset_pipeline_service.py`): join `match_events` to `match_outcomes`, and apply the FR-003 exclusion (accounts with `profiles.verification_status IN ('suspended','rejected')` or a `reports` row resolved `resolution_action = 'suspend'`)
+- [X] T010 [US1] Add the FR-004 retention-window exclusion to `generate_dataset_snapshot()`, following the same PDPL 151/2020-driven window already governing `match_events`/`match_outcomes`
+- [X] T011 [US1] Add FR-002 `signal_strength_tier` labeling to `generate_dataset_snapshot()` — `completed_highly_rated` / `completed_unrated` / `booked_not_completed` / `shown_not_booked`, with `'cancelled'` folded into `booked_not_completed` (never an automatic negative)
+- [X] T012 [US1] Add the FR-004 anonymization step to `generate_dataset_snapshot()` — strip/verify no PII fields beyond opaque UUIDs are present before the Parquet write
+- [X] T013 [US1] Add the Parquet write (`training-datasets/{model_type}/{snapshot_id}/dataset.parquet`) and the `dataset_snapshots` row insert (row_count, excluded_count, date range, exclusion_summary) to `generate_dataset_snapshot()`, atomic — insert only after upload succeeds, so a mid-run failure leaves no partial row (contracts/dataset-pipeline.md)
+- [X] T014 [US1] Implement `get_labeled_row_count(model_type, snapshot_id)` in `services/api/app/services/dataset_pipeline_service.py`
+- [X] T015 [US1] Add structured logging for dataset pipeline runs (start/success/failure) to `dataset_pipeline_service.py`, consistent with the existing `ai_prediction_call`-style log event convention
 
 **Checkpoint**: User Story 1 is fully functional and independently testable via quickstart.md Scenario 1.
 
@@ -85,19 +85,19 @@ Monorepo, backend-only (plan.md Structure Decision): `services/api/app/...`, `se
 
 > Write this test FIRST, ensure it FAILS before implementation
 
-- [ ] T016 [P] [US2] Unit test for `evaluate_and_register_candidate()` promotion-margin gating (candidate vs. no-champion-yet vs. rejected paths) in `services/api/tests/unit/test_model_lifecycle_service.py`
+- [X] T016 [P] [US2] Unit test for `evaluate_and_register_candidate()` promotion-margin gating (candidate vs. no-champion-yet vs. rejected paths) in `services/api/tests/unit/test_model_lifecycle_service.py`
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Add `POST /training/retrain` endpoint in `services/ai` (new router or extension of the existing training router): accepts `model_type`, `dataset_storage_path`, `dataset_snapshot_id`
-- [ ] T018 [US2] Implement `services/ai/pipelines/training/train_from_real_data.py`: load the Parquet dataset snapshot, reuse `feature_engineering.py`'s `MATCH_QUALITY_MONOTONE_CONSTRAINTS`, train `XGBRegressor` with the same `monotone_constraints` argument as the synthetic pipeline (research.md R5)
-- [ ] T019 [US2] Extend `services/ai/pipelines/training/evaluate.py` with the ranking-quality metric (rate at which the model's top-ranked candidate matches the passenger's actual chosen/accepted ride — FR-007), applied alongside the existing AUC-ROC gate (`_AUC_GATE = 0.65`) and ECE calibration check as hard preconditions
-- [ ] T020 [US2] Wire `/training/retrain`'s response (`status: trained|gate_failed`, `storage_version`, `evaluation_score`, `auc_roc`, `expected_calibration_error`) and conditional model-registry upload — artifact uploaded only on `status: trained`, matching today's `TrainingGateError` abort-on-failure behavior (contracts/ai-service-endpoints.md)
-- [ ] T021 [P] [US2] Extend `services/api/app/services/ai_client.py` with a `retrain_model()` call to `POST /training/retrain`
-- [ ] T022 [US2] Implement `evaluate_and_register_candidate(model_type, dataset_snapshot_id, storage_version, evaluation_score)` in `services/api/app/services/model_lifecycle_service.py`: look up current champion, read `promotion_margin` from `continuous_learning_config`, insert `model_versions` as `candidate`→shadow (passes margin, or no champion yet) or `rejected` (contracts/model-lifecycle.md)
-- [ ] T023 [US2] Implement `advance_to_shadow(model_version_id)` in `model_lifecycle_service.py`: set `promotion_status='shadow'`, `shadow_started_at=now()`, call `POST /models/shadow` via `ai_client.py`
-- [ ] T024 [P] [US2] Add `POST /models/shadow` endpoint in `services/ai` (writes `candidate.json`, loads the version into `app.state.models[model_type]["candidate"]`)
-- [ ] T025 [US2] Implement and register `retraining_scheduler_loop()` in `services/api/app/main.py`'s `lifespan()`: hourly check of `retraining_cadence_hours` elapsed AND `min_dataset_size` (500) met via `get_labeled_row_count()`, then `generate_dataset_snapshot()` → `ai_client.retrain_model()` → `evaluate_and_register_candidate()`
+- [X] T017 [US2] Add `POST /training/retrain` endpoint in `services/ai` (new router or extension of the existing training router): accepts `model_type`, `dataset_storage_path`, `dataset_snapshot_id`
+- [X] T018 [US2] Implement `services/ai/pipelines/training/train_from_real_data.py`: load the Parquet dataset snapshot, reuse `feature_engineering.py`'s `MATCH_QUALITY_MONOTONE_CONSTRAINTS`, train `XGBRegressor` with the same `monotone_constraints` argument as the synthetic pipeline (research.md R5)
+- [X] T019 [US2] Extend `services/ai/pipelines/training/evaluate.py` with the ranking-quality metric (rate at which the model's top-ranked candidate matches the passenger's actual chosen/accepted ride — FR-007), applied alongside the existing AUC-ROC gate (`_AUC_GATE = 0.65`) and ECE calibration check as hard preconditions
+- [X] T020 [US2] Wire `/training/retrain`'s response (`status: trained|gate_failed`, `storage_version`, `evaluation_score`, `auc_roc`, `expected_calibration_error`) and conditional model-registry upload — artifact uploaded only on `status: trained`, matching today's `TrainingGateError` abort-on-failure behavior (contracts/ai-service-endpoints.md)
+- [X] T021 [P] [US2] Extend `services/api/app/services/ai_client.py` with a `retrain_model()` call to `POST /training/retrain`
+- [X] T022 [US2] Implement `evaluate_and_register_candidate(model_type, dataset_snapshot_id, storage_version, evaluation_score)` in `services/api/app/services/model_lifecycle_service.py`: look up current champion, read `promotion_margin` from `continuous_learning_config`, insert `model_versions` as `candidate`→shadow (passes margin, or no champion yet) or `rejected` (contracts/model-lifecycle.md)
+- [X] T023 [US2] Implement `advance_to_shadow(model_version_id)` in `model_lifecycle_service.py`: set `promotion_status='shadow'`, `shadow_started_at=now()`, call `POST /models/shadow` via `ai_client.py`
+- [X] T024 [P] [US2] Add `POST /models/shadow` endpoint in `services/ai` (writes `candidate.json`, loads the version into `app.state.models[model_type]["candidate"]`)
+- [X] T025 [US2] Implement and register `retraining_scheduler_loop()` in `services/api/app/main.py`'s `lifespan()`: hourly check of `retraining_cadence_hours` elapsed AND `min_dataset_size` (500) met via `get_labeled_row_count()`, then `generate_dataset_snapshot()` → `ai_client.retrain_model()` → `evaluate_and_register_candidate()`
 
 **Checkpoint**: User Stories 1 AND 2 both independently functional via quickstart.md Scenarios 1–2.
 

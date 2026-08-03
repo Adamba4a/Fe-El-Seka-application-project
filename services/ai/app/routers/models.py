@@ -3,13 +3,37 @@ import logging
 import joblib
 from fastapi import APIRouter, Request
 
-from app.models.registry import ReloadRequest, ReloadResponse
+from app.models.registry import ReloadRequest, ReloadResponse, ShadowRequest, ShadowResponse
 from app.services.model_registry import ModelRegistry, RegistryError
 
 router = APIRouter(tags=["models"])
 logger = logging.getLogger(__name__)
 
 _ALL_MODEL_TYPES = ["match_score", "ride_ranker"]
+
+
+@router.post("/shadow", response_model=ShadowResponse)
+def activate_shadow(body: ShadowRequest, request: Request) -> ShadowResponse:
+    """contracts/ai-service-endpoints.md POST /models/shadow. Called by
+    model_lifecycle_service.py's advance_to_shadow() once a candidate has
+    passed the promotion-margin gate. Writes candidate.json and loads the
+    version into app.state.models[model_type]["candidate"] so the predict
+    routers can start producing (never user-facing) shadow scores."""
+    registry = ModelRegistry()
+    registry.write_candidate(body.model_type, body.storage_version)
+
+    local_path = registry.download_model(body.model_type, body.storage_version)
+    obj = joblib.load(local_path)
+
+    model_state: dict = getattr(request.app.state, "models", {})
+    model_state.setdefault(body.model_type, {})["candidate"] = {
+        "model": obj,
+        "version": body.storage_version,
+    }
+    request.app.state.models = model_state
+
+    logger.info("Activated shadow candidate for %s (version: %s)", body.model_type, body.storage_version)
+    return ShadowResponse(status="shadow_active", storage_version=body.storage_version)
 
 
 @router.post("/reload", response_model=ReloadResponse)

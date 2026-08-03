@@ -233,6 +233,88 @@ async def verify_submission(
     return resp_json
 
 
+async def retrain_model(
+    model_type: str, dataset_storage_path: str, dataset_snapshot_id: str
+) -> dict:
+    """Triggers a real-data retraining run in services/ai. Training takes
+    minutes, not milliseconds, so this call overrides the client's default
+    1.0s timeout per-request rather than treating a normal-length run as
+    unavailable."""
+    client = _get()
+    payload = {
+        "model_type": model_type,
+        "dataset_storage_path": dataset_storage_path,
+        "dataset_snapshot_id": dataset_snapshot_id,
+    }
+    _t0 = time.monotonic()
+    _fallback = False
+    _model_ver = None
+    resp_json: dict | None = None
+    try:
+        resp = await client.post("/training/retrain", json=payload, timeout=httpx.Timeout(600.0))
+        resp.raise_for_status()
+        resp_json = resp.json()
+        _model_ver = resp_json.get("storage_version")
+    except httpx.TimeoutException as exc:
+        _fallback = True
+        logger.warning("AI training/retrain timed out")
+        raise AIServiceUnavailableError("AI service timed out") from exc
+    except httpx.RequestError as exc:
+        _fallback = True
+        logger.warning("AI training/retrain unreachable: %s", exc)
+        raise AIServiceUnavailableError("AI service unreachable") from exc
+    except httpx.HTTPStatusError as exc:
+        _fallback = True
+        logger.warning("AI training/retrain returned %d", exc.response.status_code)
+        raise AIServiceUnavailableError(f"AI service error {exc.response.status_code}") from exc
+    finally:
+        logger.info(json.dumps({
+            "event": "ai_training_call",
+            "endpoint": "/training/retrain",
+            "model_type": model_type,
+            "model_version": _model_ver,
+            "latency_ms": round((time.monotonic() - _t0) * 1000),
+            "fallback_triggered": _fallback,
+        }))
+    return resp_json
+
+
+async def activate_shadow_candidate(model_type: str, storage_version: str) -> dict:
+    """Calls POST /models/shadow to load a promotion-eligible candidate into
+    the AI service's shadow slot (contracts/ai-service-endpoints.md)."""
+    client = _get()
+    payload = {"model_type": model_type, "storage_version": storage_version}
+    _t0 = time.monotonic()
+    _fallback = False
+    resp_json: dict | None = None
+    try:
+        resp = await client.post("/models/shadow", json=payload)
+        resp.raise_for_status()
+        resp_json = resp.json()
+    except httpx.TimeoutException as exc:
+        _fallback = True
+        logger.warning("AI models/shadow timed out")
+        raise AIServiceUnavailableError("AI service timed out") from exc
+    except httpx.RequestError as exc:
+        _fallback = True
+        logger.warning("AI models/shadow unreachable: %s", exc)
+        raise AIServiceUnavailableError("AI service unreachable") from exc
+    except httpx.HTTPStatusError as exc:
+        _fallback = True
+        logger.warning("AI models/shadow returned %d", exc.response.status_code)
+        raise AIServiceUnavailableError(f"AI service error {exc.response.status_code}") from exc
+    finally:
+        logger.info(json.dumps({
+            "event": "ai_training_call",
+            "endpoint": "/models/shadow",
+            "model_type": model_type,
+            "model_version": storage_version,
+            "latency_ms": round((time.monotonic() - _t0) * 1000),
+            "fallback_triggered": _fallback,
+        }))
+    return resp_json
+
+
 async def is_available() -> bool:
     try:
         client = _get()
