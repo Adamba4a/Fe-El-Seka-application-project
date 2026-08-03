@@ -44,6 +44,10 @@ from app.services.fcm_service import initialize_fcm
 from app.services.notification_dispatcher import notification_dispatcher_loop
 from app.services.notification_service import email_retry_loop
 from app.services import ai_client as ai_client_module
+from app.services.continuous_learning_config_service import (
+    init_continuous_learning_config,
+    continuous_learning_config_refresh_loop,
+)
 from app.services.moderation_service import init_moderation_config, moderation_config_refresh_loop
 from app.services.pricing_service import init_pricing_config, pricing_config_refresh_loop
 from app.services.ranking_config_service import init_ranking_config, ranking_config_refresh_loop
@@ -56,6 +60,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await init_pricing_config()
     await init_ranking_config()
     await init_moderation_config()
+    await init_continuous_learning_config()
     try:
         await initialize_fcm()
     except Exception as exc:
@@ -67,11 +72,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     pricing_task = asyncio.create_task(pricing_config_refresh_loop())
     ranking_task = asyncio.create_task(ranking_config_refresh_loop())
     moderation_task = asyncio.create_task(moderation_config_refresh_loop())
+    continuous_learning_config_task = asyncio.create_task(continuous_learning_config_refresh_loop())
     dispatcher_task = asyncio.create_task(notification_dispatcher_loop())
     reminder_task = asyncio.create_task(driver_reminder_loop())
     yield
     reminder_task.cancel()
     dispatcher_task.cancel()
+    continuous_learning_config_task.cancel()
     moderation_task.cancel()
     ranking_task.cancel()
     pricing_task.cancel()
