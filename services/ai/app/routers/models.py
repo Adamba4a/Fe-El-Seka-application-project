@@ -35,10 +35,12 @@ def activate_shadow(body: ShadowRequest, request: Request) -> ShadowResponse:
     obj = joblib.load(local_path)
 
     model_state: dict = getattr(request.app.state, "models", {})
-    model_state.setdefault(body.model_type, {})["candidate"] = {
-        "model": obj,
-        "version": body.storage_version,
-    }
+    # model_state[model_type] is None (not absent) whenever no champion has
+    # ever loaded yet — the very first candidate's shadow activation — so
+    # .setdefault() alone would return that None instead of a fresh dict.
+    slot = model_state.get(body.model_type) or {}
+    slot["candidate"] = {"model": obj, "version": body.storage_version}
+    model_state[body.model_type] = slot
     request.app.state.models = model_state
 
     logger.info("Activated shadow candidate for %s (version: %s)", body.model_type, body.storage_version)
@@ -60,10 +62,13 @@ def promote_model(body: PromoteRequest, request: Request) -> PromoteResponse:
     obj = joblib.load(local_path)
 
     model_state: dict = getattr(request.app.state, "models", {})
-    slot = model_state.setdefault(body.model_type, {})
+    # Same None-vs-absent-key pitfall as activate_shadow() above — the very
+    # first model_type to be promoted has never had its slot populated.
+    slot = model_state.get(body.model_type) or {}
     slot["model"] = obj
     slot["version"] = body.storage_version
     slot.pop("candidate", None)
+    model_state[body.model_type] = slot
     request.app.state.models = model_state
 
     logger.info("Promoted %s to champion (version: %s)", body.model_type, body.storage_version)
