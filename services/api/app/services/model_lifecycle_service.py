@@ -59,21 +59,40 @@ async def evaluate_and_register_candidate(
         status, margin = _decide_promotion(evaluation_score, champion_score, promotion_margin)
 
         model_version_id = uuid.uuid4()
-        await conn.execute(
-            """
-            INSERT INTO public.model_versions
-                (id, model_type, storage_version, dataset_snapshot_id,
-                 promotion_status, evaluation_score, comparison_margin)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            """,
-            model_version_id,
-            model_type,
-            storage_version,
-            dataset_snapshot_id,
-            status,
-            evaluation_score,
-            margin,
-        )
+        async with conn.transaction():
+            if status == "candidate":
+                # A new challenger is about to take over the single shadow/
+                # rollout slot (advance_to_shadow() below overwrites
+                # services/ai's in-memory candidate). Retire any prior
+                # in-flight version for this model_type first, so it doesn't
+                # linger in the DB and get double-counted by
+                # refresh_rollout_cache()/check_rollout_progression() (both
+                # key/iterate by model_type assuming at most one active row).
+                await conn.execute(
+                    """
+                    UPDATE public.model_versions
+                    SET promotion_status = 'retired', retired_at = now()
+                    WHERE model_type = $1
+                      AND promotion_status IN ('candidate', 'shadow', 'partial_rollout')
+                    """,
+                    model_type,
+                )
+
+            await conn.execute(
+                """
+                INSERT INTO public.model_versions
+                    (id, model_type, storage_version, dataset_snapshot_id,
+                     promotion_status, evaluation_score, comparison_margin)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                """,
+                model_version_id,
+                model_type,
+                storage_version,
+                dataset_snapshot_id,
+                status,
+                evaluation_score,
+                margin,
+            )
 
     logger.info(json.dumps({
         "event": "model_promotion_decision",
@@ -335,6 +354,25 @@ async def generate_shadow_comparison_report(model_version_id: uuid.UUID) -> dict
     }
 
 
+async def rollback_version(model_version_id: uuid.UUID, conn: Any = None) -> None:
+    """The rollback action shared by check_rollout_progression() step 2 (FR-012)
+    and model_monitoring_service.apply_spot_audit_finding()'s out-of-cycle path
+    (spec Edge Case) — both must perform the exact same mutation. No
+    services/ai call required (research.md R7); the next read of
+    model_versions by get_routing_decision() simply stops selecting it."""
+    query = """
+        UPDATE public.model_versions
+        SET promotion_status = 'retired', rollout_pct = 0, retired_at = now()
+        WHERE id = $1
+    """
+    if conn is not None:
+        await conn.execute(query, model_version_id)
+        return
+    pool = get_pool()
+    async with pool.acquire() as new_conn:
+        await new_conn.execute(query, model_version_id)
+
+
 # ── T033: rollout progression / rollback / champion promotion ────────────────
 
 async def check_rollout_progression() -> None:
@@ -396,14 +434,7 @@ async def check_rollout_progression() -> None:
                 candidate_rate = cand_accepted / cand_total
                 champion_rate = champ_accepted / champ_total
                 if champion_rate - candidate_rate >= config["rollback_margin"]:
-                    await conn.execute(
-                        """
-                        UPDATE public.model_versions
-                        SET promotion_status = 'retired', rollout_pct = 0, retired_at = now()
-                        WHERE id = $1
-                        """,
-                        model_version_id,
-                    )
+                    await rollback_version(model_version_id, conn=conn)
                     logger.info(json.dumps({
                         "event": "rollout_auto_rollback",
                         "model_version_id": str(model_version_id),

@@ -62,6 +62,14 @@ class _FakeAcquireCtx:
         return False
 
 
+class _FakeTransactionCtx:
+    async def __aenter__(self):
+        return None
+
+    async def __aexit__(self, *exc_info):
+        return False
+
+
 class _FakeConn:
     def __init__(self, champion_row=None, model_type_row=None):
         self._champion_row = champion_row
@@ -75,6 +83,9 @@ class _FakeConn:
 
     async def execute(self, query, *args):
         self.executed.append((query, args))
+
+    def transaction(self):
+        return _FakeTransactionCtx()
 
 
 class _FakePool:
@@ -135,6 +146,31 @@ class TestEvaluateAndRegisterCandidate:
         assert result["comparison_margin"] == pytest.approx(0.03)
         assert len(shadow_calls) == 1
 
+    async def test_promoted_candidate_retires_stale_in_flight_versions_first(self, monkeypatch):
+        conn = _FakeConn(champion_row={"id": uuid.uuid4(), "evaluation_score": 0.80})
+        pool = _FakePool(conn)
+        monkeypatch.setattr(svc, "get_pool", lambda: pool)
+        monkeypatch.setattr(
+            svc, "get_continuous_learning_config", lambda: {"promotion_margin": 0.02}
+        )
+        monkeypatch.setattr(svc, "advance_to_shadow", _record([]))
+
+        await svc.evaluate_and_register_candidate("match_score", uuid.uuid4(), "v2", 0.83)
+
+        retire_calls = [
+            c for c in conn.executed
+            if "SET promotion_status = 'retired'" in c[0] and "model_type = $1" in c[0]
+        ]
+        assert len(retire_calls) == 1
+        assert retire_calls[0][1] == ("match_score",)
+        # the stale-version retirement must run before the new row is inserted
+        insert_index = next(i for i, c in enumerate(conn.executed) if "INSERT INTO" in c[0])
+        retire_index = next(
+            i for i, c in enumerate(conn.executed)
+            if "SET promotion_status = 'retired'" in c[0] and "model_type = $1" in c[0]
+        )
+        assert retire_index < insert_index
+
     async def test_below_margin_registers_as_rejected_and_never_advances_to_shadow(self, monkeypatch):
         conn = _FakeConn(champion_row={"id": uuid.uuid4(), "evaluation_score": 0.80})
         pool = _FakePool(conn)
@@ -153,6 +189,12 @@ class TestEvaluateAndRegisterCandidate:
         result = await svc.evaluate_and_register_candidate(
             "match_score", uuid.uuid4(), "v3", 0.805
         )
+
+        retire_calls = [
+            c for c in conn.executed
+            if "SET promotion_status = 'retired'" in c[0] and "model_type = $1" in c[0]
+        ]
+        assert retire_calls == []  # a rejected challenger must not touch an in-flight rollout
 
         assert result["promotion_status"] == "rejected"
         assert shadow_calls == []
@@ -195,14 +237,6 @@ def _record(calls):
         return None
 
     return _inner
-
-
-class _FakeTransactionCtx:
-    async def __aenter__(self):
-        return None
-
-    async def __aexit__(self, *exc_info):
-        return False
 
 
 class _FakeConnMulti:
