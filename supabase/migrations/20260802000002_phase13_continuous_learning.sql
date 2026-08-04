@@ -95,7 +95,7 @@ CREATE TABLE public.model_monitoring_metrics (
     time_window_start  TIMESTAMPTZ NOT NULL,
     time_window_end    TIMESTAMPTZ NOT NULL,
     value              NUMERIC(8, 4) NOT NULL,
-    baseline           NUMERIC(8, 4) NOT NULL,
+    baseline           NUMERIC(8, 4),
     alert_raised       BOOLEAN NOT NULL DEFAULT FALSE,
     created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
