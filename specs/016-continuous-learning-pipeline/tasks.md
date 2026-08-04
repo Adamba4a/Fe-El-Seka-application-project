@@ -158,7 +158,7 @@ Monorepo, backend-only (plan.md Structure Decision): `services/api/app/...`, `se
 
 **Purpose**: End-to-end verification and consistency across all four stories.
 
-- [ ] T041 [P] Integration test in `services/api/tests/integration/test_continuous_learning_flow.py`: seeded `match_events`/`match_outcomes` → dataset snapshot → mock retrain → promotion decision → rollout routing → rollback trigger
+- [X] T041 [P] Integration test in `services/api/tests/integration/test_continuous_learning_flow.py`: seeded `match_events`/`match_outcomes` → dataset snapshot → mock retrain → promotion decision → rollout routing → rollback trigger
 - [ ] T042 [P] Unit tests for `services/ai/pipelines/training/train_from_real_data.py` and `evaluate.py`'s ranking-quality metric, in `services/ai/tests/`
 - [ ] T043 Run quickstart.md Scenarios 1–4 plus the config redeploy-free validation (edit `continuous_learning_config` via SQL, confirm the change is reflected within 30s with no restart)
 - [ ] T044 Review structured logging across `dataset_pipeline_service.py`, `model_lifecycle_service.py`, and `model_monitoring_service.py` for consistency with the existing `ai_prediction_call`/`ai_training_call` log-event convention
