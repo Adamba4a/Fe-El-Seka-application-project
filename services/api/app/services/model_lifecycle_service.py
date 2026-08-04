@@ -131,6 +131,12 @@ async def advance_to_shadow(model_version_id: uuid.UUID) -> None:
         )
 
     await ai_client.activate_shadow_candidate(row["model_type"], row["storage_version"])
+    logger.info(json.dumps({
+        "event": "model_advanced_to_shadow",
+        "model_version_id": str(model_version_id),
+        "model_type": row["model_type"],
+        "storage_version": row["storage_version"],
+    }))
 
 
 # ── T029: routing decision (champion vs. candidate) ──────────────────────────
@@ -460,6 +466,12 @@ async def check_rollout_progression() -> None:
                     """,
                     model_version_id, remaining_steps[0],
                 )
+                logger.info(json.dumps({
+                    "event": "rollout_step_advanced",
+                    "model_version_id": str(model_version_id),
+                    "previous_rollout_pct": current_pct,
+                    "rollout_pct": remaining_steps[0],
+                }))
 
     for model_version_id in to_promote:
         await advance_to_champion(model_version_id)

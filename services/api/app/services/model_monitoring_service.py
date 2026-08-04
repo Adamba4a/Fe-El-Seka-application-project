@@ -136,7 +136,6 @@ async def _run_aggregation_for_version(
             if alert:
                 logger.info(json.dumps({
                     "event": "model_monitoring_alert",
-                    "phase": "success",
                     "model_version_id": str(model_version_id),
                     "zone": zone,
                     "metric_type": metric_type,
@@ -181,7 +180,6 @@ async def run_hourly_aggregation(model_type: str) -> None:
 
     logger.info(json.dumps({
         "event": "model_monitoring_aggregation_tick",
-        "phase": "success",
         "model_type": model_type,
     }))
 
@@ -280,7 +278,6 @@ async def record_spot_audit_samples() -> None:
                 )
                 logger.info(json.dumps({
                     "event": "spot_audit_sampled",
-                    "phase": "success",
                     "model_type": model_type,
                     "model_version_id": str(row["id"]),
                     "variant": variant,
@@ -319,7 +316,6 @@ async def apply_spot_audit_finding(
 
     logger.info(json.dumps({
         "event": "spot_audit_finding_applied",
-        "phase": "success",
         "spot_audit_id": str(spot_audit_id),
         "trigger_rollback": trigger_rollback,
     }))
