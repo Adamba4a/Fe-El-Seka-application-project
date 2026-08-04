@@ -22,11 +22,13 @@ class MatchScoreRequest(BaseModel):
 class MatchScoreItem(BaseModel):
     candidate_id: str
     score: float = Field(..., ge=0.0, le=1.0)
+    shadow_score: float | None = Field(None, ge=0.0, le=1.0)
 
 
 class MatchScoreResponse(BaseModel):
     scores: list[MatchScoreItem]
     model_version: str
+    shadow_model_version: str | None = None
 
 
 class MatchScoreBatchRequest(BaseModel):

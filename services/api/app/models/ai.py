@@ -34,3 +34,4 @@ class ScoredCandidate(BaseModel):
     ride_id: str
     match_score: float
     match_score_pct: int
+    shadow_score: float | None = None

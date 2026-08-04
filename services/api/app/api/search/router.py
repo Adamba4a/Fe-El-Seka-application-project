@@ -18,6 +18,7 @@ from app.services import (
     ai_client,
     candidate_service,
     match_logging_service,
+    model_lifecycle_service,
     ranking_config_service,
     storage_service,
 )
@@ -102,8 +103,14 @@ async def _ai_rank(
     dest_lat: float,
     dest_lng: float,
     departure_at: datetime,
-) -> tuple[list, dict[str, int], Optional[str]]:
-    """Return (ranked_candidates, score_map, model_version). Raises AIServiceUnavailableError on failure."""
+) -> tuple[list, dict[str, int], Optional[str], dict[str, float], Optional[str], str]:
+    """Return (ranked_candidates, score_map, model_version, shadow_map,
+    shadow_model_version, served_variant). Raises AIServiceUnavailableError on
+    failure. `served_variant` (T029/T030) picks whether the champion's or the
+    partial_rollout candidate's score is what's actually shown/used for this
+    search — shadow_map is populated whenever a candidate model exists at all
+    (shadow-only or partial_rollout), independent of which variant is served,
+    since burn-in analysis needs it logged from the very start of shadow."""
     # Real coordinates go straight into the AI request — zone snapping is only used
     # here to derive a human-readable label, never to substitute for the actual GPS
     # point sent to the model.
@@ -143,7 +150,9 @@ async def _ai_rank(
     if not ai_features:
         raise AIServiceUnavailableError("No candidates with coordinates for AI scoring")
 
-    scored, model_version = await ai_client.score_candidates(passenger_req, ai_features)
+    scored, model_version, shadow_model_version = await ai_client.score_candidates(passenger_req, ai_features)
+
+    served_variant = model_lifecycle_service.get_routing_decision("match_score")["variant"]
 
     if len({s.match_score_pct for s in scored}) == 1:
         raise AIServiceUnavailableError("All AI scores identical — degrading to overlap_pct sort")
@@ -153,18 +162,24 @@ async def _ai_rank(
     score_lookup = {s.ride_id: s for s in scored}
     ranked_scored = [score_lookup[rid] for rid in ranked_ids if rid in score_lookup]
 
+    def _shown_pct(s) -> int:
+        if served_variant == "candidate" and s.shadow_score is not None:
+            return round(s.shadow_score * 100)
+        return s.match_score_pct
+
     # Apply 20% threshold with min-3 guarantee (preserve ranked order)
-    above = [s for s in ranked_scored if s.match_score_pct >= 20]
+    above = [s for s in ranked_scored if _shown_pct(s) >= 20]
     if len(above) < 3:
-        below = [s for s in ranked_scored if s.match_score_pct < 20]
+        below = [s for s in ranked_scored if _shown_pct(s) < 20]
         above = above + below[: max(0, 3 - len(above))]
     final_scored = above
 
     cand_lookup = {str(c.ride_id): c for c in capped}
     ranked_candidates = [cand_lookup[s.ride_id] for s in final_scored if s.ride_id in cand_lookup]
-    score_map = {s.ride_id: s.match_score_pct for s in final_scored}
+    score_map = {s.ride_id: _shown_pct(s) for s in final_scored}
+    shadow_map = {s.ride_id: s.shadow_score for s in final_scored if s.shadow_score is not None}
 
-    return ranked_candidates, score_map, model_version
+    return ranked_candidates, score_map, model_version, shadow_map, shadow_model_version, served_variant
 
 
 # ── GET /api/v1/search/nearby ─────────────────────────────────────────────────
@@ -270,9 +285,12 @@ async def search_rides(
     ai_active = False
     score_map: dict[str, int] = {}
     model_version: Optional[str] = None
+    shadow_map: dict[str, float] = {}
+    shadow_model_version: Optional[str] = None
+    served_variant = "champion"
 
     try:
-        all_candidates, score_map, model_version = await _ai_rank(
+        all_candidates, score_map, model_version, shadow_map, shadow_model_version, served_variant = await _ai_rank(
             all_candidates,
             body.origin.lat,
             body.origin.lng,
@@ -351,6 +369,7 @@ async def search_rides(
     background_tasks.add_task(
         match_logging_service.persist_match_events,
         search_ctx, all_candidates, score_map, ai_active, model_version, explored_ride_id,
+        shadow_map, shadow_model_version, served_variant,
     )
 
     return JSONResponse({

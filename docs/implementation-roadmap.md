@@ -514,16 +514,18 @@ Features deferred until after the competition. The MVP architecture is designed 
 
 This only works if the data needed to learn from is captured correctly from day one — see 044 and 045 below, which must ship at or before public launch, not after.
 
-| ID | Name |
-|---|---|
-| 044 | match-event-instrumentation |
-| 045 | ranking-exploration-strategy |
-| 046 | real-outcome-dataset-pipeline |
-| 047 | production-retraining-pipeline |
-| 048 | shadow-deployment-rollout |
-| 049 | model-monitoring-drift-detection |
-| TBD | demand-forecasting |
-| TBD | fraud-detection |
+| ID | Name | Status |
+|---|---|---|
+| 044 | match-event-instrumentation | ✅ Complete |
+| 045 | ranking-exploration-strategy | ✅ Complete |
+| 046 | real-outcome-dataset-pipeline | ✅ Complete |
+| 047 | production-retraining-pipeline | ✅ Complete |
+| 048 | shadow-deployment-rollout | ✅ Complete |
+| 049 | model-monitoring-drift-detection | ✅ Complete |
+| TBD | demand-forecasting | ❌ Not started |
+| TBD | fraud-detection | ❌ Not started |
+
+> 046–049 are implemented on branch `016-continuous-learning-pipeline` (all tasks complete, unit/integration-tested, and live-validated end-to-end against a local Supabase instance as of 2026-08-04). **Not yet merged to `main` or deployed** — the feature's migrations have only been applied locally, not to any production database.
 
 ### 044 — match-event-instrumentation ✅ Complete (013-match-learning-foundation)
 **Ship at or before public launch.** Training data cannot be reconstructed retroactively — if it isn't logged from day one, it never existed. Every candidate ride shown to a passenger must be logged with its full feature vector (overlap, pickup/dropoff walk, price, time, rank position, predicted score), and every downstream event tied back to it: viewed, requested, driver accepted/rejected, completed, cancelled, and (once 032-ratings-system ships) rated.
@@ -531,19 +533,19 @@ This only works if the data needed to learn from is captured correctly from day 
 ### 045 — ranking-exploration-strategy ✅ Complete (013-match-learning-foundation)
 **Ship at or before public launch.** If the ranker only ever surfaces its own top-scored candidates, the platform only ever collects feedback on candidates the model already believes are good — it can never learn that a borderline candidate (e.g. a longer walk, decent overlap) would actually have been accepted, because it rarely gets shown high enough to be chosen. Requires deliberately injecting controlled randomization into ranking (e.g. epsilon-greedy or occasional rank perturbation) purely to collect counterfactual outcome data. Skipping this turns "learning from real users" into "confirming whatever the launch model already believed."
 
-### 046 — real-outcome-dataset-pipeline
+### 046 — real-outcome-dataset-pipeline ✅ Complete (016-continuous-learning-pipeline, US1)
 Depends on accumulated real traffic volume (expect weeks-to-months, not days). ETL job joining logged match events to their outcomes into labeled training examples, with a defined signal-strength hierarchy (completed + highly rated > completed unrated > booked-not-completed > shown-not-booked; cancellations require care since they're an ambiguous signal, not automatically a negative). Includes data-quality filtering (bot/fraud/spam removal) and a documented data-retention/anonymization policy for behavioral data (Egypt PDPL 151/2020 awareness).
 
-### 047 — production-retraining-pipeline
+### 047 — production-retraining-pipeline ✅ Complete (016-continuous-learning-pipeline, US2)
 Automated retraining on the real-outcome dataset. Evaluated against held-out **real** data, not synthetic AUC, and gated as champion-vs-challenger: a new model version is only promoted if it beats the currently-live model on a fixed real-world benchmark. Carries forward the calibration and monotonicity fixes established in the 2026-07-04 match-score recalibration (see 002-ai-foundation research.md) so retraining can't silently reintroduce miscalibrated scores.
 
-### 048 — shadow-deployment-rollout
+### 048 — shadow-deployment-rollout ✅ Complete (016-continuous-learning-pipeline, US3)
 New model versions run in shadow mode first — predictions logged but not shown to users — compared against the live model and against real outcomes over a burn-in period, then rolled out gradually (percentage of traffic) rather than swapped in blind. Builds on the existing model registry/versioning already in place for match_score and ride_ranker.
 
-### 049 — model-monitoring-drift-detection
+### 049 — model-monitoring-drift-detection ✅ Complete (016-continuous-learning-pipeline, US4)
 Ongoing tracking of prediction distributions and acceptance rates per zone/time so a degrading model is caught by monitoring, not by user complaints. Includes periodic human spot-audits of live model decisions, especially in the early low-volume period.
 
-**Deliverables:** Full instrumentation and exploration strategy live at launch; automated real-data retraining pipeline with champion/challenger gating; shadow deployment and gradual rollout; drift monitoring; demand prediction per zone/time; fraud and anomaly detection.
+**Deliverables:** Full instrumentation and exploration strategy live at launch (✅ done); automated real-data retraining pipeline with champion/challenger gating (✅ done, pending production deploy); shadow deployment and gradual rollout (✅ done, pending production deploy); drift monitoring (✅ done, pending production deploy); demand prediction per zone/time (not started); fraud and anomaly detection (not started).
 
 ---
 

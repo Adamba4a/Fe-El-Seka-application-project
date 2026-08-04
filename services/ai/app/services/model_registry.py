@@ -85,3 +85,39 @@ class ModelRegistry:
                 )
         except Exception as exc:
             raise RegistryError(f"Failed to write latest.json for {model_type}: {exc}") from exc
+
+    def get_candidate_version(self, model_type: str) -> str | None:
+        """Returns the currently shadow/rollout candidate's version for
+        model_type, or None if no candidate.json exists (the common case
+        pre-feature and between rollout cycles)."""
+        path = f"{model_type}/candidate.json"
+        try:
+            data = self._client.storage.from_(self._bucket).download(path)
+            return json.loads(data)["version"]
+        except Exception:
+            return None
+
+    def write_candidate(self, model_type: str, version: str) -> None:
+        remote = f"{model_type}/candidate.json"
+        payload = json.dumps({"version": version}).encode()
+        try:
+            # Try update first; fall back to upload for new bucket paths
+            try:
+                self._client.storage.from_(self._bucket).update(
+                    remote, payload, {"content-type": "application/json"}
+                )
+            except Exception:
+                self._client.storage.from_(self._bucket).upload(
+                    remote, payload, {"content-type": "application/json"}
+                )
+        except Exception as exc:
+            raise RegistryError(f"Failed to write candidate.json for {model_type}: {exc}") from exc
+
+    def clear_candidate(self, model_type: str) -> None:
+        """Removes candidate.json, e.g. on rejection, unfavorable shadow
+        burn-in, or rollback. Not an error if it never existed."""
+        remote = f"{model_type}/candidate.json"
+        try:
+            self._client.storage.from_(self._bucket).remove([remote])
+        except Exception as exc:
+            logger.warning("Failed to clear candidate.json for %s: %s", model_type, exc)

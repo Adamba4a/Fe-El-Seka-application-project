@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI
 
 from app.config import get_settings
-from app.routers import health, models, predict, verification
+from app.routers import health, models, predict, training, verification
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +72,7 @@ def create_app() -> FastAPI:
     app.include_router(predict.router, prefix="/predict")
     app.include_router(models.router, prefix="/models")
     app.include_router(verification.router, prefix="/verify")
+    app.include_router(training.router, prefix="/training")
     return app
 
 

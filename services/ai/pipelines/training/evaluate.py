@@ -34,6 +34,34 @@ def expected_calibration_error(y_true, y_pred_proba, n_bins: int = 10) -> float:
     return float(ece)
 
 
+def ranking_quality_score(group_ids, y_true, y_pred) -> float:
+    """FR-007: for each group of candidate rows that competed in the same
+    search (group_ids), checks whether the model's top-predicted-score
+    candidate is the one the passenger actually chose (y_true == 1). Returns
+    the hit rate across groups that had an actual choice recorded — groups
+    where no candidate was ever booked/completed have no "actual choice" to
+    match against, so they're excluded from the denominator rather than
+    counted as misses."""
+    group_ids = np.asarray(group_ids)
+    y_true = np.asarray(y_true, dtype=float)
+    y_pred = np.asarray(y_pred, dtype=float)
+
+    hits = 0
+    decided_groups = 0
+    for group in np.unique(group_ids):
+        mask = group_ids == group
+        if y_true[mask].max() < 1.0:
+            continue
+        decided_groups += 1
+        top_idx = np.argmax(y_pred[mask])
+        if y_true[mask][top_idx] >= 1.0:
+            hits += 1
+
+    if decided_groups == 0:
+        return 0.0
+    return float(hits / decided_groups)
+
+
 def build_metadata(
     model_type: str,
     version: str,

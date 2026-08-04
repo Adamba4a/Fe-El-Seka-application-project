@@ -7,6 +7,7 @@ from app.services.feature_engineering import build_feature_vector_from_coords
 def predict_scores(request: MatchScoreBatchRequest, model_state: dict) -> MatchScoreResponse:
     model = model_state["model"]
     version = model_state["version"]
+    candidate_slot = model_state.get("candidate")
 
     feature_rows = []
     for c in request.candidates:
@@ -30,8 +31,21 @@ def predict_scores(request: MatchScoreBatchRequest, model_state: dict) -> MatchS
     raw_scores = model.predict(X)
     clamped = np.clip(raw_scores, 0.0, 1.0)
 
+    # Shadow score never influences `score`/ranking — computed from the same
+    # feature matrix purely for the burn-in comparison report (T028).
+    shadow_scores: list[float] | None = None
+    shadow_model_version: str | None = None
+    if candidate_slot is not None:
+        shadow_raw = candidate_slot["model"].predict(X)
+        shadow_scores = np.clip(shadow_raw, 0.0, 1.0).tolist()
+        shadow_model_version = candidate_slot["version"]
+
     scores = [
-        MatchScoreItem(candidate_id=str(i), score=float(s))
+        MatchScoreItem(
+            candidate_id=str(i),
+            score=float(s),
+            shadow_score=float(shadow_scores[i]) if shadow_scores is not None else None,
+        )
         for i, s in enumerate(clamped)
     ]
-    return MatchScoreResponse(scores=scores, model_version=version)
+    return MatchScoreResponse(scores=scores, model_version=version, shadow_model_version=shadow_model_version)
