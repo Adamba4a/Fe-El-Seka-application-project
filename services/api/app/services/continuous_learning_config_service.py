@@ -10,7 +10,10 @@ from app.core.database import get_pool
 # NUMERIC columns come back from asyncpg as decimal.Decimal; cast to float so
 # they interoperate with plain-float ML scores downstream (matches
 # pricing_service.py / ranking_config_service.py convention).
-_DECIMAL_FIELDS = ("promotion_margin", "rollback_margin", "alert_baseline_margin")
+_DECIMAL_FIELDS = (
+    "promotion_margin", "rollback_margin", "alert_baseline_margin",
+    "shadow_min_agreement_rate", "shadow_min_outcome_alignment_rate",
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +30,8 @@ _DEFAULTS: dict[str, Any] = {
     "spot_audit_sample_size": 10,
     "spot_audit_frequency_hours": 24,
     "spot_audit_early_window_hours": 72,
+    "shadow_min_agreement_rate": 0.5000,
+    "shadow_min_outcome_alignment_rate": 0.5000,
 }
 
 _config_cache: dict[str, Any] = dict(_DEFAULTS)

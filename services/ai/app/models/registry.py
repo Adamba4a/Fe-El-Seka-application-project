@@ -19,3 +19,21 @@ class ShadowRequest(BaseModel):
 class ShadowResponse(BaseModel):
     status: str
     storage_version: str
+
+
+class PromoteRequest(BaseModel):
+    model_type: str
+    storage_version: str
+
+
+class PromoteResponse(BaseModel):
+    status: str
+    storage_version: str
+
+
+class DiscardCandidateRequest(BaseModel):
+    model_type: str
+
+
+class DiscardCandidateResponse(BaseModel):
+    status: str

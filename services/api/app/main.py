@@ -48,6 +48,7 @@ from app.services.continuous_learning_config_service import (
     init_continuous_learning_config,
     continuous_learning_config_refresh_loop,
 )
+from app.services.model_lifecycle_service import init_rollout_cache, rollout_cache_refresh_loop
 from app.services.moderation_service import init_moderation_config, moderation_config_refresh_loop
 from app.services.pricing_service import init_pricing_config, pricing_config_refresh_loop
 from app.services.ranking_config_service import init_ranking_config, ranking_config_refresh_loop
@@ -62,6 +63,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await init_ranking_config()
     await init_moderation_config()
     await init_continuous_learning_config()
+    await init_rollout_cache()
     try:
         await initialize_fcm()
     except Exception as exc:
@@ -74,6 +76,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     ranking_task = asyncio.create_task(ranking_config_refresh_loop())
     moderation_task = asyncio.create_task(moderation_config_refresh_loop())
     continuous_learning_config_task = asyncio.create_task(continuous_learning_config_refresh_loop())
+    rollout_cache_task = asyncio.create_task(rollout_cache_refresh_loop())
     dispatcher_task = asyncio.create_task(notification_dispatcher_loop())
     reminder_task = asyncio.create_task(driver_reminder_loop())
     retraining_scheduler_task = asyncio.create_task(retraining_scheduler_loop())
@@ -81,6 +84,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     retraining_scheduler_task.cancel()
     reminder_task.cancel()
     dispatcher_task.cancel()
+    rollout_cache_task.cancel()
     continuous_learning_config_task.cancel()
     moderation_task.cancel()
     ranking_task.cancel()

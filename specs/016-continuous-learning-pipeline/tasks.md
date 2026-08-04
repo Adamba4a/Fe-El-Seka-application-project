@@ -113,19 +113,19 @@ Monorepo, backend-only (plan.md Structure Decision): `services/api/app/...`, `se
 
 > Extend the existing test file FIRST, ensure new cases FAIL before implementation
 
-- [ ] T026 [US3] Extend `services/api/tests/unit/test_model_lifecycle_service.py` with cases for shadow burn-in decisioning, rollout-step advancement, and rollback-margin triggering (same file as T016 — sequential, not parallel)
+- [X] T026 [US3] Extend `services/api/tests/unit/test_model_lifecycle_service.py` with cases for shadow burn-in decisioning, rollout-step advancement, and rollback-margin triggering (same file as T016 — sequential, not parallel)
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] Extend `services/api/app/services/ai_client.py`'s `score_candidates()`/`rank_candidates()` to read `shadow_score`/`shadow_model_version` from the `services/ai` response (same file as T021 — sequential)
-- [ ] T028 [P] [US3] Extend `services/ai`'s `/predict/match-score` and `/predict/ride-ranking` to compute and return `shadow_score`/`shadow_model_version` whenever a `candidate.json` pointer exists, strictly additive to the existing `match_score` field (contracts/ai-service-endpoints.md)
-- [ ] T029 [US3] Implement `get_routing_decision(model_type)` in `model_lifecycle_service.py`: weighted-random choice between `"champion"`/`"candidate"` based on the active `partial_rollout` version's `rollout_pct`
-- [ ] T030 [US3] Extend the existing search/ranking call site to call `get_routing_decision()`, select the champion or shadow score accordingly for what's actually shown, and record the choice as `match_events.served_variant`
-- [ ] T031 [US3] Implement `generate_shadow_comparison_report(model_version_id)` in `model_lifecycle_service.py`: compute `agreement_rate`/`outcome_alignment_rate` over the burn-in window, insert a `shadow_comparisons` row, and transition the version to `partial_rollout` (favorable, `rollout_pct = rollout_step_pcts[0]`) or `retired` + `POST /models/discard-candidate` (unfavorable)
-- [ ] T032 [US3] Implement `check_shadow_burnin_due()` in `model_lifecycle_service.py`: returns `shadow`-status versions past their configured `shadow_burnin_hours`
-- [ ] T033 [US3] Implement `check_rollout_progression()` and `advance_to_champion(model_version_id)` in `model_lifecycle_service.py`: rollback to `retired`/`rollout_pct=0` when the candidate's short-horizon acceptance rate underperforms the champion's by `rollback_margin` (FR-012); otherwise advance through `rollout_step_pcts` after `rollout_step_hold_hours`, calling `advance_to_champion()` (retires old champion, calls `POST /models/promote`) at the final step
-- [ ] T034 [P] [US3] Add `POST /models/promote` and `POST /models/discard-candidate` endpoints in `services/ai`
-- [ ] T035 [US3] Extend `retraining_scheduler_loop()` in `services/api/app/main.py` to also call `check_shadow_burnin_due()`, `generate_shadow_comparison_report()`, and `check_rollout_progression()` each tick (same file as T025 — sequential)
+- [X] T027 [US3] Extend `services/api/app/services/ai_client.py`'s `score_candidates()`/`rank_candidates()` to read `shadow_score`/`shadow_model_version` from the `services/ai` response (same file as T021 — sequential)
+- [X] T028 [P] [US3] Extend `services/ai`'s `/predict/match-score` and `/predict/ride-ranking` to compute and return `shadow_score`/`shadow_model_version` whenever a `candidate.json` pointer exists, strictly additive to the existing `match_score` field (contracts/ai-service-endpoints.md)
+- [X] T029 [US3] Implement `get_routing_decision(model_type)` in `model_lifecycle_service.py`: weighted-random choice between `"champion"`/`"candidate"` based on the active `partial_rollout` version's `rollout_pct`
+- [X] T030 [US3] Extend the existing search/ranking call site to call `get_routing_decision()`, select the champion or shadow score accordingly for what's actually shown, and record the choice as `match_events.served_variant`
+- [X] T031 [US3] Implement `generate_shadow_comparison_report(model_version_id)` in `model_lifecycle_service.py`: compute `agreement_rate`/`outcome_alignment_rate` over the burn-in window, insert a `shadow_comparisons` row, and transition the version to `partial_rollout` (favorable, `rollout_pct = rollout_step_pcts[0]`) or `retired` + `POST /models/discard-candidate` (unfavorable)
+- [X] T032 [US3] Implement `check_shadow_burnin_due()` in `model_lifecycle_service.py`: returns `shadow`-status versions past their configured `shadow_burnin_hours`
+- [X] T033 [US3] Implement `check_rollout_progression()` and `advance_to_champion(model_version_id)` in `model_lifecycle_service.py`: rollback to `retired`/`rollout_pct=0` when the candidate's short-horizon acceptance rate underperforms the champion's by `rollback_margin` (FR-012); otherwise advance through `rollout_step_pcts` after `rollout_step_hold_hours`, calling `advance_to_champion()` (retires old champion, calls `POST /models/promote`) at the final step
+- [X] T034 [P] [US3] Add `POST /models/promote` and `POST /models/discard-candidate` endpoints in `services/ai`
+- [X] T035 [US3] Extend `retraining_scheduler_loop()` in `services/api/app/main.py` to also call `check_shadow_burnin_due()`, `generate_shadow_comparison_report()`, and `check_rollout_progression()` each tick (same file as T025 — sequential)
 
 **Checkpoint**: User Stories 1, 2 AND 3 independently functional via quickstart.md Scenarios 1–3.
 

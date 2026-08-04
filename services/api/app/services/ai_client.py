@@ -85,7 +85,7 @@ def _candidate_route_payload(
 async def score_candidates(
     passenger_req: PassengerRequestFeatures,
     candidates: list[CandidateFeatures],
-) -> tuple[list[ScoredCandidate], str | None]:
+) -> tuple[list[ScoredCandidate], str | None, str | None]:
     client = _get()
     payload = {
         "candidates": [_candidate_route_payload(passenger_req, c) for c in candidates]
@@ -124,17 +124,20 @@ async def score_candidates(
             "fallback_triggered": _fallback,
         }))
 
+    shadow_model_version = resp_json.get("shadow_model_version")
     results: list[ScoredCandidate] = []
     for i, s in enumerate(resp_json["scores"]):
         clamped = max(0.0, min(1.0, s["score"]))
+        shadow_score = s.get("shadow_score")
         results.append(
             ScoredCandidate(
                 ride_id=candidates[i].ride_id,
                 match_score=clamped,
                 match_score_pct=round(clamped * 100),
+                shadow_score=max(0.0, min(1.0, shadow_score)) if shadow_score is not None else None,
             )
         )
-    return results, _model_ver
+    return results, _model_ver, shadow_model_version
 
 
 async def rank_candidates(
@@ -309,6 +312,79 @@ async def activate_shadow_candidate(model_type: str, storage_version: str) -> di
             "endpoint": "/models/shadow",
             "model_type": model_type,
             "model_version": storage_version,
+            "latency_ms": round((time.monotonic() - _t0) * 1000),
+            "fallback_triggered": _fallback,
+        }))
+    return resp_json
+
+
+async def promote_model(model_type: str, storage_version: str) -> dict:
+    """Calls POST /models/promote to make a version the live champion in the
+    AI service (contracts/ai-service-endpoints.md)."""
+    client = _get()
+    payload = {"model_type": model_type, "storage_version": storage_version}
+    _t0 = time.monotonic()
+    _fallback = False
+    resp_json: dict | None = None
+    try:
+        resp = await client.post("/models/promote", json=payload)
+        resp.raise_for_status()
+        resp_json = resp.json()
+    except httpx.TimeoutException as exc:
+        _fallback = True
+        logger.warning("AI models/promote timed out")
+        raise AIServiceUnavailableError("AI service timed out") from exc
+    except httpx.RequestError as exc:
+        _fallback = True
+        logger.warning("AI models/promote unreachable: %s", exc)
+        raise AIServiceUnavailableError("AI service unreachable") from exc
+    except httpx.HTTPStatusError as exc:
+        _fallback = True
+        logger.warning("AI models/promote returned %d", exc.response.status_code)
+        raise AIServiceUnavailableError(f"AI service error {exc.response.status_code}") from exc
+    finally:
+        logger.info(json.dumps({
+            "event": "ai_training_call",
+            "endpoint": "/models/promote",
+            "model_type": model_type,
+            "model_version": storage_version,
+            "latency_ms": round((time.monotonic() - _t0) * 1000),
+            "fallback_triggered": _fallback,
+        }))
+    return resp_json
+
+
+async def discard_candidate(model_type: str) -> dict:
+    """Calls POST /models/discard-candidate to clear a rejected/unfavorable
+    candidate (contracts/ai-service-endpoints.md). Not on the critical
+    rollback path (FR-012) — rollback itself is pure services/api DB state
+    (rollout_pct -> 0); this only cleans up the now-stale candidate slot."""
+    client = _get()
+    payload = {"model_type": model_type}
+    _t0 = time.monotonic()
+    _fallback = False
+    resp_json: dict | None = None
+    try:
+        resp = await client.post("/models/discard-candidate", json=payload)
+        resp.raise_for_status()
+        resp_json = resp.json()
+    except httpx.TimeoutException as exc:
+        _fallback = True
+        logger.warning("AI models/discard-candidate timed out")
+        raise AIServiceUnavailableError("AI service timed out") from exc
+    except httpx.RequestError as exc:
+        _fallback = True
+        logger.warning("AI models/discard-candidate unreachable: %s", exc)
+        raise AIServiceUnavailableError("AI service unreachable") from exc
+    except httpx.HTTPStatusError as exc:
+        _fallback = True
+        logger.warning("AI models/discard-candidate returned %d", exc.response.status_code)
+        raise AIServiceUnavailableError(f"AI service error {exc.response.status_code}") from exc
+    finally:
+        logger.info(json.dumps({
+            "event": "ai_training_call",
+            "endpoint": "/models/discard-candidate",
+            "model_type": model_type,
             "latency_ms": round((time.monotonic() - _t0) * 1000),
             "fallback_triggered": _fallback,
         }))

@@ -95,15 +95,38 @@ async def _attempt_retrain(model_type: str) -> None:
     }))
 
 
+async def _advance_shadow_and_rollout() -> None:
+    """T035: each tick, also drive the shadow burn-in -> rollout -> champion
+    state machine (contracts/model-lifecycle.md) — due shadow versions get a
+    comparison report generated, and any active partial_rollout gets checked
+    for rollback/advancement."""
+    due = await model_lifecycle_service.check_shadow_burnin_due()
+    for row in due:
+        try:
+            await model_lifecycle_service.generate_shadow_comparison_report(row["id"])
+        except Exception as exc:
+            logger.error("shadow_comparison_report error for %s: %s", row["id"], exc)
+
+    try:
+        await model_lifecycle_service.check_rollout_progression()
+    except Exception as exc:
+        logger.error("check_rollout_progression error: %s", exc)
+
+
 async def retraining_scheduler_loop() -> None:
     """Background task: hourly check of whether real-data retraining is due
     for each model type (research.md R1 — reuses the existing in-process loop
     pattern already used by the other 7 loops in main.py, no new scheduler
-    dependency)."""
+    dependency). Also drives shadow burn-in and rollout progression each tick
+    (T035) — both are cheap no-ops when nothing is in shadow/partial_rollout."""
     while True:
         for model_type in _MODEL_TYPES:
             try:
                 await _attempt_retrain(model_type)
             except Exception as exc:
                 logger.error("retraining_scheduler_loop error for %s: %s", model_type, exc)
+        try:
+            await _advance_shadow_and_rollout()
+        except Exception as exc:
+            logger.error("retraining_scheduler_loop shadow/rollout tick error: %s", exc)
         await asyncio.sleep(3600)
