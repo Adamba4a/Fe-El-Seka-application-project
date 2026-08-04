@@ -49,6 +49,7 @@ from app.services.continuous_learning_config_service import (
     continuous_learning_config_refresh_loop,
 )
 from app.services.model_lifecycle_service import init_rollout_cache, rollout_cache_refresh_loop
+from app.services.model_monitoring_service import model_monitoring_loop
 from app.services.moderation_service import init_moderation_config, moderation_config_refresh_loop
 from app.services.pricing_service import init_pricing_config, pricing_config_refresh_loop
 from app.services.ranking_config_service import init_ranking_config, ranking_config_refresh_loop
@@ -80,7 +81,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     dispatcher_task = asyncio.create_task(notification_dispatcher_loop())
     reminder_task = asyncio.create_task(driver_reminder_loop())
     retraining_scheduler_task = asyncio.create_task(retraining_scheduler_loop())
+    model_monitoring_task = asyncio.create_task(model_monitoring_loop())
     yield
+    model_monitoring_task.cancel()
     retraining_scheduler_task.cancel()
     reminder_task.cancel()
     dispatcher_task.cancel()

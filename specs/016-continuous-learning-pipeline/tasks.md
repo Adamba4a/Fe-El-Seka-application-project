@@ -141,14 +141,14 @@ Monorepo, backend-only (plan.md Structure Decision): `services/api/app/...`, `se
 
 > Write this test FIRST, ensure it FAILS before implementation
 
-- [ ] T036 [P] [US4] Unit test for per-zone metric aggregation, baseline comparison, and alert-raising in `services/api/tests/unit/test_model_monitoring_service.py`
+- [X] T036 [P] [US4] Unit test for per-zone metric aggregation, baseline comparison, and alert-raising in `services/api/tests/unit/test_model_monitoring_service.py`
 
 ### Implementation for User Story 4
 
-- [ ] T037 [US4] Implement hourly per-zone/`metric_type` aggregation (`prediction_distribution`, `acceptance_rate`, `completion_rate`) with trailing-average baseline comparison and `alert_raised` flagging (`alert_baseline_margin`) in `services/api/app/services/model_monitoring_service.py` (FR-013, FR-014)
-- [ ] T038 [US4] Implement `record_spot_audit_samples()` in `model_monitoring_service.py`: sample `spot_audit_sample_size` recent `match_events` for the champion and any active `partial_rollout` candidate, insert unreviewed `model_spot_audits` rows, cadence halved within `spot_audit_early_window_hours` of `promoted_at`/`shadow_started_at` (FR-015)
-- [ ] T039 [US4] Implement `apply_spot_audit_finding(spot_audit_id, reviewer_admin_id, finding, trigger_rollback)` in `model_monitoring_service.py`, including the `trigger_rollback=True` path that performs the same rollback action as `check_rollout_progression()` out-of-cycle (edge case)
-- [ ] T040 [US4] Implement and register `model_monitoring_loop()` in `services/api/app/main.py`'s `lifespan()`: hourly cadence per NFR-004, calling the Phase 6 aggregation and spot-audit sampling
+- [X] T037 [US4] Implement hourly per-zone/`metric_type` aggregation (`prediction_distribution`, `acceptance_rate`, `completion_rate`) with trailing-average baseline comparison and `alert_raised` flagging (`alert_baseline_margin`) in `services/api/app/services/model_monitoring_service.py` (FR-013, FR-014)
+- [X] T038 [US4] Implement `record_spot_audit_samples()` in `model_monitoring_service.py`: sample `spot_audit_sample_size` recent `match_events` for the champion and any active `partial_rollout` candidate, insert unreviewed `model_spot_audits` rows, cadence halved within `spot_audit_early_window_hours` of `promoted_at`/`shadow_started_at` (FR-015)
+- [X] T039 [US4] Implement `apply_spot_audit_finding(spot_audit_id, reviewer_admin_id, finding, trigger_rollback)` in `model_monitoring_service.py`, including the `trigger_rollback=True` path that performs the same rollback action as `check_rollout_progression()` out-of-cycle (edge case)
+- [X] T040 [US4] Implement and register `model_monitoring_loop()` in `services/api/app/main.py`'s `lifespan()`: hourly cadence per NFR-004, calling the Phase 6 aggregation and spot-audit sampling
 
 **Checkpoint**: All four user stories independently functional via quickstart.md Scenarios 1–4.
 
