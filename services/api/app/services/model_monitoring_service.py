@@ -18,10 +18,12 @@ _MODEL_TYPES = ("match_score", "ride_ranker")
 _METRIC_TYPES = ("prediction_distribution", "acceptance_rate", "completion_rate")
 
 # match_events.model_version always holds the champion's storage_version
-# (match_logging_service.py); shadow_model_version + served_variant='candidate'
-# identifies decisions actually served by an active partial_rollout candidate.
-# Mirrors the WHERE-clause convention already used by
-# model_lifecycle_service.check_rollout_progression().
+# (match_logging_service.py) *regardless* of which variant was actually
+# served, so the champion branch must also pin served_variant = 'champion'
+# — otherwise candidate-served searches (routed during partial_rollout)
+# would be double-counted into the champion's own metrics/audits.
+# shadow_model_version + served_variant='candidate' identifies decisions
+# actually served by an active partial_rollout candidate.
 _METRIC_QUERY = """
     SELECT
         me.predicted_score,
@@ -33,7 +35,7 @@ _METRIC_QUERY = """
     JOIN public.search_sessions ss ON ss.id = me.search_id
     LEFT JOIN public.match_outcomes mo ON mo.match_event_id = me.id
     WHERE (
-        ($4 = 'champion' AND me.model_version = $1)
+        ($4 = 'champion' AND me.model_version = $1 AND me.served_variant = 'champion')
         OR ($4 = 'candidate' AND me.shadow_model_version = $1 AND me.served_variant = 'candidate')
     )
     AND me.created_at >= $2 AND me.created_at < $3
@@ -216,7 +218,7 @@ async def _sample_spot_audits_for_version(
         """
         SELECT id FROM public.match_events
         WHERE (
-            ($3 = 'champion' AND model_version = $1)
+            ($3 = 'champion' AND model_version = $1 AND served_variant = 'champion')
             OR ($3 = 'candidate' AND shadow_model_version = $1 AND served_variant = 'candidate')
         )
         ORDER BY created_at DESC
