@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { VerificationStatus, Role } from "@fe-el-seka/shared";
 
 interface Props {
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export function VerificationStatusScreen({ status, role }: Props) {
+  const t = useTranslations("onboarding.verificationStatus");
   const s = status.verification_status;
 
   if (s === "pending_review") {
@@ -18,12 +20,12 @@ export function VerificationStatusScreen({ status, role }: Props) {
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <h2 className="text-h2 text-content-primary">Under Review</h2>
+        <h2 className="text-h2 text-content-primary">{t("pendingTitle")}</h2>
         <p className="text-body-sm text-content-secondary">
-          We're reviewing your documents. This usually takes 1–2 business days.
+          {t("pendingBody")}
         </p>
         {status.attempt_number && (
-          <p className="text-caption text-content-muted">Attempt {status.attempt_number} of 3</p>
+          <p className="text-caption text-content-muted">{t("attemptOf", { number: status.attempt_number })}</p>
         )}
       </div>
     );
@@ -31,7 +33,7 @@ export function VerificationStatusScreen({ status, role }: Props) {
 
   if (s === "verified") {
     const href = role === "driver" ? "/rides" : "/search";
-    const label = role === "driver" ? "Go to my rides" : "Find a ride";
+    const label = role === "driver" ? t("goToMyRides") : t("findARide");
     return (
       <div className="text-center space-y-4 py-8">
         <div className="w-16 h-16 mx-auto bg-status-completed-bg rounded-full flex items-center justify-center">
@@ -39,8 +41,8 @@ export function VerificationStatusScreen({ status, role }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 className="text-h2 text-content-primary">You're verified!</h2>
-        <p className="text-body-sm text-content-secondary">Your identity has been confirmed.</p>
+        <h2 className="text-h2 text-content-primary">{t("verifiedTitle")}</h2>
+        <p className="text-body-sm text-content-secondary">{t("verifiedBody")}</p>
         <Link
           href={href}
           className="block w-full py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium text-center transition-colors"
@@ -60,10 +62,10 @@ export function VerificationStatusScreen({ status, role }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </div>
-        <h2 className="text-h2 text-content-primary">Verification Failed</h2>
+        <h2 className="text-h2 text-content-primary">{t("rejectedTitle")}</h2>
         {status.rejection_reason && (
           <div className="bg-status-cancelled-bg border border-status-cancelled rounded-xl px-4 py-3 text-left">
-            <p className="text-caption text-content-destructive uppercase tracking-wide mb-1">Reason</p>
+            <p className="text-caption text-content-destructive uppercase tracking-wide mb-1">{t("reasonLabel")}</p>
             <p className="text-body-sm text-content-secondary">{status.rejection_reason}</p>
           </div>
         )}
@@ -71,10 +73,10 @@ export function VerificationStatusScreen({ status, role }: Props) {
           href={resubmitHref}
           className="block w-full py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium text-center transition-colors"
         >
-          Resubmit Documents
+          {t("resubmit")}
         </Link>
         {status.attempt_number && (
-          <p className="text-caption text-content-muted">Attempt {status.attempt_number} of 3</p>
+          <p className="text-caption text-content-muted">{t("attemptOf", { number: status.attempt_number })}</p>
         )}
       </div>
     );

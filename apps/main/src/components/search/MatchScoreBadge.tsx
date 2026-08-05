@@ -1,8 +1,11 @@
+import { useTranslations } from "next-intl"
+
 interface MatchScoreBadgeProps {
   score_pct: number | null
 }
 
 export function MatchScoreBadge({ score_pct }: MatchScoreBadgeProps) {
+  const t = useTranslations("matchScoreBadge")
   if (score_pct === null) return null
 
   const colourClass =
@@ -16,7 +19,7 @@ export function MatchScoreBadge({ score_pct }: MatchScoreBadgeProps) {
     <span
       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colourClass}`}
     >
-      {score_pct}% match
+      {t("matchPercent", { score: score_pct })}
     </span>
   )
 }

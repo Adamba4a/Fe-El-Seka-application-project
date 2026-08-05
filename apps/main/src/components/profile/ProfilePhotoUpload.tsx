@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface ProfilePhotoUploadProps {
   onFile: (file: File) => void;
@@ -11,6 +12,7 @@ const ALLOWED = ["image/jpeg", "image/png"];
 const MAX_BYTES = 5 * 1024 * 1024;
 
 export function ProfilePhotoUpload({ onFile, currentUrl }: ProfilePhotoUploadProps) {
+  const t = useTranslations("profileForm");
   const ref = useRef<HTMLInputElement>(null);
   const objectUrlRef = useRef<string | null>(null);
   const [preview, setPreview] = useState<string | null>(currentUrl ?? null);
@@ -25,11 +27,11 @@ export function ProfilePhotoUpload({ onFile, currentUrl }: ProfilePhotoUploadPro
   const handleFile = (file: File) => {
     setError("");
     if (!ALLOWED.includes(file.type)) {
-      setError("Only JPEG and PNG files are accepted");
+      setError(t("errors.invalidPhotoType"));
       return;
     }
     if (file.size > MAX_BYTES) {
-      setError("Photo must be under 5 MB");
+      setError(t("errors.photoTooLarge"));
       return;
     }
     if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
@@ -45,16 +47,16 @@ export function ProfilePhotoUpload({ onFile, currentUrl }: ProfilePhotoUploadPro
         type="button"
         onClick={() => ref.current?.click()}
         className="w-20 h-20 rounded-full border-2 border-dashed border-border-default flex items-center justify-center overflow-hidden cursor-pointer hover:border-brand-primary transition-colors focus:outline-none focus:border-border-focus"
-        aria-label="Upload profile photo"
+        aria-label={t("uploadPhotoAriaLabel")}
       >
         {preview ? (
-          <img src={preview} alt="Profile" className="w-full h-full object-cover" />
+          <img src={preview} alt={t("uploadPhotoAriaLabel")} className="w-full h-full object-cover" />
         ) : (
           <span className="text-3xl text-content-muted">👤</span>
         )}
       </button>
       <button type="button" onClick={() => ref.current?.click()} className="text-body-sm text-brand-primary underline">
-        {preview ? "Change photo" : "Upload photo (optional)"}
+        {preview ? t("changePhoto") : t("uploadPhoto")}
       </button>
       {error && <p className="text-caption text-content-destructive">{error}</p>}
       <input

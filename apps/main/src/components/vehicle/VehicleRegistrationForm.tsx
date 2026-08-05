@@ -3,43 +3,53 @@
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/Spinner";
 
 const currentYear = new Date().getFullYear();
 
-const schema = z.object({
-  plate_number: z
-    .string()
-    .min(1, "Required")
-    .regex(
-      /^[؀-ۿa-zA-Z]{1,3}\s?\d{1,4}$|^\d{1,4}\s?[؀-ۿa-zA-Z]{1,3}$|^\d{1,5}$/,
-      "Invalid plate format"
-    ),
-  make: z.string().min(1, "Required"),
-  model: z.string().min(1, "Required"),
-  year: z.number().int().min(2000, "Min year 2000").max(currentYear, `Max year ${currentYear}`),
-  color: z.string().min(1, "Required"),
-  seat_count: z.number().int().min(2, "Min 2 seats").max(7, "Max 7 seats"),
-});
-
-type FormValues = z.infer<typeof schema>;
+type FormValues = {
+  plate_number: string;
+  make: string;
+  model: string;
+  year: number;
+  color: string;
+  seat_count: number;
+};
 
 interface VehicleRegistrationFormProps {
   onSubmit: (data: FormValues) => Promise<void>;
 }
 
 export function VehicleRegistrationForm({ onSubmit }: VehicleRegistrationFormProps) {
+  const t = useTranslations("vehicleForm");
+
+  const schema = z.object({
+    plate_number: z
+      .string()
+      .min(1, t("errors.required"))
+      .regex(
+        /^[؀-ۿa-zA-Z]{1,3}\s?\d{1,4}$|^\d{1,4}\s?[؀-ۿa-zA-Z]{1,3}$|^\d{1,5}$/,
+        t("errors.invalidPlate")
+      ),
+    make: z.string().min(1, t("errors.required")),
+    model: z.string().min(1, t("errors.required")),
+    year: z.number().int().min(2000, t("errors.minYear")).max(currentYear, t("errors.maxYear", { year: currentYear })),
+    color: z.string().min(1, t("errors.required")),
+    seat_count: z.number().int().min(2, t("errors.minSeats")).max(7, t("errors.maxSeats")),
+  });
+
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
   });
 
   const fields: { key: keyof FormValues; label: string; type?: string; placeholder: string }[] = [
-    { key: "plate_number", label: "Plate Number", placeholder: "e.g. أ ب ج 1234 or ABC 1234" },
-    { key: "make", label: "Make (Brand)", placeholder: "e.g. Toyota" },
-    { key: "model", label: "Model", placeholder: "e.g. Corolla" },
-    { key: "year", label: "Year", type: "number", placeholder: "e.g. 2021" },
-    { key: "color", label: "Color", placeholder: "e.g. White" },
-    { key: "seat_count", label: "Passenger Seats (2–7, excluding driver)", type: "number", placeholder: "e.g. 4" },
+    { key: "plate_number", label: t("plateNumberLabel"), placeholder: t("plateNumberPlaceholder") },
+    { key: "make", label: t("makeLabel"), placeholder: t("makePlaceholder") },
+    { key: "model", label: t("modelLabel"), placeholder: t("modelPlaceholder") },
+    { key: "year", label: t("yearLabel"), type: "number", placeholder: t("yearPlaceholder") },
+    { key: "color", label: t("colorLabel"), placeholder: t("colorPlaceholder") },
+    { key: "seat_count", label: t("seatsLabel"), type: "number", placeholder: t("seatsPlaceholder") },
   ];
 
   return (
@@ -63,7 +73,7 @@ export function VehicleRegistrationForm({ onSubmit }: VehicleRegistrationFormPro
         className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
       >
         {isSubmitting && <Spinner />}
-        {isSubmitting ? "Registering…" : "Register Vehicle"}
+        {isSubmitting ? t("registering") : t("register")}
       </button>
     </form>
   );

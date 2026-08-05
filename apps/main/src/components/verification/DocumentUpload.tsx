@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface DocumentUploadProps {
   label: string;
@@ -12,6 +13,7 @@ const ALLOWED = ["image/jpeg", "image/png"];
 const MAX_BYTES = 10 * 1024 * 1024;
 
 export function DocumentUpload({ label, onFile, required }: DocumentUploadProps) {
+  const t = useTranslations("documentUpload");
   const ref = useRef<HTMLInputElement>(null);
   const objectUrlRef = useRef<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -27,11 +29,11 @@ export function DocumentUpload({ label, onFile, required }: DocumentUploadProps)
   const handleFile = (file: File) => {
     setError("");
     if (!ALLOWED.includes(file.type)) {
-      setError("Only JPEG and PNG files are accepted");
+      setError(t("errors.invalidType"));
       return;
     }
     if (file.size > MAX_BYTES) {
-      setError("File must be under 10 MB");
+      setError(t("errors.tooLarge"));
       return;
     }
     if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
@@ -57,8 +59,8 @@ export function DocumentUpload({ label, onFile, required }: DocumentUploadProps)
         ) : (
           <div className="text-center text-content-muted p-4">
             <p className="text-2xl mb-1">📄</p>
-            <p className="text-caption">Click to upload</p>
-            <p className="text-caption">JPEG or PNG, max 10 MB</p>
+            <p className="text-caption">{t("clickToUpload")}</p>
+            <p className="text-caption">{t("formatHint")}</p>
           </div>
         )}
       </div>

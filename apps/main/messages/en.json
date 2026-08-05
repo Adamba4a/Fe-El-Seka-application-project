@@ -629,14 +629,17 @@
     "cancelBooking": "Cancel Booking",
     "premiumRequest": "Premium Request",
     "pickupDetour": "Pickup detour: +EGP {fee}",
-    "dropoffDetour": "Dropoff detour: +EGP {fee}"
+    "dropoffDetour": "Dropoff detour: +EGP {fee}",
+    "defaultDriverName": "Driver",
+    "defaultPassengerName": "Passenger"
   },
   "rideCard": {
     "premium": "PREMIUM",
     "nearbyDropoff": "NEARBY DROP-OFF",
     "nearbyEndpointNote": "Driver ends ~{distance} km ({duration} min) from your destination — you'll need your own transport for the rest of the way.",
     "seatsAvailable": "{count, plural, one {# seat} other {# seats}} available",
-    "walkToPickup": "{meters}m walk to pickup"
+    "walkToPickup": "{meters}m walk to pickup",
+    "defaultDriverName": "Driver"
   },
   "matchScoreBadge": {
     "matchPercent": "{score}% match"

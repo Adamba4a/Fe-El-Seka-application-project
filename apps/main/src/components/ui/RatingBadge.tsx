@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 interface RatingBadgeProps {
   ratingAvg: number | null;
   ratingCount: number;
@@ -5,8 +7,9 @@ interface RatingBadgeProps {
 }
 
 export function RatingBadge({ ratingAvg, ratingCount, className = "" }: RatingBadgeProps) {
+  const t = useTranslations("ratingBadge");
   if (ratingAvg === null || ratingCount === 0) {
-    return <span className={`text-xs text-content-muted ${className}`}>New</span>;
+    return <span className={`text-xs text-content-muted ${className}`}>{t("new")}</span>;
   }
   return (
     <span className={`inline-flex items-center gap-1 text-xs text-amber-600 font-medium ${className}`}>

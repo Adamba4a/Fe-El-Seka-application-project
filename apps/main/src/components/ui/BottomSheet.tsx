@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export function BottomSheet({
   maxHeightPercent = 65,
   children,
 }: BottomSheetProps) {
+  const t = useTranslations("bottomSheet");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
@@ -52,7 +54,7 @@ export function BottomSheet({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close panel"
+          aria-label={t("closeAriaLabel")}
           className="flex items-center justify-center pt-3 pb-2 w-full flex-shrink-0"
         >
           <div className="w-8 h-1 rounded-full bg-border-default" />

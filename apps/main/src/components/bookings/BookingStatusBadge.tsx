@@ -1,24 +1,14 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 
-const STATUS_CONFIG: Record<BookingStatus, { label: string; className: string }> = {
-  pending: {
-    label: "Awaiting Confirmation",
-    className: "bg-amber-100 text-amber-800 border-amber-200",
-  },
-  confirmed: {
-    label: "Confirmed",
-    className: "bg-green-100 text-green-800 border-green-200",
-  },
-  cancelled: {
-    label: "Cancelled",
-    className: "bg-red-100 text-red-800 border-red-200",
-  },
-  completed: {
-    label: "Completed",
-    className: "bg-gray-100 text-gray-600 border-gray-200",
-  },
+const STATUS_CLASSNAMES: Record<BookingStatus, string> = {
+  pending: "bg-amber-100 text-amber-800 border-amber-200",
+  confirmed: "bg-green-100 text-green-800 border-green-200",
+  cancelled: "bg-red-100 text-red-800 border-red-200",
+  completed: "bg-gray-100 text-gray-600 border-gray-200",
 };
 
 interface BookingStatusBadgeProps {
@@ -26,12 +16,13 @@ interface BookingStatusBadgeProps {
 }
 
 export function BookingStatusBadge({ status }: BookingStatusBadgeProps) {
-  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.cancelled;
+  const t = useTranslations("bookingStatus");
+  const className = STATUS_CLASSNAMES[status] ?? STATUS_CLASSNAMES.cancelled;
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${config.className}`}
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${className}`}
     >
-      {config.label}
+      {t(status)}
     </span>
   );
 }

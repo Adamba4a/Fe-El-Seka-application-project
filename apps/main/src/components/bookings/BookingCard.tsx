@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { BookingStatusBadge } from "./BookingStatusBadge";
 import { RatingBadge } from "@/components/ui/RatingBadge";
 
@@ -74,6 +75,7 @@ function formatCoord(pt: { lat: number; lng: number }) {
 }
 
 export function BookingCard(props: BookingCardProps) {
+  const t = useTranslations("bookingCard");
   if (props.variant === "passenger") {
     const { booking, onClick } = props;
     const hasPremium = booking.premium_pickup_requested || booking.premium_dropoff_requested;
@@ -86,7 +88,7 @@ export function BookingCard(props: BookingCardProps) {
         <div className="p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="font-medium text-sm text-content-primary">
-              {booking.driver_display_name ?? "Driver"}
+              {booking.driver_display_name ?? t("defaultDriverName")}
             </span>
             <BookingStatusBadge status={booking.status} />
           </div>
@@ -94,14 +96,14 @@ export function BookingCard(props: BookingCardProps) {
             {formatDateTime(booking.departure_datetime)}
           </p>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-content-muted">Total</span>
+            <span className="text-content-muted">{t("total")}</span>
             <span className="font-semibold text-content-primary">EGP {booking.total_price}</span>
           </div>
           {hasPremium && (
             <p className="text-xs text-amber-700">
-              Premium service included
-              {booking.premium_pickup_fee ? ` (+EGP ${booking.premium_pickup_fee} pickup)` : ""}
-              {booking.premium_dropoff_fee ? ` (+EGP ${booking.premium_dropoff_fee} dropoff)` : ""}
+              {t("premiumServiceIncluded")}
+              {booking.premium_pickup_fee ? t("pickupFeeNote", { fee: booking.premium_pickup_fee }) : ""}
+              {booking.premium_dropoff_fee ? t("dropoffFeeNote", { fee: booking.premium_dropoff_fee }) : ""}
             </p>
           )}
         </div>
@@ -113,7 +115,7 @@ export function BookingCard(props: BookingCardProps) {
   const { booking, onConfirm, onReject, onCancel, onViewMap, actionLoading, cancelAvailable = false } = props;
   const isPending = booking.status === "pending";
   const isConfirmed = booking.status === "confirmed";
-  const passengerName = booking.passenger.display_name ?? "Passenger";
+  const passengerName = booking.passenger.display_name ?? t("defaultPassengerName");
   const initials = passengerName
     .split(" ")
     .map((w) => w[0])
@@ -148,7 +150,7 @@ export function BookingCard(props: BookingCardProps) {
           </div>
           <div className="text-right text-sm shrink-0">
             <p className="font-semibold text-content-primary">EGP {booking.total_price}</p>
-            <p className="text-xs text-content-muted">/ seat</p>
+            <p className="text-xs text-content-muted">{t("perSeat")}</p>
           </div>
         </div>
 
@@ -158,17 +160,17 @@ export function BookingCard(props: BookingCardProps) {
             onClick={onViewMap}
             className="w-full flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-surface-bg border border-transparent hover:border-border-default text-content-secondary transition-colors"
           >
-            <span>View pickup &amp; dropoff on map</span>
+            <span>{t("viewPickupDropoffMap")}</span>
             <span className="text-content-muted">→</span>
           </button>
         ) : (
           <div className="text-xs text-content-muted space-y-1">
             <p>
-              <span className="font-medium text-content-primary">Boarding: </span>
+              <span className="font-medium text-content-primary">{t("boardingLabel")} </span>
               {formatCoord(booking.boarding_point)}
             </p>
             <p>
-              <span className="font-medium text-content-primary">Alighting: </span>
+              <span className="font-medium text-content-primary">{t("alightingLabel")} </span>
               {formatCoord(booking.alighting_point)}
             </p>
           </div>
@@ -176,12 +178,12 @@ export function BookingCard(props: BookingCardProps) {
 
         {(booking.premium_pickup_requested || booking.premium_dropoff_requested) && (
           <div className="rounded-lg bg-amber-50 border border-amber-200 p-2 text-xs text-amber-800 space-y-0.5">
-            <p className="font-medium">Premium Request</p>
+            <p className="font-medium">{t("premiumRequest")}</p>
             {booking.premium_pickup_requested && (
-              <p>Pickup detour: +EGP {booking.premium_pickup_fee ?? "—"}</p>
+              <p>{t("pickupDetour", { fee: booking.premium_pickup_fee ?? "—" })}</p>
             )}
             {booking.premium_dropoff_requested && (
-              <p>Dropoff detour: +EGP {booking.premium_dropoff_fee ?? "—"}</p>
+              <p>{t("dropoffDetour", { fee: booking.premium_dropoff_fee ?? "—" })}</p>
             )}
           </div>
         )}
@@ -194,7 +196,7 @@ export function BookingCard(props: BookingCardProps) {
               disabled={actionLoading}
               className="flex-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-primary hover:bg-brand-primary-hover text-content-inverse disabled:opacity-50 transition-colors"
             >
-              Confirm
+              {t("confirm")}
             </button>
             <button
               type="button"
@@ -202,7 +204,7 @@ export function BookingCard(props: BookingCardProps) {
               disabled={actionLoading}
               className="flex-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-destructive text-content-inverse disabled:opacity-50 transition-colors"
             >
-              Reject
+              {t("reject")}
             </button>
           </div>
         )}
@@ -214,7 +216,7 @@ export function BookingCard(props: BookingCardProps) {
             disabled={actionLoading}
             className="w-full px-3 py-1.5 rounded-lg text-sm font-medium border border-border-default text-content-destructive hover:bg-status-cancelled-bg disabled:opacity-50 transition-colors"
           >
-            Cancel Booking
+            {t("cancelBooking")}
           </button>
         )}
       </div>

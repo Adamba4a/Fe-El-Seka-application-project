@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { Coordinates } from "@fe-el-seka/shared";
 import { TILE_URL, TILE_ATTRIBUTION, TILE_MAX_ZOOM } from "../../lib/map-tiles";
 
@@ -19,6 +20,7 @@ const NOMINATIM_URL =
 const CAIRO_CENTER: [number, number] = [30.0444, 31.2357];
 
 export function RideMap({ label, initialCoordinates, onPinDrop, fullScreen = false }: RideMapProps) {
+  const t = useTranslations("map");
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const markerRef = useRef<import("leaflet").Marker | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -125,7 +127,7 @@ export function RideMap({ label, initialCoordinates, onPinDrop, fullScreen = fal
     <div className="space-y-2">
       {label && <label className="block text-label text-content-secondary">{label}</label>}
       <div ref={containerRef} className="w-full h-48 rounded-xl border border-border-default z-0" />
-      {loading && <p className="text-caption text-content-muted">Getting address…</p>}
+      {loading && <p className="text-caption text-content-muted">{t("gettingAddress")}</p>}
       {address && !loading && (
         <p className="text-caption text-content-secondary truncate" title={address}>
           📍 {address}

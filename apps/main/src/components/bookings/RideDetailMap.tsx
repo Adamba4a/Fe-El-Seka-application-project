@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { TILE_URL, TILE_ATTRIBUTION, TILE_MAX_ZOOM } from "../../lib/map-tiles";
 
 export interface LatLng {
@@ -23,6 +24,7 @@ export function RideDetailMap({
   origin,
   destination,
 }: RideDetailMapProps) {
+  const t = useTranslations("map");
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
 
@@ -75,7 +77,7 @@ export function RideDetailMap({
           iconAnchor: [7, 7],
         });
         L.marker([boardingPoint.lat, boardingPoint.lng], { icon: greenIcon })
-          .bindTooltip("Boarding", { permanent: false })
+          .bindTooltip(t("boarding"), { permanent: false })
           .addTo(map);
       }
 
@@ -96,7 +98,7 @@ export function RideDetailMap({
           iconAnchor: [7, 7],
         });
         L.marker([alightingPoint.lat, alightingPoint.lng], { icon: redIcon })
-          .bindTooltip("Alighting", { permanent: false })
+          .bindTooltip(t("alighting"), { permanent: false })
           .addTo(map);
       }
 

@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 
 export function PendingApprovalWait() {
+  const t = useTranslations("onboarding.pendingApproval");
   useEffect(() => {
     const supabase = createClient();
 
@@ -33,9 +35,9 @@ export function PendingApprovalWait() {
       <div className="flex justify-center">
         <div className="w-10 h-10 border-4 border-brand-primary border-t-transparent rounded-full animate-spin" />
       </div>
-      <p className="text-body-sm text-content-secondary font-medium">Your documents are under review.</p>
+      <p className="text-body-sm text-content-secondary font-medium">{t("underReview")}</p>
       <p className="text-body-sm text-content-muted">
-        This page will update automatically once a decision is made.
+        {t("autoUpdateNotice")}
       </p>
     </div>
   );

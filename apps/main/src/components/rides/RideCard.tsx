@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { Ride } from "@fe-el-seka/shared";
 import { RideStatusBadge } from "./RideStatusBadge";
 
@@ -13,6 +14,7 @@ function formatDate(iso: string) {
 }
 
 export function RideCard({ ride }: { ride: Ride }) {
+  const t = useTranslations("driver.rides");
   return (
     <Link href={`/rides/${ride.id}/manage`} className="block">
       <div className="border border-border-default rounded-xl p-4 space-y-3 hover:border-brand-primary transition-colors bg-surface-card">
@@ -34,7 +36,7 @@ export function RideCard({ ride }: { ride: Ride }) {
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          <span>{ride.available_seats}/{ride.total_seats} seats available</span>
+          <span>{t("seatsAvailableCount", { available: ride.available_seats, total: ride.total_seats })}</span>
         </div>
       </div>
     </Link>

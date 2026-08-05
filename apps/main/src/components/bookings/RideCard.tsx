@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { MatchScoreBadge } from "@/components/search/MatchScoreBadge";
 import { RatingBadge } from "@/components/ui/RatingBadge";
 
@@ -62,6 +63,7 @@ interface RideCardProps {
 }
 
 export function RideCard({ candidate, onClick }: RideCardProps) {
+  const t = useTranslations("rideCard");
   const isPremium = candidate.candidate_type === "premium";
   const isNearbyEndpoint = candidate.candidate_type === "nearby_endpoint";
   const totalPremiumFee =
@@ -80,7 +82,7 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
             {candidate.driver.avatar_url ? (
               <img
                 src={candidate.driver.avatar_url}
-                alt={candidate.driver.display_name ?? "Driver"}
+                alt={candidate.driver.display_name ?? t("defaultDriverName")}
                 className="w-9 h-9 rounded-full object-cover shrink-0"
               />
             ) : (
@@ -90,7 +92,7 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
             )}
             <div className="min-w-0">
               <p className="text-sm font-medium text-content-primary truncate">
-                {candidate.driver.display_name ?? "Driver"}
+                {candidate.driver.display_name ?? t("defaultDriverName")}
               </p>
               <div className="flex items-center gap-2">
                 <p className="text-xs text-content-muted">{formatDeparture(candidate.departure_datetime)}</p>
@@ -102,12 +104,12 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
           <div className="flex flex-col items-end gap-1 shrink-0">
             {isPremium && (
               <span className="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-                PREMIUM
+                {t("premium")}
               </span>
             )}
             {isNearbyEndpoint && (
               <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                NEARBY DROP-OFF
+                {t("nearbyDropoff")}
               </span>
             )}
             <span className="text-sm font-semibold text-content-primary">
@@ -127,16 +129,17 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
 
         {isNearbyEndpoint && (
           <p className="text-xs text-blue-700 bg-blue-50 rounded-lg px-2 py-1.5">
-            Driver ends ~{candidate.compatibility.nearby_endpoint_distance_km.toFixed(1)} km
-            ({candidate.compatibility.nearby_endpoint_duration_minutes} min) from your destination —
-            you&apos;ll need your own transport for the rest of the way.
+            {t("nearbyEndpointNote", {
+              distance: candidate.compatibility.nearby_endpoint_distance_km.toFixed(1),
+              duration: candidate.compatibility.nearby_endpoint_duration_minutes,
+            })}
           </p>
         )}
 
         <div className="flex items-center justify-between text-xs text-content-muted">
-          <span>{candidate.available_seats} seat{candidate.available_seats !== 1 ? "s" : ""} available</span>
+          <span>{t("seatsAvailable", { count: candidate.available_seats })}</span>
           <span>
-            {Math.round(candidate.compatibility.pickup_walk_meters)}m walk to pickup
+            {t("walkToPickup", { meters: Math.round(candidate.compatibility.pickup_walk_meters) })}
           </span>
         </div>
       </div>

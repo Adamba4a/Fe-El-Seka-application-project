@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import type { RideStatus } from "@fe-el-seka/shared";
 
 const STATUS_STYLES: Record<RideStatus, string> = {
@@ -7,19 +8,20 @@ const STATUS_STYLES: Record<RideStatus, string> = {
   cancelled:   "bg-status-cancelled-bg text-status-cancelled",
 };
 
-const STATUS_LABELS: Record<RideStatus, string> = {
-  scheduled: "Scheduled",
-  in_progress: "In Progress",
-  completed: "Completed",
-  cancelled: "Cancelled",
+const STATUS_KEYS: Record<RideStatus, "scheduled" | "inProgress" | "completed" | "cancelled"> = {
+  scheduled: "scheduled",
+  in_progress: "inProgress",
+  completed: "completed",
+  cancelled: "cancelled",
 };
 
 export function RideStatusBadge({ status }: { status: RideStatus }) {
+  const t = useTranslations("rideStatus");
   return (
     <span
       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[status]}`}
     >
-      {STATUS_LABELS[status]}
+      {t(STATUS_KEYS[status])}
     </span>
   );
 }

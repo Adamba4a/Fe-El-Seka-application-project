@@ -629,14 +629,17 @@
     "cancelBooking": "إلغاء الحجز",
     "premiumRequest": "طلب خدمة مميزة",
     "pickupDetour": "انحراف الصعود: +{fee} ج.م",
-    "dropoffDetour": "انحراف النزول: +{fee} ج.م"
+    "dropoffDetour": "انحراف النزول: +{fee} ج.م",
+    "defaultDriverName": "سائق",
+    "defaultPassengerName": "راكب"
   },
   "rideCard": {
     "premium": "مميز",
     "nearbyDropoff": "نزول قريب",
     "nearbyEndpointNote": "ينتهي مسار السائق على بعد ~{distance} كم ({duration} دقيقة) من وجهتك — ستحتاج إلى وسيلة نقل خاصة لبقية الطريق.",
     "seatsAvailable": "{count, plural, one {مقعد واحد متاح} other {# مقاعد متاحة}}",
-    "walkToPickup": "مشي {meters} متر إلى نقطة الصعود"
+    "walkToPickup": "مشي {meters} متر إلى نقطة الصعود",
+    "defaultDriverName": "سائق"
   },
   "matchScoreBadge": {
     "matchPercent": "تطابق {score}%"
