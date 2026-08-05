@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { setPassword, signInWithPassword } from "@/lib/api/auth";
 import { createClient } from "@/lib/supabase/client";
 
 export function PasswordSettings({ accessToken }: { accessToken: string }) {
+  const t = useTranslations("settings.profile.password");
+  const tc = useTranslations("common");
   const [password, setPasswordValue] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
@@ -13,11 +16,11 @@ export function PasswordSettings({ accessToken }: { accessToken: string }) {
 
   const handleSave = async () => {
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setError(t("tooShort"));
       return;
     }
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("mismatch"));
       return;
     }
     setSaving(true);
@@ -43,7 +46,7 @@ export function PasswordSettings({ accessToken }: { accessToken: string }) {
       setTimeout(() => setSaved(false), 3000);
     } catch (err: unknown) {
       const e = err as { message?: string };
-      setError(e?.message ?? "Could not update password. Please try again.");
+      setError(e?.message ?? t("genericError"));
     } finally {
       setSaving(false);
     }
@@ -51,10 +54,10 @@ export function PasswordSettings({ accessToken }: { accessToken: string }) {
 
   return (
     <div className="space-y-3">
-      <h2 className="font-semibold text-content-primary">Password</h2>
+      <h2 className="font-semibold text-content-primary">{t("heading")}</h2>
       <div className="bg-surface-bg rounded-xl p-4 space-y-3">
         <div className="flex flex-col gap-1">
-          <label className="text-caption text-content-muted">New password</label>
+          <label className="text-caption text-content-muted">{t("newPasswordLabel")}</label>
           <input
             type="password"
             value={password}
@@ -65,7 +68,7 @@ export function PasswordSettings({ accessToken }: { accessToken: string }) {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-caption text-content-muted">Confirm password</label>
+          <label className="text-caption text-content-muted">{t("confirmPasswordLabel")}</label>
           <input
             type="password"
             value={confirmPassword}
@@ -76,13 +79,13 @@ export function PasswordSettings({ accessToken }: { accessToken: string }) {
           />
         </div>
         {error && <p className="text-caption text-content-destructive">{error}</p>}
-        {saved && <p className="text-caption text-status-completed">Password updated!</p>}
+        {saved && <p className="text-caption text-status-completed">{t("saved")}</p>}
         <button
           onClick={handleSave}
           disabled={saving || !password || !confirmPassword}
           className="w-full bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-2 text-body-sm font-medium disabled:opacity-50 transition-colors"
         >
-          {saving ? "Saving…" : "Update Password"}
+          {saving ? tc("saving") : t("updatePassword")}
         </button>
       </div>
     </div>

@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { ProfileEditor } from "./ProfileEditor";
 import { env } from "@/lib/env";
 import type { Profile, Vehicle, VehicleUpdateRequestRecord } from "@fe-el-seka/shared";
 
 export default function SettingsProfilePage() {
+  const t = useTranslations("settings.profile");
+  const tc = useTranslations("common");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [pendingUpdate, setPendingUpdate] = useState<VehicleUpdateRequestRecord | null>(null);
@@ -24,7 +27,7 @@ export default function SettingsProfilePage() {
         const token: string | undefined = sessionData?.access_token;
 
         if (!token) {
-          setErrorMsg("Session expired. Please sign in again.");
+          setErrorMsg(t("sessionExpired"));
           return;
         }
 
@@ -36,7 +39,7 @@ export default function SettingsProfilePage() {
 
         if (!profileRes.ok) {
           const body = await profileRes.text().catch(() => "");
-          setErrorMsg(`Could not load profile (${profileRes.status}): ${body}`);
+          setErrorMsg(t("loadFailedPrefix", { status: profileRes.status, body }));
           return;
         }
 
@@ -52,7 +55,7 @@ export default function SettingsProfilePage() {
           if (updateRes.ok) setPendingUpdate((await updateRes.json()) as VehicleUpdateRequestRecord);
         }
       } catch (err: unknown) {
-        setErrorMsg(`Unexpected error: ${String(err)}`);
+        setErrorMsg(t("unexpectedErrorPrefix", { error: String(err) }));
       } finally {
         setLoading(false);
       }
@@ -75,18 +78,20 @@ export default function SettingsProfilePage() {
     return (
       <main className="max-w-sm mx-auto p-6 space-y-4">
         <div className="flex items-center gap-3">
-          <a href="/" className="text-content-muted hover:text-content-secondary text-lg">←</a>
-          <h1 className="text-h3 text-content-primary">Profile</h1>
+          <a href="/" className="text-content-muted hover:text-content-secondary text-lg">
+            <span className="inline-block rtl:rotate-180">←</span>
+          </a>
+          <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
         </div>
         <div className="bg-status-cancelled-bg border border-border-default rounded-xl p-4">
-          <p className="text-body-sm text-content-destructive font-medium">Could not load profile</p>
+          <p className="text-body-sm text-content-destructive font-medium">{t("couldNotLoad")}</p>
           <p className="text-caption text-content-destructive mt-1 break-all">{errorMsg}</p>
         </div>
         <button
           onClick={() => window.location.reload()}
           className="w-full py-2 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl text-body-sm font-medium transition-colors"
         >
-          Retry
+          {tc("retry")}
         </button>
       </main>
     );

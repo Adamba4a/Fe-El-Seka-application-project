@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { updateMe, uploadPhoto } from "@/lib/api/profiles";
 import { updateMyVehicle, requestVehicleUpdate } from "@/lib/api/vehicles";
@@ -20,6 +21,8 @@ function QuickEditForm({ vehicle, token, onSaved, onClose }: {
   onSaved: (v: Vehicle) => void;
   onClose: () => void;
 }) {
+  const t = useTranslations("settings.profile.editor.vehicle");
+  const tc = useTranslations("common");
   const [color, setColor] = useState(vehicle.color);
   const [seatCount, setSeatCount] = useState(String(vehicle.seat_count));
   const [saving, setSaving] = useState(false);
@@ -36,7 +39,7 @@ function QuickEditForm({ vehicle, token, onSaved, onClose }: {
       onSaved(updated);
       onClose();
     } catch (err: any) {
-      setError(err?.detail?.message ?? err?.message ?? "Failed to save.");
+      setError(err?.detail?.message ?? err?.message ?? t("errors.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -44,10 +47,10 @@ function QuickEditForm({ vehicle, token, onSaved, onClose }: {
 
   return (
     <div className="space-y-3 pt-1">
-      <Field label="Color">
+      <Field label={t("colorLabel")}>
         <input value={color} onChange={(e) => setColor(e.target.value)} className={`w-32 ${inputClass}`} />
       </Field>
-      <Field label="Seats (excl. driver)">
+      <Field label={t("seatsLabel")}>
         <input type="number" min={2} max={7} value={seatCount} onChange={(e) => setSeatCount(e.target.value)}
           className={`w-16 ${inputClass}`} />
       </Field>
@@ -55,11 +58,11 @@ function QuickEditForm({ vehicle, token, onSaved, onClose }: {
       <div className="flex gap-2 pt-1">
         <button onClick={onClose}
           className="flex-1 border border-border-default rounded-xl py-2 text-body-sm text-content-secondary hover:bg-surface-bg transition-colors">
-          Cancel
+          {tc("cancel")}
         </button>
         <button onClick={handleSave} disabled={saving}
           className="flex-1 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-2 text-body-sm font-medium disabled:opacity-50 transition-colors">
-          {saving ? "Saving…" : "Save"}
+          {saving ? tc("saving") : tc("save")}
         </button>
       </div>
     </div>
@@ -74,6 +77,8 @@ function StructuralEditForm({ vehicle, token, onSubmitted, onClose }: {
   onSubmitted: (req: VehicleUpdateRequestRecord) => void;
   onClose: () => void;
 }) {
+  const t = useTranslations("settings.profile.editor.vehicle");
+  const tc = useTranslations("common");
   const [plate, setPlate] = useState(vehicle.plate_number);
   const [make, setMake] = useState(vehicle.make);
   const [model, setModel] = useState(vehicle.model);
@@ -94,7 +99,7 @@ function StructuralEditForm({ vehicle, token, onSubmitted, onClose }: {
       onSubmitted(req);
       onClose();
     } catch (err: any) {
-      setError(err?.detail?.message ?? err?.message ?? "Failed to submit request.");
+      setError(err?.detail?.message ?? err?.message ?? t("errors.submitFailed"));
     } finally {
       setSaving(false);
     }
@@ -103,18 +108,18 @@ function StructuralEditForm({ vehicle, token, onSubmitted, onClose }: {
   return (
     <div className="space-y-3 pt-1">
       <p className="text-caption text-status-in-progress bg-status-in-progress-bg border border-border-default rounded-xl p-2">
-        Changes to plate number, make, model, or year require admin review before taking effect.
+        {t("reviewRequiredNotice")}
       </p>
-      <Field label="Plate Number">
+      <Field label={t("plateNumberLabel")}>
         <input value={plate} onChange={(e) => setPlate(e.target.value)} className={`w-36 ${inputClass}`} />
       </Field>
-      <Field label="Make">
+      <Field label={t("makeLabel")}>
         <input value={make} onChange={(e) => setMake(e.target.value)} className={`w-32 ${inputClass}`} />
       </Field>
-      <Field label="Model">
+      <Field label={t("modelLabel")}>
         <input value={model} onChange={(e) => setModel(e.target.value)} className={`w-32 ${inputClass}`} />
       </Field>
-      <Field label="Year">
+      <Field label={t("yearLabel")}>
         <input type="number" min={2000} max={currentYear + 1} value={year} onChange={(e) => setYear(e.target.value)}
           className={`w-20 ${inputClass}`} />
       </Field>
@@ -122,11 +127,11 @@ function StructuralEditForm({ vehicle, token, onSubmitted, onClose }: {
       <div className="flex gap-2 pt-1">
         <button onClick={onClose}
           className="flex-1 border border-border-default rounded-xl py-2 text-body-sm text-content-secondary hover:bg-surface-bg transition-colors">
-          Cancel
+          {tc("cancel")}
         </button>
         <button onClick={handleSubmit} disabled={saving}
           className="flex-1 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-2 text-body-sm font-medium disabled:opacity-50 transition-colors">
-          {saving ? "Submitting…" : "Submit for Review"}
+          {saving ? t("submitting") : t("submitForReview")}
         </button>
       </div>
     </div>
@@ -142,32 +147,34 @@ function VehicleSection({ vehicle: initialVehicle, pendingUpdate: initialPending
   onVehicleSaved: (v: Vehicle) => void;
   onUpdateRequested: (req: VehicleUpdateRequestRecord) => void;
 }) {
+  const t = useTranslations("settings.profile.editor.vehicle");
+  const tc = useTranslations("common");
   const [editMode, setEditMode] = useState<"none" | "quick" | "structural">("none");
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-content-primary">Vehicle</h2>
+        <h2 className="font-semibold text-content-primary">{t("heading")}</h2>
         {editMode === "none" && (
-          <button onClick={() => setEditMode("quick")} className="text-body-sm text-brand-primary hover:underline">Edit</button>
+          <button onClick={() => setEditMode("quick")} className="text-body-sm text-brand-primary hover:underline">{tc("edit")}</button>
         )}
       </div>
 
       <div className="bg-surface-bg rounded-xl p-4 space-y-2 text-body-sm">
-        <Row label="Plate" value={initialVehicle.plate_number} />
-        <Row label="Make" value={initialVehicle.make} />
-        <Row label="Model" value={initialVehicle.model} />
-        <Row label="Year" value={String(initialVehicle.year)} />
-        <Row label="Color" value={initialVehicle.color} />
-        <Row label="Seats (excl. driver)" value={String(initialVehicle.seat_count)} />
+        <Row label={t("plateLabel")} value={initialVehicle.plate_number} />
+        <Row label={t("makeLabel")} value={initialVehicle.make} />
+        <Row label={t("modelLabel")} value={initialVehicle.model} />
+        <Row label={t("yearLabel")} value={String(initialVehicle.year)} />
+        <Row label={t("colorLabel")} value={initialVehicle.color} />
+        <Row label={t("seatsLabel")} value={String(initialVehicle.seat_count)} />
 
         {initialPending && editMode === "none" && (
           <div className="mt-2 p-2 bg-status-in-progress-bg border border-border-default rounded-xl text-caption text-status-in-progress space-y-1">
-            <p className="font-semibold">Registration change pending review</p>
-            {initialPending.plate_number && <p>Plate: {initialPending.plate_number}</p>}
-            {initialPending.make && <p>Make: {initialPending.make}</p>}
-            {initialPending.model && <p>Model: {initialPending.model}</p>}
-            {initialPending.year && <p>Year: {initialPending.year}</p>}
+            <p className="font-semibold">{t("pendingReviewNotice")}</p>
+            {initialPending.plate_number && <p>{t("pendingPlate", { value: initialPending.plate_number })}</p>}
+            {initialPending.make && <p>{t("pendingMake", { value: initialPending.make })}</p>}
+            {initialPending.model && <p>{t("pendingModel", { value: initialPending.model })}</p>}
+            {initialPending.year && <p>{t("pendingYear", { value: initialPending.year })}</p>}
           </div>
         )}
 
@@ -177,7 +184,7 @@ function VehicleSection({ vehicle: initialVehicle, pendingUpdate: initialPending
             {!initialPending && (
               <button onClick={() => setEditMode("structural")}
                 className="w-full text-caption text-status-in-progress border border-border-default rounded-xl py-1.5 hover:bg-status-in-progress-bg mt-1 transition-colors">
-                Change plate / make / model / year (requires review)
+                {t("changeStructural")}
               </button>
             )}
           </>
@@ -219,17 +226,18 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 // ─── Rating summary ───────────────────────────────────────────────────────────
 
 function RatingSummary({ ratingAvg, ratingCount }: { ratingAvg: number | null; ratingCount: number }) {
+  const t = useTranslations("settings.profile.editor.rating");
   return (
     <div className="bg-surface-bg rounded-xl p-4 flex items-center justify-between">
-      <span className="text-body-sm text-content-muted">Rating</span>
+      <span className="text-body-sm text-content-muted">{t("label")}</span>
       {ratingCount === 0 || ratingAvg === null ? (
-        <span className="text-body-sm text-content-muted">Not rated yet</span>
+        <span className="text-body-sm text-content-muted">{t("notRatedYet")}</span>
       ) : (
         <span className="inline-flex items-center gap-1 text-body-sm font-semibold text-amber-600">
           <span aria-hidden="true">★</span>
           {ratingAvg.toFixed(1)}
           <span className="text-content-muted font-normal">
-            ({ratingCount} {ratingCount === 1 ? "rating" : "ratings"})
+            ({t("count", { count: ratingCount })})
           </span>
         </span>
       )}
@@ -250,6 +258,7 @@ export function ProfileEditor({
   initialPendingUpdate: VehicleUpdateRequestRecord | null;
   accessToken: string;
 }) {
+  const t = useTranslations("settings.profile.editor");
   const [vehicle, setVehicle] = useState(initialVehicle);
   const [pendingUpdate, setPendingUpdate] = useState(initialPendingUpdate);
   const [saved, setSaved] = useState(false);
@@ -264,15 +273,17 @@ export function ProfileEditor({
   return (
     <main className="max-w-sm mx-auto p-6 space-y-6">
       <div className="flex items-center gap-3">
-        <a href={initialProfile.role === "passenger" ? "/search" : "/rides"} className="text-content-muted hover:text-content-secondary text-lg leading-none">←</a>
-        <h1 className="text-h3 text-content-primary">Edit Profile</h1>
+        <a href={initialProfile.role === "passenger" ? "/search" : "/rides"} className="text-content-muted hover:text-content-secondary text-lg leading-none">
+          <span className="inline-block rtl:rotate-180">←</span>
+        </a>
+        <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
       </div>
-      {saved && <p className="text-body-sm text-status-completed">Profile saved!</p>}
+      {saved && <p className="text-body-sm text-status-completed">{t("saved")}</p>}
       <RatingSummary ratingAvg={initialProfile.rating_avg} ratingCount={initialProfile.rating_count} />
       <ProfileForm
         defaultValues={{ display_name: initialProfile.display_name, profile_photo_url: initialProfile.profile_photo_url }}
         onSubmit={handleProfileSubmit}
-        submitLabel="Save Changes"
+        submitLabel={t("saveChanges")}
       />
       {vehicle && (
         <VehicleSection
@@ -291,7 +302,7 @@ export function ProfileEditor({
           href="/signout"
           className="w-full flex items-center justify-center py-3 border border-border-default rounded-xl text-body-sm text-content-destructive font-medium hover:bg-status-cancelled-bg transition-colors"
         >
-          Sign out
+          {t("signOut")}
         </a>
       </div>
     </main>
