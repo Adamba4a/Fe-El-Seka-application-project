@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { getRide, editRide } from "@/lib/api/rides";
 import { RideForm } from "@/components/rides/RideForm";
 import type { Ride, EditRidePayload } from "@fe-el-seka/shared";
 
 export default function EditRidePage() {
+  const t = useTranslations("driver.editRide");
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [ride, setRide] = useState<Ride | null>(null);
@@ -25,7 +27,7 @@ export default function EditRidePage() {
         const detail = await getRide(session.access_token, id);
         setRide(detail.ride);
       } catch (err: any) {
-        setFetchError(err?.detail?.message ?? "Failed to load ride.");
+        setFetchError(err?.detail?.message ?? t("loadFailed"));
       }
     };
     load();
@@ -42,7 +44,7 @@ export default function EditRidePage() {
       router.push(`/rides/${id}/manage`);
     } catch (err: any) {
       const detail = err?.detail ?? err;
-      setSubmitError(detail?.message ?? "Failed to save changes.");
+      setSubmitError(detail?.message ?? t("saveFailed"));
     } finally {
       setLoading(false);
     }
@@ -59,7 +61,7 @@ export default function EditRidePage() {
   if (ride.status !== "scheduled") {
     return (
       <div className="text-center py-12">
-        <p className="text-body-sm text-content-secondary">Only scheduled rides can be edited.</p>
+        <p className="text-body-sm text-content-secondary">{t("onlyScheduledEditable")}</p>
       </div>
     );
   }
@@ -74,7 +76,7 @@ export default function EditRidePage() {
         >
           ←
         </button>
-        <h1 className="text-h3 text-content-primary">Edit Ride</h1>
+        <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
       </div>
 
       {isDirty && (
@@ -92,7 +94,7 @@ export default function EditRidePage() {
               d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
             />
           </svg>
-          <p className="text-body-sm text-status-in-progress font-medium">Unsaved changes</p>
+          <p className="text-body-sm text-status-in-progress font-medium">{t("unsavedChanges")}</p>
         </div>
       )}
 

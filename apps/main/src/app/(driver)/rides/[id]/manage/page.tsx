@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { getRide, startRide, completeRide, cancelRide } from "@/lib/api/rides";
 import { reportLocation } from "@/lib/api/location";
@@ -38,6 +39,8 @@ function formatDate(iso: string) {
 }
 
 export default function RideManagePage() {
+  const t = useTranslations("driver.manage");
+  const tEditRide = useTranslations("driver.editRide");
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [ride, setRide] = useState<Ride | null>(null);
@@ -63,7 +66,7 @@ export default function RideManagePage() {
         setRide(detail.ride);
         setHistory(detail.history);
       } catch (err: any) {
-        setError(err?.detail?.message ?? err?.message ?? "Failed to load ride.");
+        setError(err?.detail?.message ?? err?.message ?? tEditRide("loadFailed"));
       } finally {
         setLoading(false);
       }
@@ -123,8 +126,8 @@ export default function RideManagePage() {
   if (error || !ride) {
     return (
       <div className="text-center py-12 space-y-3">
-        <p className="text-body-sm text-content-secondary">{error ?? "Ride not found."}</p>
-        <Link href="/rides" className="text-body-sm text-brand-primary underline">← Back to My Rides</Link>
+        <p className="text-body-sm text-content-secondary">{error ?? t("notFoundTitle")}</p>
+        <Link href="/rides" className="text-body-sm text-brand-primary underline">{t("backToMyRides")}</Link>
       </div>
     );
   }
@@ -157,7 +160,7 @@ export default function RideManagePage() {
       setIsCancelOpen(false);
       setCancelReason("");
     } catch (err: any) {
-      setCancelError(err?.detail?.message ?? "Failed to cancel ride.");
+      setCancelError(err?.detail?.message ?? t("cancelError"));
     } finally {
       setCancelLoading(false);
     }
@@ -173,7 +176,7 @@ export default function RideManagePage() {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Link href="/rides" className="text-content-muted hover:text-content-secondary">←</Link>
-        <h1 className="text-h3 text-content-primary">Ride Detail</h1>
+        <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
       </div>
 
       {/* Status + actions card */}
@@ -185,14 +188,14 @@ export default function RideManagePage() {
               href={`/rides/${ride.id}/bookings`}
               className="text-body-sm text-brand-primary font-medium hover:underline"
             >
-              Bookings
+              {t("bookings")}
             </Link>
             {ride.status === "scheduled" && (
               <Link
                 href={`/rides/${ride.id}/edit`}
                 className="text-body-sm text-brand-primary font-medium hover:underline"
               >
-                Edit
+                {t("edit")}
               </Link>
             )}
           </div>
@@ -200,15 +203,15 @@ export default function RideManagePage() {
 
         <div className="space-y-2">
           <div>
-            <p className="text-caption text-content-muted uppercase tracking-wide">From</p>
+            <p className="text-caption text-content-muted uppercase tracking-wide">{t("from")}</p>
             <p className="text-body-sm font-medium text-content-primary">{ride.origin.address}</p>
           </div>
           <div>
-            <p className="text-caption text-content-muted uppercase tracking-wide">To</p>
+            <p className="text-caption text-content-muted uppercase tracking-wide">{t("to")}</p>
             <p className="text-body-sm font-medium text-content-primary">{ride.destination.address}</p>
           </div>
           <div>
-            <p className="text-caption text-content-muted uppercase tracking-wide">Departure</p>
+            <p className="text-caption text-content-muted uppercase tracking-wide">{t("departure")}</p>
             <p className="text-body-sm font-medium text-content-primary">{formatDate(ride.departure_datetime)}</p>
           </div>
         </div>
@@ -224,15 +227,15 @@ export default function RideManagePage() {
         <div className="grid grid-cols-3 gap-4 pt-2 border-t border-border-default">
           <div className="text-center">
             <p className="text-lg font-bold text-content-primary">{ride.available_seats}</p>
-            <p className="text-caption text-content-muted">Available</p>
+            <p className="text-caption text-content-muted">{t("available")}</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-bold text-content-primary">{ride.total_seats}</p>
-            <p className="text-caption text-content-muted">Total</p>
+            <p className="text-caption text-content-muted">{t("total")}</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-bold text-content-primary">EGP {ride.price_per_seat}</p>
-            <p className="text-caption text-content-muted">/seat</p>
+            <p className="text-caption text-content-muted">{t("perSeat")}</p>
           </div>
         </div>
 
@@ -244,17 +247,17 @@ export default function RideManagePage() {
 
         {ride.cancellation_reason && (
           <div className="bg-status-cancelled-bg rounded-xl px-3 py-2 space-y-1">
-            <p className="text-caption text-content-destructive uppercase tracking-wide">Cancellation reason</p>
+            <p className="text-caption text-content-destructive uppercase tracking-wide">{t("cancellationReason")}</p>
             <p className="text-body-sm text-content-destructive">{ride.cancellation_reason}</p>
             {ride.cancellation_source === "system" && (
-              <p className="text-caption text-content-muted mt-1">Cancelled by system</p>
+              <p className="text-caption text-content-muted mt-1">{t("cancelledBySystem")}</p>
             )}
           </div>
         )}
 
         {ride.status === "in_progress" && (
           <div className={`rounded-xl px-3 py-2 text-xs font-medium ${gpsError ? "bg-red-50 text-red-600" : "bg-green-50 text-green-700"}`}>
-            {gpsError ? `GPS error: ${gpsError}` : "📍 Broadcasting live location to passengers"}
+            {gpsError ? t("gpsErrorPrefix", { error: gpsError }) : t("broadcastingLocation")}
           </div>
         )}
 
@@ -271,29 +274,29 @@ export default function RideManagePage() {
             onClick={() => setIsCancelOpen(true)}
             className="w-full py-3 px-4 border border-border-default rounded-xl text-body-sm text-content-destructive font-medium hover:bg-status-cancelled-bg transition-colors"
           >
-            Cancel Ride
+            {t("cancelRide")}
           </button>
         )}
       </div>
 
       {/* History */}
       <div className="bg-surface-card border border-border-default rounded-2xl p-5 space-y-4">
-        <h2 className="font-semibold text-content-primary">History</h2>
+        <h2 className="font-semibold text-content-primary">{t("history")}</h2>
         <RideHistoryLog entries={history} />
       </div>
 
       {/* Cancel ride bottom sheet */}
       <BottomSheet isOpen={isCancelOpen} onClose={closeCancelSheet}>
         <div className="space-y-4">
-          <h2 className="text-h3 text-content-primary">Cancel Ride</h2>
+          <h2 className="text-h3 text-content-primary">{t("cancelSheetTitle")}</h2>
           <p className="text-body-sm text-content-muted">
-            Please provide a reason for cancellation. Your passengers will be notified.
+            {t("cancelSheetBody")}
           </p>
           <textarea
             value={cancelReason}
             onChange={(e) => setCancelReason(e.target.value)}
             rows={3}
-            placeholder="e.g. Car broke down, emergency…"
+            placeholder={t("cancelReasonPlaceholder")}
             className="w-full border border-border-default rounded-xl px-3 py-2 text-body-sm outline-none focus:border-border-focus resize-none transition-colors"
           />
           {cancelError && (
@@ -306,7 +309,7 @@ export default function RideManagePage() {
             className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-surface-destructive text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
           >
             {cancelLoading && <Spinner />}
-            {cancelLoading ? "Cancelling…" : "Confirm Cancellation"}
+            {cancelLoading ? t("cancelling") : t("confirmCancellation")}
           </button>
         </div>
       </BottomSheet>

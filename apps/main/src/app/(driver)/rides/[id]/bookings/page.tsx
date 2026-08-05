@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { RatingBadge } from "@/components/ui/RatingBadge";
@@ -65,6 +66,8 @@ async function apiFetch(path: string, options?: RequestInit) {
 }
 
 export default function DriverRideBookingsPage() {
+  const t = useTranslations("driver.bookings");
+  const tNav = useTranslations("nav");
   const params = useParams<{ id: string }>();
   const rideId = params.id;
   const router = useRouter();
@@ -96,7 +99,7 @@ export default function DriverRideBookingsPage() {
       const data = await apiFetch(`/api/v1/rides/${rideId}/bookings`);
       setBookings(data.bookings ?? []);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to load bookings");
+      setError(e instanceof Error ? e.message : t("loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -128,14 +131,14 @@ export default function DriverRideBookingsPage() {
         )
       );
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Failed to confirm booking");
+      alert(e instanceof Error ? e.message : t("confirmFailed"));
     } finally {
       setActionLoading(null);
     }
   }
 
   async function handleReject(bookingId: string) {
-    const promptResult = window.prompt("Reason for rejection (optional):");
+    const promptResult = window.prompt(t("rejectReasonPrompt"));
     const reason = promptResult ?? undefined;
     setActionLoading(bookingId);
     try {
@@ -171,14 +174,14 @@ export default function DriverRideBookingsPage() {
         );
       }
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Failed to reject booking");
+      alert(e instanceof Error ? e.message : t("rejectFailed"));
     } finally {
       setActionLoading(null);
     }
   }
 
   async function handleCancel(bookingId: string) {
-    const promptResult = window.prompt("Reason for cancellation (optional):");
+    const promptResult = window.prompt(t("cancelReasonPrompt"));
     if (promptResult === null) return; // user dismissed dialog
     setActionLoading(bookingId);
     try {
@@ -195,7 +198,7 @@ export default function DriverRideBookingsPage() {
         )
       );
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Failed to cancel booking");
+      alert(e instanceof Error ? e.message : t("cancelFailed"));
     } finally {
       setActionLoading(null);
     }
@@ -221,7 +224,7 @@ export default function DriverRideBookingsPage() {
           className="mt-2 text-sm underline"
           onClick={fetchBookings}
         >
-          Try again
+          {t("tryAgain")}
         </button>
       </div>
     );
@@ -237,16 +240,16 @@ export default function DriverRideBookingsPage() {
         >
           ←
         </button>
-        <h1 className="text-xl font-semibold">Booking Requests</h1>
+        <h1 className="text-xl font-semibold">{t("heading")}</h1>
       </div>
 
       <section className="space-y-3">
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-          Pending Requests ({pending.length})
+          {t("pendingRequests", { count: pending.length })}
         </h2>
         {pending.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">
-            No pending booking requests
+            {t("noPending")}
           </p>
         ) : (
           pending.map((booking) => (
@@ -265,11 +268,11 @@ export default function DriverRideBookingsPage() {
 
       <section className="space-y-3">
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-          Confirmed Passengers ({confirmed.length})
+          {t("confirmedPassengers", { count: confirmed.length })}
         </h2>
         {confirmed.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">
-            No confirmed passengers yet
+            {t("noConfirmed")}
           </p>
         ) : (
           confirmed.map((booking) => (
@@ -289,7 +292,7 @@ export default function DriverRideBookingsPage() {
       {completed.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            Completed ({completed.length})
+            {t("completed", { count: completed.length })}
           </h2>
           {completed.map((booking) => (
             <div
@@ -298,7 +301,7 @@ export default function DriverRideBookingsPage() {
             >
               <div className="min-w-0">
                 <p className="font-medium text-sm text-content-primary truncate">
-                  {booking.passenger.display_name ?? "Passenger"}
+                  {booking.passenger.display_name ?? tNav("defaultPassengerName")}
                 </p>
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-content-muted">EGP {booking.total_price}</p>
@@ -313,13 +316,13 @@ export default function DriverRideBookingsPage() {
                   href={`/ratings/${booking.booking_id}`}
                   className="rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white px-3 py-1.5 text-xs font-semibold transition-colors"
                 >
-                  Rate &amp; Report
+                  {t("rateAndReport")}
                 </Link>
                 <Link
                   href={`/users/${booking.passenger_id}`}
                   className="text-xs text-brand-primary hover:underline"
                 >
-                  View Profile
+                  {t("viewProfile")}
                 </Link>
               </div>
             </div>
@@ -331,7 +334,7 @@ export default function DriverRideBookingsPage() {
         {mapBooking && ride && (
           <div className="space-y-3 pt-1">
             <h2 className="text-base font-semibold text-content-primary">
-              {mapBooking.passenger.display_name ?? "Passenger"}'s pickup &amp; dropoff
+              {t("pickupDropoffMapTitle", { name: mapBooking.passenger.display_name ?? tNav("defaultPassengerName") })}
             </h2>
             <RideDetailMap
               routeGeometry={ride.route_geometry}

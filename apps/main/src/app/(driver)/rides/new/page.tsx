@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { createRide } from "@/lib/api/rides";
 import { getMyVehicle } from "@/lib/api/vehicles";
@@ -16,6 +17,7 @@ const RideMap = dynamic(
 );
 
 export default function NewRidePage() {
+  const t = useTranslations("driver.newRide");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +81,7 @@ export default function NewRidePage() {
       setCreatedRide(ride);
     } catch (err: any) {
       const detail = err?.detail ?? err;
-      setError(detail?.message ?? "Failed to post ride. Please try again.");
+      setError(detail?.message ?? t("postFailed"));
     } finally {
       setLoading(false);
     }
@@ -89,23 +91,23 @@ export default function NewRidePage() {
     return (
       <div className="fixed inset-0 z-50 bg-surface-bg flex items-center justify-center p-6">
         <div className="bg-surface-card border border-border-default rounded-2xl p-6 w-full max-w-sm space-y-4">
-          <h2 className="text-h3 text-content-primary">Ride Posted!</h2>
-          <p className="text-sm text-content-muted">Your ride has been created successfully.</p>
+          <h2 className="text-h3 text-content-primary">{t("postedTitle")}</h2>
+          <p className="text-sm text-content-muted">{t("postedBody")}</p>
           <div className="flex justify-between items-center py-3 border-t border-b border-border-default">
-            <span className="text-sm text-content-secondary">Fare per seat</span>
+            <span className="text-sm text-content-secondary">{t("farePerSeatLabel")}</span>
             <span className="text-base font-semibold text-content-primary">
               EGP {createdRide.price_per_seat}
             </span>
           </div>
           <p className="text-xs text-content-muted">
-            This fare is set by our system based on your route and current conditions.
+            {t("fareNote")}
           </p>
           <button
             type="button"
             onClick={() => router.push(`/rides/${createdRide.id}/manage`)}
             className="w-full bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-3 font-medium transition-colors"
           >
-            View Ride
+            {t("viewRide")}
           </button>
         </div>
       </div>
@@ -133,17 +135,17 @@ export default function NewRidePage() {
           {selecting ? (
             <>
               <p className="text-label text-content-primary">
-                {selecting === "origin" ? "📍 Tap map to set origin" : "📍 Tap map to set destination"}
+                {selecting === "origin" ? t("tapMapToSetOrigin") : t("tapMapToSetDestination")}
               </p>
               {origin && selecting === "destination" && (
-                <p className="text-caption text-content-muted truncate">Origin: {origin.address}</p>
+                <p className="text-caption text-content-muted truncate">{t("originPrefix")} {origin.address}</p>
               )}
             </>
           ) : (
-            <p className="text-label text-content-primary">Tap map to explore or open the form</p>
+            <p className="text-label text-content-primary">{t("tapMapToExplore")}</p>
           )}
           <button type="button" onClick={handleBackToForm} className="text-body-sm text-brand-primary">
-            ← Back to form
+            {t("backToForm")}
           </button>
         </div>
       )}
@@ -159,7 +161,7 @@ export default function NewRidePage() {
             >
               ←
             </button>
-            <h1 className="text-h3 text-content-primary">Post a Ride</h1>
+            <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
           </div>
 
           <RideForm

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { getWallet, type WalletResponse } from "@/lib/api/wallet";
 import { WalletBalanceCard } from "@/components/wallet/WalletBalanceCard";
@@ -14,6 +15,7 @@ async function getToken(): Promise<string> {
 }
 
 export default function WalletPage() {
+  const t = useTranslations("driver.wallet");
   const [wallet, setWallet] = useState<WalletResponse | null>(null);
   const [error, setError] = useState("");
 
@@ -26,9 +28,9 @@ export default function WalletPage() {
       const msg = err instanceof Error
         ? err.message
         : JSON.stringify(err);
-      setError(`Failed to load wallet: ${msg}`);
+      setError(t("loadFailedPrefix", { message: msg }));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     load();
@@ -42,13 +44,13 @@ export default function WalletPage() {
   }, [load]);
 
   if (error) return <p className="text-red-500 text-body-sm">{error}</p>;
-  if (!wallet) return <p className="text-content-muted text-body-sm">Loading…</p>;
+  if (!wallet) return <p className="text-content-muted text-body-sm">{t("loading")}</p>;
 
   const isEmpty = wallet.entries.length === 0;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-h3 text-content-primary">My Wallet</h1>
+      <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
 
       <WalletBalanceCard
         balance_egp={wallet.balance_egp}
@@ -58,12 +60,12 @@ export default function WalletPage() {
 
       <section>
         <h2 className="text-body-sm font-semibold text-content-primary mb-3">
-          Transaction History
+          {t("transactionHistory")}
         </h2>
 
         {isEmpty ? (
           <p className="text-body-sm text-content-muted">
-            No transactions yet. Add balance to start posting rides.
+            {t("noTransactions")}
           </p>
         ) : (
           <LedgerEntryList

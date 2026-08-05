@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface TripPassenger {
   display_name: string | null;
@@ -18,13 +19,14 @@ interface UpcomingTripCardProps {
 }
 
 function PassengerAvatar({ passenger }: { passenger: TripPassenger }) {
+  const tNav = useTranslations("nav");
   const [broken, setBroken] = useState(false);
   if (passenger.avatar_url && !broken) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={passenger.avatar_url}
-        alt={passenger.display_name ?? "Passenger"}
+        alt={passenger.display_name ?? tNav("defaultPassengerName")}
         className="w-8 h-8 rounded-full object-cover border-2 border-dash-surface"
         onError={() => setBroken(true)}
       />
@@ -47,12 +49,13 @@ export function UpcomingTripCard({
   price,
   passengers,
 }: UpcomingTripCardProps) {
+  const t = useTranslations("upcomingTripCard");
   return (
     <Link href={href} className="block bg-dash-surface rounded-2xl p-4 border border-dash-border">
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-semibold tracking-wide text-dash-primary">{departureLabel}</span>
         <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-dash-badge-bg text-dash-primary">
-          {isFull ? "CONFIRMED" : `PENDING (${waitingCount})`}
+          {isFull ? t("confirmed") : t("pendingCount", { count: waitingCount })}
         </span>
       </div>
 
@@ -75,12 +78,12 @@ export function UpcomingTripCard({
             )}
           </div>
         ) : (
-          <span className="text-sm text-dash-text-muted">Waiting for {waitingCount} more...</span>
+          <span className="text-sm text-dash-text-muted">{t("waitingForMore", { count: waitingCount })}</span>
         )}
 
         <div className="text-right shrink-0">
           <p className="text-lg font-bold text-dash-navy">EGP {price}</p>
-          <p className="text-xs text-dash-text-muted">Estimated Payout</p>
+          <p className="text-xs text-dash-text-muted">{t("estimatedPayout")}</p>
         </div>
       </div>
     </Link>

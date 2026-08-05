@@ -382,7 +382,8 @@
       "originPrefix": "Origin:",
       "tapMapToExplore": "Tap map to explore or open the form",
       "backToForm": "← Back to form",
-      "heading": "Post a Ride"
+      "heading": "Post a Ride",
+      "postFailed": "Failed to post ride. Please try again."
     },
     "manage": {
       "heading": "Ride Detail",

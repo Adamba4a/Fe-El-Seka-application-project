@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useSession } from "@/lib/auth/hooks";
 import { getMe } from "@/lib/api/profiles";
 import { listRides, listRideBookings } from "@/lib/api/rides";
@@ -23,15 +24,15 @@ function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-function formatDepartureLabel(iso: string): string {
+function formatDepartureLabel(iso: string, todayLabel: string, tomorrowLabel: string): string {
   const date = new Date(iso);
   const now = new Date();
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
 
   let dayLabel: string;
-  if (isSameDay(date, now)) dayLabel = "TODAY";
-  else if (isSameDay(date, tomorrow)) dayLabel = "TOMORROW";
+  if (isSameDay(date, now)) dayLabel = todayLabel;
+  else if (isSameDay(date, tomorrow)) dayLabel = tomorrowLabel;
   else dayLabel = date.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
 
   const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toUpperCase();
@@ -43,6 +44,8 @@ function formatEgpWhole(amount: number): string {
 }
 
 export function DriverDashboard() {
+  const t = useTranslations("driverDashboard");
+  const tNav = useTranslations("nav");
   const session = useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [trips, setTrips] = useState<TripWithPassengers[]>([]);
@@ -96,14 +99,14 @@ export function DriverDashboard() {
     })();
   }, [session]);
 
-  const name = profile?.display_name ?? "Driver";
+  const name = profile?.display_name ?? tNav("defaultDriverName");
   const firstName = name.split(" ")[0];
 
   return (
     <div className="pb-6">
-      <h1 className="text-2xl font-bold text-dash-navy mt-2">Ahlan, {firstName}!</h1>
+      <h1 className="text-2xl font-bold text-dash-navy mt-2">{t("greeting", { name: firstName })}</h1>
       <p className="text-dash-navy mt-1">
-        You have <span className="font-bold text-dash-primary">{todayCount} scheduled ride{todayCount === 1 ? "" : "s"}</span> today.
+        {t("scheduledRidesToday", { count: todayCount })}
       </p>
 
       {loading ? (
@@ -117,16 +120,16 @@ export function DriverDashboard() {
       ) : (
         <>
           <div className="flex gap-3 mt-6 overflow-x-auto pb-1 -mx-4 px-4">
-            <StatsCard variant="dark" label="EARNINGS" value={`EGP ${formatEgpWhole(earnings)}`} subLabel="All-time" />
-            <StatsCard variant="light" label="RIDES" value={String(completedCount)} subLabel="Total completed" />
+            <StatsCard variant="dark" label={t("earningsLabel")} value={`EGP ${formatEgpWhole(earnings)}`} subLabel={t("allTime")} />
+            <StatsCard variant="light" label={t("ridesLabel")} value={String(completedCount)} subLabel={t("totalCompleted")} />
           </div>
 
-          <h2 className="text-xl font-bold text-dash-navy mt-8 mb-3">Upcoming Trips</h2>
+          <h2 className="text-xl font-bold text-dash-navy mt-8 mb-3">{t("upcomingTrips")}</h2>
 
           {trips.length === 0 ? (
             <div className="bg-dash-surface rounded-2xl p-6 text-center border border-dash-border">
-              <p className="text-dash-navy font-medium">No upcoming trips</p>
-              <p className="text-sm text-dash-text-muted mt-1">Post a ride to start getting bookings.</p>
+              <p className="text-dash-navy font-medium">{t("noUpcomingTitle")}</p>
+              <p className="text-sm text-dash-text-muted mt-1">{t("noUpcomingBody")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -134,7 +137,7 @@ export function DriverDashboard() {
                 <UpcomingTripCard
                   key={ride.id}
                   href={`/rides/${ride.id}/manage`}
-                  departureLabel={formatDepartureLabel(ride.departure_datetime)}
+                  departureLabel={formatDepartureLabel(ride.departure_datetime, t("dayToday"), t("dayTomorrow"))}
                   originAddress={ride.origin.address}
                   destinationAddress={ride.destination.address}
                   isFull={ride.available_seats === 0}
@@ -150,7 +153,7 @@ export function DriverDashboard() {
 
       <Link
         href="/rides/new"
-        aria-label="Post a new ride"
+        aria-label={t("postRideAriaLabel")}
         className="fixed bottom-24 right-5 w-14 h-14 rounded-full bg-dash-primary text-white flex items-center justify-center text-3xl leading-none shadow-lg z-20"
       >
         +
