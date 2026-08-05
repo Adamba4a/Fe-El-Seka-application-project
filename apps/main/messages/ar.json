@@ -485,6 +485,14 @@
             "saveFailed": "فشل الحفظ.",
             "submitFailed": "فشل إرسال الطلب."
           }
+        },
+        "language": {
+          "heading": "اللغة",
+          "english": "English",
+          "arabic": "العربية",
+          "errors": {
+            "saveFailed": "تعذّر تحديث اللغة. حاول مرة أخرى."
+          }
         }
       }
     }

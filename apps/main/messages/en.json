@@ -485,6 +485,14 @@
             "saveFailed": "Failed to save.",
             "submitFailed": "Failed to submit request."
           }
+        },
+        "language": {
+          "heading": "Language",
+          "english": "English",
+          "arabic": "العربية",
+          "errors": {
+            "saveFailed": "Could not update language. Please try again."
+          }
         }
       }
     }

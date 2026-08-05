@@ -115,7 +115,7 @@ Arabic/RTL with no leftover English strings, per `quickstart.md` Scenario 1.
       no changes needed
 - [X] T022 [US1] Audit `apps/main` route-group layouts/pages for RTL: navigation order, form
       alignment, directional icons (back/forward arrows) per FR-003 (depends on T020, T021)
-- [ ] T023 [P] [US1] Add a `LanguageSection` toggle to
+- [X] T023 [P] [US1] Add a `LanguageSection` toggle to
       `apps/main/src/app/(app)/settings/profile/ProfileEditor.tsx`, calling `updateMe()` with
       `language_preference` (depends on T009, T015 — both already complete from Foundational)
 - [X] T024 [P] [US1] Restructure `_NOTIFICATION_TEMPLATES` in

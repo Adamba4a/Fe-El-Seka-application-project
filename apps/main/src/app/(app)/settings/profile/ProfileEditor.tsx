@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { updateMe, uploadPhoto } from "@/lib/api/profiles";
 import { updateMyVehicle, requestVehicleUpdate } from "@/lib/api/vehicles";
+import { switchLocale } from "@/lib/i18n/switch-locale";
 import { PasswordSettings } from "./PasswordSettings";
-import type { Profile, Vehicle, VehicleUpdateRequestRecord } from "@fe-el-seka/shared";
+import type { Locale, Profile, Vehicle, VehicleUpdateRequestRecord } from "@fe-el-seka/shared";
 
 const currentYear = new Date().getFullYear();
 
@@ -223,6 +225,55 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+// ─── Language section ─────────────────────────────────────────────────────────
+
+function LanguageSection({ accessToken }: { accessToken: string }) {
+  const t = useTranslations("settings.profile.editor.language");
+  const currentLocale = useLocale() as Locale;
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSelect = async (locale: Locale) => {
+    if (locale === currentLocale || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await switchLocale(locale, accessToken);
+      router.refresh();
+    } catch {
+      setError(t("errors.saveFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <h2 className="font-semibold text-content-primary">{t("heading")}</h2>
+      <div className="flex gap-2">
+        {(["en", "ar"] as const).map((locale) => (
+          <button
+            key={locale}
+            type="button"
+            onClick={() => handleSelect(locale)}
+            disabled={saving}
+            aria-pressed={currentLocale === locale}
+            className={`flex-1 rounded-xl border py-2 text-body-sm font-medium transition-colors disabled:opacity-50 ${
+              currentLocale === locale
+                ? "border-brand-primary bg-brand-primary text-content-inverse"
+                : "border-border-default text-content-secondary hover:bg-surface-bg"
+            }`}
+          >
+            {t(locale === "en" ? "english" : "arabic")}
+          </button>
+        ))}
+      </div>
+      {error && <p className="text-caption text-content-destructive">{error}</p>}
+    </div>
+  );
+}
+
 // ─── Rating summary ───────────────────────────────────────────────────────────
 
 function RatingSummary({ ratingAvg, ratingCount }: { ratingAvg: number | null; ratingCount: number }) {
@@ -294,6 +345,8 @@ export function ProfileEditor({
           onUpdateRequested={setPendingUpdate}
         />
       )}
+
+      <LanguageSection accessToken={accessToken} />
 
       <PasswordSettings accessToken={accessToken} />
 
