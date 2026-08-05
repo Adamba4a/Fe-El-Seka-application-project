@@ -21,6 +21,16 @@ users who are not comfortable reading and transacting in English.
 
 ---
 
+## Clarifications
+
+### Session 2026-08-05
+
+- Q: At rollout, what should existing authenticated users (who currently only have an English UI) see for display language before they've made any explicit choice? → A: Prompt them with a one-time language choice on their next login rather than silently defaulting either way.
+- Q: Should authentication OTP SMS messages (phone verification codes) also respect the user's selected display language? → A: No — OTP SMS content stays English-only regardless of the user's selected app language; it is out of scope for this feature.
+- Q: How should the platform handle Arabic translations that are longer than their English source and could overflow fixed-width UI elements? → A: UI components must use flexible/responsive sizing that accommodates longer Arabic text without truncation.
+
+---
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Use the platform entirely in Arabic (Priority: P1)
@@ -108,8 +118,8 @@ convention and all copy reads as natural Arabic, not machine-literal translation
 - What happens when a user has partially entered data in a form (e.g., ride search filters) and
   switches language mid-entry? The entered values MUST be preserved; only labels/UI chrome
   re-render in the new language/direction.
-- How does the system handle a screen where translated Arabic text is significantly longer than the
-  English source (common in Arabic translation) and could overflow or truncate UI elements?
+- Translated Arabic text is often significantly longer than its English source; per FR-015, UI
+  components must use flexible/responsive sizing rather than truncating or overflowing.
 - How does the system handle mixed-direction content, such as a Latin-script name or English street
   name appearing inside an otherwise Arabic, RTL-rendered screen?
 - What happens when a new app screen or feature ships without an Arabic translation yet available
@@ -150,6 +160,13 @@ convention and all copy reads as natural Arabic, not machine-literal translation
   blank space or a raw translation key.
 - **FR-012**: System MUST preserve user-entered form data when the display language is switched
   mid-entry.
+- **FR-013**: For existing authenticated users who have no stored language preference at the time
+  this feature launches, System MUST present a one-time language choice prompt on their next login
+  rather than silently applying a default language on their behalf.
+- **FR-014**: System MUST NOT localize authentication OTP SMS content — OTP messages remain in
+  English regardless of the recipient's selected display language.
+- **FR-015**: UI components MUST use flexible/responsive sizing so that Arabic translations longer
+  than their English source render without truncation or overflow.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -213,6 +230,8 @@ convention and all copy reads as natural Arabic, not machine-literal translation
 - Translating third-party map data or map provider UI (street names, POI labels) — only Triplyy's own
   UI chrome is in scope.
 - Voice, audio, or accessibility-reader localization beyond standard text-based translation.
+- Authentication OTP SMS content — remains English-only regardless of the user's selected app
+  language (see FR-014); no Auth-domain SMS template changes are required by this feature.
 
 ---
 
@@ -241,7 +260,8 @@ convention and all copy reads as natural Arabic, not machine-literal translation
 - The Admin Panel's internal staff users are comfortable operating in English, so it is excluded from
   this feature's scope (see Out-of-Scope).
 - First-time, unauthenticated visitors default to Arabic, reflecting the primary Egyptian market,
-  with the option to switch to English at any time; authenticated users always see their stored
-  preference.
+  with the option to switch to English at any time. Authenticated users see their stored preference
+  once set; existing authenticated users with no stored preference are prompted once (FR-013) rather
+  than defaulted silently.
 - Existing UI components (shadcn/ui + Tailwind CSS) can be adapted for RTL support without requiring
   a change to the underlying component library.
