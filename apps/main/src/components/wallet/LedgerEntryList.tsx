@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import type { LedgerEntry } from "@/lib/api/wallet";
 import { getWallet } from "@/lib/api/wallet";
 import { LedgerEntryRow } from "./LedgerEntryRow";
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function LedgerEntryList({ initialEntries, initialTotalPages, getToken }: Props) {
+  const t = useTranslations("ledgerEntryList");
   const [entries, setEntries] = useState<LedgerEntry[]>(initialEntries);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -48,7 +50,7 @@ export function LedgerEntryList({ initialEntries, initialTotalPages, getToken }:
           disabled={loading}
           className="mt-4 w-full text-brand-primary text-body-sm font-medium disabled:opacity-50"
         >
-          {loading ? "Loading…" : "Load more"}
+          {loading ? t("loading") : t("loadMore")}
         </button>
       )}
     </div>
