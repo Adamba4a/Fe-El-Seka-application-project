@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { BookingStatusBadge } from "@/components/bookings/BookingStatusBadge";
 import { Spinner } from "@/components/ui/Spinner";
 import { createClient } from "@/lib/supabase/client";
@@ -92,6 +93,8 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
 }
 
 export default function PassengerBookingDetailPage() {
+  const t = useTranslations("passenger.bookingDetail");
+  const tBookings = useTranslations("passenger.bookings");
   const params = useParams<{ id: string }>();
   const bookingId = params.id;
   const router = useRouter();
@@ -142,7 +145,7 @@ export default function PassengerBookingDetailPage() {
       setBoardingAddress(boarding);
       setAlightingAddress(alighting);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to load booking");
+      setError(e instanceof Error ? e.message : t("errors.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -172,7 +175,7 @@ export default function PassengerBookingDetailPage() {
       );
       setShowConfirm(false);
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Failed to cancel booking");
+      alert(e instanceof Error ? e.message : t("errors.cancelFailed"));
     } finally {
       setCancelling(false);
     }
@@ -189,9 +192,9 @@ export default function PassengerBookingDetailPage() {
   if (error || !booking) {
     return (
       <div className="p-4 text-center text-content-destructive">
-        <p>{error ?? "Booking not found"}</p>
+        <p>{error ?? t("bookingNotFound")}</p>
         <button className="mt-2 text-sm underline text-brand-primary" onClick={fetchBooking}>
-          Try again
+          {tBookings("tryAgain")}
         </button>
       </div>
     );
@@ -210,7 +213,7 @@ export default function PassengerBookingDetailPage() {
         >
           ←
         </button>
-        <h1 className="text-xl font-semibold text-content-primary">Booking Details</h1>
+        <h1 className="text-xl font-semibold text-content-primary">{t("title")}</h1>
         <BookingStatusBadge status={booking.status} />
       </div>
 
@@ -221,7 +224,7 @@ export default function PassengerBookingDetailPage() {
             {booking.driver_avatar_url ? (
               <img
                 src={booking.driver_avatar_url}
-                alt={booking.driver_display_name ?? "Driver"}
+                alt={booking.driver_display_name ?? t("driverLabel")}
                 className="h-10 w-10 rounded-full object-cover shrink-0"
               />
             ) : (
@@ -230,12 +233,12 @@ export default function PassengerBookingDetailPage() {
               </div>
             )}
             <div>
-              <p className="font-medium text-content-primary">{booking.driver_display_name ?? "Driver"}</p>
-              <p className="text-xs text-content-muted">Driver</p>
+              <p className="font-medium text-content-primary">{booking.driver_display_name ?? t("driverLabel")}</p>
+              <p className="text-xs text-content-muted">{t("driverLabel")}</p>
             </div>
           </div>
           <div>
-            <p className="text-xs text-content-muted">Departure</p>
+            <p className="text-xs text-content-muted">{t("departure")}</p>
             <p className="text-sm font-medium text-content-primary">{formatDateTime(booking.departure_datetime)}</p>
           </div>
         </div>
@@ -254,16 +257,16 @@ export default function PassengerBookingDetailPage() {
       <div className="rounded-xl border border-border-default bg-surface-card">
         <div className="p-4 space-y-3">
           <div>
-            <p className="text-xs text-content-muted uppercase tracking-wide">Boarding point</p>
+            <p className="text-xs text-content-muted uppercase tracking-wide">{t("boardingPoint")}</p>
             <p className="text-sm font-medium text-content-primary">
-              {boardingAddress ?? "Loading…"}
+              {boardingAddress ?? t("loadingLocation")}
             </p>
           </div>
           <div className="border-t border-border-default" />
           <div>
-            <p className="text-xs text-content-muted uppercase tracking-wide">Alighting point</p>
+            <p className="text-xs text-content-muted uppercase tracking-wide">{t("alightingPoint")}</p>
             <p className="text-sm font-medium text-content-primary">
-              {alightingAddress ?? "Loading…"}
+              {alightingAddress ?? t("loadingLocation")}
             </p>
           </div>
         </div>
@@ -276,7 +279,7 @@ export default function PassengerBookingDetailPage() {
           className="flex items-center justify-center gap-2 w-full rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white px-4 py-3 text-sm font-semibold transition-colors"
         >
           <span>📍</span>
-          Track Live
+          {t("trackLive")}
         </Link>
       )}
 
@@ -287,32 +290,32 @@ export default function PassengerBookingDetailPage() {
           className="flex items-center justify-center gap-2 w-full rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white px-4 py-3 text-sm font-semibold transition-colors"
         >
           <span>⭐</span>
-          Rate &amp; Report
+          {t("rateAndReport")}
         </Link>
       )}
 
       {/* Price breakdown */}
       <div className="rounded-xl border border-border-default bg-surface-card">
         <div className="p-4 space-y-2">
-          <p className="text-sm font-medium text-content-primary">Price Breakdown</p>
+          <p className="text-sm font-medium text-content-primary">{t("priceBreakdown")}</p>
           <div className="flex justify-between text-sm">
-            <span className="text-content-muted">Base fare</span>
+            <span className="text-content-muted">{t("baseFare")}</span>
             <span className="text-content-primary">EGP {booking.per_seat_price}</span>
           </div>
           {booking.premium_pickup_requested && booking.premium_pickup_fee && (
             <div className="flex justify-between text-sm">
-              <span className="text-content-muted">Premium pickup</span>
+              <span className="text-content-muted">{t("premiumPickup")}</span>
               <span className="text-content-primary">EGP {booking.premium_pickup_fee}</span>
             </div>
           )}
           {booking.premium_dropoff_requested && booking.premium_dropoff_fee && (
             <div className="flex justify-between text-sm">
-              <span className="text-content-muted">Premium dropoff</span>
+              <span className="text-content-muted">{t("premiumDropoff")}</span>
               <span className="text-content-primary">EGP {booking.premium_dropoff_fee}</span>
             </div>
           )}
           <div className="border-t border-border-default pt-2 flex justify-between font-semibold text-content-primary">
-            <span>Total</span>
+            <span>{t("total")}</span>
             <span>EGP {booking.total_price}</span>
           </div>
         </div>
@@ -322,7 +325,7 @@ export default function PassengerBookingDetailPage() {
       {booking.status === "cancelled" && (
         <div className="rounded-xl border border-red-100 bg-red-50">
           <div className="p-4 space-y-1">
-            <p className="text-sm font-medium text-red-700">Booking Cancelled</p>
+            <p className="text-sm font-medium text-red-700">{t("bookingCancelledTitle")}</p>
             {booking.cancellation_reason && (
               <p className="text-xs text-red-600">{booking.cancellation_reason}</p>
             )}
@@ -330,7 +333,7 @@ export default function PassengerBookingDetailPage() {
               <p className="text-xs text-red-500">{formatDateTime(booking.cancelled_at)}</p>
             )}
             {booking.late_cancellation && (
-              <p className="text-xs text-amber-600 font-medium">Late cancellation recorded</p>
+              <p className="text-xs text-amber-600 font-medium">{t("lateCancellation")}</p>
             )}
           </div>
         </div>
@@ -343,16 +346,16 @@ export default function PassengerBookingDetailPage() {
           onClick={() => setShowConfirm(true)}
           className="w-full rounded-xl border border-border-default text-content-destructive hover:bg-status-cancelled-bg px-4 py-2.5 text-sm font-medium transition-colors"
         >
-          Cancel Booking
+          {t("cancelBooking")}
         </button>
       )}
 
       {showConfirm && (
         <div className="rounded-xl border border-red-200 bg-surface-card">
           <div className="p-4 space-y-3">
-            <p className="text-sm font-medium text-content-primary">Are you sure you want to cancel?</p>
+            <p className="text-sm font-medium text-content-primary">{t("cancelConfirmTitle")}</p>
             <p className="text-xs text-content-muted">
-              This action cannot be undone. Your seat will be released.
+              {t("cancelConfirmBody")}
             </p>
             <div className="flex gap-2">
               <button
@@ -362,7 +365,7 @@ export default function PassengerBookingDetailPage() {
                 className="flex-1 rounded-xl bg-surface-destructive text-content-inverse px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {cancelling && <Spinner />}
-                {cancelling ? "Cancelling…" : "Yes, Cancel"}
+                {cancelling ? t("cancelling") : t("yesCancel")}
               </button>
               <button
                 type="button"
@@ -370,7 +373,7 @@ export default function PassengerBookingDetailPage() {
                 disabled={cancelling}
                 className="flex-1 rounded-xl border border-border-default text-content-primary hover:bg-surface-bg px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
               >
-                Keep Booking
+                {t("keepBooking")}
               </button>
             </div>
           </div>

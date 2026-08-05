@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { createClient } from "@/lib/supabase/client";
 import { useSession } from "@/lib/auth/hooks";
@@ -47,12 +48,6 @@ async function apiFetch(path: string) {
   return res.json();
 }
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "active", label: "Active" },
-  { id: "past", label: "Past" },
-];
-
 function filterByTab(bookings: PassengerBooking[], tab: Tab): PassengerBooking[] {
   if (tab === "active") return bookings.filter((b) => b.status === "pending" || b.status === "confirmed");
   if (tab === "past") return bookings.filter((b) => b.status === "completed" || b.status === "cancelled");
@@ -60,8 +55,15 @@ function filterByTab(bookings: PassengerBooking[], tab: Tab): PassengerBooking[]
 }
 
 export default function PassengerBookingsPage() {
+  const t = useTranslations("passenger.bookings");
   const router = useRouter();
   const session = useSession();
+
+  const TABS: { id: Tab; label: string }[] = [
+    { id: "all", label: t("tabAll") },
+    { id: "active", label: t("tabActive") },
+    { id: "past", label: t("tabPast") },
+  ];
   const userId = session?.user.id;
   const [bookings, setBookings] = useState<PassengerBooking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,7 +90,7 @@ export default function PassengerBookingsPage() {
       const data = await apiFetch("/api/v1/bookings");
       setBookings(data.bookings ?? []);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to load bookings");
+      setError(e instanceof Error ? e.message : t("loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -102,7 +104,7 @@ export default function PassengerBookingsPage() {
 
   return (
     <div className="max-w-md mx-auto p-4 space-y-4">
-      <h1 className="text-xl font-semibold">My Bookings</h1>
+      <h1 className="text-xl font-semibold">{t("title")}</h1>
 
       {/* Tab bar */}
       <div className="flex border-b border-border-default">
@@ -132,20 +134,20 @@ export default function PassengerBookingsPage() {
         <div className="text-center py-12 text-destructive space-y-2">
           <p>{error}</p>
           <button className="text-sm underline" onClick={fetchBookings}>
-            Try again
+            {t("tryAgain")}
           </button>
         </div>
       )}
 
       {!loading && !error && visible.length === 0 && (
         <div className="text-center py-16 text-content-muted space-y-1">
-          <p className="font-medium">No bookings here</p>
+          <p className="font-medium">{t("noBookingsTitle")}</p>
           <p className="text-sm">
             {activeTab === "active"
-              ? "You have no pending or confirmed bookings."
+              ? t("noBookingsActive")
               : activeTab === "past"
-              ? "No completed or cancelled bookings yet."
-              : "You haven't made any bookings yet."}
+              ? t("noBookingsPast")
+              : t("noBookingsAll")}
           </p>
         </div>
       )}
