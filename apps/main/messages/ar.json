@@ -191,7 +191,154 @@
     }
   },
   "passenger": {
-    "title": "ابحث عن رحلة"
+    "title": "ابحث عن رحلة",
+    "search": {
+      "heading": "ابحث عن رحلة",
+      "subheading": "اضغط على الخريطة لتحديد مسارك.",
+      "tapMapToSetOrigin": "📍 اضغط على الخريطة لتحديد نقطة الانطلاق",
+      "tapMapToSetDestination": "📍 اضغط على الخريطة لتحديد الوجهة",
+      "originPrefix": "نقطة الانطلاق:",
+      "tapMapToExplore": "اضغط على الخريطة للاستكشاف أو افتح النموذج",
+      "backToForm": "← العودة إلى النموذج",
+      "ridesFound": "{count, plural, one {تم العثور على رحلة واحدة} other {تم العثور على # رحلة}}",
+      "newSearch": "بحث جديد",
+      "noRidesFoundTitle": "لم يتم العثور على رحلات",
+      "noRidesFoundBody": "لا توجد رحلات تطابق مسارك وموعدك. جرّب تعديل وقت الانطلاق.",
+      "errors": {
+        "routeServiceUnavailable": "خدمة تحديد المسار غير متاحة — يرجى المحاولة مرة أخرى بعد قليل.",
+        "generic": "حدث خطأ ما.",
+        "network": "خطأ في الشبكة — يرجى التحقق من اتصالك والمحاولة مرة أخرى."
+      }
+    },
+    "searchForm": {
+      "fromLabel": "من",
+      "fromPlaceholder": "مثال: مدينة نصر، القاهرة",
+      "toLabel": "إلى",
+      "toPlaceholder": "مثال: المعادي، القاهرة",
+      "departureLabel": "وقت الانطلاق",
+      "selectOriginOnMap": "📍 حدد نقطة الانطلاق على الخريطة",
+      "selectDestinationOnMap": "🏁 حدد الوجهة على الخريطة",
+      "change": "تغيير",
+      "searching": "جارٍ البحث…",
+      "searchRides": "البحث عن رحلات",
+      "errors": {
+        "originRequired": "يرجى تحديد نقطة انطلاق على الخريطة.",
+        "destinationRequired": "يرجى تحديد وجهة على الخريطة.",
+        "sameLocation": "يجب أن تكون نقطة الانطلاق والوجهة مختلفتين.",
+        "originTextRequired": "يرجى إدخال عنوان نقطة الانطلاق.",
+        "destTextRequired": "يرجى إدخال عنوان الوجهة.",
+        "originNotFound": "تعذّر العثور على نقطة الانطلاق — جرّب عنوانًا أكثر تحديدًا (مثال: شارع عباس العقاد، مدينة نصر).",
+        "destNotFound": "تعذّر العثور على الوجهة — جرّب عنوانًا أكثر تحديدًا (مثال: شارع عباس العقاد، مدينة نصر)."
+      }
+    },
+    "rideDetail": {
+      "backToResults": "← العودة إلى النتائج",
+      "back": "← رجوع",
+      "verifiedDriver": "سائق موثّق",
+      "viewProfile": "عرض الملف الشخصي",
+      "route": "المسار",
+      "departure": "الانطلاق",
+      "rideTime": "مدة الرحلة",
+      "estimatedRideTime": "مدة الرحلة المتوقعة",
+      "availableSeats": "المقاعد المتاحة",
+      "full": "ممتلئة",
+      "pricePerSeat": "السعر لكل مقعد",
+      "basePrice": "السعر الأساسي",
+      "walkToPickup": "المشي إلى نقطة الصعود",
+      "walkFromDropoff": "المشي من نقطة النزول",
+      "bookSeat": "احجز مقعدًا",
+      "noSeatsAvailable": "لا توجد مقاعد متاحة",
+      "pickupDropoffOption": "خيار الصعود / النزول",
+      "standard": "عادي",
+      "premiumPickup": "صعود مميز",
+      "premiumDropoff": "نزول مميز",
+      "total": "الإجمالي",
+      "confirmBooking": "تأكيد الحجز",
+      "booking": "جارٍ الحجز…",
+      "driver": "السائق",
+      "pickup": "الصعود",
+      "dropoff": "النزول",
+      "pickupWalkNote": "مشي {meters} متر إلى نقطة الصعود",
+      "dropoffWalkNote": "مشي {meters} متر من نقطة النزول",
+      "baseFare": "الأجرة الأساسية",
+      "premiumPickupFee": "صعود مميز",
+      "premiumDropoffFee": "نزول مميز",
+      "rideNoLongerAvailableTitle": "الرحلة لم تعد متاحة",
+      "rideNoLongerAvailableBody": "تم إلغاء هذه الرحلة أو اكتملت.",
+      "searchAnotherRide": "ابحث عن رحلة أخرى",
+      "errors": {
+        "loadFailed": "فشل تحميل تفاصيل الرحلة.",
+        "network": "خطأ في الشبكة — يرجى التحقق من اتصالك.",
+        "somethingWrong": "حدث خطأ ما.",
+        "duplicateBooking": "لديك بالفعل حجز لهذه الرحلة.",
+        "noSeats": "لا توجد مقاعد متاحة — امتلأت هذه الرحلة للتو.",
+        "bookingFailed": "فشل الحجز. يرجى المحاولة مرة أخرى.",
+        "networkBooking": "خطأ في الشبكة — يرجى المحاولة مرة أخرى."
+      }
+    },
+    "bookRide": {
+      "title": "الصعود والنزول",
+      "subtitle": "نستخدم موقعك الحالي لنقطة الصعود ما لم تغيّره.",
+      "pickupLabel": "الصعود",
+      "dropoffLabel": "النزول",
+      "gettingLocation": "جارٍ تحديد موقعك…",
+      "notSet": "غير محدد",
+      "tapToSetOnMap": "اضغط للتحديد على الخريطة",
+      "setOnMap": "تحديد على الخريطة",
+      "change": "تغيير",
+      "confirm": "تأكيد",
+      "tapMapToSetPickup": "📍 اضغط على الخريطة لتحديد نقطة الصعود",
+      "tapMapToSetDropoff": "📍 اضغط على الخريطة لتحديد نقطة النزول"
+    },
+    "tracking": {
+      "loading": "جارٍ التحميل…",
+      "accessDenied": "ليس لديك حجز مؤكد لهذه الرحلة.",
+      "waitingForDriver": "في انتظار السائق…",
+      "waitingForDriverBody": "سيظهر الموقع بمجرد أن يبدأ السائق مشاركة موقعه.",
+      "locationUnavailable": "الموقع غير متاح — لم يبدأ السائق بمشاركة موقعه بعد.",
+      "rideCompletedRedirecting": "اكتملت الرحلة — جارٍ إعادة التوجيه خلال {seconds} ثانية…",
+      "locationOutdated": "قد يكون موقع السائق قديمًا"
+    },
+    "bookings": {
+      "title": "حجوزاتي",
+      "tabAll": "الكل",
+      "tabActive": "نشطة",
+      "tabPast": "سابقة",
+      "noBookingsTitle": "لا توجد حجوزات هنا",
+      "noBookingsActive": "ليس لديك حجوزات معلّقة أو مؤكدة.",
+      "noBookingsPast": "لا توجد حجوزات مكتملة أو ملغاة بعد.",
+      "noBookingsAll": "لم تقم بأي حجوزات بعد.",
+      "loadFailed": "فشل تحميل الحجوزات",
+      "tryAgain": "أعد المحاولة"
+    },
+    "bookingDetail": {
+      "title": "تفاصيل الحجز",
+      "driverLabel": "السائق",
+      "departure": "الانطلاق",
+      "boardingPoint": "نقطة الصعود",
+      "alightingPoint": "نقطة النزول",
+      "loadingLocation": "جارٍ التحميل…",
+      "trackLive": "تتبّع مباشر",
+      "rateAndReport": "قيّم وأبلغ",
+      "priceBreakdown": "تفاصيل السعر",
+      "baseFare": "الأجرة الأساسية",
+      "premiumPickup": "صعود مميز",
+      "premiumDropoff": "نزول مميز",
+      "total": "الإجمالي",
+      "bookingCancelledTitle": "تم إلغاء الحجز",
+      "lateCancellation": "تم تسجيل إلغاء متأخر",
+      "cancelBooking": "إلغاء الحجز",
+      "cancelConfirmTitle": "هل أنت متأكد من رغبتك في الإلغاء؟",
+      "cancelConfirmBody": "لا يمكن التراجع عن هذا الإجراء. سيتم تحرير مقعدك.",
+      "cancelling": "جارٍ الإلغاء…",
+      "yesCancel": "نعم، ألغِ",
+      "keepBooking": "الاحتفاظ بالحجز",
+      "bookingNotFound": "الحجز غير موجود",
+      "errors": {
+        "loadFailed": "فشل تحميل الحجز",
+        "cancelFailed": "فشل إلغاء الحجز"
+      }
+    }
   },
   "driver": {
     "title": "رحلاتك"
@@ -269,5 +416,42 @@
       "minSeats": "الحد الأدنى مقعدان",
       "maxSeats": "الحد الأقصى 7 مقاعد"
     }
+  },
+  "bookingStatus": {
+    "pending": "بانتظار التأكيد",
+    "confirmed": "مؤكد",
+    "cancelled": "ملغى",
+    "completed": "مكتمل"
+  },
+  "bookingCard": {
+    "total": "الإجمالي",
+    "perSeat": "/ مقعد",
+    "premiumServiceIncluded": "تشمل خدمة مميزة",
+    "pickupFeeNote": " (+‏{fee} ج.م صعود)",
+    "dropoffFeeNote": " (+‏{fee} ج.م نزول)",
+    "boardingLabel": "الصعود:",
+    "alightingLabel": "النزول:",
+    "viewPickupDropoffMap": "عرض نقطة الصعود والنزول على الخريطة",
+    "confirm": "تأكيد",
+    "reject": "رفض",
+    "cancelBooking": "إلغاء الحجز",
+    "premiumRequest": "طلب خدمة مميزة",
+    "pickupDetour": "انحراف الصعود: +{fee} ج.م",
+    "dropoffDetour": "انحراف النزول: +{fee} ج.م"
+  },
+  "rideCard": {
+    "premium": "مميز",
+    "nearbyDropoff": "نزول قريب",
+    "nearbyEndpointNote": "ينتهي مسار السائق على بعد ~{distance} كم ({duration} دقيقة) من وجهتك — ستحتاج إلى وسيلة نقل خاصة لبقية الطريق.",
+    "seatsAvailable": "{count, plural, one {مقعد واحد متاح} other {# مقاعد متاحة}}",
+    "walkToPickup": "مشي {meters} متر إلى نقطة الصعود"
+  },
+  "matchScoreBadge": {
+    "matchPercent": "تطابق {score}%"
+  },
+  "map": {
+    "gettingAddress": "جارٍ تحديد العنوان…",
+    "boarding": "الصعود",
+    "alighting": "النزول"
   }
 }

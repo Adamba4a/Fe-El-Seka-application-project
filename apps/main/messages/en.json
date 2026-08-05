@@ -191,7 +191,154 @@
     }
   },
   "passenger": {
-    "title": "Find a ride"
+    "title": "Find a ride",
+    "search": {
+      "heading": "Find a Ride",
+      "subheading": "Tap the map to set your route.",
+      "tapMapToSetOrigin": "📍 Tap map to set origin",
+      "tapMapToSetDestination": "📍 Tap map to set destination",
+      "originPrefix": "Origin:",
+      "tapMapToExplore": "Tap map to explore or open the form",
+      "backToForm": "← Back to form",
+      "ridesFound": "{count, plural, one {# ride found} other {# rides found}}",
+      "newSearch": "New search",
+      "noRidesFoundTitle": "No rides found",
+      "noRidesFoundBody": "No rides match your route and time. Try adjusting your departure time.",
+      "errors": {
+        "routeServiceUnavailable": "Route service unavailable — please try again shortly.",
+        "generic": "Something went wrong.",
+        "network": "Network error — please check your connection and try again."
+      }
+    },
+    "searchForm": {
+      "fromLabel": "From",
+      "fromPlaceholder": "e.g. Nasr City, Cairo",
+      "toLabel": "To",
+      "toPlaceholder": "e.g. Maadi, Cairo",
+      "departureLabel": "Departure time",
+      "selectOriginOnMap": "📍 Select origin on map",
+      "selectDestinationOnMap": "🏁 Select destination on map",
+      "change": "Change",
+      "searching": "Searching…",
+      "searchRides": "Search Rides",
+      "errors": {
+        "originRequired": "Please select an origin on the map.",
+        "destinationRequired": "Please select a destination on the map.",
+        "sameLocation": "Origin and destination must be different locations.",
+        "originTextRequired": "Please enter an origin address.",
+        "destTextRequired": "Please enter a destination address.",
+        "originNotFound": "Could not find origin — try a more specific address (e.g. 'Abbas El Akkad St, Nasr City').",
+        "destNotFound": "Could not find destination — try a more specific address (e.g. 'Abbas El Akkad St, Nasr City')."
+      }
+    },
+    "rideDetail": {
+      "backToResults": "← Back to results",
+      "back": "← Back",
+      "verifiedDriver": "Verified driver",
+      "viewProfile": "View Profile",
+      "route": "Route",
+      "departure": "Departure",
+      "rideTime": "Ride time",
+      "estimatedRideTime": "Estimated ride time",
+      "availableSeats": "Available seats",
+      "full": "Full",
+      "pricePerSeat": "Price per seat",
+      "basePrice": "Base price",
+      "walkToPickup": "Walk to pickup",
+      "walkFromDropoff": "Walk from dropoff",
+      "bookSeat": "Book Seat",
+      "noSeatsAvailable": "No Seats Available",
+      "pickupDropoffOption": "Pickup / Dropoff Option",
+      "standard": "Standard",
+      "premiumPickup": "Premium Pickup",
+      "premiumDropoff": "Premium Dropoff",
+      "total": "Total",
+      "confirmBooking": "Confirm Booking",
+      "booking": "Booking…",
+      "driver": "Driver",
+      "pickup": "Pickup",
+      "dropoff": "Dropoff",
+      "pickupWalkNote": "{meters}m walk to boarding point",
+      "dropoffWalkNote": "{meters}m walk from alighting point",
+      "baseFare": "Base fare",
+      "premiumPickupFee": "Premium pickup",
+      "premiumDropoffFee": "Premium dropoff",
+      "rideNoLongerAvailableTitle": "Ride no longer available",
+      "rideNoLongerAvailableBody": "This ride has been cancelled or completed.",
+      "searchAnotherRide": "Search for another ride",
+      "errors": {
+        "loadFailed": "Failed to load ride details.",
+        "network": "Network error — please check your connection.",
+        "somethingWrong": "Something went wrong.",
+        "duplicateBooking": "You already have a booking for this ride.",
+        "noSeats": "No seats available — this ride just filled up.",
+        "bookingFailed": "Booking failed. Please try again.",
+        "networkBooking": "Network error — please try again."
+      }
+    },
+    "bookRide": {
+      "title": "Pickup & Dropoff",
+      "subtitle": "We use your current location for pickup unless you change it.",
+      "pickupLabel": "Pickup",
+      "dropoffLabel": "Dropoff",
+      "gettingLocation": "Getting your location…",
+      "notSet": "Not set",
+      "tapToSetOnMap": "Tap to set on map",
+      "setOnMap": "Set on map",
+      "change": "Change",
+      "confirm": "Confirm",
+      "tapMapToSetPickup": "📍 Tap map to set pickup",
+      "tapMapToSetDropoff": "📍 Tap map to set dropoff"
+    },
+    "tracking": {
+      "loading": "Loading…",
+      "accessDenied": "You do not have a confirmed booking for this ride.",
+      "waitingForDriver": "Waiting for driver…",
+      "waitingForDriverBody": "Location will appear once the driver is on the way.",
+      "locationUnavailable": "Location unavailable — driver has not started sharing yet.",
+      "rideCompletedRedirecting": "Ride Completed — redirecting in {seconds}s…",
+      "locationOutdated": "Driver location may be outdated"
+    },
+    "bookings": {
+      "title": "My Bookings",
+      "tabAll": "All",
+      "tabActive": "Active",
+      "tabPast": "Past",
+      "noBookingsTitle": "No bookings here",
+      "noBookingsActive": "You have no pending or confirmed bookings.",
+      "noBookingsPast": "No completed or cancelled bookings yet.",
+      "noBookingsAll": "You haven't made any bookings yet.",
+      "loadFailed": "Failed to load bookings",
+      "tryAgain": "Try again"
+    },
+    "bookingDetail": {
+      "title": "Booking Details",
+      "driverLabel": "Driver",
+      "departure": "Departure",
+      "boardingPoint": "Boarding point",
+      "alightingPoint": "Alighting point",
+      "loadingLocation": "Loading…",
+      "trackLive": "Track Live",
+      "rateAndReport": "Rate & Report",
+      "priceBreakdown": "Price Breakdown",
+      "baseFare": "Base fare",
+      "premiumPickup": "Premium pickup",
+      "premiumDropoff": "Premium dropoff",
+      "total": "Total",
+      "bookingCancelledTitle": "Booking Cancelled",
+      "lateCancellation": "Late cancellation recorded",
+      "cancelBooking": "Cancel Booking",
+      "cancelConfirmTitle": "Are you sure you want to cancel?",
+      "cancelConfirmBody": "This action cannot be undone. Your seat will be released.",
+      "cancelling": "Cancelling…",
+      "yesCancel": "Yes, Cancel",
+      "keepBooking": "Keep Booking",
+      "bookingNotFound": "Booking not found",
+      "errors": {
+        "loadFailed": "Failed to load booking",
+        "cancelFailed": "Failed to cancel booking"
+      }
+    }
   },
   "driver": {
     "title": "Your rides"
@@ -269,5 +416,42 @@
       "minSeats": "Min 2 seats",
       "maxSeats": "Max 7 seats"
     }
+  },
+  "bookingStatus": {
+    "pending": "Awaiting Confirmation",
+    "confirmed": "Confirmed",
+    "cancelled": "Cancelled",
+    "completed": "Completed"
+  },
+  "bookingCard": {
+    "total": "Total",
+    "perSeat": "/ seat",
+    "premiumServiceIncluded": "Premium service included",
+    "pickupFeeNote": " (+EGP {fee} pickup)",
+    "dropoffFeeNote": " (+EGP {fee} dropoff)",
+    "boardingLabel": "Boarding:",
+    "alightingLabel": "Alighting:",
+    "viewPickupDropoffMap": "View pickup & dropoff on map",
+    "confirm": "Confirm",
+    "reject": "Reject",
+    "cancelBooking": "Cancel Booking",
+    "premiumRequest": "Premium Request",
+    "pickupDetour": "Pickup detour: +EGP {fee}",
+    "dropoffDetour": "Dropoff detour: +EGP {fee}"
+  },
+  "rideCard": {
+    "premium": "PREMIUM",
+    "nearbyDropoff": "NEARBY DROP-OFF",
+    "nearbyEndpointNote": "Driver ends ~{distance} km ({duration} min) from your destination — you'll need your own transport for the rest of the way.",
+    "seatsAvailable": "{count, plural, one {# seat} other {# seats}} available",
+    "walkToPickup": "{meters}m walk to pickup"
+  },
+  "matchScoreBadge": {
+    "matchPercent": "{score}% match"
+  },
+  "map": {
+    "gettingAddress": "Getting address…",
+    "boarding": "Boarding",
+    "alighting": "Alighting"
   }
 }
