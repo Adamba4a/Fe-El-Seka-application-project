@@ -23,7 +23,7 @@ const _bundledFallback: MessageCatalog = {
 
 const _cache = new Map<Locale, MessageCatalog>();
 let _initPromise: Promise<void> | null = null;
-let _refreshTimer: ReturnType<typeof setInterval> | null = null;
+let _lastLoadedAt = 0;
 
 function _catalogUrl(locale: Locale): string {
   return `${env.supabaseUrl}/storage/v1/object/public/${_BUCKET}/messages/${locale}.json`;
@@ -64,22 +64,30 @@ async function _loadAll(): Promise<void> {
   });
 }
 
-function _ensureRefreshLoop(): void {
-  if (_refreshTimer) return;
-  _refreshTimer = setInterval(() => {
-    _loadAll().catch(() => {
-      // Keep serving the last-known-good cache on a failed background refresh.
-    });
-  }, _REFRESH_INTERVAL_MS);
-  // Don't keep the Node process alive solely for this timer.
-  _refreshTimer.unref?.();
-}
-
 async function _ensureLoaded(): Promise<void> {
   if (!_initPromise) {
-    _initPromise = _loadAll();
-    _ensureRefreshLoop();
+    // Cold start: nothing cached yet, so this request must wait for the load.
+    _initPromise = _loadAll().then(() => {
+      _lastLoadedAt = Date.now();
+    });
+    await _initPromise;
+    return;
   }
+
+  const isStale = Date.now() - _lastLoadedAt > _REFRESH_INTERVAL_MS;
+  if (isStale) {
+    // Stale-while-revalidate: refresh in the background and let this
+    // request go through with the last-known-good cache immediately,
+    // rather than blocking on a fetch.
+    _initPromise = _loadAll().then(() => {
+      _lastLoadedAt = Date.now();
+    });
+    _initPromise.catch(() => {
+      // Keep serving the last-known-good cache on a failed background refresh.
+    });
+    return;
+  }
+
   await _initPromise;
 }
 

@@ -117,6 +117,16 @@ export async function middleware(request: NextRequest) {
   }
 
   if (resolvedLocale !== cookieLocale) {
+    // Mutate `request.cookies` and rebuild `supabaseResponse` from it (same
+    // pattern as the Supabase `setAll` callback above) so the NEXT_LOCALE
+    // value is visible to the Server Components rendering *this* response,
+    // not just to the browser on the *next* request. Rebuilding discards any
+    // Set-Cookie headers already on the previous response instance (session
+    // cookie, Supabase auth refresh cookies), so carry those over first.
+    request.cookies.set(localeCookieName, resolvedLocale);
+    const previousResponse = supabaseResponse;
+    supabaseResponse = NextResponse.next({ request });
+    previousResponse.cookies.getAll().forEach((cookie) => supabaseResponse.cookies.set(cookie));
     supabaseResponse.cookies.set(localeCookieName, resolvedLocale, {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
