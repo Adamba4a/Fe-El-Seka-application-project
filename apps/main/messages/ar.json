@@ -19,10 +19,176 @@
     "notAvailable": "غير متاح"
   },
   "auth": {
-    "title": "تسجيل الدخول"
+    "title": "تسجيل الدخول",
+    "login": {
+      "welcomeTitle": "أهلاً بك في Triplyy",
+      "subtitlePassword": "سجّل الدخول لتبدأ مشاركة رحلتك.",
+      "subtitleCode": "أدخل بريدك الإلكتروني لتلقي رمز التحقق",
+      "continueWithGoogle": "المتابعة باستخدام Google",
+      "redirecting": "جارٍ إعادة التوجيه…",
+      "or": "أو",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "كلمة المرور",
+      "showPassword": "إظهار كلمة المرور",
+      "hidePassword": "إخفاء كلمة المرور",
+      "signIn": "تسجيل الدخول",
+      "signingIn": "جارٍ تسجيل الدخول…",
+      "checkEmailForReset": "تحقق من <strong>{email}</strong> للحصول على رابط إعادة التعيين",
+      "forgotPassword": "نسيت كلمة المرور؟",
+      "sendingReset": "جارٍ الإرسال…",
+      "newHere": "مستخدم جديد؟",
+      "createAccount": "إنشاء حساب",
+      "signInWithCode": "تسجيل الدخول برمز بدلاً من ذلك",
+      "sendCode": "إرسال الرمز",
+      "sendingCode": "جارٍ الإرسال…",
+      "alreadySetPassword": "هل حددت كلمة مرور من قبل؟",
+      "signInWithPassword": "تسجيل الدخول بكلمة المرور",
+      "secureEncryption": "التشفير الآمن مفعّل",
+      "errors": {
+        "invalidEmail": "أدخل بريدًا إلكترونيًا صحيحًا",
+        "otpRateLimited": "طلبات كثيرة جدًا. يرجى الانتظار 15 دقيقة قبل المحاولة مرة أخرى.",
+        "sendCodeFailed": "فشل إرسال الرمز. يرجى المحاولة مرة أخرى.",
+        "sessionFailed": "تعذّر إنشاء الجلسة. يرجى المحاولة مرة أخرى.",
+        "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+        "signInFailed": "فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.",
+        "googleSignInFailed": "تعذّر بدء تسجيل الدخول عبر Google.",
+        "emailRequiredForReset": "أدخل بريدك الإلكتروني أعلاه أولاً",
+        "resetEmailFailed": "تعذّر إرسال بريد إعادة التعيين. يرجى المحاولة مرة أخرى."
+      }
+    },
+    "otp": {
+      "title": "تحقق من بريدك الإلكتروني",
+      "subtitle": "أرسلنا رمزًا مكونًا من 6 أرقام إلى <strong>{email}</strong>",
+      "codeExpiresIn": "تنتهي صلاحية الرمز خلال {time}",
+      "resendCodeIn": "إعادة إرسال الرمز خلال {seconds} ثانية",
+      "resendCode": "إعادة إرسال الرمز",
+      "errors": {
+        "expired": "انتهت صلاحية الرمز. يرجى طلب رمز جديد.",
+        "incorrect": "رمز غير صحيح. يرجى المحاولة مرة أخرى.",
+        "resendFailed": "تعذّر إعادة إرسال الرمز. يرجى الانتظار قبل المحاولة مرة أخرى."
+      }
+    },
+    "roleSelect": {
+      "title": "كيف ستستخدم Triplyy؟",
+      "subtitle": "لا يمكن تغيير هذا لاحقًا",
+      "passengerTitle": "راكب",
+      "passengerDescription": "ابحث عن رحلات تطابق مسارك وانضم إليها",
+      "driverTitle": "سائق",
+      "driverDescription": "انشر مساراتك الحالية وشارك رحلاتك",
+      "continue": "متابعة",
+      "saving": "جارٍ الحفظ…",
+      "errors": {
+        "saveFailed": "تعذّر حفظ الدور. يرجى المحاولة مرة أخرى.",
+        "unexpected": "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى."
+      }
+    },
+    "setPassword": {
+      "titleSet": "تعيين كلمة مرور",
+      "titleReset": "إعادة تعيين كلمة المرور",
+      "subtitleReset": "اختر كلمة مرور جديدة لحسابك",
+      "subtitleSet": "تخطَّ الرمز في المرة القادمة بتعيين كلمة مرور الآن",
+      "passwordLabel": "كلمة المرور",
+      "confirmPasswordLabel": "تأكيد كلمة المرور",
+      "setPassword": "تعيين كلمة المرور",
+      "resetPassword": "إعادة تعيين كلمة المرور",
+      "saving": "جارٍ الحفظ…",
+      "skipForNow": "تخطَّ الآن",
+      "errors": {
+        "tooShort": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل",
+        "mismatch": "كلمتا المرور غير متطابقتين",
+        "signInFailed": "تم تعيين كلمة المرور، لكن تعذّر تسجيل دخولك. يرجى تسجيل الدخول مرة أخرى.",
+        "setFailed": "تعذّر تعيين كلمة المرور. يرجى المحاولة مرة أخرى."
+      }
+    }
   },
   "onboarding": {
-    "title": "إعداد ملفك الشخصي"
+    "title": "إعداد ملفك الشخصي",
+    "profile": {
+      "title": "أكمل ملفك الشخصي",
+      "subtitleDefault": "أعدّ حسابك للبدء",
+      "subtitleRejected": "تم رفض مستنداتك. يرجى إعادة تقديمها.",
+      "displayNameLabel": "الاسم المعروض *",
+      "displayNamePlaceholder": "اسمك",
+      "identityVerificationLabel": "التحقق من الهوية",
+      "uploadNationalIdHint": "قم بتحميل بطاقة الرقم القومي المصرية",
+      "submit": "إرسال",
+      "submitting": "جارٍ الإرسال…",
+      "loading": "جارٍ التحميل…",
+      "documentsSubmittedTitle": "تم إرسال المستندات",
+      "documentsSubmittedBody": "هويتك قيد المراجعة. سنخطرك فور اتخاذ القرار.",
+      "goToHome": "الذهاب إلى الرئيسية",
+      "errors": {
+        "nameTooShort": "يرجى إدخال اسمك (حرفان على الأقل)",
+        "idRequired": "يرجى تحميل وجهي بطاقة الرقم القومي",
+        "licenseRequired": "يرجى تحميل رخصة القيادة",
+        "submissionFailed": "فشل الإرسال. يرجى المحاولة مرة أخرى."
+      }
+    },
+    "verifyId": {
+      "title": "تحقق من هويتك",
+      "subtitle": "قم بتحميل بطاقة الرقم القومي المصرية",
+      "loading": "جارٍ التحميل…",
+      "submitForReview": "إرسال للمراجعة",
+      "submitting": "جارٍ الإرسال…",
+      "documentsSubmittedTitle": "تم إرسال المستندات",
+      "documentsSubmittedBody": "سنخطرك فور مراجعة هويتك.",
+      "goToHome": "الذهاب إلى الرئيسية",
+      "frontIdLabel": "بطاقة الرقم القومي — الوجه الأمامي",
+      "backIdLabel": "بطاقة الرقم القومي — الوجه الخلفي",
+      "errors": {
+        "bothRequired": "يرجى تحميل صورتي البطاقة",
+        "submissionFailed": "فشل الإرسال. يرجى المحاولة مرة أخرى."
+      }
+    },
+    "registerVehicle": {
+      "title": "سجّل مركبتك",
+      "subtitle": "تحتاج إلى مركبة واحدة لنشر الرحلات",
+      "successTitle": "جاهز لنشر الرحلات!",
+      "successBody": "تم تسجيل مركبتك. يمكنك الآن إنشاء إعلانات رحلات.",
+      "postFirstRide": "انشر رحلتك الأولى",
+      "goToMyRides": "الذهاب إلى رحلاتي",
+      "errors": {
+        "registrationFailed": "فشل التسجيل. يرجى المحاولة مرة أخرى."
+      }
+    },
+    "verifyDocuments": {
+      "title": "التحقق من هوية السائق",
+      "subtitle": "قم بتحميل بطاقة الرقم القومي ورخصة القيادة",
+      "loading": "جارٍ التحميل…",
+      "frontIdLabel": "بطاقة الرقم القومي — الوجه الأمامي",
+      "backIdLabel": "بطاقة الرقم القومي — الوجه الخلفي",
+      "licenseLabel": "رخصة القيادة",
+      "submitForReview": "إرسال للمراجعة",
+      "submitting": "جارٍ الإرسال…",
+      "documentsSubmittedTitle": "تم إرسال المستندات",
+      "documentsSubmittedBody": "سنراجع مستنداتك. بعد الموافقة يمكنك تسجيل مركبتك.",
+      "goToHome": "الذهاب إلى الرئيسية",
+      "errors": {
+        "allRequired": "يرجى تحميل المستندات الثلاثة جميعها",
+        "submissionFailed": "فشل الإرسال. يرجى المحاولة مرة أخرى."
+      }
+    },
+    "pendingApproval": {
+      "underReview": "مستنداتك قيد المراجعة.",
+      "autoUpdateNotice": "سيتم تحديث هذه الصفحة تلقائيًا فور اتخاذ القرار."
+    },
+    "lockout": {
+      "title": "تم بلوغ حد المحاولات المسموح بها",
+      "contactPrefix": "تواصل مع"
+    },
+    "verificationStatus": {
+      "pendingTitle": "قيد المراجعة",
+      "pendingBody": "نراجع مستنداتك الآن. عادةً ما يستغرق ذلك يومًا إلى يومي عمل.",
+      "attemptOf": "المحاولة {number} من 3",
+      "verifiedTitle": "تم توثيق هويتك!",
+      "verifiedBody": "تم تأكيد هويتك.",
+      "goToMyRides": "الذهاب إلى رحلاتي",
+      "findARide": "ابحث عن رحلة",
+      "rejectedTitle": "فشل التحقق",
+      "reasonLabel": "السبب",
+      "resubmit": "إعادة إرسال المستندات"
+    }
   },
   "passenger": {
     "title": "ابحث عن رحلة"
@@ -55,5 +221,53 @@
     "profile": "الملف الشخصي",
     "findARide": "ابحث عن رحلة",
     "myTrips": "رحلاتي"
+  },
+  "profileForm": {
+    "displayNameLabel": "الاسم المعروض",
+    "displayNamePlaceholder": "اسمك",
+    "save": "حفظ",
+    "saving": "جارٍ الحفظ…",
+    "uploadPhoto": "تحميل صورة (اختياري)",
+    "changePhoto": "تغيير الصورة",
+    "uploadPhotoAriaLabel": "تحميل صورة الملف الشخصي",
+    "errors": {
+      "generic": "حدث خطأ ما",
+      "minChars": "حرفان على الأقل",
+      "maxChars": "50 حرفًا كحد أقصى",
+      "invalidPhotoType": "يُقبل فقط ملفات JPEG وPNG",
+      "photoTooLarge": "يجب أن تكون الصورة أقل من 5 ميغابايت"
+    }
+  },
+  "documentUpload": {
+    "clickToUpload": "اضغط للتحميل",
+    "formatHint": "JPEG أو PNG، بحد أقصى 10 ميغابايت",
+    "errors": {
+      "invalidType": "يُقبل فقط ملفات JPEG وPNG",
+      "tooLarge": "يجب أن يكون الملف أقل من 10 ميغابايت"
+    }
+  },
+  "vehicleForm": {
+    "plateNumberLabel": "رقم اللوحة",
+    "plateNumberPlaceholder": "مثال: أ ب ج 1234 أو ABC 1234",
+    "makeLabel": "الشركة المصنعة",
+    "makePlaceholder": "مثال: Toyota",
+    "modelLabel": "الطراز",
+    "modelPlaceholder": "مثال: Corolla",
+    "yearLabel": "سنة الصنع",
+    "yearPlaceholder": "مثال: 2021",
+    "colorLabel": "اللون",
+    "colorPlaceholder": "مثال: أبيض",
+    "seatsLabel": "مقاعد الركاب (2–7، بدون السائق)",
+    "seatsPlaceholder": "مثال: 4",
+    "register": "تسجيل المركبة",
+    "registering": "جارٍ التسجيل…",
+    "errors": {
+      "required": "حقل مطلوب",
+      "invalidPlate": "صيغة رقم اللوحة غير صحيحة",
+      "minYear": "أقل سنة 2000",
+      "maxYear": "أقصى سنة {year}",
+      "minSeats": "الحد الأدنى مقعدان",
+      "maxSeats": "الحد الأقصى 7 مقاعد"
+    }
   }
 }

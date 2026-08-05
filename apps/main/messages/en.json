@@ -19,10 +19,176 @@
     "notAvailable": "N/A"
   },
   "auth": {
-    "title": "Sign in"
+    "title": "Sign in",
+    "login": {
+      "welcomeTitle": "Welcome to Triplyy",
+      "subtitlePassword": "Sign in to start sharing your journey.",
+      "subtitleCode": "Enter your email to receive a verification code",
+      "continueWithGoogle": "Continue with Google",
+      "redirecting": "Redirecting…",
+      "or": "or",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "signIn": "Sign In",
+      "signingIn": "Signing in…",
+      "checkEmailForReset": "Check <strong>{email}</strong> for a reset link",
+      "forgotPassword": "Forgot password?",
+      "sendingReset": "Sending…",
+      "newHere": "New here?",
+      "createAccount": "Create an account",
+      "signInWithCode": "Sign in with a code instead",
+      "sendCode": "Send Code",
+      "sendingCode": "Sending…",
+      "alreadySetPassword": "Already set a password?",
+      "signInWithPassword": "Sign in with password",
+      "secureEncryption": "Secure encryption active",
+      "errors": {
+        "invalidEmail": "Enter a valid email address",
+        "otpRateLimited": "Too many requests. Please wait 15 minutes before trying again.",
+        "sendCodeFailed": "Failed to send code. Please try again.",
+        "sessionFailed": "Could not establish session. Please try again.",
+        "invalidCredentials": "Incorrect email or password.",
+        "signInFailed": "Failed to sign in. Please try again.",
+        "googleSignInFailed": "Could not start Google sign-in.",
+        "emailRequiredForReset": "Enter your email address above first",
+        "resetEmailFailed": "Could not send reset email. Please try again."
+      }
+    },
+    "otp": {
+      "title": "Check your email",
+      "subtitle": "We sent a 6-digit code to <strong>{email}</strong>",
+      "codeExpiresIn": "Code expires in {time}",
+      "resendCodeIn": "Resend code in {seconds}s",
+      "resendCode": "Resend code",
+      "errors": {
+        "expired": "Code has expired. Please request a new one.",
+        "incorrect": "Incorrect code. Please try again.",
+        "resendFailed": "Could not resend code. Please wait before trying again."
+      }
+    },
+    "roleSelect": {
+      "title": "How will you use Triplyy?",
+      "subtitle": "This cannot be changed later",
+      "passengerTitle": "Passenger",
+      "passengerDescription": "Find and join rides that match your route",
+      "driverTitle": "Driver",
+      "driverDescription": "Post your existing routes and share rides",
+      "continue": "Continue",
+      "saving": "Saving…",
+      "errors": {
+        "saveFailed": "Could not save role. Please try again.",
+        "unexpected": "Unexpected error. Please try again."
+      }
+    },
+    "setPassword": {
+      "titleSet": "Set a password",
+      "titleReset": "Reset your password",
+      "subtitleReset": "Choose a new password for your account",
+      "subtitleSet": "Skip the code next time by setting a password now",
+      "passwordLabel": "Password",
+      "confirmPasswordLabel": "Confirm password",
+      "setPassword": "Set Password",
+      "resetPassword": "Reset Password",
+      "saving": "Saving…",
+      "skipForNow": "Skip for now",
+      "errors": {
+        "tooShort": "Password must be at least 8 characters",
+        "mismatch": "Passwords do not match",
+        "signInFailed": "Password set, but could not sign you back in. Please sign in again.",
+        "setFailed": "Could not set password. Please try again."
+      }
+    }
   },
   "onboarding": {
-    "title": "Set up your profile"
+    "title": "Set up your profile",
+    "profile": {
+      "title": "Complete your profile",
+      "subtitleDefault": "Set up your account to get started",
+      "subtitleRejected": "Your documents were rejected. Please resubmit.",
+      "displayNameLabel": "Display name *",
+      "displayNamePlaceholder": "Your name",
+      "identityVerificationLabel": "Identity verification",
+      "uploadNationalIdHint": "Upload your Egyptian National ID card",
+      "submit": "Submit",
+      "submitting": "Submitting…",
+      "loading": "Loading…",
+      "documentsSubmittedTitle": "Documents submitted",
+      "documentsSubmittedBody": "Your identity is under review. We will notify you once a decision is made.",
+      "goToHome": "Go to home",
+      "errors": {
+        "nameTooShort": "Please enter your name (min 2 characters)",
+        "idRequired": "Please upload both sides of your National ID",
+        "licenseRequired": "Please upload your Driving License",
+        "submissionFailed": "Submission failed. Please try again."
+      }
+    },
+    "verifyId": {
+      "title": "Verify your identity",
+      "subtitle": "Upload your Egyptian National ID card",
+      "loading": "Loading…",
+      "submitForReview": "Submit for Review",
+      "submitting": "Submitting…",
+      "documentsSubmittedTitle": "Documents submitted",
+      "documentsSubmittedBody": "We will notify you once your identity has been reviewed.",
+      "goToHome": "Go to home",
+      "frontIdLabel": "National ID — Front",
+      "backIdLabel": "National ID — Back",
+      "errors": {
+        "bothRequired": "Please upload both ID photos",
+        "submissionFailed": "Submission failed. Please try again."
+      }
+    },
+    "registerVehicle": {
+      "title": "Register Your Vehicle",
+      "subtitle": "You need one vehicle to post rides",
+      "successTitle": "Ready to post rides!",
+      "successBody": "Your vehicle has been registered. You can now create ride listings.",
+      "postFirstRide": "Post Your First Ride",
+      "goToMyRides": "Go to My Rides",
+      "errors": {
+        "registrationFailed": "Registration failed. Please try again."
+      }
+    },
+    "verifyDocuments": {
+      "title": "Driver Verification",
+      "subtitle": "Upload your National ID and Driving License",
+      "loading": "Loading…",
+      "frontIdLabel": "National ID — Front",
+      "backIdLabel": "National ID — Back",
+      "licenseLabel": "Driving License",
+      "submitForReview": "Submit for Review",
+      "submitting": "Submitting…",
+      "documentsSubmittedTitle": "Documents submitted",
+      "documentsSubmittedBody": "We will review your documents. Once approved you can register your vehicle.",
+      "goToHome": "Go to home",
+      "errors": {
+        "allRequired": "Please upload all three documents",
+        "submissionFailed": "Submission failed. Please try again."
+      }
+    },
+    "pendingApproval": {
+      "underReview": "Your documents are under review.",
+      "autoUpdateNotice": "This page will update automatically once a decision is made."
+    },
+    "lockout": {
+      "title": "Submission limit reached",
+      "contactPrefix": "Contact"
+    },
+    "verificationStatus": {
+      "pendingTitle": "Under Review",
+      "pendingBody": "We're reviewing your documents. This usually takes 1–2 business days.",
+      "attemptOf": "Attempt {number} of 3",
+      "verifiedTitle": "You're verified!",
+      "verifiedBody": "Your identity has been confirmed.",
+      "goToMyRides": "Go to my rides",
+      "findARide": "Find a ride",
+      "rejectedTitle": "Verification Failed",
+      "reasonLabel": "Reason",
+      "resubmit": "Resubmit Documents"
+    }
   },
   "passenger": {
     "title": "Find a ride"
@@ -55,5 +221,53 @@
     "profile": "Profile",
     "findARide": "Find a Ride",
     "myTrips": "My Trips"
+  },
+  "profileForm": {
+    "displayNameLabel": "Display name",
+    "displayNamePlaceholder": "Your name",
+    "save": "Save",
+    "saving": "Saving…",
+    "uploadPhoto": "Upload photo (optional)",
+    "changePhoto": "Change photo",
+    "uploadPhotoAriaLabel": "Upload profile photo",
+    "errors": {
+      "generic": "Something went wrong",
+      "minChars": "Min 2 characters",
+      "maxChars": "Max 50 characters",
+      "invalidPhotoType": "Only JPEG and PNG files are accepted",
+      "photoTooLarge": "Photo must be under 5 MB"
+    }
+  },
+  "documentUpload": {
+    "clickToUpload": "Click to upload",
+    "formatHint": "JPEG or PNG, max 10 MB",
+    "errors": {
+      "invalidType": "Only JPEG and PNG files are accepted",
+      "tooLarge": "File must be under 10 MB"
+    }
+  },
+  "vehicleForm": {
+    "plateNumberLabel": "Plate Number",
+    "plateNumberPlaceholder": "e.g. أ ب ج 1234 or ABC 1234",
+    "makeLabel": "Make (Brand)",
+    "makePlaceholder": "e.g. Toyota",
+    "modelLabel": "Model",
+    "modelPlaceholder": "e.g. Corolla",
+    "yearLabel": "Year",
+    "yearPlaceholder": "e.g. 2021",
+    "colorLabel": "Color",
+    "colorPlaceholder": "e.g. White",
+    "seatsLabel": "Passenger Seats (2–7, excluding driver)",
+    "seatsPlaceholder": "e.g. 4",
+    "register": "Register Vehicle",
+    "registering": "Registering…",
+    "errors": {
+      "required": "Required",
+      "invalidPlate": "Invalid plate format",
+      "minYear": "Min year 2000",
+      "maxYear": "Max year {year}",
+      "minSeats": "Min 2 seats",
+      "maxSeats": "Max 7 seats"
+    }
   }
 }
