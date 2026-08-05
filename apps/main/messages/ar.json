@@ -341,7 +341,91 @@
     }
   },
   "driver": {
-    "title": "رحلاتك"
+    "title": "رحلاتك",
+    "rides": {
+      "tabAll": "الكل",
+      "tabScheduled": "مجدولة",
+      "tabInProgress": "جارية",
+      "tabCompleted": "مكتملة",
+      "tabCancelled": "ملغاة",
+      "heading": "رحلاتي",
+      "postARide": "+ انشر رحلة",
+      "loadFailed": "فشل تحميل الرحلات.",
+      "noRidesTitle": "لا توجد رحلات بعد",
+      "noRidesBody": "انشر رحلتك الأولى وابدأ في مشاركة مسارك",
+      "postFirstRide": "انشر رحلتك الأولى",
+      "seatsAvailableCount": "{available}/{total} مقاعد متاحة"
+    },
+    "editRide": {
+      "loadFailed": "فشل تحميل الرحلة.",
+      "saveFailed": "فشل حفظ التغييرات.",
+      "onlyScheduledEditable": "يمكن تعديل الرحلات المجدولة فقط.",
+      "heading": "تعديل الرحلة",
+      "unsavedChanges": "تغييرات غير محفوظة"
+    },
+    "wallet": {
+      "loadFailedPrefix": "فشل تحميل المحفظة: {message}",
+      "loading": "جارٍ التحميل…",
+      "heading": "محفظتي",
+      "transactionHistory": "سجل المعاملات",
+      "noTransactions": "لا توجد معاملات بعد. أضف رصيدًا لبدء نشر الرحلات."
+    },
+    "newRide": {
+      "postedTitle": "تم نشر الرحلة!",
+      "postedBody": "تم إنشاء رحلتك بنجاح.",
+      "farePerSeatLabel": "الأجرة لكل مقعد",
+      "fareNote": "يتم تحديد هذه الأجرة بواسطة نظامنا بناءً على مسارك والظروف الحالية.",
+      "viewRide": "عرض الرحلة",
+      "tapMapToSetOrigin": "📍 اضغط على الخريطة لتحديد نقطة الانطلاق",
+      "tapMapToSetDestination": "📍 اضغط على الخريطة لتحديد الوجهة",
+      "originPrefix": "نقطة الانطلاق:",
+      "tapMapToExplore": "اضغط على الخريطة للاستكشاف أو افتح النموذج",
+      "backToForm": "← العودة إلى النموذج",
+      "heading": "انشر رحلة"
+    },
+    "manage": {
+      "heading": "تفاصيل الرحلة",
+      "bookings": "الحجوزات",
+      "edit": "تعديل",
+      "from": "من",
+      "to": "إلى",
+      "departure": "الانطلاق",
+      "available": "متاح",
+      "total": "الإجمالي",
+      "perSeat": "/مقعد",
+      "cancellationReason": "سبب الإلغاء",
+      "cancelledBySystem": "أُلغيت بواسطة النظام",
+      "gpsErrorPrefix": "خطأ في تحديد الموقع: {error}",
+      "broadcastingLocation": "📍 جارٍ بث الموقع المباشر للركاب",
+      "cancelRide": "إلغاء الرحلة",
+      "history": "السجل",
+      "cancelSheetTitle": "إلغاء الرحلة",
+      "cancelSheetBody": "يرجى تقديم سبب الإلغاء. سيتم إخطار ركابك.",
+      "cancelReasonPlaceholder": "مثال: عطل في السيارة، حالة طارئة…",
+      "cancelError": "فشل إلغاء الرحلة.",
+      "cancelling": "جارٍ الإلغاء…",
+      "confirmCancellation": "تأكيد الإلغاء",
+      "notFoundTitle": "الرحلة غير موجودة.",
+      "backToMyRides": "← العودة إلى رحلاتي"
+    },
+    "bookings": {
+      "heading": "طلبات الحجز",
+      "pendingRequests": "الطلبات المعلّقة ({count})",
+      "confirmedPassengers": "الركاب المؤكدون ({count})",
+      "completed": "مكتملة ({count})",
+      "noPending": "لا توجد طلبات حجز معلّقة",
+      "noConfirmed": "لا يوجد ركاب مؤكدون بعد",
+      "rejectReasonPrompt": "سبب الرفض (اختياري):",
+      "cancelReasonPrompt": "سبب الإلغاء (اختياري):",
+      "confirmFailed": "فشل تأكيد الحجز",
+      "rejectFailed": "فشل رفض الحجز",
+      "cancelFailed": "فشل إلغاء الحجز",
+      "loadFailed": "فشل تحميل الحجوزات",
+      "tryAgain": "أعد المحاولة",
+      "rateAndReport": "قيّم وأبلغ",
+      "viewProfile": "عرض الملف الشخصي",
+      "pickupDropoffMapTitle": "نقطة الصعود والنزول لـ {name}"
+    }
   },
   "settings": {
     "title": "الإعدادات"
@@ -453,5 +537,133 @@
     "gettingAddress": "جارٍ تحديد العنوان…",
     "boarding": "الصعود",
     "alighting": "النزول"
+  },
+  "rideStatus": {
+    "scheduled": "مجدولة",
+    "inProgress": "جارية",
+    "completed": "مكتملة",
+    "cancelled": "ملغاة"
+  },
+  "rideHistoryLog": {
+    "actionCreated": "تم إنشاء الرحلة",
+    "actionEdited": "تم تعديل الرحلة",
+    "actionCancelled": "تم إلغاء الرحلة",
+    "actionStarted": "بدأت الرحلة",
+    "actionCompleted": "اكتملت الرحلة",
+    "noHistory": "لا يوجد سجل بعد.",
+    "actorDriver": "السائق",
+    "actorSystem": "النظام",
+    "justNow": "الآن",
+    "minutesAgo": "منذ {minutes} د",
+    "hoursAgo": "منذ {hours} س",
+    "daysAgo": "منذ {days} يوم",
+    "changedPrefix": "تم تغيير: {fields}",
+    "reasonPrefix": "السبب: {reason}"
+  },
+  "startCompleteActions": {
+    "startFailed": "فشل بدء الرحلة.",
+    "completeFailed": "فشل إنهاء الرحلة.",
+    "starting": "جارٍ البدء…",
+    "startRide": "بدء الرحلة",
+    "completing": "جارٍ الإنهاء…",
+    "completeRide": "إنهاء الرحلة"
+  },
+  "rideForm": {
+    "originLabel": "نقطة الانطلاق",
+    "destinationLabel": "الوجهة",
+    "departureLabel": "تاريخ ووقت الانطلاق",
+    "seatsLabel": "المقاعد (الحد الأقصى {maxSeats})",
+    "notesLabel": "ملاحظات (اختياري)",
+    "notesPlaceholder": "مثال: ممنوع التدخين، للسيدات فقط…",
+    "originMapLabel": "نقطة الانطلاق (اضغط لتحديد الموقع)",
+    "destinationMapLabel": "الوجهة (اضغط لتحديد الموقع)",
+    "selectOriginOnMap": "📍 حدد نقطة الانطلاق على الخريطة",
+    "selectDestinationOnMap": "📍 حدد الوجهة على الخريطة",
+    "change": "تغيير",
+    "originLockedNote": "لا يمكن تغيير نقطة الانطلاق بعد النشر.",
+    "routeLockedNote": "لا يمكن تغيير المسار بعد النشر. ألغِ الرحلة وأنشئ رحلة جديدة لتغيير نقطة الانطلاق أو الوجهة.",
+    "priceAutoNote": "يُحسب سعر المقعد تلقائيًا بواسطة النظام بناءً على المسار.",
+    "postingRide": "جارٍ نشر الرحلة…",
+    "savingChanges": "جارٍ حفظ التغييرات…",
+    "postRide": "انشر الرحلة",
+    "saveChanges": "احفظ التغييرات",
+    "errors": {
+      "originRequired": "يرجى تحديد نقطة انطلاق على الخريطة.",
+      "destinationRequired": "يرجى تحديد وجهة على الخريطة.",
+      "sameLocation": "يجب أن تكون نقطة الانطلاق والوجهة مختلفتين.",
+      "departureRequired": "يرجى إدخال تاريخ ووقت الانطلاق.",
+      "departureInPast": "يجب أن يكون وقت الانطلاق في المستقبل.",
+      "departureTooFar": "يمكن جدولة الرحلات قبل 48 ساعة كحد أقصى.",
+      "seatsRange": "يجب أن يكون عدد المقاعد بين 1 و{maxSeats}."
+    }
+  },
+  "driverDashboard": {
+    "greeting": "أهلاً، {name}!",
+    "scheduledRidesToday": "{count, plural, one {لديك رحلة واحدة مجدولة اليوم.} other {لديك # رحلة مجدولة اليوم.}}",
+    "earningsLabel": "الأرباح",
+    "allTime": "الإجمالي الكلي",
+    "ridesLabel": "الرحلات",
+    "totalCompleted": "إجمالي المكتملة",
+    "upcomingTrips": "الرحلات القادمة",
+    "noUpcomingTitle": "لا توجد رحلات قادمة",
+    "noUpcomingBody": "انشر رحلة لتبدأ في تلقي الحجوزات.",
+    "postRideAriaLabel": "نشر رحلة جديدة",
+    "dayToday": "اليوم",
+    "dayTomorrow": "غدًا"
+  },
+  "upcomingTripCard": {
+    "confirmed": "مؤكد",
+    "pendingCount": "معلّق ({count})",
+    "waitingForMore": "في انتظار {count} أكثر...",
+    "estimatedPayout": "العائد المتوقع"
+  },
+  "passengerDashboard": {
+    "greeting": "أهلاً، {name}!",
+    "subtitle": "إلى أين تتجه اليوم؟",
+    "findARide": "ابحث عن رحلة",
+    "ridesNearYou": "رحلات بالقرب منك",
+    "enableLocationTitle": "فعّل الموقع لرؤية الرحلات القريبة",
+    "enableLocationBody": "أو ابحث مباشرة باستخدام نقطتي الصعود والنزول.",
+    "goToSearch": "الذهاب إلى البحث ←",
+    "noNearbyTitle": "لا توجد رحلات بالقرب منك الآن",
+    "noNearbyBody": "جرّب البحث عن مسارك الكامل بدلاً من ذلك.",
+    "myJoinedRides": "رحلاتي المنضم إليها",
+    "noActiveBookingsTitle": "لا توجد حجوزات نشطة",
+    "noActiveBookingsBody": "ستظهر هنا الرحلات التي تنضم إليها.",
+    "dayToday": "اليوم",
+    "dayTomorrow": "غدًا"
+  },
+  "availableRideCard": {
+    "verifiedDriver": "سائق موثّق",
+    "defaultDriverName": "سائق",
+    "perSeat": "للمقعد"
+  },
+  "joinedRideCard": {
+    "statusPending": "معلّق",
+    "statusConfirmed": "مؤكد",
+    "statusCancelled": "ملغى",
+    "statusCompleted": "مكتمل",
+    "driverPrefix": "السائق: {name}",
+    "total": "الإجمالي",
+    "unknownPlaceholder": "—"
+  },
+  "walletBalanceCard": {
+    "availableBalance": "الرصيد المتاح",
+    "totalBalance": "الرصيد الإجمالي",
+    "reserved": "محجوز"
+  },
+  "ledgerEntryList": {
+    "loadMore": "تحميل المزيد",
+    "loading": "جارٍ التحميل…"
+  },
+  "ledgerEntryRow": {
+    "commissionCharge": "رسوم العمولة",
+    "balanceTopUp": "شحن الرصيد",
+    "balanceAdjustment": "تعديل الرصيد",
+    "justNow": "الآن",
+    "minutesAgo": "منذ {minutes} د",
+    "hoursAgo": "منذ {hours} س",
+    "daysAgo": "منذ {days} يوم",
+    "viewRide": "عرض الرحلة"
   }
 }

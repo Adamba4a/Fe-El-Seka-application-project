@@ -341,7 +341,91 @@
     }
   },
   "driver": {
-    "title": "Your rides"
+    "title": "Your rides",
+    "rides": {
+      "tabAll": "All",
+      "tabScheduled": "Scheduled",
+      "tabInProgress": "In Progress",
+      "tabCompleted": "Completed",
+      "tabCancelled": "Cancelled",
+      "heading": "My Rides",
+      "postARide": "+ Post a Ride",
+      "loadFailed": "Failed to load rides.",
+      "noRidesTitle": "No rides yet",
+      "noRidesBody": "Post your first ride and start sharing your route",
+      "postFirstRide": "Post your first ride",
+      "seatsAvailableCount": "{available}/{total} seats available"
+    },
+    "editRide": {
+      "loadFailed": "Failed to load ride.",
+      "saveFailed": "Failed to save changes.",
+      "onlyScheduledEditable": "Only scheduled rides can be edited.",
+      "heading": "Edit Ride",
+      "unsavedChanges": "Unsaved changes"
+    },
+    "wallet": {
+      "loadFailedPrefix": "Failed to load wallet: {message}",
+      "loading": "Loading…",
+      "heading": "My Wallet",
+      "transactionHistory": "Transaction History",
+      "noTransactions": "No transactions yet. Add balance to start posting rides."
+    },
+    "newRide": {
+      "postedTitle": "Ride Posted!",
+      "postedBody": "Your ride has been created successfully.",
+      "farePerSeatLabel": "Fare per seat",
+      "fareNote": "This fare is set by our system based on your route and current conditions.",
+      "viewRide": "View Ride",
+      "tapMapToSetOrigin": "📍 Tap map to set origin",
+      "tapMapToSetDestination": "📍 Tap map to set destination",
+      "originPrefix": "Origin:",
+      "tapMapToExplore": "Tap map to explore or open the form",
+      "backToForm": "← Back to form",
+      "heading": "Post a Ride"
+    },
+    "manage": {
+      "heading": "Ride Detail",
+      "bookings": "Bookings",
+      "edit": "Edit",
+      "from": "From",
+      "to": "To",
+      "departure": "Departure",
+      "available": "Available",
+      "total": "Total",
+      "perSeat": "/seat",
+      "cancellationReason": "Cancellation reason",
+      "cancelledBySystem": "Cancelled by system",
+      "gpsErrorPrefix": "GPS error: {error}",
+      "broadcastingLocation": "📍 Broadcasting live location to passengers",
+      "cancelRide": "Cancel Ride",
+      "history": "History",
+      "cancelSheetTitle": "Cancel Ride",
+      "cancelSheetBody": "Please provide a reason for cancellation. Your passengers will be notified.",
+      "cancelReasonPlaceholder": "e.g. Car broke down, emergency…",
+      "cancelError": "Failed to cancel ride.",
+      "cancelling": "Cancelling…",
+      "confirmCancellation": "Confirm Cancellation",
+      "notFoundTitle": "Ride not found.",
+      "backToMyRides": "← Back to My Rides"
+    },
+    "bookings": {
+      "heading": "Booking Requests",
+      "pendingRequests": "Pending Requests ({count})",
+      "confirmedPassengers": "Confirmed Passengers ({count})",
+      "completed": "Completed ({count})",
+      "noPending": "No pending booking requests",
+      "noConfirmed": "No confirmed passengers yet",
+      "rejectReasonPrompt": "Reason for rejection (optional):",
+      "cancelReasonPrompt": "Reason for cancellation (optional):",
+      "confirmFailed": "Failed to confirm booking",
+      "rejectFailed": "Failed to reject booking",
+      "cancelFailed": "Failed to cancel booking",
+      "loadFailed": "Failed to load bookings",
+      "tryAgain": "Try again",
+      "rateAndReport": "Rate & Report",
+      "viewProfile": "View Profile",
+      "pickupDropoffMapTitle": "{name}'s pickup & dropoff"
+    }
   },
   "settings": {
     "title": "Settings"
@@ -453,5 +537,133 @@
     "gettingAddress": "Getting address…",
     "boarding": "Boarding",
     "alighting": "Alighting"
+  },
+  "rideStatus": {
+    "scheduled": "Scheduled",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "rideHistoryLog": {
+    "actionCreated": "Ride created",
+    "actionEdited": "Ride edited",
+    "actionCancelled": "Ride cancelled",
+    "actionStarted": "Ride started",
+    "actionCompleted": "Ride completed",
+    "noHistory": "No history yet.",
+    "actorDriver": "Driver",
+    "actorSystem": "System",
+    "justNow": "just now",
+    "minutesAgo": "{minutes}m ago",
+    "hoursAgo": "{hours}h ago",
+    "daysAgo": "{days}d ago",
+    "changedPrefix": "Changed: {fields}",
+    "reasonPrefix": "Reason: {reason}"
+  },
+  "startCompleteActions": {
+    "startFailed": "Failed to start ride.",
+    "completeFailed": "Failed to complete ride.",
+    "starting": "Starting…",
+    "startRide": "Start Ride",
+    "completing": "Completing…",
+    "completeRide": "Complete Ride"
+  },
+  "rideForm": {
+    "originLabel": "Origin",
+    "destinationLabel": "Destination",
+    "departureLabel": "Departure Date & Time",
+    "seatsLabel": "Seats (max {maxSeats})",
+    "notesLabel": "Notes (optional)",
+    "notesPlaceholder": "e.g. No smoking, women only…",
+    "originMapLabel": "Origin (tap to drop pin)",
+    "destinationMapLabel": "Destination (tap to drop pin)",
+    "selectOriginOnMap": "📍 Select origin on map",
+    "selectDestinationOnMap": "📍 Select destination on map",
+    "change": "Change",
+    "originLockedNote": "Origin cannot be changed after posting.",
+    "routeLockedNote": "Route cannot be changed after posting. Cancel and create a new ride to change origin or destination.",
+    "priceAutoNote": "Price per seat is calculated automatically by the system based on the route.",
+    "postingRide": "Posting ride…",
+    "savingChanges": "Saving changes…",
+    "postRide": "Post Ride",
+    "saveChanges": "Save Changes",
+    "errors": {
+      "originRequired": "Please select an origin on the map.",
+      "destinationRequired": "Please select a destination on the map.",
+      "sameLocation": "Origin and destination must be different locations.",
+      "departureRequired": "Please enter a departure date and time.",
+      "departureInPast": "Departure time must be in the future.",
+      "departureTooFar": "Rides can only be scheduled up to 48 hours in advance.",
+      "seatsRange": "Seat count must be between 1 and {maxSeats}."
+    }
+  },
+  "driverDashboard": {
+    "greeting": "Ahlan, {name}!",
+    "scheduledRidesToday": "{count, plural, one {You have # scheduled ride today.} other {You have # scheduled rides today.}}",
+    "earningsLabel": "EARNINGS",
+    "allTime": "All-time",
+    "ridesLabel": "RIDES",
+    "totalCompleted": "Total completed",
+    "upcomingTrips": "Upcoming Trips",
+    "noUpcomingTitle": "No upcoming trips",
+    "noUpcomingBody": "Post a ride to start getting bookings.",
+    "postRideAriaLabel": "Post a new ride",
+    "dayToday": "TODAY",
+    "dayTomorrow": "TOMORROW"
+  },
+  "upcomingTripCard": {
+    "confirmed": "CONFIRMED",
+    "pendingCount": "PENDING ({count})",
+    "waitingForMore": "Waiting for {count} more...",
+    "estimatedPayout": "Estimated Payout"
+  },
+  "passengerDashboard": {
+    "greeting": "Ahlan, {name}!",
+    "subtitle": "Where are you headed today?",
+    "findARide": "Find a Ride",
+    "ridesNearYou": "Rides Near You",
+    "enableLocationTitle": "Enable location to see nearby rides",
+    "enableLocationBody": "Or search directly with your pickup and drop-off.",
+    "goToSearch": "Go to Search →",
+    "noNearbyTitle": "No rides near you right now",
+    "noNearbyBody": "Try searching for your full route instead.",
+    "myJoinedRides": "My Joined Rides",
+    "noActiveBookingsTitle": "No active bookings",
+    "noActiveBookingsBody": "Rides you join will show up here.",
+    "dayToday": "TODAY",
+    "dayTomorrow": "TOMORROW"
+  },
+  "availableRideCard": {
+    "verifiedDriver": "Verified driver",
+    "defaultDriverName": "Driver",
+    "perSeat": "per seat"
+  },
+  "joinedRideCard": {
+    "statusPending": "PENDING",
+    "statusConfirmed": "CONFIRMED",
+    "statusCancelled": "CANCELLED",
+    "statusCompleted": "COMPLETED",
+    "driverPrefix": "Driver: {name}",
+    "total": "total",
+    "unknownPlaceholder": "—"
+  },
+  "walletBalanceCard": {
+    "availableBalance": "Available Balance",
+    "totalBalance": "Total Balance",
+    "reserved": "Reserved"
+  },
+  "ledgerEntryList": {
+    "loadMore": "Load more",
+    "loading": "Loading…"
+  },
+  "ledgerEntryRow": {
+    "commissionCharge": "Commission Charge",
+    "balanceTopUp": "Balance Top-Up",
+    "balanceAdjustment": "Balance Adjustment",
+    "justNow": "Just now",
+    "minutesAgo": "{minutes}m ago",
+    "hoursAgo": "{hours}h ago",
+    "daysAgo": "{days}d ago",
+    "viewRide": "View ride"
   }
 }
