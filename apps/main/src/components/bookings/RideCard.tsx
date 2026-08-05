@@ -52,7 +52,7 @@ function OverlapBar({ pct }: { pct: number }) {
       <div className="flex-1 bg-surface-bg rounded-full h-1.5">
         <div className={`h-1.5 rounded-full ${color}`} style={{ width: `${clamped}%` }} />
       </div>
-      <span className="text-xs text-content-muted w-10 text-right">{Math.round(clamped)}%</span>
+      <span className="text-xs text-content-muted w-10 text-end">{Math.round(clamped)}%</span>
     </div>
   );
 }
@@ -74,7 +74,7 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
     <button
       type="button"
       onClick={() => onClick(candidate)}
-      className="w-full text-left"
+      className="w-full text-start"
     >
       <div className="border border-border-default rounded-xl p-4 space-y-3 hover:border-brand-primary transition-colors bg-surface-card">
         <div className="flex items-start justify-between gap-3">

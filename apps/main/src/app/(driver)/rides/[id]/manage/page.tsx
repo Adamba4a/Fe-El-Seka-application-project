@@ -175,7 +175,9 @@ export default function RideManagePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/rides" className="text-content-muted hover:text-content-secondary">←</Link>
+        <Link href="/rides" className="text-content-muted hover:text-content-secondary">
+          <span className="inline-block rtl:rotate-180">←</span>
+        </Link>
         <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
       </div>
 

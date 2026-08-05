@@ -242,7 +242,7 @@ export default function PassengerRideDetailPage() {
         <div className="space-y-2 text-sm">
           <div className="flex justify-between text-content-secondary">
             <span>{t("route")}</span>
-            <span className="font-medium text-content-primary text-right">
+            <span className="font-medium text-content-primary text-end">
               {preview.origin_address} → {preview.destination_address}
             </span>
           </div>

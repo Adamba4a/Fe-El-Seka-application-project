@@ -81,7 +81,7 @@ export function UpcomingTripCard({
           <span className="text-sm text-dash-text-muted">{t("waitingForMore", { count: waitingCount })}</span>
         )}
 
-        <div className="text-right shrink-0">
+        <div className="text-end shrink-0">
           <p className="text-lg font-bold text-dash-navy">EGP {price}</p>
           <p className="text-xs text-dash-text-muted">{t("estimatedPayout")}</p>
         </div>

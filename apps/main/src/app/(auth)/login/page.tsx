@@ -224,7 +224,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={loading}
-                    className="w-full px-3 py-2 pr-10 border border-border-default rounded-md text-body-sm outline-none focus:border-border-focus disabled:bg-surface-bg transition-colors"
+                    className="w-full px-3 py-2 pe-10 border border-border-default rounded-md text-body-sm outline-none focus:border-border-focus disabled:bg-surface-bg transition-colors"
                     autoComplete="current-password"
                   />
                   <button
@@ -232,7 +232,7 @@ export default function LoginPage() {
                     onClick={() => setShowPassword((v) => !v)}
                     tabIndex={-1}
                     aria-label={showPassword ? t("hidePassword") : t("showPassword")}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-content-muted"
+                    className="absolute inset-y-0 end-0 flex items-center pe-3 text-content-muted"
                   >
                     {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                   </button>

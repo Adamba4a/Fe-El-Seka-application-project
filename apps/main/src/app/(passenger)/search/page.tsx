@@ -180,7 +180,7 @@ export default function SearchPage() {
                 onClick={() => router.push("/dashboard")}
                 className="text-content-muted hover:text-content-secondary"
               >
-                ←
+                <span className="inline-block rtl:rotate-180">←</span>
               </button>
               <div>
                 <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
@@ -206,7 +206,7 @@ export default function SearchPage() {
                 onClick={() => router.push("/dashboard")}
                 className="text-content-muted hover:text-content-secondary"
               >
-                ←
+                <span className="inline-block rtl:rotate-180">←</span>
               </button>
               <div className="flex-1 flex items-center justify-between">
                 <p className="text-sm text-content-muted">

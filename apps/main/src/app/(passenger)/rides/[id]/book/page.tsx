@@ -104,7 +104,7 @@ export default function BookRidePage() {
               onClick={() => router.back()}
               className="text-content-muted hover:text-content-secondary"
             >
-              ←
+              <span className="inline-block rtl:rotate-180">←</span>
             </button>
             <div>
               <h1 className="text-h3 text-content-primary">{t("title")}</h1>
@@ -127,7 +127,7 @@ export default function BookRidePage() {
               <button
                 type="button"
                 onClick={handleRequestPickupMap}
-                className="text-body-sm text-brand-primary shrink-0 ml-2"
+                className="text-body-sm text-brand-primary shrink-0 ms-2"
               >
                 {pickup ? t("change") : t("setOnMap")}
               </button>
@@ -143,7 +143,7 @@ export default function BookRidePage() {
               <button
                 type="button"
                 onClick={handleRequestDropoffMap}
-                className="text-body-sm text-brand-primary shrink-0 ml-2"
+                className="text-body-sm text-brand-primary shrink-0 ms-2"
               >
                 {dropoff ? t("change") : t("setOnMap")}
               </button>

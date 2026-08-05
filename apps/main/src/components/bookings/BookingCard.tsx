@@ -148,7 +148,7 @@ export function BookingCard(props: BookingCardProps) {
               />
             </div>
           </div>
-          <div className="text-right text-sm shrink-0">
+          <div className="text-end text-sm shrink-0">
             <p className="font-semibold text-content-primary">EGP {booking.total_price}</p>
             <p className="text-xs text-content-muted">{t("perSeat")}</p>
           </div>

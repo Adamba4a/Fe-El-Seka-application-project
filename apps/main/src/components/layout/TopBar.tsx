@@ -103,7 +103,7 @@ export function TopBar({ variant, userName, avatarUrl, notificationCount = 0 }: 
           <button aria-label={t("notificationsAriaLabel")} className="relative text-dash-navy">
             <BellIcon />
             {notificationCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500" />
+              <span className="absolute -top-0.5 -end-0.5 w-2 h-2 rounded-full bg-red-500" />
             )}
           </button>
           {variant === "driver" ? (

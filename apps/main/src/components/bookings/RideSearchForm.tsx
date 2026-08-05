@@ -92,7 +92,7 @@ export function RideSearchForm({
           {externalOrigin ? (
             <div className="flex items-center justify-between bg-surface-bg border border-border-default rounded-xl px-3 py-2">
               <p className="text-sm text-content-secondary truncate">📍 {externalOrigin.address}</p>
-              <button type="button" onClick={onRequestOriginMap} className="text-sm text-brand-primary ml-2 shrink-0">
+              <button type="button" onClick={onRequestOriginMap} className="text-sm text-brand-primary ms-2 shrink-0">
                 {t("change")}
               </button>
             </div>
@@ -126,7 +126,7 @@ export function RideSearchForm({
           {externalDestination ? (
             <div className="flex items-center justify-between bg-surface-bg border border-border-default rounded-xl px-3 py-2">
               <p className="text-sm text-content-secondary truncate">🏁 {externalDestination.address}</p>
-              <button type="button" onClick={onRequestDestinationMap} className="text-sm text-brand-primary ml-2 shrink-0">
+              <button type="button" onClick={onRequestDestinationMap} className="text-sm text-brand-primary ms-2 shrink-0">
                 {t("change")}
               </button>
             </div>

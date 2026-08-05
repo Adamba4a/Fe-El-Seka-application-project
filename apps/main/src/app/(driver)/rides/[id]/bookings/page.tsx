@@ -238,7 +238,7 @@ export default function DriverRideBookingsPage() {
           onClick={() => router.back()}
           className="text-content-muted hover:text-content-secondary"
         >
-          ←
+          <span className="inline-block rtl:rotate-180">←</span>
         </button>
         <h1 className="text-xl font-semibold">{t("heading")}</h1>
       </div>

@@ -55,7 +55,7 @@ export function JoinedRideCard({
         <p className="text-sm text-dash-text-muted truncate">
           {t("driverPrefix", { name: driverName ?? t("unknownPlaceholder") })}
         </p>
-        <div className="text-right shrink-0">
+        <div className="text-end shrink-0">
           <p className="text-lg font-bold text-dash-navy">EGP {price}</p>
           <p className="text-xs text-dash-text-muted">{t("total")}</p>
         </div>

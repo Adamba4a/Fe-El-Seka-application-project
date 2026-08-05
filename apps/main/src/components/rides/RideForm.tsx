@@ -134,7 +134,7 @@ export function RideForm({
             {origin ? (
               <div className="flex items-center justify-between bg-surface-bg border border-border-default rounded-xl px-3 py-2">
                 <p className="text-body-sm text-content-secondary truncate">📍 {origin.address}</p>
-                <button type="button" onClick={onRequestOriginMap} className="text-body-sm text-brand-primary ml-2 shrink-0">
+                <button type="button" onClick={onRequestOriginMap} className="text-body-sm text-brand-primary ms-2 shrink-0">
                   {t("change")}
                 </button>
               </div>
@@ -174,7 +174,7 @@ export function RideForm({
             {destination ? (
               <div className="flex items-center justify-between bg-surface-bg border border-border-default rounded-xl px-3 py-2">
                 <p className="text-body-sm text-content-secondary truncate">📍 {destination.address}</p>
-                <button type="button" onClick={onRequestDestinationMap} className="text-body-sm text-brand-primary ml-2 shrink-0">
+                <button type="button" onClick={onRequestDestinationMap} className="text-body-sm text-brand-primary ms-2 shrink-0">
                   {t("change")}
                 </button>
               </div>

@@ -159,7 +159,7 @@ export default function NewRidePage() {
               onClick={() => router.back()}
               className="text-content-muted hover:text-content-secondary"
             >
-              ←
+              <span className="inline-block rtl:rotate-180">←</span>
             </button>
             <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
           </div>

@@ -64,7 +64,7 @@ export function VerificationStatusScreen({ status, role }: Props) {
         </div>
         <h2 className="text-h2 text-content-primary">{t("rejectedTitle")}</h2>
         {status.rejection_reason && (
-          <div className="bg-status-cancelled-bg border border-status-cancelled rounded-xl px-4 py-3 text-left">
+          <div className="bg-status-cancelled-bg border border-status-cancelled rounded-xl px-4 py-3 text-start">
             <p className="text-caption text-content-destructive uppercase tracking-wide mb-1">{t("reasonLabel")}</p>
             <p className="text-body-sm text-content-secondary">{status.rejection_reason}</p>
           </div>

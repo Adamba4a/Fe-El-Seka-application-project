@@ -170,7 +170,7 @@ export default function RateReportPage() {
           onClick={() => router.back()}
           className="text-content-muted hover:text-content-secondary"
         >
-          ←
+          <span className="inline-block rtl:rotate-180">←</span>
         </button>
         <h1 className="text-xl font-semibold text-content-primary">{t("heading")}</h1>
       </div>
@@ -215,7 +215,7 @@ export default function RateReportPage() {
                     rows={3}
                     className="w-full rounded-lg border border-border-default bg-surface-bg p-2 text-sm text-content-primary"
                   />
-                  <p className="text-xs text-content-muted text-right">{t("charCount500", { count: comment.length })}</p>
+                  <p className="text-xs text-content-muted text-end">{t("charCount500", { count: comment.length })}</p>
                   {ratingError && <p className="text-sm text-content-destructive">{ratingError}</p>}
                   <button
                     type="button"
@@ -258,7 +258,7 @@ export default function RateReportPage() {
                     rows={4}
                     className="w-full rounded-lg border border-border-default bg-surface-bg p-2 text-sm text-content-primary"
                   />
-                  <p className="text-xs text-content-muted text-right">{t("charCount1000", { count: description.length })}</p>
+                  <p className="text-xs text-content-muted text-end">{t("charCount1000", { count: description.length })}</p>
                   {reportError && <p className="text-sm text-content-destructive">{reportError}</p>}
                   <button
                     type="button"

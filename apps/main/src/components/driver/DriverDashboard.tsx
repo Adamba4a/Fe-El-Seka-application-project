@@ -154,7 +154,7 @@ export function DriverDashboard() {
       <Link
         href="/rides/new"
         aria-label={t("postRideAriaLabel")}
-        className="fixed bottom-24 right-5 w-14 h-14 rounded-full bg-dash-primary text-white flex items-center justify-center text-3xl leading-none shadow-lg z-20"
+        className="fixed bottom-24 end-5 w-14 h-14 rounded-full bg-dash-primary text-white flex items-center justify-center text-3xl leading-none shadow-lg z-20"
       >
         +
       </Link>
