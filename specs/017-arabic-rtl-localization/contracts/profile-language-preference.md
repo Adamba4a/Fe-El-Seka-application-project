@@ -2,7 +2,7 @@
 
 Extends the existing profile-update surface — no new endpoint.
 
-## `PATCH /profiles/me`
+## `PUT /profiles/me`
 
 **Existing endpoint** (`services/api/app/api/profiles/router.py`), request body gains one optional
 field.
@@ -52,4 +52,4 @@ prompt-trigger state, distinct from an error).
 | 401 | No valid session (existing behavior, unchanged) |
 | 422 | `language_preference` present but not `"en"`/`"ar"` |
 
-No new error cases introduced beyond the existing `PATCH /profiles/me` error surface.
+No new error cases introduced beyond the existing `PUT /profiles/me` error surface.

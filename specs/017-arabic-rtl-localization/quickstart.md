@@ -42,7 +42,7 @@ path — mirrors the convention already used for other `apps/main` features.
 1. Log in as the seeded `language_preference = NULL` account.
 2. **Expect**: the one-time `LanguagePromptModal` appears; the app is otherwise still usable/navigable
    underneath it (it must not block routing — see `research.md` R5).
-3. Choose a language. **Expect**: `PATCH /profiles/me` fires with `language_preference` set, modal
+3. Choose a language. **Expect**: `PUT /profiles/me` fires with `language_preference` set, modal
    does not reappear on next login.
 
 ## Scenario 4 — OTP stays English (FR-014)

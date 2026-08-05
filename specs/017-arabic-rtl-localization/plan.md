@@ -154,7 +154,7 @@ services/api/app/
 │                                             #   {event_type: {locale: (title, body)}}; send_push_notifications()
 │                                             #   looks up the recipient's profiles.language_preference
 │                                             #   (fallback 'en' when NULL, per FR-011's fallback principle)
-├── api/profiles/router.py                   # EXTENDED — PATCH /profiles/me passes language_preference through
+├── api/profiles/router.py                   # EXTENDED — PUT /profiles/me passes language_preference through
 └── tests/unit/
     └── test_fcm_service.py                  # NEW/EXTENDED — per-locale template selection + NULL-fallback tests
 ```

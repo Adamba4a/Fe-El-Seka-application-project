@@ -1,5 +1,7 @@
 export type Role = "passenger" | "driver" | "admin";
 
+export type Locale = "en" | "ar";
+
 export type VerificationStatus =
   | "unverified"
   | "pending_review"
@@ -18,6 +20,7 @@ export interface Profile {
   rating_avg: number | null;
   rating_count: number;
   created_at: string;
+  language_preference: Locale | null;
 }
 
 export interface PublicRideSummary {
@@ -45,4 +48,5 @@ export interface ProfileSetup {
 
 export interface ProfileUpdate {
   display_name?: string;
+  language_preference?: Locale;
 }

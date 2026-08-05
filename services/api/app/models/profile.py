@@ -18,6 +18,7 @@ class ProfileSetup(BaseModel):
 
 class ProfileUpdate(BaseModel):
     display_name: str | None = None
+    language_preference: Literal["en", "ar"] | None = None
 
     @field_validator("display_name")
     @classmethod
@@ -41,6 +42,7 @@ class ProfileResponse(BaseModel):
     rating_avg: float | None = None
     rating_count: int = 0
     created_at: str
+    language_preference: str | None = None
 
 
 class PublicRideSummary(BaseModel):

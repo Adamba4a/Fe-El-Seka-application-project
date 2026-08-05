@@ -33,10 +33,10 @@ Monorepo per plan.md Project Structure: `apps/main/src/`, `packages/ui/src/`, `p
 
 **Purpose**: Add the new dependency, i18n config scaffold, and DB migration file
 
-- [ ] T001 [P] Add `next-intl` to `apps/main/package.json` dependencies and run install
-- [ ] T002 [P] Create `apps/main/src/lib/i18n/config.ts` — supported locales (`en`, `ar`), default
+- [X] T001 [P] Add `next-intl` to `apps/main/package.json` dependencies and run install
+- [X] T002 [P] Create `apps/main/src/lib/i18n/config.ts` — supported locales (`en`, `ar`), default
       locale (`ar`, per spec Assumptions), `NEXT_LOCALE` cookie name constant
-- [ ] T003 [P] Create `supabase/migrations/20260805000001_phase14_language_preference.sql` — add
+- [X] T003 [P] Create `supabase/migrations/20260805000001_phase14_language_preference.sql` — add
       nullable `language_preference TEXT CHECK (language_preference IN ('en','ar'))` column to
       `public.profiles` per `data-model.md`
 
@@ -51,31 +51,32 @@ independently testable
 
 - [ ] T004 Apply migration `20260805000001_phase14_language_preference.sql` to the local Supabase
       instance and verify the `profiles.language_preference` column exists (depends on T003)
-- [ ] T005 [P] Extend `packages/shared/src/types/user.ts` — add `Locale` type (`"en" | "ar"`), and
+- [X] T005 [P] Extend `packages/shared/src/types/user.ts` — add `Locale` type (`"en" | "ar"`), and
       `language_preference` to `Profile`/`ProfileUpdate` per `data-model.md`
-- [ ] T006 [P] Extend `services/api/app/models/profile.py` — `ProfileUpdate`/`ProfileResponse` gain
+- [X] T006 [P] Extend `services/api/app/models/profile.py` — `ProfileUpdate`/`ProfileResponse` gain
       `language_preference: Literal["en", "ar"] | None` per `data-model.md`
-- [ ] T007 Extend `services/api/app/services/profile_service.py` — `update_profile()` accepts and
+- [X] T007 Extend `services/api/app/services/profile_service.py` — `update_profile()` accepts and
       persists `language_preference` (depends on T006)
-- [ ] T008 Extend `services/api/app/api/profiles/router.py` — `PATCH /profiles/me` passes
+- [X] T008 Extend `services/api/app/api/profiles/router.py` — `PUT /profiles/me` passes
       `language_preference` through per `contracts/profile-language-preference.md` (depends on T007)
-- [ ] T009 Extend `apps/main/src/lib/api/profiles.ts` — `updateMe()` accepts `language_preference`
-      (depends on T005)
-- [ ] T010 [P] Create `apps/main/src/lib/i18n/messages-loader.ts` — fetch + in-memory cache +
+- [X] T009 Extend `apps/main/src/lib/api/profiles.ts` — `updateMe()` accepts `language_preference`
+      (depends on T005) — no code change needed: `updateMe()` already takes a typed `ProfileUpdate`
+      payload, which now includes `language_preference` from T005
+- [X] T010 [P] Create `apps/main/src/lib/i18n/messages-loader.ts` — fetch + in-memory cache +
       periodic refresh (~5 min, tunable) of the JSON message catalog per locale from Supabase Storage,
       with bundled-`en.json` fallback on Storage failure, per `contracts/message-catalog.md` (depends
       on T002)
-- [ ] T011 Create `apps/main/src/lib/i18n/request.ts` — next-intl server config resolving the active
+- [X] T011 Create `apps/main/src/lib/i18n/request.ts` — next-intl server config resolving the active
       locale and loading messages via `messages-loader.ts` (depends on T010)
-- [ ] T012 [P] Create `apps/main/messages/en.json` — canonical namespace skeleton (empty/placeholder
+- [X] T012 [P] Create `apps/main/messages/en.json` — canonical namespace skeleton (empty/placeholder
       keys) covering every route group, serves as both the bundled fallback and the FR-011 canonical
       key set
-- [ ] T013 [P] Create `apps/main/messages/ar.json` — Arabic namespace skeleton mirroring
+- [X] T013 [P] Create `apps/main/messages/ar.json` — Arabic namespace skeleton mirroring
       `en.json`'s key structure (values may lag per FR-011)
-- [ ] T014 Extend `apps/main/src/middleware.ts` — resolve locale (`profiles.language_preference` →
+- [X] T014 Extend `apps/main/src/middleware.ts` — resolve locale (`profiles.language_preference` →
       `NEXT_LOCALE` cookie → default `"ar"`) inside the existing per-request `profiles` query, set the
       locale cookie/header consumed by next-intl (depends on T004, T011)
-- [ ] T015 Extend `apps/main/src/app/layout.tsx` — set `<html lang={locale} dir={ltr|rtl}>`, wrap
+- [X] T015 Extend `apps/main/src/app/layout.tsx` — set `<html lang={locale} dir={ltr|rtl}>`, wrap
       children in `NextIntlClientProvider` (depends on T011, T014)
 
 **Checkpoint**: Foundation ready — i18n plumbing and profile field work end-to-end; user story

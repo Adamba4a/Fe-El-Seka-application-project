@@ -1,0 +1,29 @@
+{
+  "common": {
+    "appName": "Triplyy"
+  },
+  "auth": {
+    "title": "Sign in"
+  },
+  "onboarding": {
+    "title": "Set up your profile"
+  },
+  "passenger": {
+    "title": "Find a ride"
+  },
+  "driver": {
+    "title": "Your rides"
+  },
+  "settings": {
+    "title": "Settings"
+  },
+  "ratings": {
+    "title": "Ratings"
+  },
+  "users": {
+    "title": "Profile"
+  },
+  "dashboard": {
+    "title": "Dashboard"
+  }
+}

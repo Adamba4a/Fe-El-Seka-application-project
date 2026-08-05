@@ -1,0 +1,29 @@
+{
+  "common": {
+    "appName": "Triplyy"
+  },
+  "auth": {
+    "title": "تسجيل الدخول"
+  },
+  "onboarding": {
+    "title": "إعداد ملفك الشخصي"
+  },
+  "passenger": {
+    "title": "ابحث عن رحلة"
+  },
+  "driver": {
+    "title": "رحلاتك"
+  },
+  "settings": {
+    "title": "الإعدادات"
+  },
+  "ratings": {
+    "title": "التقييمات"
+  },
+  "users": {
+    "title": "الملف الشخصي"
+  },
+  "dashboard": {
+    "title": "لوحة التحكم"
+  }
+}

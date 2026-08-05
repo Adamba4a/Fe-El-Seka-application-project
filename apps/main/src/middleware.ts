@@ -6,6 +6,7 @@ import {
   SESSION_STARTED_COOKIE,
   SESSION_STARTED_COOKIE_MAX_AGE_SECONDS,
 } from "@/lib/auth/session-age";
+import { defaultLocale, isLocale, localeCookieName } from "@/lib/i18n/config";
 
 const PUBLIC_PATHS = ["/login", "/otp", "/signout", "/auth"];
 // /signout must work even when a user IS authenticated (it clears a bad session).
@@ -93,17 +94,35 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", origin));
   }
 
-  // For passenger routes, enforce verification_status = 'approved'
-  if (user && isPassengerRoute(pathname)) {
+  // Locale resolution runs on every authenticated request (not just passenger
+  // routes), so the verification-status check below reuses this same query
+  // instead of issuing a second one.
+  const cookieLocale = request.cookies.get(localeCookieName)?.value;
+  let resolvedLocale = isLocale(cookieLocale) ? cookieLocale : defaultLocale;
+
+  if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("verification_status")
+      .select("verification_status, language_preference")
       .eq("id", user.id)
       .single();
 
-    if (profile && profile.verification_status !== "verified") {
+    if (profile && isPassengerRoute(pathname) && profile.verification_status !== "verified") {
       return NextResponse.redirect(new URL("/onboarding/verify-id", origin));
     }
+
+    if (profile && isLocale(profile.language_preference)) {
+      resolvedLocale = profile.language_preference;
+    }
+  }
+
+  if (resolvedLocale !== cookieLocale) {
+    supabaseResponse.cookies.set(localeCookieName, resolvedLocale, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
   }
 
   return supabaseResponse;

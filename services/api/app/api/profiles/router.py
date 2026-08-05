@@ -83,7 +83,9 @@ def update_profile(
     body: ProfileUpdate,
     profile: dict = Depends(get_current_user),
 ) -> dict:
-    return profile_service.update_profile(profile["id"], body.display_name)
+    return profile_service.update_profile(
+        profile["id"], body.display_name, body.language_preference
+    )
 
 
 @router.post("/me/photo")

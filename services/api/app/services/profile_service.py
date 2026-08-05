@@ -52,11 +52,17 @@ def get_profile_me(user_id: str) -> dict:
     return _format_profile(resp.data)
 
 
-def update_profile(user_id: str, display_name: str | None) -> dict:
+def update_profile(
+    user_id: str,
+    display_name: str | None,
+    language_preference: str | None = None,
+) -> dict:
     sb = _supabase()
     updates: dict = {}
     if display_name is not None:
         updates["display_name"] = display_name
+    if language_preference is not None:
+        updates["language_preference"] = language_preference
     if not updates:
         return get_profile_me(user_id)
     resp = sb.table("profiles").update(updates).eq("id", user_id).execute()
@@ -188,4 +194,5 @@ def _format_profile(row: dict) -> dict:
         "rating_avg": float(row["rating_avg"]) if row.get("rating_avg") is not None else None,
         "rating_count": row.get("rating_count") or 0,
         "created_at": str(row["created_at"]),
+        "language_preference": row.get("language_preference"),
     }

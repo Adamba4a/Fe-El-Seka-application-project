@@ -34,6 +34,7 @@ export type {
 
 export type {
   Role,
+  Locale,
   VerificationStatus as ProfileVerificationStatus,
   Profile,
   ProfileSetup,
