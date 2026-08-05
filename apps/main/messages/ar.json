@@ -1,6 +1,22 @@
 {
   "common": {
-    "appName": "Triplyy"
+    "appName": "Triplyy",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "saving": "جارٍ الحفظ…",
+    "submit": "إرسال",
+    "close": "إغلاق",
+    "back": "رجوع",
+    "next": "التالي",
+    "continue": "متابعة",
+    "loading": "جارٍ التحميل…",
+    "retry": "إعادة المحاولة",
+    "confirm": "تأكيد",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "done": "تم",
+    "error": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    "notAvailable": "غير متاح"
   },
   "auth": {
     "title": "تسجيل الدخول"
@@ -25,5 +41,19 @@
   },
   "dashboard": {
     "title": "لوحة التحكم"
+  },
+  "nav": {
+    "verifiedDriver": "سائق موثّق",
+    "notificationsAriaLabel": "الإشعارات",
+    "settingsAriaLabel": "الإعدادات",
+    "profileAriaLabel": "الملف الشخصي",
+    "defaultDriverName": "سائق",
+    "defaultPassengerName": "راكب",
+    "dashboard": "لوحة التحكم",
+    "myRides": "رحلاتي",
+    "earnings": "الأرباح",
+    "profile": "الملف الشخصي",
+    "findARide": "ابحث عن رحلة",
+    "myTrips": "رحلاتي"
   }
 }
