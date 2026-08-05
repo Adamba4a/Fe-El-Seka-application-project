@@ -147,7 +147,7 @@ per `quickstart.md` Scenario 2 (and Scenario 3 for the rollout prompt).
 - [X] T027 [US2] Promote the language toggle from Settings-only to an always-accessible control
       reachable from any screen (e.g., a persistent nav/header slot in `apps/main/src/app/layout.tsx`
       or a shared nav component) (depends on T023)
-- [ ] T028 [US2] Ensure the toggle updates locale client-side without a full page reload: write the
+- [X] T028 [US2] Ensure the toggle updates locale client-side without a full page reload: write the
       `NEXT_LOCALE` cookie directly for unauthenticated visitors; call `updateMe()` +
       `router.refresh()` (not a hard navigation) for authenticated users (depends on T027)
 - [ ] T029 [US2] Verify and fix in-progress form-state preservation across a language switch (FR-012)
