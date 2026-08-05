@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/Spinner";
 import { geocodeAddress, type SearchLocation, type SearchBbox } from "@/lib/geocode";
 
@@ -29,6 +30,7 @@ function toDatetimeLocalValue(date: Date): string {
 export function RideSearchForm({
   loading, onSearch, externalOrigin, externalDestination, onRequestOriginMap, onRequestDestinationMap,
 }: RideSearchFormProps) {
+  const t = useTranslations("passenger.searchForm");
   const [originText, setOriginText] = useState("");
   const [destText, setDestText] = useState("");
   const [departureLocal, setDepartureLocal] = useState(() => toDatetimeLocalValue(new Date()));
@@ -43,21 +45,21 @@ export function RideSearchForm({
 
     if (onRequestOriginMap) {
       // Map-driven mode — origin/destination already resolved via pin-drop
-      if (!externalOrigin) { setError("Please select an origin on the map."); return; }
-      if (!externalDestination) { setError("Please select a destination on the map."); return; }
+      if (!externalOrigin) { setError(t("errors.originRequired")); return; }
+      if (!externalDestination) { setError(t("errors.destinationRequired")); return; }
       if (
         Math.abs(externalOrigin.lat - externalDestination.lat) < 1e-4 &&
         Math.abs(externalOrigin.lng - externalDestination.lng) < 1e-4
       ) {
-        setError("Origin and destination must be different locations.");
+        setError(t("errors.sameLocation"));
         return;
       }
       onSearch(externalOrigin, externalDestination, departureAt);
       return;
     }
 
-    if (!originText.trim()) { setError("Please enter an origin address."); return; }
-    if (!destText.trim()) { setError("Please enter a destination address."); return; }
+    if (!originText.trim()) { setError(t("errors.originTextRequired")); return; }
+    if (!destText.trim()) { setError(t("errors.destTextRequired")); return; }
 
     setGeocoding(true);
     try {
@@ -66,11 +68,11 @@ export function RideSearchForm({
         geocodeAddress(destText.trim()),
       ]);
 
-      if (!origin) { setError("Could not find origin — try a more specific address (e.g. 'Abbas El Akkad St, Nasr City')."); return; }
-      if (!dest) { setError("Could not find destination — try a more specific address (e.g. 'Abbas El Akkad St, Nasr City')."); return; }
+      if (!origin) { setError(t("errors.originNotFound")); return; }
+      if (!dest) { setError(t("errors.destNotFound")); return; }
 
       if (Math.abs(origin.lat - dest.lat) < 1e-4 && Math.abs(origin.lng - dest.lng) < 1e-4) {
-        setError("Origin and destination must be different locations.");
+        setError(t("errors.sameLocation"));
         return;
       }
 
@@ -86,12 +88,12 @@ export function RideSearchForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       {onRequestOriginMap ? (
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-content-secondary">From</label>
+          <label className="block text-sm font-medium text-content-secondary">{t("fromLabel")}</label>
           {externalOrigin ? (
             <div className="flex items-center justify-between bg-surface-bg border border-border-default rounded-xl px-3 py-2">
               <p className="text-sm text-content-secondary truncate">📍 {externalOrigin.address}</p>
               <button type="button" onClick={onRequestOriginMap} className="text-sm text-brand-primary ml-2 shrink-0">
-                Change
+                {t("change")}
               </button>
             </div>
           ) : (
@@ -100,16 +102,16 @@ export function RideSearchForm({
               onClick={onRequestOriginMap}
               className="w-full border border-dashed border-border-default rounded-xl px-3 py-4 text-sm text-content-muted hover:border-brand-primary transition-colors"
             >
-              📍 Select origin on map
+              {t("selectOriginOnMap")}
             </button>
           )}
         </div>
       ) : (
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-content-secondary">From</label>
+          <label className="block text-sm font-medium text-content-secondary">{t("fromLabel")}</label>
           <input
             type="text"
-            placeholder="e.g. Nasr City, Cairo"
+            placeholder={t("fromPlaceholder")}
             value={originText}
             onChange={(e) => setOriginText(e.target.value)}
             className={inputClass}
@@ -120,12 +122,12 @@ export function RideSearchForm({
 
       {onRequestDestinationMap ? (
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-content-secondary">To</label>
+          <label className="block text-sm font-medium text-content-secondary">{t("toLabel")}</label>
           {externalDestination ? (
             <div className="flex items-center justify-between bg-surface-bg border border-border-default rounded-xl px-3 py-2">
               <p className="text-sm text-content-secondary truncate">🏁 {externalDestination.address}</p>
               <button type="button" onClick={onRequestDestinationMap} className="text-sm text-brand-primary ml-2 shrink-0">
-                Change
+                {t("change")}
               </button>
             </div>
           ) : (
@@ -134,16 +136,16 @@ export function RideSearchForm({
               onClick={onRequestDestinationMap}
               className="w-full border border-dashed border-border-default rounded-xl px-3 py-4 text-sm text-content-muted hover:border-brand-primary transition-colors"
             >
-              🏁 Select destination on map
+              {t("selectDestinationOnMap")}
             </button>
           )}
         </div>
       ) : (
         <div className="space-y-1">
-          <label className="block text-sm font-medium text-content-secondary">To</label>
+          <label className="block text-sm font-medium text-content-secondary">{t("toLabel")}</label>
           <input
             type="text"
-            placeholder="e.g. Maadi, Cairo"
+            placeholder={t("toPlaceholder")}
             value={destText}
             onChange={(e) => setDestText(e.target.value)}
             className={inputClass}
@@ -153,7 +155,7 @@ export function RideSearchForm({
       )}
 
       <div className="space-y-1">
-        <label className="block text-sm font-medium text-content-secondary">Departure time</label>
+        <label className="block text-sm font-medium text-content-secondary">{t("departureLabel")}</label>
         <input
           type="datetime-local"
           value={departureLocal}
@@ -172,7 +174,7 @@ export function RideSearchForm({
         className="w-full flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-colors"
       >
         {busy && <Spinner />}
-        {busy ? "Searching…" : "Search Rides"}
+        {busy ? t("searching") : t("searchRides")}
       </button>
     </form>
   );

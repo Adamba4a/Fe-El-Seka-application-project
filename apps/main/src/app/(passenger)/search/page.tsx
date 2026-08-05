@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { RideSearchForm, type SearchLocation } from "@/components/bookings/RideSearchForm";
 import { RideCard, type RideCandidate } from "@/components/bookings/RideCard";
@@ -25,6 +26,7 @@ function toSearchLocation(loc?: Location, bbox?: SearchBbox | null): SearchLocat
 
 export default function SearchPage() {
   const router = useRouter();
+  const t = useTranslations("passenger.search");
   const [phase, setPhase] = useState<Phase>("form");
   const [candidates, setCandidates] = useState<RideCandidate[]>([]);
   const [searchMeta, setSearchMeta] = useState<{
@@ -104,9 +106,9 @@ export default function SearchPage() {
 
       if (!res.ok) {
         if (res.status === 503) {
-          setError("Route service unavailable — please try again shortly.");
+          setError(t("errors.routeServiceUnavailable"));
         } else {
-          setError(json.message ?? "Something went wrong.");
+          setError(json.message ?? t("errors.generic"));
         }
         return;
       }
@@ -116,7 +118,7 @@ export default function SearchPage() {
       setPhase("results");
       setSheetOpen(true);
     } catch {
-      setError("Network error — please check your connection and try again.");
+      setError(t("errors.network"));
     } finally {
       setLoading(false);
     }
@@ -153,17 +155,17 @@ export default function SearchPage() {
           {selecting ? (
             <>
               <p className="text-label text-content-primary">
-                {selecting === "origin" ? "📍 Tap map to set origin" : "📍 Tap map to set destination"}
+                {selecting === "origin" ? t("tapMapToSetOrigin") : t("tapMapToSetDestination")}
               </p>
               {origin && selecting === "destination" && (
-                <p className="text-caption text-content-muted truncate">Origin: {origin.address}</p>
+                <p className="text-caption text-content-muted truncate">{t("originPrefix")} {origin.address}</p>
               )}
             </>
           ) : (
-            <p className="text-label text-content-primary">Tap map to explore or open the form</p>
+            <p className="text-label text-content-primary">{t("tapMapToExplore")}</p>
           )}
           <button type="button" onClick={handleBackToForm} className="text-body-sm text-brand-primary">
-            ← Back to form
+            {t("backToForm")}
           </button>
         </div>
       )}
@@ -181,8 +183,8 @@ export default function SearchPage() {
                 ←
               </button>
               <div>
-                <h1 className="text-h3 text-content-primary">Find a Ride</h1>
-                <p className="text-sm text-content-muted mt-1">Tap the map to set your route.</p>
+                <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
+                <p className="text-sm text-content-muted mt-1">{t("subheading")}</p>
               </div>
             </div>
 
@@ -208,23 +210,23 @@ export default function SearchPage() {
               </button>
               <div className="flex-1 flex items-center justify-between">
                 <p className="text-sm text-content-muted">
-                  {candidates.length} ride{candidates.length !== 1 ? "s" : ""} found
+                  {t("ridesFound", { count: candidates.length })}
                 </p>
                 <button
                   type="button"
                   onClick={handleNewSearch}
                   className="text-sm text-brand-primary font-medium"
                 >
-                  New search
+                  {t("newSearch")}
                 </button>
               </div>
             </div>
 
             {candidates.length === 0 ? (
               <div className="py-12 text-center space-y-2">
-                <p className="text-content-primary font-medium">No rides found</p>
+                <p className="text-content-primary font-medium">{t("noRidesFoundTitle")}</p>
                 <p className="text-sm text-content-muted">
-                  No rides match your route and time. Try adjusting your departure time.
+                  {t("noRidesFoundBody")}
                 </p>
               </div>
             ) : (

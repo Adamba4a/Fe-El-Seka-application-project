@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -87,6 +88,7 @@ export default function PassengerRideDetailPage() {
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const t = useTranslations("passenger.rideDetail");
 
   // No origin/dest in the URL yet → this is a bare dashboard-card click, show
   // the lightweight preview instead of the full pickup/dropoff match view.
@@ -121,7 +123,7 @@ export default function PassengerRideDetailPage() {
           });
 
           if (res.status === 410 || res.status === 404) { setGone(true); return; }
-          if (!res.ok) { setError("Failed to load ride details."); return; }
+          if (!res.ok) { setError(t("errors.loadFailed")); return; }
 
           const json = await res.json();
           setPreview(json.ride);
@@ -141,12 +143,12 @@ export default function PassengerRideDetailPage() {
         });
 
         if (res.status === 410) { setGone(true); return; }
-        if (!res.ok) { setError("Failed to load ride details."); return; }
+        if (!res.ok) { setError(t("errors.loadFailed")); return; }
 
         const json: DetailResponse = await res.json();
         setDetail(json);
       } catch {
-        setError("Network error — please check your connection.");
+        setError(t("errors.network"));
       } finally {
         setLoading(false);
       }
@@ -165,13 +167,13 @@ export default function PassengerRideDetailPage() {
   if (gone) {
     return (
       <div className="py-16 text-center space-y-3">
-        <p className="text-lg font-semibold text-content-primary">Ride no longer available</p>
-        <p className="text-sm text-content-muted">This ride has been cancelled or completed.</p>
+        <p className="text-lg font-semibold text-content-primary">{t("rideNoLongerAvailableTitle")}</p>
+        <p className="text-sm text-content-muted">{t("rideNoLongerAvailableBody")}</p>
         <button
           onClick={() => router.push("/search")}
           className="text-sm text-brand-primary font-medium"
         >
-          Search for another ride
+          {t("searchAnotherRide")}
         </button>
       </div>
     );
@@ -181,7 +183,7 @@ export default function PassengerRideDetailPage() {
     if (error || !preview) {
       return (
         <div className="py-16 text-center">
-          <p className="text-sm text-content-destructive">{error ?? "Something went wrong."}</p>
+          <p className="text-sm text-content-destructive">{error ?? t("errors.somethingWrong")}</p>
         </div>
       );
     }
@@ -195,14 +197,14 @@ export default function PassengerRideDetailPage() {
           onClick={() => router.push("/dashboard")}
           className="text-content-muted hover:text-content-secondary text-sm"
         >
-          ← Back
+          {t("back")}
         </button>
 
         <div className="flex items-center gap-3 p-4 bg-surface-card border border-border-default rounded-xl">
           {preview.driver.avatar_url ? (
             <img
               src={preview.driver.avatar_url}
-              alt={preview.driver.display_name ?? "Driver"}
+              alt={preview.driver.display_name ?? t("driver")}
               className="w-12 h-12 rounded-full object-cover shrink-0"
             />
           ) : (
@@ -212,11 +214,11 @@ export default function PassengerRideDetailPage() {
           )}
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-content-primary truncate">
-              {preview.driver.display_name ?? "Driver"}
+              {preview.driver.display_name ?? t("driver")}
             </p>
             <div className="flex items-center gap-2">
               {preview.driver.is_verified && (
-                <span className="text-xs text-green-600 font-medium">Verified driver</span>
+                <span className="text-xs text-green-600 font-medium">{t("verifiedDriver")}</span>
               )}
               <RatingBadge ratingAvg={preview.driver.rating_avg} ratingCount={preview.driver.rating_count} />
             </div>
@@ -225,7 +227,7 @@ export default function PassengerRideDetailPage() {
             href={`/users/${preview.driver.id}`}
             className="shrink-0 text-xs text-brand-primary hover:underline"
           >
-            View Profile
+            {t("viewProfile")}
           </Link>
         </div>
 
@@ -239,29 +241,29 @@ export default function PassengerRideDetailPage() {
 
         <div className="space-y-2 text-sm">
           <div className="flex justify-between text-content-secondary">
-            <span>Route</span>
+            <span>{t("route")}</span>
             <span className="font-medium text-content-primary text-right">
               {preview.origin_address} → {preview.destination_address}
             </span>
           </div>
           <div className="flex justify-between text-content-secondary">
-            <span>Departure</span>
+            <span>{t("departure")}</span>
             <span className="font-medium text-content-primary">{formatDeparture(preview.departure_datetime)}</span>
           </div>
           {preview.route_duration_minutes != null && (
             <div className="flex justify-between text-content-secondary">
-              <span>Ride time</span>
+              <span>{t("rideTime")}</span>
               <span className="font-medium text-content-primary">{preview.route_duration_minutes} min</span>
             </div>
           )}
           <div className="flex justify-between text-content-secondary">
-            <span>Available seats</span>
+            <span>{t("availableSeats")}</span>
             <span className={`font-medium ${noSeats ? "text-content-destructive" : "text-content-primary"}`}>
-              {noSeats ? "Full" : preview.available_seats}
+              {noSeats ? t("full") : preview.available_seats}
             </span>
           </div>
           <div className="flex justify-between text-content-secondary">
-            <span>Price per seat</span>
+            <span>{t("pricePerSeat")}</span>
             <span className="font-medium text-content-primary">EGP {preview.per_seat_price}</span>
           </div>
         </div>
@@ -275,7 +277,7 @@ export default function PassengerRideDetailPage() {
           }}
           className="w-full bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-colors"
         >
-          {noSeats ? "No Seats Available" : "Book Seat"}
+          {noSeats ? t("noSeatsAvailable") : t("bookSeat")}
         </button>
       </div>
     );
@@ -284,7 +286,7 @@ export default function PassengerRideDetailPage() {
   if (error || !detail) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm text-content-destructive">{error ?? "Something went wrong."}</p>
+        <p className="text-sm text-content-destructive">{error ?? t("errors.somethingWrong")}</p>
       </div>
     );
   }
@@ -348,14 +350,14 @@ export default function PassengerRideDetailPage() {
       if (res.status === 409) {
         setBookingError(
           json.error === "duplicate_booking"
-            ? "You already have a booking for this ride."
-            : "No seats available — this ride just filled up."
+            ? t("errors.duplicateBooking")
+            : t("errors.noSeats")
         );
       } else {
-        setBookingError(json.message ?? "Booking failed. Please try again.");
+        setBookingError(json.message ?? t("errors.bookingFailed"));
       }
     } catch {
-      setBookingError("Network error — please try again.");
+      setBookingError(t("errors.networkBooking"));
     } finally {
       setBookingLoading(false);
     }
@@ -368,7 +370,7 @@ export default function PassengerRideDetailPage() {
         onClick={() => router.back()}
         className="text-content-muted hover:text-content-secondary text-sm"
       >
-        ← Back to results
+        {t("backToResults")}
       </button>
 
       {/* Driver card */}
@@ -376,7 +378,7 @@ export default function PassengerRideDetailPage() {
         {ride.driver.avatar_url ? (
           <img
             src={ride.driver.avatar_url}
-            alt={ride.driver.display_name ?? "Driver"}
+            alt={ride.driver.display_name ?? t("driver")}
             className="w-12 h-12 rounded-full object-cover shrink-0"
           />
         ) : (
@@ -386,11 +388,11 @@ export default function PassengerRideDetailPage() {
         )}
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-content-primary truncate">
-            {ride.driver.display_name ?? "Driver"}
+            {ride.driver.display_name ?? t("driver")}
           </p>
           <div className="flex items-center gap-2">
             {ride.driver.is_verified && (
-              <span className="text-xs text-green-600 font-medium">Verified driver</span>
+              <span className="text-xs text-green-600 font-medium">{t("verifiedDriver")}</span>
             )}
             <RatingBadge ratingAvg={ride.driver.rating_avg} ratingCount={ride.driver.rating_count} />
           </div>
@@ -399,7 +401,7 @@ export default function PassengerRideDetailPage() {
           href={`/users/${ride.driver.id}`}
           className="shrink-0 text-xs text-brand-primary hover:underline"
         >
-          View Profile
+          {t("viewProfile")}
         </Link>
       </div>
 
@@ -419,31 +421,31 @@ export default function PassengerRideDetailPage() {
       {/* Ride info */}
       <div className="space-y-2 text-sm">
         <div className="flex justify-between text-content-secondary">
-          <span>Departure</span>
+          <span>{t("departure")}</span>
           <span className="font-medium text-content-primary">{formatDeparture(ride.departure_datetime)}</span>
         </div>
         {ctx.estimated_travel_minutes && (
           <div className="flex justify-between text-content-secondary">
-            <span>Estimated ride time</span>
+            <span>{t("estimatedRideTime")}</span>
             <span className="font-medium text-content-primary">{ctx.estimated_travel_minutes} min</span>
           </div>
         )}
         <div className="flex justify-between text-content-secondary">
-          <span>Walk to pickup</span>
+          <span>{t("walkToPickup")}</span>
           <span className="font-medium text-content-primary">{ctx.pickup_walk_meters}m</span>
         </div>
         <div className="flex justify-between text-content-secondary">
-          <span>Walk from dropoff</span>
+          <span>{t("walkFromDropoff")}</span>
           <span className="font-medium text-content-primary">{ctx.dropoff_walk_meters}m</span>
         </div>
         <div className="flex justify-between text-content-secondary">
-          <span>Available seats</span>
+          <span>{t("availableSeats")}</span>
           <span className={`font-medium ${noSeats ? "text-content-destructive" : "text-content-primary"}`}>
-            {noSeats ? "Full" : ride.available_seats}
+            {noSeats ? t("full") : ride.available_seats}
           </span>
         </div>
         <div className="flex justify-between text-content-secondary">
-          <span>Base price</span>
+          <span>{t("basePrice")}</span>
           <span className="font-medium text-content-primary">EGP {ride.per_seat_price}</span>
         </div>
       </div>
@@ -451,7 +453,7 @@ export default function PassengerRideDetailPage() {
       {/* Premium options */}
       {hasPremium && (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-content-primary">Pickup / Dropoff Option</p>
+          <p className="text-sm font-medium text-content-primary">{t("pickupDropoffOption")}</p>
 
           <button
             type="button"
@@ -462,7 +464,7 @@ export default function PassengerRideDetailPage() {
                 : "border-border-default bg-surface-card"
             }`}
           >
-            <span className="font-medium text-content-primary">Standard</span>
+            <span className="font-medium text-content-primary">{t("standard")}</span>
             <span className="text-content-muted">EGP {ride.per_seat_price}</span>
           </button>
 
