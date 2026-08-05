@@ -16,56 +16,86 @@ logger = logging.getLogger(__name__)
 
 _app: Optional[firebase_admin.App] = None
 
-_NOTIFICATION_TEMPLATES: dict[str, tuple[str, str]] = {
-    "booking_received": (
-        "New Booking Request",
-        "A passenger wants to join your ride.",
-    ),
-    "booking_reminder": (
-        "Pending Booking Request",
-        "You have a pending booking request waiting for your response.",
-    ),
-    "booking_confirmed": (
-        "Booking Confirmed",
-        "Your ride booking has been confirmed!",
-    ),
-    "booking_rejected": (
-        "Booking Not Accepted",
-        "Your booking request was not accepted.",
-    ),
-    "booking_cancelled": (
-        "Booking Cancelled",
-        "A booking on your ride has been cancelled.",
-    ),
-    "booking_expired": (
-        "Booking Expired",
-        "Your booking request has expired.",
-    ),
-    "ride_cancelled": (
-        "Ride Cancelled",
-        "Your upcoming ride has been cancelled.",
-    ),
-    "ride_started": (
-        "Ride Started",
-        "Your driver has started the ride. Track their location now.",
-    ),
-    "ride_completed": (
-        "Ride Completed",
-        "Your ride is complete. Thank you for using Triplyy!",
-    ),
-    "rating_prompt": (
-        "Rate Your Ride",
-        "How was your ride? Tap to leave a rating.",
-    ),
-    "moderation_outcome": (
-        "Account Notice",
-        "An admin has reviewed a report involving your account.",
-    ),
-    "moderation_reinstated": (
-        "Account Reinstated",
-        "Your account has been reinstated. You can resume booking and driving.",
-    ),
+_NOTIFICATION_TEMPLATES: dict[str, dict[str, tuple[str, str]]] = {
+    "booking_received": {
+        "en": ("New Booking Request", "A passenger wants to join your ride."),
+        "ar": ("طلب حجز جديد", "يريد أحد الركاب الانضمام إلى رحلتك."),
+    },
+    "booking_reminder": {
+        "en": (
+            "Pending Booking Request",
+            "You have a pending booking request waiting for your response.",
+        ),
+        "ar": ("طلب حجز معلّق", "لديك طلب حجز بانتظار ردك."),
+    },
+    "booking_confirmed": {
+        "en": ("Booking Confirmed", "Your ride booking has been confirmed!"),
+        "ar": ("تم تأكيد الحجز", "تم تأكيد حجز رحلتك!"),
+    },
+    "booking_rejected": {
+        "en": ("Booking Not Accepted", "Your booking request was not accepted."),
+        "ar": ("لم يتم قبول الحجز", "لم يتم قبول طلب حجزك."),
+    },
+    "booking_cancelled": {
+        "en": ("Booking Cancelled", "A booking on your ride has been cancelled."),
+        "ar": ("تم إلغاء الحجز", "تم إلغاء أحد الحجوزات في رحلتك."),
+    },
+    "booking_expired": {
+        "en": ("Booking Expired", "Your booking request has expired."),
+        "ar": ("انتهت صلاحية الحجز", "انتهت صلاحية طلب حجزك."),
+    },
+    "ride_cancelled": {
+        "en": ("Ride Cancelled", "Your upcoming ride has been cancelled."),
+        "ar": ("تم إلغاء الرحلة", "تم إلغاء رحلتك القادمة."),
+    },
+    "ride_started": {
+        "en": (
+            "Ride Started",
+            "Your driver has started the ride. Track their location now.",
+        ),
+        "ar": ("بدأت الرحلة", "بدأ السائق الرحلة. تتبّع موقعه الآن."),
+    },
+    "ride_completed": {
+        "en": ("Ride Completed", "Your ride is complete. Thank you for using Triplyy!"),
+        "ar": ("اكتملت الرحلة", "اكتملت رحلتك. شكراً لاستخدامك Triplyy!"),
+    },
+    "rating_prompt": {
+        "en": ("Rate Your Ride", "How was your ride? Tap to leave a rating."),
+        "ar": ("قيّم رحلتك", "كيف كانت رحلتك؟ اضغط لترك تقييم."),
+    },
+    "moderation_outcome": {
+        "en": ("Account Notice", "An admin has reviewed a report involving your account."),
+        "ar": ("إشعار بخصوص حسابك", "قام أحد المشرفين بمراجعة بلاغ يخص حسابك."),
+    },
+    "moderation_reinstated": {
+        "en": (
+            "Account Reinstated",
+            "Your account has been reinstated. You can resume booking and driving.",
+        ),
+        "ar": (
+            "تمت إعادة تفعيل الحساب",
+            "تمت إعادة تفعيل حسابك. يمكنك الآن استئناف الحجز والقيادة.",
+        ),
+    },
 }
+
+# Locale-aware fallback for event types with no entry above (mirrors the FR-011
+# fallback-to-English principle applied to notification content).
+_DEFAULT_TEMPLATE: dict[str, tuple[str, str]] = {
+    "en": ("Triplyy", "You have a new notification."),
+    "ar": ("Triplyy", "لديك إشعار جديد."),
+}
+
+def _select_template(event_type: str, locale: str | None) -> tuple[str, str]:
+    """Resolve (title, body) for an event_type/locale pair, defaulting to English.
+
+    Extracted as a pure function (mirrors this module's convention of pure
+    helpers being unit-testable without a DB/Firebase connection) so the
+    NULL-preference fallback is testable in isolation.
+    """
+    resolved_locale = locale or "en"
+    return _NOTIFICATION_TEMPLATES.get(event_type, _DEFAULT_TEMPLATE)[resolved_locale]
+
 
 # FCM error codes that mark a token as permanently invalid (should be deregistered)
 _INVALID_TOKEN_CODES = frozenset({
@@ -125,10 +155,13 @@ async def send_push_notifications(
     tokens = [r["token"] for r in rows]
     token_to_id: dict[str, uuid.UUID] = {r["token"]: r["id"] for r in rows}
 
-    title, body = _NOTIFICATION_TEMPLATES.get(
-        event_type,
-        ("Triplyy", "You have a new notification."),
+    profile_row = await conn.fetchrow(
+        "SELECT language_preference FROM profiles WHERE id = $1",
+        recipient_user_id,
     )
+    locale = profile_row["language_preference"] if profile_row else None
+
+    title, body = _select_template(event_type, locale)
 
     multicast_msg = messaging.MulticastMessage(
         tokens=tokens,

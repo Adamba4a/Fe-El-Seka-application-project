@@ -108,22 +108,24 @@ Arabic/RTL with no leftover English strings, per `quickstart.md` Scenario 1.
       (depends on T018 — same files)
 - [ ] T020 [US1] Wire `useTranslations()`/`getTranslations()` calls into every screen/component
       covered by T016–T019, replacing hardcoded English strings (depends on T019)
-- [ ] T021 [P] [US1] Audit `packages/ui/src/components` for RTL: replace physical left/right Tailwind
+- [X] T021 [P] [US1] Audit `packages/ui/src/components` for RTL: replace physical left/right Tailwind
       classes with `rtl:`/`ltr:` logical variants; ensure flexible/responsive sizing (FR-015) instead
-      of fixed widths that could overflow with longer Arabic text
+      of fixed widths that could overflow with longer Arabic text — audited `button.tsx`/`input.tsx`:
+      neither has physical-direction classes or fixed widths (both already use `w-full`/flex sizing),
+      no changes needed
 - [ ] T022 [US1] Audit `apps/main` route-group layouts/pages for RTL: navigation order, form
       alignment, directional icons (back/forward arrows) per FR-003 (depends on T020, T021)
 - [ ] T023 [P] [US1] Add a `LanguageSection` toggle to
       `apps/main/src/app/(app)/settings/profile/ProfileEditor.tsx`, calling `updateMe()` with
       `language_preference` (depends on T009, T015 — both already complete from Foundational)
-- [ ] T024 [P] [US1] Restructure `_NOTIFICATION_TEMPLATES` in
+- [X] T024 [P] [US1] Restructure `_NOTIFICATION_TEMPLATES` in
       `services/api/app/services/fcm_service.py` from `dict[str, tuple[str, str]]` to
       `dict[str, dict[str, tuple[str, str]]]`, adding `"ar"` entries for all ~12 existing event types
       plus the unknown-event fallback, per `contracts/notification-localization.md`
-- [ ] T025 [US1] Update `send_push_notifications()` in `fcm_service.py` to look up the recipient's
+- [X] T025 [US1] Update `send_push_notifications()` in `fcm_service.py` to look up the recipient's
       `profiles.language_preference` (default `"en"` on `NULL`) and select the matching locale's
       template (depends on T024)
-- [ ] T026 [US1] Add/extend `services/api/tests/unit/test_fcm_service.py` — assert every event_type
+- [X] T026 [US1] Add/extend `services/api/tests/unit/test_fcm_service.py` — assert every event_type
       has both `en`/`ar` entries, assert a `NULL` preference falls back to `en` (depends on T025)
 
 **Checkpoint**: User Story 1 fully functional and testable independently —
