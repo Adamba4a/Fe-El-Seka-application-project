@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 function DashboardIcon() {
@@ -55,26 +56,27 @@ function TripsIcon() {
 
 interface NavItem {
   href: string;
-  label: string;
+  labelKey: "dashboard" | "myRides" | "earnings" | "profile" | "findARide" | "myTrips";
   icon: ReactNode;
 }
 
 const DRIVER_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: <DashboardIcon /> },
-  { href: "/rides", label: "My Rides", icon: <CarIcon /> },
-  { href: "/wallet", label: "Earnings", icon: <WalletIcon /> },
-  { href: "/settings/profile", label: "Profile", icon: <ProfileIcon /> },
+  { href: "/dashboard", labelKey: "dashboard", icon: <DashboardIcon /> },
+  { href: "/rides", labelKey: "myRides", icon: <CarIcon /> },
+  { href: "/wallet", labelKey: "earnings", icon: <WalletIcon /> },
+  { href: "/settings/profile", labelKey: "profile", icon: <ProfileIcon /> },
 ];
 
 const PASSENGER_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: <DashboardIcon /> },
-  { href: "/search", label: "Find a Ride", icon: <SearchIcon /> },
-  { href: "/bookings", label: "My Trips", icon: <TripsIcon /> },
-  { href: "/settings/profile", label: "Profile", icon: <ProfileIcon /> },
+  { href: "/dashboard", labelKey: "dashboard", icon: <DashboardIcon /> },
+  { href: "/search", labelKey: "findARide", icon: <SearchIcon /> },
+  { href: "/bookings", labelKey: "myTrips", icon: <TripsIcon /> },
+  { href: "/settings/profile", labelKey: "profile", icon: <ProfileIcon /> },
 ];
 
 export function BottomNav({ variant }: { variant: "driver" | "passenger" }) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   const items = variant === "driver" ? DRIVER_ITEMS : PASSENGER_ITEMS;
 
   return (
@@ -91,7 +93,7 @@ export function BottomNav({ variant }: { variant: "driver" | "passenger" }) {
               }`}
             >
               {item.icon}
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           );
         })}

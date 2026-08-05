@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useSession } from "@/lib/auth/hooks";
 import { getMe } from "@/lib/api/profiles";
 import type { Profile } from "@fe-el-seka/shared";
@@ -15,6 +16,7 @@ interface AppShellProps {
 export function AppShell({ variant, children }: AppShellProps) {
   const session = useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const t = useTranslations("nav");
 
   useEffect(() => {
     if (!session?.access_token) return;
@@ -23,7 +25,8 @@ export function AppShell({ variant, children }: AppShellProps) {
       .catch(() => {});
   }, [session]);
 
-  const userName = profile?.display_name ?? (variant === "driver" ? "Driver" : "Passenger");
+  const userName =
+    profile?.display_name ?? (variant === "driver" ? t("defaultDriverName") : t("defaultPassengerName"));
 
   return (
     <div className="min-h-screen bg-dash-bg">

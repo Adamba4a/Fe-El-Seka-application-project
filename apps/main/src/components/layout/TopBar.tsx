@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 function initials(name: string): string {
   return name
@@ -78,6 +79,8 @@ interface TopBarProps {
 }
 
 export function TopBar({ variant, userName, avatarUrl, notificationCount = 0 }: TopBarProps) {
+  const t = useTranslations("nav");
+  const tc = useTranslations("common");
   return (
     <header className="bg-dash-bg sticky top-0 z-10 px-4 pt-4 pb-3">
       <div className="max-w-2xl mx-auto flex items-center justify-between">
@@ -88,27 +91,27 @@ export function TopBar({ variant, userName, avatarUrl, notificationCount = 0 }: 
               <p className="text-dash-navy font-semibold leading-tight">{userName}</p>
               <p className="text-[11px] font-semibold tracking-wide text-dash-primary flex items-center gap-1 mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-dash-primary inline-block" />
-                VERIFIED DRIVER
+                {t("verifiedDriver")}
               </p>
             </div>
           </div>
         ) : (
-          <span className="text-2xl font-bold text-dash-navy">Triplyy</span>
+          <span className="text-2xl font-bold text-dash-navy">{tc("appName")}</span>
         )}
 
         <div className="flex items-center gap-4">
-          <button aria-label="Notifications" className="relative text-dash-navy">
+          <button aria-label={t("notificationsAriaLabel")} className="relative text-dash-navy">
             <BellIcon />
             {notificationCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500" />
             )}
           </button>
           {variant === "driver" ? (
-            <Link href="/settings/profile" aria-label="Settings" className="text-dash-navy">
+            <Link href="/settings/profile" aria-label={t("settingsAriaLabel")} className="text-dash-navy">
               <GearIcon />
             </Link>
           ) : (
-            <Link href="/settings/profile" aria-label="Profile">
+            <Link href="/settings/profile" aria-label={t("profileAriaLabel")}>
               <Avatar url={avatarUrl} name={userName} size="sm" />
             </Link>
           )}
