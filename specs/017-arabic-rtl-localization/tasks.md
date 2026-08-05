@@ -106,7 +106,7 @@ Arabic/RTL with no leftover English strings, per `quickstart.md` Scenario 1.
 - [X] T019 [US1] Populate `apps/main/messages/en.json` + `ar.json` for the `(app)` route group:
       `settings/profile`, `settings/session`, `ratings`, `users/[userId]`, `dashboard` screens
       (depends on T018 — same files)
-- [ ] T020 [US1] Wire `useTranslations()`/`getTranslations()` calls into every screen/component
+- [X] T020 [US1] Wire `useTranslations()`/`getTranslations()` calls into every screen/component
       covered by T016–T019, replacing hardcoded English strings (depends on T019)
 - [X] T021 [P] [US1] Audit `packages/ui/src/components` for RTL: replace physical left/right Tailwind
       classes with `rtl:`/`ltr:` logical variants; ensure flexible/responsive sizing (FR-015) instead
