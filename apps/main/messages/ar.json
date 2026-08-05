@@ -428,13 +428,121 @@
     }
   },
   "settings": {
-    "title": "الإعدادات"
+    "title": "الإعدادات",
+    "profile": {
+      "sessionExpired": "انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.",
+      "loadFailedPrefix": "تعذّر تحميل الملف الشخصي ({status}): {body}",
+      "unexpectedErrorPrefix": "خطأ غير متوقع: {error}",
+      "heading": "الملف الشخصي",
+      "couldNotLoad": "تعذّر تحميل الملف الشخصي",
+      "error": {
+        "heading": "تعديل الملف الشخصي",
+        "body": "حدث خطأ ما أثناء تحميل ملفك الشخصي.",
+        "tryAgain": "أعد المحاولة",
+        "goHome": "الذهاب إلى الرئيسية"
+      },
+      "password": {
+        "heading": "كلمة المرور",
+        "newPasswordLabel": "كلمة المرور الجديدة",
+        "confirmPasswordLabel": "تأكيد كلمة المرور",
+        "tooShort": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل",
+        "mismatch": "كلمتا المرور غير متطابقتين",
+        "genericError": "تعذّر تحديث كلمة المرور. يرجى المحاولة مرة أخرى.",
+        "saved": "تم تحديث كلمة المرور!",
+        "updatePassword": "تحديث كلمة المرور"
+      },
+      "editor": {
+        "heading": "تعديل الملف الشخصي",
+        "saved": "تم حفظ الملف الشخصي!",
+        "saveChanges": "احفظ التغييرات",
+        "signOut": "تسجيل الخروج",
+        "rating": {
+          "label": "التقييم",
+          "notRatedYet": "لم يتم التقييم بعد",
+          "count": "{count, plural, one {تقييم واحد} other {# تقييم}}"
+        },
+        "vehicle": {
+          "heading": "المركبة",
+          "plateLabel": "اللوحة",
+          "makeLabel": "الشركة المصنعة",
+          "modelLabel": "الطراز",
+          "yearLabel": "سنة الصنع",
+          "colorLabel": "اللون",
+          "seatsLabel": "المقاعد (بدون السائق)",
+          "pendingReviewNotice": "تغيير التسجيل قيد المراجعة",
+          "pendingPlate": "اللوحة: {value}",
+          "pendingMake": "الشركة المصنعة: {value}",
+          "pendingModel": "الطراز: {value}",
+          "pendingYear": "سنة الصنع: {value}",
+          "changeStructural": "تغيير رقم اللوحة / الشركة / الطراز / سنة الصنع (يتطلب مراجعة)",
+          "reviewRequiredNotice": "تتطلب التغييرات على رقم اللوحة أو الشركة المصنعة أو الطراز أو سنة الصنع مراجعة إدارية قبل السريان.",
+          "plateNumberLabel": "رقم اللوحة",
+          "submitForReview": "إرسال للمراجعة",
+          "submitting": "جارٍ الإرسال…",
+          "errors": {
+            "saveFailed": "فشل الحفظ.",
+            "submitFailed": "فشل إرسال الطلب."
+          }
+        }
+      }
+    }
   },
   "ratings": {
-    "title": "التقييمات"
+    "title": "التقييمات",
+    "summary": {
+      "heading": "تقييمي",
+      "commentsLabel": "التعليقات",
+      "noComments": "لا توجد تعليقات بعد.",
+      "countLabel": "{count, plural, one {تقييم واحد} other {# تقييم}}",
+      "loadFailed": "فشل تحميل ملخص التقييم"
+    },
+    "rateReport": {
+      "heading": "قيّم وأبلغ",
+      "notCompletedNotice": "سيتوفر التقييم والإبلاغ بمجرد اكتمال هذه الرحلة.",
+      "ratePrefix": "قيّم {name}",
+      "defaultOtherPartyPassenger": "راكبك",
+      "defaultOtherPartyDriver": "سائقك",
+      "thanksMessage": "شكرًا على تقييمك!",
+      "revealedNote": "قام الطرفان الآن بالتقييم — أصبحت التعليقات مرئية على الملفات الشخصية.",
+      "notRevealedNote": "سيظهر تعليقك بمجرد تقييم الطرف الآخر أيضًا، أو بعد 14 يومًا.",
+      "alreadyRated": "لقد قمت بتقييم هذه الرحلة بالفعل.",
+      "starAriaLabel": "{count, plural, one {نجمة واحدة} other {# نجوم}}",
+      "commentPlaceholder": "تعليق اختياري (بحد أقصى 500 حرف)",
+      "charCount500": "{count}/500",
+      "submitRating": "إرسال التقييم",
+      "reportHeading": "الإبلاغ عن مشكلة تتعلق بالسلامة",
+      "reportDoneMessage": "تم إرسال بلاغك. سيقوم فريقنا بمراجعته.",
+      "descriptionPlaceholder": "صف ما حدث (مطلوب)",
+      "charCount1000": "{count}/1000",
+      "submitReport": "إرسال البلاغ",
+      "categories": {
+        "unsafeDriving": "قيادة غير آمنة",
+        "harassment": "تحرش",
+        "noShow": "عدم الحضور",
+        "fraudOrScam": "احتيال أو نصب",
+        "vehicleMismatch": "عدم تطابق المركبة",
+        "other": "أخرى"
+      },
+      "errors": {
+        "loadFailed": "فشل تحميل الحجز",
+        "ratingFailed": "فشل إرسال التقييم",
+        "reportFailed": "فشل إرسال البلاغ",
+        "bookingNotFound": "الحجز غير موجود"
+      }
+    }
   },
   "users": {
-    "title": "الملف الشخصي"
+    "title": "الملف الشخصي",
+    "publicProfile": {
+      "heading": "الملف الشخصي",
+      "verifiedPrefix": "{role} موثّق",
+      "totalRidesDriven": "إجمالي الرحلات المُقادة",
+      "totalRidesTaken": "إجمالي الرحلات المأخوذة",
+      "recentRides": "الرحلات الأخيرة",
+      "noCompletedRides": "لا توجد رحلات مكتملة بعد.",
+      "loadFailed": "فشل تحميل الملف الشخصي",
+      "notFound": "الملف الشخصي غير موجود"
+    }
   },
   "dashboard": {
     "title": "لوحة التحكم"
@@ -665,5 +773,18 @@
     "hoursAgo": "منذ {hours} س",
     "daysAgo": "منذ {days} يوم",
     "viewRide": "عرض الرحلة"
+  },
+  "home": {
+    "suspendedMessage": "تم تعليق حسابك. يرجى التواصل مع الدعم.",
+    "signOut": "تسجيل الخروج"
+  },
+  "signout": {
+    "signingOut": "جارٍ تسجيل الخروج…"
+  },
+  "bottomSheet": {
+    "closeAriaLabel": "إغلاق اللوحة"
+  },
+  "ratingBadge": {
+    "new": "جديد"
   }
 }

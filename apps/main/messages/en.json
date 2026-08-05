@@ -428,13 +428,121 @@
     }
   },
   "settings": {
-    "title": "Settings"
+    "title": "Settings",
+    "profile": {
+      "sessionExpired": "Session expired. Please sign in again.",
+      "loadFailedPrefix": "Could not load profile ({status}): {body}",
+      "unexpectedErrorPrefix": "Unexpected error: {error}",
+      "heading": "Profile",
+      "couldNotLoad": "Could not load profile",
+      "error": {
+        "heading": "Edit Profile",
+        "body": "Something went wrong loading your profile.",
+        "tryAgain": "Try again",
+        "goHome": "Go home"
+      },
+      "password": {
+        "heading": "Password",
+        "newPasswordLabel": "New password",
+        "confirmPasswordLabel": "Confirm password",
+        "tooShort": "Password must be at least 8 characters",
+        "mismatch": "Passwords do not match",
+        "genericError": "Could not update password. Please try again.",
+        "saved": "Password updated!",
+        "updatePassword": "Update Password"
+      },
+      "editor": {
+        "heading": "Edit Profile",
+        "saved": "Profile saved!",
+        "saveChanges": "Save Changes",
+        "signOut": "Sign out",
+        "rating": {
+          "label": "Rating",
+          "notRatedYet": "Not rated yet",
+          "count": "{count, plural, one {# rating} other {# ratings}}"
+        },
+        "vehicle": {
+          "heading": "Vehicle",
+          "plateLabel": "Plate",
+          "makeLabel": "Make",
+          "modelLabel": "Model",
+          "yearLabel": "Year",
+          "colorLabel": "Color",
+          "seatsLabel": "Seats (excl. driver)",
+          "pendingReviewNotice": "Registration change pending review",
+          "pendingPlate": "Plate: {value}",
+          "pendingMake": "Make: {value}",
+          "pendingModel": "Model: {value}",
+          "pendingYear": "Year: {value}",
+          "changeStructural": "Change plate / make / model / year (requires review)",
+          "reviewRequiredNotice": "Changes to plate number, make, model, or year require admin review before taking effect.",
+          "plateNumberLabel": "Plate Number",
+          "submitForReview": "Submit for Review",
+          "submitting": "Submitting…",
+          "errors": {
+            "saveFailed": "Failed to save.",
+            "submitFailed": "Failed to submit request."
+          }
+        }
+      }
+    }
   },
   "ratings": {
-    "title": "Ratings"
+    "title": "Ratings",
+    "summary": {
+      "heading": "My Rating",
+      "commentsLabel": "Comments",
+      "noComments": "No comments yet.",
+      "countLabel": "{count, plural, one {# rating} other {# ratings}}",
+      "loadFailed": "Failed to load rating summary"
+    },
+    "rateReport": {
+      "heading": "Rate & Report",
+      "notCompletedNotice": "Rating and reporting will be available once this ride is completed.",
+      "ratePrefix": "Rate {name}",
+      "defaultOtherPartyPassenger": "your passenger",
+      "defaultOtherPartyDriver": "your driver",
+      "thanksMessage": "Thanks for your rating!",
+      "revealedNote": "Both sides have now rated — comments are visible on profiles.",
+      "notRevealedNote": "Your comment will be revealed once the other side also rates, or after 14 days.",
+      "alreadyRated": "You have already rated this ride.",
+      "starAriaLabel": "{count, plural, one {# star} other {# stars}}",
+      "commentPlaceholder": "Optional comment (max 500 characters)",
+      "charCount500": "{count}/500",
+      "submitRating": "Submit Rating",
+      "reportHeading": "Report a safety concern",
+      "reportDoneMessage": "Your report has been submitted. Our team will review it.",
+      "descriptionPlaceholder": "Describe what happened (required)",
+      "charCount1000": "{count}/1000",
+      "submitReport": "Submit Report",
+      "categories": {
+        "unsafeDriving": "Unsafe driving",
+        "harassment": "Harassment",
+        "noShow": "No-show",
+        "fraudOrScam": "Fraud or scam",
+        "vehicleMismatch": "Vehicle mismatch",
+        "other": "Other"
+      },
+      "errors": {
+        "loadFailed": "Failed to load booking",
+        "ratingFailed": "Failed to submit rating",
+        "reportFailed": "Failed to submit report",
+        "bookingNotFound": "Booking not found"
+      }
+    }
   },
   "users": {
-    "title": "Profile"
+    "title": "Profile",
+    "publicProfile": {
+      "heading": "Profile",
+      "verifiedPrefix": "Verified {role}",
+      "totalRidesDriven": "Total rides driven",
+      "totalRidesTaken": "Total rides taken",
+      "recentRides": "Recent rides",
+      "noCompletedRides": "No completed rides yet.",
+      "loadFailed": "Failed to load profile",
+      "notFound": "Profile not found"
+    }
   },
   "dashboard": {
     "title": "Dashboard"
@@ -665,5 +773,18 @@
     "hoursAgo": "{hours}h ago",
     "daysAgo": "{days}d ago",
     "viewRide": "View ride"
+  },
+  "home": {
+    "suspendedMessage": "Your account has been suspended. Please contact support.",
+    "signOut": "Sign out"
+  },
+  "signout": {
+    "signingOut": "Signing out…"
+  },
+  "bottomSheet": {
+    "closeAriaLabel": "Close panel"
+  },
+  "ratingBadge": {
+    "new": "New"
   }
 }
