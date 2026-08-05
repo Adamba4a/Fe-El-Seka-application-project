@@ -144,7 +144,7 @@ per `quickstart.md` Scenario 2 (and Scenario 3 for the rollout prompt).
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Promote the language toggle from Settings-only to an always-accessible control
+- [X] T027 [US2] Promote the language toggle from Settings-only to an always-accessible control
       reachable from any screen (e.g., a persistent nav/header slot in `apps/main/src/app/layout.tsx`
       or a shared nav component) (depends on T023)
 - [ ] T028 [US2] Ensure the toggle updates locale client-side without a full page reload: write the

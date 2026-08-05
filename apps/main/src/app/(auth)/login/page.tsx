@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { requestOtp, signInWithPassword } from "@/lib/api/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
+import { LanguageToggle } from "@/components/layout/LanguageToggle";
 
 function GoogleIcon() {
   return (
@@ -171,7 +172,8 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 bg-[#F3EAD8]">
+    <main className="min-h-screen flex items-center justify-center p-4 bg-[#F3EAD8] relative">
+      <LanguageToggle className="absolute top-4 end-4 text-body-sm font-semibold text-brand-primary bg-surface-card rounded-full px-3 py-1 shadow-sm disabled:opacity-50" />
       <div className="w-full max-w-sm">
         <div className="bg-surface-card rounded-3xl shadow-lg p-8 space-y-6">
           <div className="text-center space-y-1">

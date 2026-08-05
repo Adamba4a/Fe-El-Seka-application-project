@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { LanguageToggle } from "./LanguageToggle";
 
 function initials(name: string): string {
   return name
@@ -100,6 +101,7 @@ export function TopBar({ variant, userName, avatarUrl, notificationCount = 0 }: 
         )}
 
         <div className="flex items-center gap-4">
+          <LanguageToggle />
           <button aria-label={t("notificationsAriaLabel")} className="relative text-dash-navy">
             <BellIcon />
             {notificationCount > 0 && (

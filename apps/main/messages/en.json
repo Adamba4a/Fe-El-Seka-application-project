@@ -569,7 +569,9 @@
     "earnings": "Earnings",
     "profile": "Profile",
     "findARide": "Find a Ride",
-    "myTrips": "My Trips"
+    "myTrips": "My Trips",
+    "switchToEnglish": "Switch to English",
+    "switchToArabic": "التبديل إلى العربية"
   },
   "profileForm": {
     "displayNameLabel": "Display name",

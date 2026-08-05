@@ -569,7 +569,9 @@
     "earnings": "الأرباح",
     "profile": "الملف الشخصي",
     "findARide": "ابحث عن رحلة",
-    "myTrips": "رحلاتي"
+    "myTrips": "رحلاتي",
+    "switchToEnglish": "Switch to English",
+    "switchToArabic": "التبديل إلى العربية"
   },
   "profileForm": {
     "displayNameLabel": "الاسم المعروض",
