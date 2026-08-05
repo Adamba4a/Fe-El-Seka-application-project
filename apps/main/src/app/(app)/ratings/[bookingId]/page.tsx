@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/Spinner";
 import { createClient } from "@/lib/supabase/client";
 
@@ -18,15 +19,6 @@ interface BookingSummary {
   driver_avatar_url?: string;
   already_rated: boolean;
 }
-
-const REPORT_CATEGORIES: { value: string; label: string }[] = [
-  { value: "unsafe_driving", label: "Unsafe driving" },
-  { value: "harassment", label: "Harassment" },
-  { value: "no_show", label: "No-show" },
-  { value: "fraud_or_scam", label: "Fraud or scam" },
-  { value: "vehicle_mismatch", label: "Vehicle mismatch" },
-  { value: "other", label: "Other" },
-];
 
 async function apiFetch(path: string, options?: RequestInit) {
   const supabase = createClient();
@@ -53,9 +45,19 @@ async function apiFetch(path: string, options?: RequestInit) {
 }
 
 export default function RateReportPage() {
+  const t = useTranslations("ratings.rateReport");
   const params = useParams<{ bookingId: string }>();
   const bookingId = params.bookingId;
   const router = useRouter();
+
+  const REPORT_CATEGORIES: { value: string; label: string }[] = [
+    { value: "unsafe_driving", label: t("categories.unsafeDriving") },
+    { value: "harassment", label: t("categories.harassment") },
+    { value: "no_show", label: t("categories.noShow") },
+    { value: "fraud_or_scam", label: t("categories.fraudOrScam") },
+    { value: "vehicle_mismatch", label: t("categories.vehicleMismatch") },
+    { value: "other", label: t("categories.other") },
+  ];
 
   const [booking, setBooking] = useState<BookingSummary | null>(null);
   const [selfId, setSelfId] = useState<string | null>(null);
@@ -85,7 +87,7 @@ export default function RateReportPage() {
         setBooking(data);
         if (data.already_rated) setRatingState("already");
       } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : "Failed to load booking");
+        setError(e instanceof Error ? e.message : t("errors.loadFailed"));
       } finally {
         setLoading(false);
       }
@@ -96,8 +98,8 @@ export default function RateReportPage() {
   const otherPartyId = booking ? (isDriver ? booking.passenger_id : booking.driver_id) : null;
   const otherPartyLabel = booking
     ? isDriver
-      ? booking.passenger_display_name ?? "your passenger"
-      : booking.driver_display_name ?? "your driver"
+      ? booking.passenger_display_name ?? t("defaultOtherPartyPassenger")
+      : booking.driver_display_name ?? t("defaultOtherPartyDriver")
     : "";
 
   async function submitRating() {
@@ -112,7 +114,7 @@ export default function RateReportPage() {
       setRevealed(res.revealed);
       setRatingState("done");
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Failed to submit rating";
+      const msg = e instanceof Error ? e.message : t("errors.ratingFailed");
       if (msg === "You have already rated this booking") {
         setRatingState("already");
       } else {
@@ -139,7 +141,7 @@ export default function RateReportPage() {
       });
       setReportState("done");
     } catch (e: unknown) {
-      setReportError(e instanceof Error ? e.message : "Failed to submit report");
+      setReportError(e instanceof Error ? e.message : t("errors.reportFailed"));
       setReportState("idle");
     }
   }
@@ -155,7 +157,7 @@ export default function RateReportPage() {
   if (error || !booking) {
     return (
       <div className="p-4 text-center text-content-destructive">
-        <p>{error ?? "Booking not found"}</p>
+        <p>{error ?? t("errors.bookingNotFound")}</p>
       </div>
     );
   }
@@ -170,29 +172,27 @@ export default function RateReportPage() {
         >
           ←
         </button>
-        <h1 className="text-xl font-semibold text-content-primary">Rate &amp; Report</h1>
+        <h1 className="text-xl font-semibold text-content-primary">{t("heading")}</h1>
       </div>
 
       {booking.status !== "completed" ? (
         <div className="rounded-xl border border-border-default bg-surface-card p-4 text-sm text-content-muted">
-          Rating and reporting will be available once this ride is completed.
+          {t("notCompletedNotice")}
         </div>
       ) : (
         <>
           {/* Rate the other party */}
           <div className="rounded-xl border border-border-default bg-surface-card">
             <div className="p-4 space-y-3">
-              <p className="font-medium text-content-primary">Rate {otherPartyLabel}</p>
+              <p className="font-medium text-content-primary">{t("ratePrefix", { name: otherPartyLabel })}</p>
 
               {ratingState === "done" ? (
                 <p className="text-sm text-green-700">
-                  Thanks for your rating!{" "}
-                  {revealed
-                    ? "Both sides have now rated — comments are visible on profiles."
-                    : "Your comment will be revealed once the other side also rates, or after 14 days."}
+                  {t("thanksMessage")}{" "}
+                  {revealed ? t("revealedNote") : t("notRevealedNote")}
                 </p>
               ) : ratingState === "already" ? (
-                <p className="text-sm text-content-muted">You have already rated this ride.</p>
+                <p className="text-sm text-content-muted">{t("alreadyRated")}</p>
               ) : (
                 <>
                   <div className="flex gap-1">
@@ -202,7 +202,7 @@ export default function RateReportPage() {
                         type="button"
                         onClick={() => setStars(n)}
                         className={`text-2xl leading-none ${n <= stars ? "text-amber-400" : "text-border-default"}`}
-                        aria-label={`${n} star${n > 1 ? "s" : ""}`}
+                        aria-label={t("starAriaLabel", { count: n })}
                       >
                         ★
                       </button>
@@ -211,11 +211,11 @@ export default function RateReportPage() {
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value.slice(0, 500))}
-                    placeholder="Optional comment (max 500 characters)"
+                    placeholder={t("commentPlaceholder")}
                     rows={3}
                     className="w-full rounded-lg border border-border-default bg-surface-bg p-2 text-sm text-content-primary"
                   />
-                  <p className="text-xs text-content-muted text-right">{comment.length}/500</p>
+                  <p className="text-xs text-content-muted text-right">{t("charCount500", { count: comment.length })}</p>
                   {ratingError && <p className="text-sm text-content-destructive">{ratingError}</p>}
                   <button
                     type="button"
@@ -224,7 +224,7 @@ export default function RateReportPage() {
                     className="w-full rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {ratingState === "submitting" && <Spinner />}
-                    Submit Rating
+                    {t("submitRating")}
                   </button>
                 </>
               )}
@@ -234,10 +234,10 @@ export default function RateReportPage() {
           {/* Report a concern */}
           <div className="rounded-xl border border-border-default bg-surface-card">
             <div className="p-4 space-y-3">
-              <p className="font-medium text-content-primary">Report a safety concern</p>
+              <p className="font-medium text-content-primary">{t("reportHeading")}</p>
 
               {reportState === "done" ? (
-                <p className="text-sm text-green-700">Your report has been submitted. Our team will review it.</p>
+                <p className="text-sm text-green-700">{t("reportDoneMessage")}</p>
               ) : (
                 <>
                   <select
@@ -254,11 +254,11 @@ export default function RateReportPage() {
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value.slice(0, 1000))}
-                    placeholder="Describe what happened (required)"
+                    placeholder={t("descriptionPlaceholder")}
                     rows={4}
                     className="w-full rounded-lg border border-border-default bg-surface-bg p-2 text-sm text-content-primary"
                   />
-                  <p className="text-xs text-content-muted text-right">{description.length}/1000</p>
+                  <p className="text-xs text-content-muted text-right">{t("charCount1000", { count: description.length })}</p>
                   {reportError && <p className="text-sm text-content-destructive">{reportError}</p>}
                   <button
                     type="button"
@@ -267,7 +267,7 @@ export default function RateReportPage() {
                     className="w-full rounded-xl border border-border-default text-content-destructive hover:bg-status-cancelled-bg px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {reportState === "submitting" && <Spinner />}
-                    Submit Report
+                    {t("submitReport")}
                   </button>
                 </>
               )}

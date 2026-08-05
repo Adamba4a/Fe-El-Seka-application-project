@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/Spinner";
 import { createClient } from "@/lib/supabase/client";
 import { getMe } from "@/lib/api/profiles";
@@ -21,6 +22,7 @@ function formatDate(iso: string) {
 }
 
 export default function RatingSummaryPage() {
+  const t = useTranslations("ratings.summary");
   const [summary, setSummary] = useState<RatingSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +43,7 @@ export default function RatingSummaryPage() {
         if (!res.ok) throw new Error("Failed to load rating summary");
         setSummary(await res.json());
       } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : "Failed to load rating summary");
+        setError(e instanceof Error ? e.message : t("loadFailed"));
       } finally {
         setLoading(false);
       }
@@ -59,14 +61,14 @@ export default function RatingSummaryPage() {
   if (error || !summary) {
     return (
       <div className="p-4 text-center text-content-destructive">
-        <p>{error ?? "Failed to load rating summary"}</p>
+        <p>{error ?? t("loadFailed")}</p>
       </div>
     );
   }
 
   return (
     <div className="max-w-md mx-auto space-y-4">
-      <h1 className="text-xl font-semibold text-content-primary">My Rating</h1>
+      <h1 className="text-xl font-semibold text-content-primary">{t("heading")}</h1>
 
       <div className="rounded-xl border border-border-default bg-surface-card">
         <div className="p-4 flex items-center gap-4">
@@ -81,7 +83,7 @@ export default function RatingSummaryPage() {
               </span>
             </p>
             <p className="text-xs text-content-muted mt-1">
-              {summary.rating_count} rating{summary.rating_count === 1 ? "" : "s"}
+              {t("countLabel", { count: summary.rating_count })}
             </p>
           </div>
         </div>
@@ -89,9 +91,9 @@ export default function RatingSummaryPage() {
 
       <div className="rounded-xl border border-border-default bg-surface-card">
         <div className="p-4 space-y-3">
-          <p className="text-sm font-medium text-content-primary">Comments</p>
+          <p className="text-sm font-medium text-content-primary">{t("commentsLabel")}</p>
           {summary.comments.length === 0 ? (
-            <p className="text-sm text-content-muted">No comments yet.</p>
+            <p className="text-sm text-content-muted">{t("noComments")}</p>
           ) : (
             summary.comments.map((c, i) => (
               <div key={i} className="border-t border-border-default first:border-t-0 pt-3 first:pt-0 space-y-1">
