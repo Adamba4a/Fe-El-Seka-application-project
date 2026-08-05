@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import { useTranslations } from "next-intl";
 import { OtpInput } from "@/components/auth/OtpInput";
 import { verifyOtp, requestOtp } from "@/lib/api/auth";
 
 export default function OtpPage() {
+  const t = useTranslations("auth.otp");
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,7 +41,7 @@ export default function OtpPage() {
       });
 
       if (sessionError) {
-        setError(sessionError.message ?? "Could not establish session. Please try again.");
+        setError(sessionError.message ?? t("errors.sessionFailed"));
         return;
       }
 
@@ -48,9 +50,9 @@ export default function OtpPage() {
     } catch (err: unknown) {
       const e = err as { error?: string; message?: string };
       if (e?.error === "otp_expired") {
-        setError("Code has expired. Please request a new one.");
+        setError(t("errors.expired"));
       } else {
-        setError(e?.message ?? "Incorrect code. Please try again.");
+        setError(e?.message ?? t("errors.incorrect"));
       }
     } finally {
       setLoading(false);
@@ -61,7 +63,7 @@ export default function OtpPage() {
     try {
       await requestOtp(email);
     } catch {
-      setError("Could not resend code. Please wait before trying again.");
+      setError(t("errors.resendFailed"));
     }
   };
 
@@ -69,9 +71,12 @@ export default function OtpPage() {
     <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-h2 text-content-primary">Check your email</h1>
+          <h1 className="text-h2 text-content-primary">{t("title")}</h1>
           <p className="text-body-sm text-content-muted mt-1">
-            We sent a 6-digit code to <strong className="text-content-secondary">{email}</strong>
+            {t.rich("subtitle", {
+              email,
+              strong: (chunks) => <strong className="text-content-secondary">{chunks}</strong>,
+            })}
           </p>
         </div>
 

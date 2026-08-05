@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { DocumentUpload } from "@/components/verification/DocumentUpload";
 import { LockoutMessage } from "@/components/verification/LockoutMessage";
 import { submitDocuments, getStatus } from "@/lib/api/verification";
@@ -10,6 +11,7 @@ import { Spinner } from "@/components/ui/Spinner";
 
 export default function DriverVerifyDocumentsPage() {
   const router = useRouter();
+  const t = useTranslations("onboarding.verifyDocuments");
   const [initializing, setInitializing] = useState(true);
   const [frontId, setFrontId] = useState<File | null>(null);
   const [backId, setBackId] = useState<File | null>(null);
@@ -43,7 +45,7 @@ export default function DriverVerifyDocumentsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!frontId || !backId || !license) { setError("Please upload all three documents"); return; }
+    if (!frontId || !backId || !license) { setError(t("errors.allRequired")); return; }
     setLoading(true);
     setError("");
 
@@ -59,7 +61,7 @@ export default function DriverVerifyDocumentsPage() {
       if (e?.error === "submission_locked") {
         setLockout({ message: e.message ?? "", support_email: e.support_email });
       } else {
-        setError(e?.message ?? "Submission failed. Please try again.");
+        setError(e?.message ?? t("errors.submissionFailed"));
       }
     } finally {
       setLoading(false);
@@ -69,7 +71,7 @@ export default function DriverVerifyDocumentsPage() {
   if (initializing) {
     return (
       <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
-        <p className="text-body-sm text-content-muted">Loading…</p>
+        <p className="text-body-sm text-content-muted">{t("loading")}</p>
       </main>
     );
   }
@@ -85,10 +87,10 @@ export default function DriverVerifyDocumentsPage() {
   if (submitted) return (
     <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm text-center space-y-4">
-        <h1 className="text-h3 text-content-primary">Documents submitted</h1>
-        <p className="text-body-sm text-content-muted">We will review your documents. Once approved you can register your vehicle.</p>
+        <h1 className="text-h3 text-content-primary">{t("documentsSubmittedTitle")}</h1>
+        <p className="text-body-sm text-content-muted">{t("documentsSubmittedBody")}</p>
         <button onClick={() => router.push("/")} className="text-body-sm text-brand-primary underline">
-          Go to home
+          {t("goToHome")}
         </button>
       </div>
     </main>
@@ -98,14 +100,14 @@ export default function DriverVerifyDocumentsPage() {
     <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-h3 text-content-primary">Driver Verification</h1>
-          <p className="text-body-sm text-content-muted mt-1">Upload your National ID and Driving License</p>
+          <h1 className="text-h3 text-content-primary">{t("title")}</h1>
+          <p className="text-body-sm text-content-muted mt-1">{t("subtitle")}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <DocumentUpload label="National ID — Front" onFile={setFrontId} required />
-          <DocumentUpload label="National ID — Back" onFile={setBackId} required />
-          <DocumentUpload label="Driving License" onFile={setLicense} required />
+          <DocumentUpload label={t("frontIdLabel")} onFile={setFrontId} required />
+          <DocumentUpload label={t("backIdLabel")} onFile={setBackId} required />
+          <DocumentUpload label={t("licenseLabel")} onFile={setLicense} required />
           {error && <p className="text-caption text-content-destructive">{error}</p>}
           <button
             type="submit"
@@ -113,7 +115,7 @@ export default function DriverVerifyDocumentsPage() {
             className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
           >
             {loading && <Spinner />}
-            {loading ? "Submitting…" : "Submit for Review"}
+            {loading ? t("submitting") : t("submitForReview")}
           </button>
         </form>
       </div>

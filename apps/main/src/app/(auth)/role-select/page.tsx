@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { RoleSelector } from "@/components/auth/RoleSelector";
 import { setupProfile } from "@/lib/api/profiles";
 import { createClient } from "@/lib/supabase/client";
@@ -9,6 +10,7 @@ import { Spinner } from "@/components/ui/Spinner";
 
 export default function RoleSelectPage() {
   const router = useRouter();
+  const t = useTranslations("auth.roleSelect");
   const [role, setRole] = useState<"passenger" | "driver" | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -31,14 +33,14 @@ export default function RoleSelectPage() {
           return;
         }
         const msg = detail?.message ?? (e as { message?: string })?.message;
-        setError(msg ?? "Could not save role. Please try again.");
+        setError(msg ?? t("errors.saveFailed"));
         return;
       }
       // Google users already have provider-managed auth — a local password
       // is optional (available later from Settings), not part of onboarding.
       router.push(session.user.app_metadata?.provider === "google" ? "/profile" : "/set-password");
     } catch {
-      setError("Unexpected error. Please try again.");
+      setError(t("errors.unexpected"));
     } finally {
       setLoading(false);
     }
@@ -48,8 +50,8 @@ export default function RoleSelectPage() {
     <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-h2 text-content-primary">How will you use Triplyy?</h1>
-          <p className="text-body-sm text-content-muted mt-1">This cannot be changed later</p>
+          <h1 className="text-h2 text-content-primary">{t("title")}</h1>
+          <p className="text-body-sm text-content-muted mt-1">{t("subtitle")}</p>
         </div>
 
         <RoleSelector value={role} onChange={setRole} />
@@ -62,7 +64,7 @@ export default function RoleSelectPage() {
           className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
         >
           {loading && <Spinner />}
-          {loading ? "Saving…" : "Continue"}
+          {loading ? t("saving") : t("continue")}
         </button>
       </div>
     </main>

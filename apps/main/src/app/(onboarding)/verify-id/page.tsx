@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { DocumentUpload } from "@/components/verification/DocumentUpload";
 import { LockoutMessage } from "@/components/verification/LockoutMessage";
 import { submitDocuments, getStatus } from "@/lib/api/verification";
@@ -10,6 +11,7 @@ import { Spinner } from "@/components/ui/Spinner";
 
 export default function VerifyIdPage() {
   const router = useRouter();
+  const t = useTranslations("onboarding.verifyId");
   const [initializing, setInitializing] = useState(true);
   const [frontId, setFrontId] = useState<File | null>(null);
   const [backId, setBackId] = useState<File | null>(null);
@@ -42,7 +44,7 @@ export default function VerifyIdPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!frontId || !backId) { setError("Please upload both ID photos"); return; }
+    if (!frontId || !backId) { setError(t("errors.bothRequired")); return; }
     setLoading(true);
     setError("");
 
@@ -58,7 +60,7 @@ export default function VerifyIdPage() {
       if (e?.error === "submission_locked") {
         setLockout({ message: e.message ?? "", support_email: e.support_email });
       } else {
-        setError(e?.message ?? "Submission failed. Please try again.");
+        setError(e?.message ?? t("errors.submissionFailed"));
       }
     } finally {
       setLoading(false);
@@ -68,7 +70,7 @@ export default function VerifyIdPage() {
   if (initializing) {
     return (
       <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
-        <p className="text-body-sm text-content-muted">Loading…</p>
+        <p className="text-body-sm text-content-muted">{t("loading")}</p>
       </main>
     );
   }
@@ -84,10 +86,10 @@ export default function VerifyIdPage() {
   if (submitted) return (
     <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm text-center space-y-4">
-        <h1 className="text-h3 text-content-primary">Documents submitted</h1>
-        <p className="text-body-sm text-content-muted">We will notify you once your identity has been reviewed.</p>
+        <h1 className="text-h3 text-content-primary">{t("documentsSubmittedTitle")}</h1>
+        <p className="text-body-sm text-content-muted">{t("documentsSubmittedBody")}</p>
         <button onClick={() => router.push("/")} className="text-body-sm text-brand-primary underline">
-          Go to home
+          {t("goToHome")}
         </button>
       </div>
     </main>
@@ -97,13 +99,13 @@ export default function VerifyIdPage() {
     <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-h3 text-content-primary">Verify your identity</h1>
-          <p className="text-body-sm text-content-muted mt-1">Upload your Egyptian National ID card</p>
+          <h1 className="text-h3 text-content-primary">{t("title")}</h1>
+          <p className="text-body-sm text-content-muted mt-1">{t("subtitle")}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <DocumentUpload label="National ID — Front" onFile={setFrontId} required />
-          <DocumentUpload label="National ID — Back" onFile={setBackId} required />
+          <DocumentUpload label={t("frontIdLabel")} onFile={setFrontId} required />
+          <DocumentUpload label={t("backIdLabel")} onFile={setBackId} required />
           {error && <p className="text-caption text-content-destructive">{error}</p>}
           <button
             type="submit"
@@ -111,7 +113,7 @@ export default function VerifyIdPage() {
             className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
           >
             {loading && <Spinner />}
-            {loading ? "Submitting…" : "Submit for Review"}
+            {loading ? t("submitting") : t("submitForReview")}
           </button>
         </form>
       </div>

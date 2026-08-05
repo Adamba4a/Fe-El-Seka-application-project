@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { setPassword, signInWithPassword } from "@/lib/api/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
@@ -16,6 +17,7 @@ export default function SetPasswordPage() {
 
 function SetPasswordForm() {
   const router = useRouter();
+  const t = useTranslations("auth.setPassword");
   const isReset = useSearchParams().get("reason") === "reset";
   const [accessToken, setAccessToken] = useState("");
   const [email, setEmail] = useState("");
@@ -39,11 +41,11 @@ function SetPasswordForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setError(t("errors.tooShort"));
       return;
     }
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("errors.mismatch"));
       return;
     }
     setLoading(true);
@@ -63,13 +65,13 @@ function SetPasswordForm() {
         refresh_token: session.refresh_token,
       });
       if (sessionError) {
-        setError(sessionError.message ?? "Password set, but could not sign you back in. Please sign in again.");
+        setError(sessionError.message ?? t("errors.signInFailed"));
         return;
       }
       window.location.replace("/profile");
     } catch (err: unknown) {
       const e = err as { message?: string };
-      setError(e?.message ?? "Could not set password. Please try again.");
+      setError(e?.message ?? t("errors.setFailed"));
     } finally {
       setLoading(false);
     }
@@ -80,18 +82,16 @@ function SetPasswordForm() {
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
           <h1 className="text-h2 text-content-primary">
-            {isReset ? "Reset your password" : "Set a password"}
+            {isReset ? t("titleReset") : t("titleSet")}
           </h1>
           <p className="text-body-sm text-content-muted mt-1">
-            {isReset
-              ? "Choose a new password for your account"
-              : "Skip the code next time by setting a password now"}
+            {isReset ? t("subtitleReset") : t("subtitleSet")}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-col gap-1">
-            <label className="text-label text-content-secondary">Password</label>
+            <label className="text-label text-content-secondary">{t("passwordLabel")}</label>
             <input
               type="password"
               placeholder="••••••••"
@@ -103,7 +103,7 @@ function SetPasswordForm() {
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-label text-content-secondary">Confirm password</label>
+            <label className="text-label text-content-secondary">{t("confirmPasswordLabel")}</label>
             <input
               type="password"
               placeholder="••••••••"
@@ -121,7 +121,7 @@ function SetPasswordForm() {
             className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
           >
             {loading && <Spinner />}
-            {loading ? "Saving…" : isReset ? "Reset Password" : "Set Password"}
+            {loading ? t("saving") : isReset ? t("resetPassword") : t("setPassword")}
           </button>
           {!isReset && (
             <button
@@ -130,7 +130,7 @@ function SetPasswordForm() {
               disabled={loading}
               className="w-full text-center text-body-sm text-content-muted hover:underline"
             >
-              Skip for now
+              {t("skipForNow")}
             </button>
           )}
         </form>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { DocumentUpload } from "@/components/verification/DocumentUpload";
 import { ProfilePhotoUpload } from "@/components/profile/ProfilePhotoUpload";
 import { LockoutMessage } from "@/components/verification/LockoutMessage";
@@ -13,6 +14,8 @@ import type { Role } from "@fe-el-seka/shared";
 
 export default function ProfileOnboardingPage() {
   const router = useRouter();
+  const t = useTranslations("onboarding.profile");
+  const tDoc = useTranslations("onboarding.verifyDocuments");
 
   const [initializing, setInitializing] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -59,15 +62,15 @@ export default function ProfileOnboardingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!displayName.trim() || displayName.trim().length < 2) {
-      setError("Please enter your name (min 2 characters)");
+      setError(t("errors.nameTooShort"));
       return;
     }
     if (!frontId || !backId) {
-      setError("Please upload both sides of your National ID");
+      setError(t("errors.idRequired"));
       return;
     }
     if (role === "driver" && !license) {
-      setError("Please upload your Driving License");
+      setError(t("errors.licenseRequired"));
       return;
     }
 
@@ -93,7 +96,7 @@ export default function ProfileOnboardingPage() {
       if (e?.error === "submission_locked") {
         setLockout({ message: e.message ?? "", support_email: e.support_email });
       } else {
-        setError(e?.message ?? "Submission failed. Please try again.");
+        setError(e?.message ?? t("errors.submissionFailed"));
       }
     } finally {
       setSubmitting(false);
@@ -103,7 +106,7 @@ export default function ProfileOnboardingPage() {
   if (initializing) {
     return (
       <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
-        <p className="text-body-sm text-content-muted">Loading…</p>
+        <p className="text-body-sm text-content-muted">{t("loading")}</p>
       </main>
     );
   }
@@ -122,15 +125,15 @@ export default function ProfileOnboardingPage() {
     return (
       <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
         <div className="w-full max-w-sm text-center space-y-4">
-          <h1 className="text-h3 text-content-primary">Documents submitted</h1>
+          <h1 className="text-h3 text-content-primary">{t("documentsSubmittedTitle")}</h1>
           <p className="text-body-sm text-content-muted">
-            Your identity is under review. We will notify you once a decision is made.
+            {t("documentsSubmittedBody")}
           </p>
           <button
             onClick={() => router.push("/")}
             className="text-body-sm text-brand-primary underline"
           >
-            Go to home
+            {t("goToHome")}
           </button>
         </div>
       </main>
@@ -141,11 +144,9 @@ export default function ProfileOnboardingPage() {
     <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm space-y-6 py-8">
         <div className="text-center">
-          <h1 className="text-h2 text-content-primary">Complete your profile</h1>
+          <h1 className="text-h2 text-content-primary">{t("title")}</h1>
           <p className="text-body-sm text-content-muted mt-1">
-            {verificationStatus === "rejected"
-              ? "Your documents were rejected. Please resubmit."
-              : "Set up your account to get started"}
+            {verificationStatus === "rejected" ? t("subtitleRejected") : t("subtitleDefault")}
           </p>
         </div>
 
@@ -153,24 +154,24 @@ export default function ProfileOnboardingPage() {
           <ProfilePhotoUpload onFile={setPhoto} />
 
           <div className="flex flex-col gap-1">
-            <label className="text-label text-content-secondary">Display name *</label>
+            <label className="text-label text-content-secondary">{t("displayNameLabel")}</label>
             <input
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Your name"
+              placeholder={t("displayNamePlaceholder")}
               className="px-3 py-2 border border-border-default rounded-md text-body-sm outline-none focus:border-border-focus transition-colors"
               maxLength={50}
             />
           </div>
 
           <div className="border-t border-border-default pt-4 space-y-3">
-            <p className="text-label text-content-secondary">Identity verification</p>
-            <p className="text-caption text-content-muted">Upload your Egyptian National ID card</p>
-            <DocumentUpload label="National ID — Front" onFile={setFrontId} required />
-            <DocumentUpload label="National ID — Back" onFile={setBackId} required />
+            <p className="text-label text-content-secondary">{t("identityVerificationLabel")}</p>
+            <p className="text-caption text-content-muted">{t("uploadNationalIdHint")}</p>
+            <DocumentUpload label={tDoc("frontIdLabel")} onFile={setFrontId} required />
+            <DocumentUpload label={tDoc("backIdLabel")} onFile={setBackId} required />
             {role === "driver" && (
-              <DocumentUpload label="Driving License" onFile={setLicense} required />
+              <DocumentUpload label={tDoc("licenseLabel")} onFile={setLicense} required />
             )}
           </div>
 
@@ -182,7 +183,7 @@ export default function ProfileOnboardingPage() {
             className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
           >
             {submitting && <Spinner />}
-            {submitting ? "Submitting…" : "Submit"}
+            {submitting ? t("submitting") : t("submit")}
           </button>
         </form>
       </div>

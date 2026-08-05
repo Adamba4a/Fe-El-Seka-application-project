@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 interface RoleSelectorProps {
   value: "passenger" | "driver" | null;
   onChange: (role: "passenger" | "driver") => void;
@@ -8,19 +10,20 @@ interface RoleSelectorProps {
 const roles = [
   {
     id: "passenger" as const,
-    title: "Passenger",
-    description: "Find and join rides that match your route",
+    titleKey: "passengerTitle" as const,
+    descriptionKey: "passengerDescription" as const,
     icon: "🧑‍💼",
   },
   {
     id: "driver" as const,
-    title: "Driver",
-    description: "Post your existing routes and share rides",
+    titleKey: "driverTitle" as const,
+    descriptionKey: "driverDescription" as const,
     icon: "🚗",
   },
 ];
 
 export function RoleSelector({ value, onChange }: RoleSelectorProps) {
+  const t = useTranslations("auth.roleSelect");
   return (
     <div className="grid grid-cols-1 gap-3">
       {roles.map((role) => (
@@ -36,8 +39,8 @@ export function RoleSelector({ value, onChange }: RoleSelectorProps) {
         >
           <span className="text-3xl">{role.icon}</span>
           <div>
-            <p className="text-h3 text-content-primary">{role.title}</p>
-            <p className="text-body-sm text-content-muted mt-0.5">{role.description}</p>
+            <p className="text-h3 text-content-primary">{t(role.titleKey)}</p>
+            <p className="text-body-sm text-content-muted mt-0.5">{t(role.descriptionKey)}</p>
           </div>
         </button>
       ))}

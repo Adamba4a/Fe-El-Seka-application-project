@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { requestOtp, signInWithPassword } from "@/lib/api/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
@@ -54,6 +55,7 @@ function LockIcon({ className }: { className?: string }) {
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useTranslations("auth.login");
   const [mode, setMode] = useState<"password" | "code">("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -69,7 +71,7 @@ export default function LoginPage() {
   const handleCodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValidEmail) {
-      setError("Enter a valid email address");
+      setError(t("errors.invalidEmail"));
       return;
     }
     setLoading(true);
@@ -81,9 +83,9 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const e = err as { error?: string; message?: string };
       if (e?.error === "otp_rate_limited") {
-        setError("Too many requests. Please wait 15 minutes before trying again.");
+        setError(t("errors.otpRateLimited"));
       } else {
-        setError(e?.message ?? "Failed to send code. Please try again.");
+        setError(e?.message ?? t("errors.sendCodeFailed"));
       }
     } finally {
       setLoading(false);
@@ -93,7 +95,7 @@ export default function LoginPage() {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValidEmail) {
-      setError("Enter a valid email address");
+      setError(t("errors.invalidEmail"));
       return;
     }
     setLoading(true);
@@ -108,7 +110,7 @@ export default function LoginPage() {
       });
 
       if (sessionError) {
-        setError(sessionError.message ?? "Could not establish session. Please try again.");
+        setError(sessionError.message ?? t("errors.sessionFailed"));
         return;
       }
 
@@ -116,9 +118,9 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const e = err as { error?: string; message?: string };
       if (e?.error === "invalid_credentials") {
-        setError("Incorrect email or password.");
+        setError(t("errors.invalidCredentials"));
       } else {
-        setError(e?.message ?? "Failed to sign in. Please try again.");
+        setError(e?.message ?? t("errors.signInFailed"));
       }
     } finally {
       setLoading(false);
@@ -135,18 +137,18 @@ export default function LoginPage() {
         options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
       if (oauthError) {
-        setError(oauthError.message ?? "Could not start Google sign-in.");
+        setError(oauthError.message ?? t("errors.googleSignInFailed"));
         setGoogleLoading(false);
       }
     } catch {
-      setError("Could not start Google sign-in.");
+      setError(t("errors.googleSignInFailed"));
       setGoogleLoading(false);
     }
   };
 
   const handleForgotPassword = async () => {
     if (!isValidEmail) {
-      setError("Enter your email address above first");
+      setError(t("errors.emailRequiredForReset"));
       return;
     }
     setResetLoading(true);
@@ -157,12 +159,12 @@ export default function LoginPage() {
         redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/set-password?reason=reset")}`,
       });
       if (resetError) {
-        setError(resetError.message ?? "Could not send reset email. Please try again.");
+        setError(resetError.message ?? t("errors.resetEmailFailed"));
       } else {
         setResetSent(true);
       }
     } catch {
-      setError("Could not send reset email. Please try again.");
+      setError(t("errors.resetEmailFailed"));
     } finally {
       setResetLoading(false);
     }
@@ -173,11 +175,9 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="bg-surface-card rounded-3xl shadow-lg p-8 space-y-6">
           <div className="text-center space-y-1">
-            <h1 className="text-2xl font-bold text-brand-primary">Welcome to Triplyy</h1>
+            <h1 className="text-2xl font-bold text-brand-primary">{t("welcomeTitle")}</h1>
             <p className="text-body-sm text-content-muted">
-              {mode === "password"
-                ? "Sign in to start sharing your journey."
-                : "Enter your email to receive a verification code"}
+              {mode === "password" ? t("subtitlePassword") : t("subtitleCode")}
             </p>
           </div>
 
@@ -188,23 +188,23 @@ export default function LoginPage() {
             className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-border-default rounded-xl font-medium text-content-primary hover:bg-surface-bg disabled:opacity-50 transition-colors"
           >
             {googleLoading ? <Spinner /> : <GoogleIcon />}
-            {googleLoading ? "Redirecting…" : "Continue with Google"}
+            {googleLoading ? t("redirecting") : t("continueWithGoogle")}
           </button>
 
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-border-default" />
-            <span className="text-caption text-content-muted uppercase tracking-wide">or</span>
+            <span className="text-caption text-content-muted uppercase tracking-wide">{t("or")}</span>
             <div className="h-px flex-1 bg-border-default" />
           </div>
 
           {mode === "password" ? (
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div className="flex flex-col gap-1">
-                <label className="text-label text-content-secondary">Email address</label>
+                <label className="text-label text-content-secondary">{t("emailLabel")}</label>
                 <input
                   type="email"
                   inputMode="email"
-                  placeholder="you@example.com"
+                  placeholder={t("emailPlaceholder")}
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -216,7 +216,7 @@ export default function LoginPage() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-label text-content-secondary">Password</label>
+                <label className="text-label text-content-secondary">{t("passwordLabel")}</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -231,7 +231,7 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
                     tabIndex={-1}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={showPassword ? t("hidePassword") : t("showPassword")}
                     className="absolute inset-y-0 right-0 flex items-center pr-3 text-content-muted"
                   >
                     {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
@@ -245,13 +245,16 @@ export default function LoginPage() {
                 className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
               >
                 {loading && <Spinner />}
-                {loading ? "Signing in…" : "Sign In"}
+                {loading ? t("signingIn") : t("signIn")}
               </button>
 
               <div className="text-center">
                 {resetSent ? (
                   <p className="text-body-sm text-content-muted">
-                    Check <strong className="text-content-secondary">{email}</strong> for a reset link
+                    {t.rich("checkEmailForReset", {
+                      email,
+                      strong: (chunks) => <strong className="text-content-secondary">{chunks}</strong>,
+                    })}
                   </p>
                 ) : (
                   <button
@@ -260,7 +263,7 @@ export default function LoginPage() {
                     disabled={resetLoading}
                     className="text-body-sm text-brand-primary hover:underline disabled:opacity-50"
                   >
-                    {resetLoading ? "Sending…" : "Forgot password?"}
+                    {resetLoading ? t("sendingReset") : t("forgotPassword")}
                   </button>
                 )}
               </div>
@@ -268,7 +271,7 @@ export default function LoginPage() {
               <div className="h-px bg-border-default" />
 
               <p className="text-center text-body-sm text-content-muted">
-                New here?{" "}
+                {t("newHere")}{" "}
                 <button
                   type="button"
                   onClick={() => {
@@ -277,7 +280,7 @@ export default function LoginPage() {
                   }}
                   className="text-brand-primary hover:underline font-medium"
                 >
-                  Create an account
+                  {t("createAccount")}
                 </button>
               </p>
 
@@ -291,18 +294,18 @@ export default function LoginPage() {
                   className="inline-flex items-center gap-1.5 text-brand-primary hover:underline"
                 >
                   <KeyIcon className="w-4 h-4" />
-                  Sign in with a code instead
+                  {t("signInWithCode")}
                 </button>
               </p>
             </form>
           ) : (
             <form onSubmit={handleCodeSubmit} className="space-y-4">
               <div className="flex flex-col gap-1">
-                <label className="text-label text-content-secondary">Email address</label>
+                <label className="text-label text-content-secondary">{t("emailLabel")}</label>
                 <input
                   type="email"
                   inputMode="email"
-                  placeholder="you@example.com"
+                  placeholder={t("emailPlaceholder")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
@@ -317,10 +320,10 @@ export default function LoginPage() {
                 className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
               >
                 {loading && <Spinner />}
-                {loading ? "Sending…" : "Send Code"}
+                {loading ? t("sendingCode") : t("sendCode")}
               </button>
               <p className="text-center text-body-sm text-content-muted">
-                Already set a password?{" "}
+                {t("alreadySetPassword")}{" "}
                 <button
                   type="button"
                   onClick={() => {
@@ -329,7 +332,7 @@ export default function LoginPage() {
                   }}
                   className="text-brand-primary hover:underline"
                 >
-                  Sign in with password
+                  {t("signInWithPassword")}
                 </button>
               </p>
             </form>
@@ -338,7 +341,7 @@ export default function LoginPage() {
 
         <p className="mt-4 flex items-center justify-center gap-1.5 text-caption text-content-muted">
           <LockIcon className="w-3.5 h-3.5" />
-          Secure encryption active
+          {t("secureEncryption")}
         </p>
       </div>
     </main>

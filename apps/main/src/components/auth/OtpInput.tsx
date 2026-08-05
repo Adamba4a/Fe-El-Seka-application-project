@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface OtpInputProps {
   length?: number;
@@ -12,6 +13,7 @@ interface OtpInputProps {
 }
 
 export function OtpInput({ length = 6, onComplete, disabled, error, expiresAt, onResend }: OtpInputProps) {
+  const t = useTranslations("auth.otp");
   const [digits, setDigits] = useState<string[]>(Array(length).fill(""));
   const [secondsLeft, setSecondsLeft] = useState<number>(0);
   const [resendCooldown, setResendCooldown] = useState(60);
@@ -76,7 +78,9 @@ export function OtpInput({ length = 6, onComplete, disabled, error, expiresAt, o
 
       {expiresAt && (
         <p className="text-caption text-content-muted text-center">
-          Code expires in {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, "0")}
+          {t("codeExpiresIn", {
+            time: `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`,
+          })}
         </p>
       )}
 
@@ -87,7 +91,7 @@ export function OtpInput({ length = 6, onComplete, disabled, error, expiresAt, o
           disabled={resendCooldown > 0}
           className="text-caption text-brand-primary underline disabled:text-content-muted disabled:no-underline mx-auto"
         >
-          {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend code"}
+          {resendCooldown > 0 ? t("resendCodeIn", { seconds: resendCooldown }) : t("resendCode")}
         </button>
       )}
     </div>
