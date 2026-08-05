@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { BottomSheet } from "@/components";
 import type { Location, Coordinates } from "@fe-el-seka/shared";
 
@@ -15,6 +16,7 @@ type GeoState = "idle" | "loading" | "granted" | "denied";
 type Selecting = "pickup" | "dropoff" | null;
 
 export default function BookRidePage() {
+  const t = useTranslations("passenger.bookRide");
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -89,7 +91,7 @@ export default function BookRidePage() {
       {!sheetOpen && selecting && (
         <div className="fixed top-4 left-4 right-4 z-30 bg-surface-card border border-border-default rounded-xl px-4 py-3 shadow-sm">
           <p className="text-label text-content-primary">
-            {selecting === "pickup" ? "📍 Tap map to set pickup" : "📍 Tap map to set dropoff"}
+            {selecting === "pickup" ? t("tapMapToSetPickup") : t("tapMapToSetDropoff")}
           </p>
         </div>
       )}
@@ -105,9 +107,9 @@ export default function BookRidePage() {
               ←
             </button>
             <div>
-              <h1 className="text-h3 text-content-primary">Pickup &amp; Dropoff</h1>
+              <h1 className="text-h3 text-content-primary">{t("title")}</h1>
               <p className="text-sm text-content-muted mt-1">
-                We use your current location for pickup unless you change it.
+                {t("subtitle")}
               </p>
             </div>
           </div>
@@ -115,11 +117,11 @@ export default function BookRidePage() {
           <div className="space-y-2">
             <div className="flex items-center justify-between p-3 rounded-xl border border-border-default bg-surface-card">
               <div className="min-w-0">
-                <p className="text-caption text-content-muted">Pickup</p>
+                <p className="text-caption text-content-muted">{t("pickupLabel")}</p>
                 <p className="text-body-sm text-content-primary truncate">
                   {geoState === "loading" && !pickup
-                    ? "Getting your location…"
-                    : (pickup?.address ?? "Not set")}
+                    ? t("gettingLocation")
+                    : (pickup?.address ?? t("notSet"))}
                 </p>
               </div>
               <button
@@ -127,15 +129,15 @@ export default function BookRidePage() {
                 onClick={handleRequestPickupMap}
                 className="text-body-sm text-brand-primary shrink-0 ml-2"
               >
-                {pickup ? "Change" : "Set on map"}
+                {pickup ? t("change") : t("setOnMap")}
               </button>
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-xl border border-border-default bg-surface-card">
               <div className="min-w-0">
-                <p className="text-caption text-content-muted">Dropoff</p>
+                <p className="text-caption text-content-muted">{t("dropoffLabel")}</p>
                 <p className="text-body-sm text-content-primary truncate">
-                  {dropoff?.address ?? "Tap to set on map"}
+                  {dropoff?.address ?? t("tapToSetOnMap")}
                 </p>
               </div>
               <button
@@ -143,7 +145,7 @@ export default function BookRidePage() {
                 onClick={handleRequestDropoffMap}
                 className="text-body-sm text-brand-primary shrink-0 ml-2"
               >
-                {dropoff ? "Change" : "Set on map"}
+                {dropoff ? t("change") : t("setOnMap")}
               </button>
             </div>
           </div>
@@ -154,7 +156,7 @@ export default function BookRidePage() {
             onClick={handleConfirm}
             className="w-full bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-colors"
           >
-            Confirm
+            {t("confirm")}
           </button>
         </div>
       </BottomSheet>

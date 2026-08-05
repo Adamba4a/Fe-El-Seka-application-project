@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { SESSION_STARTED_COOKIE } from "@/lib/auth/session-age";
 
@@ -8,6 +9,8 @@ import { SESSION_STARTED_COOKIE } from "@/lib/auth/session-age";
 // Used when an unexpected session is detected (e.g. admin session bleeding
 // from the admin panel into the main app on localhost).
 export default function SignOutPage() {
+  const t = useTranslations("signout");
+
   useEffect(() => {
     createClient()
       .auth.signOut()
@@ -21,7 +24,7 @@ export default function SignOutPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center">
-      <p className="text-body-sm text-content-muted">Signing out…</p>
+      <p className="text-body-sm text-content-muted">{t("signingOut")}</p>
     </main>
   );
 }

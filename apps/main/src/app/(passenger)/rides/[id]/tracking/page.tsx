@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "../../../../../lib/supabase/client";
 import { useSession } from "../../../../../lib/auth/hooks";
@@ -12,6 +13,7 @@ import { TrackingStatusBanner } from "../../../../../components/tracking/Trackin
 const supabase = createClient();
 
 export default function TrackingPage() {
+  const t = useTranslations("passenger.tracking");
   const { id: rideId } = useParams<{ id: string }>();
   const router = useRouter();
   const session = useSession();
@@ -85,7 +87,7 @@ export default function TrackingPage() {
   if (!session) {
     return (
       <div className="flex items-center justify-center h-screen text-content-secondary">
-        Loading…
+        {t("loading")}
       </div>
     );
   }
@@ -93,7 +95,7 @@ export default function TrackingPage() {
   if (accessDenied) {
     return (
       <div className="flex items-center justify-center h-screen text-content-secondary">
-        You do not have a confirmed booking for this ride.
+        {t("accessDenied")}
       </div>
     );
   }
@@ -113,8 +115,8 @@ export default function TrackingPage() {
         {!location && !locationError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 z-10">
             <div className="bg-surface-card rounded-2xl px-6 py-4 shadow-lg text-center space-y-1">
-              <p className="text-sm font-semibold text-content-primary">Waiting for driver…</p>
-              <p className="text-xs text-content-muted">Location will appear once the driver is on the way.</p>
+              <p className="text-sm font-semibold text-content-primary">{t("waitingForDriver")}</p>
+              <p className="text-xs text-content-muted">{t("waitingForDriverBody")}</p>
             </div>
           </div>
         )}
@@ -122,7 +124,7 @@ export default function TrackingPage() {
         {locationError && !location && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
             <div className="bg-surface-card rounded-2xl px-6 py-4 shadow-lg text-center">
-              <p className="text-sm text-content-secondary">Location unavailable — driver has not started sharing yet.</p>
+              <p className="text-sm text-content-secondary">{t("locationUnavailable")}</p>
             </div>
           </div>
         )}
