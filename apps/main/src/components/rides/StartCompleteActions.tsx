@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import type { RideStatus } from "@fe-el-seka/shared";
 
 function Spinner() {
@@ -25,6 +26,7 @@ export function StartCompleteActions({
   onStart,
   onComplete,
 }: StartCompleteActionsProps) {
+  const t = useTranslations("startCompleteActions");
   const [startLoading, setStartLoading] = useState(false);
   const [completeLoading, setCompleteLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export function StartCompleteActions({
     try {
       await onStart();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to start ride.");
+      setError(err instanceof Error ? err.message : t("startFailed"));
     } finally {
       setStartLoading(false);
     }
@@ -49,7 +51,7 @@ export function StartCompleteActions({
     try {
       await onComplete();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to complete ride.");
+      setError(err instanceof Error ? err.message : t("completeFailed"));
     } finally {
       setCompleteLoading(false);
     }
@@ -69,7 +71,7 @@ export function StartCompleteActions({
           className="w-full flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-colors"
         >
           {startLoading && <Spinner />}
-          {startLoading ? "Starting…" : "Start Ride"}
+          {startLoading ? t("starting") : t("startRide")}
         </button>
       )}
 
@@ -81,7 +83,7 @@ export function StartCompleteActions({
           className="w-full flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-colors"
         >
           {completeLoading && <Spinner />}
-          {completeLoading ? "Completing…" : "Complete Ride"}
+          {completeLoading ? t("completing") : t("completeRide")}
         </button>
       )}
     </div>

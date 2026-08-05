@@ -1,12 +1,5 @@
+import { useTranslations } from "next-intl";
 import type { RideHistoryEntry } from "@fe-el-seka/shared";
-
-const ACTION_LABELS: Record<string, string> = {
-  created:   "Ride created",
-  edited:    "Ride edited",
-  cancelled: "Ride cancelled",
-  started:   "Ride started",
-  completed: "Ride completed",
-};
 
 const ACTION_DOT_COLORS: Record<string, string> = {
   created:   "bg-status-completed",
@@ -16,15 +9,18 @@ const ACTION_DOT_COLORS: Record<string, string> = {
   cancelled: "bg-status-cancelled",
 };
 
-function formatRelativeTime(iso: string): string {
+function formatRelativeTime(
+  iso: string,
+  t: (key: string, values?: Record<string, string | number>) => string
+): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diffMs / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1) return t("justNow");
+  if (minutes < 60) return t("minutesAgo", { minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t("hoursAgo", { hours });
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return t("daysAgo", { days });
 }
 
 function formatAbsoluteTime(iso: string): string {
@@ -35,9 +31,19 @@ function formatAbsoluteTime(iso: string): string {
 }
 
 export function RideHistoryLog({ entries }: { entries: RideHistoryEntry[] }) {
+  const t = useTranslations("rideHistoryLog");
+
   if (entries.length === 0) {
-    return <p className="text-body-sm text-content-muted">No history yet.</p>;
+    return <p className="text-body-sm text-content-muted">{t("noHistory")}</p>;
   }
+
+  const ACTION_LABELS: Record<string, string> = {
+    created: t("actionCreated"),
+    edited: t("actionEdited"),
+    cancelled: t("actionCancelled"),
+    started: t("actionStarted"),
+    completed: t("actionCompleted"),
+  };
 
   const sorted = [...entries].reverse();
 
@@ -45,7 +51,7 @@ export function RideHistoryLog({ entries }: { entries: RideHistoryEntry[] }) {
     <ol className="space-y-4">
       {sorted.map((entry, i) => {
         const dotColor = ACTION_DOT_COLORS[entry.action] ?? "bg-content-muted";
-        const actor = entry.actor_id ? "Driver" : "System";
+        const actor = entry.actor_id ? t("actorDriver") : t("actorSystem");
         const changedKeys = entry.changed_fields
           ? Object.keys(entry.changed_fields)
           : null;
@@ -67,17 +73,17 @@ export function RideHistoryLog({ entries }: { entries: RideHistoryEntry[] }) {
                 {actor}
                 {" · "}
                 <span title={formatAbsoluteTime(entry.created_at)}>
-                  {formatRelativeTime(entry.created_at)}
+                  {formatRelativeTime(entry.created_at, t)}
                 </span>
               </p>
               {changedKeys && changedKeys.length > 0 && (
                 <p className="text-caption text-content-secondary mt-1">
-                  Changed: {changedKeys.join(", ")}
+                  {t("changedPrefix", { fields: changedKeys.join(", ") })}
                 </p>
               )}
               {entry.reason && (
                 <p className="text-body-sm text-content-secondary mt-1">
-                  Reason: {entry.reason}
+                  {t("reasonPrefix", { reason: entry.reason })}
                 </p>
               )}
             </div>
