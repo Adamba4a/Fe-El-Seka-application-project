@@ -113,7 +113,7 @@ Arabic/RTL with no leftover English strings, per `quickstart.md` Scenario 1.
       of fixed widths that could overflow with longer Arabic text — audited `button.tsx`/`input.tsx`:
       neither has physical-direction classes or fixed widths (both already use `w-full`/flex sizing),
       no changes needed
-- [ ] T022 [US1] Audit `apps/main` route-group layouts/pages for RTL: navigation order, form
+- [X] T022 [US1] Audit `apps/main` route-group layouts/pages for RTL: navigation order, form
       alignment, directional icons (back/forward arrows) per FR-003 (depends on T020, T021)
 - [ ] T023 [P] [US1] Add a `LanguageSection` toggle to
       `apps/main/src/app/(app)/settings/profile/ProfileEditor.tsx`, calling `updateMe()` with
