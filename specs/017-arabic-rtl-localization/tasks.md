@@ -49,7 +49,7 @@ independently testable
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Apply migration `20260805000001_phase14_language_preference.sql` to the local Supabase
+- [X] T004 Apply migration `20260805000001_phase14_language_preference.sql` to the local Supabase
       instance and verify the `profiles.language_preference` column exists (depends on T003)
 - [X] T005 [P] Extend `packages/shared/src/types/user.ts` — add `Locale` type (`"en" | "ar"`), and
       `language_preference` to `Profile`/`ProfileUpdate` per `data-model.md`
