@@ -95,15 +95,15 @@ Arabic/RTL with no leftover English strings, per `quickstart.md` Scenario 1.
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Populate `apps/main/messages/en.json` + `ar.json` for the `(auth)`/`(onboarding)`
+- [X] T016 [US1] Populate `apps/main/messages/en.json` + `ar.json` for the `(auth)`/`(onboarding)`
       route groups: `login`, `otp`, `role-select`, `set-password`, `driver/register-vehicle`,
       `driver/verify-documents`, `profile`, `verify-id` screens (depends on T012, T013)
-- [ ] T017 [US1] Populate `apps/main/messages/en.json` + `ar.json` for the `(passenger)` route group:
+- [X] T017 [US1] Populate `apps/main/messages/en.json` + `ar.json` for the `(passenger)` route group:
       `search`, `rides`, `rides/[id]`, `bookings`, `bookings/[id]` screens (depends on T016 — same
       files)
-- [ ] T018 [US1] Populate `apps/main/messages/en.json` + `ar.json` for the `(driver)` route group:
+- [X] T018 [US1] Populate `apps/main/messages/en.json` + `ar.json` for the `(driver)` route group:
       `rides`, `rides/[id]`, `rides/new`, `wallet` screens (depends on T017 — same files)
-- [ ] T019 [US1] Populate `apps/main/messages/en.json` + `ar.json` for the `(app)` route group:
+- [X] T019 [US1] Populate `apps/main/messages/en.json` + `ar.json` for the `(app)` route group:
       `settings/profile`, `settings/session`, `ratings`, `users/[userId]`, `dashboard` screens
       (depends on T018 — same files)
 - [ ] T020 [US1] Wire `useTranslations()`/`getTranslations()` calls into every screen/component
