@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 
@@ -12,13 +13,6 @@ interface JoinedRideCardProps {
   price: string;
 }
 
-const STATUS_LABEL: Record<BookingStatus, string> = {
-  pending: "PENDING",
-  confirmed: "CONFIRMED",
-  cancelled: "CANCELLED",
-  completed: "COMPLETED",
-};
-
 export function JoinedRideCard({
   href,
   departureLabel,
@@ -28,7 +22,14 @@ export function JoinedRideCard({
   driverName,
   price,
 }: JoinedRideCardProps) {
+  const t = useTranslations("joinedRideCard");
   const isMuted = status === "cancelled" || status === "completed";
+  const STATUS_LABEL: Record<BookingStatus, string> = {
+    pending: t("statusPending"),
+    confirmed: t("statusConfirmed"),
+    cancelled: t("statusCancelled"),
+    completed: t("statusCompleted"),
+  };
 
   return (
     <Link href={href} className="block bg-dash-surface rounded-2xl p-4 border border-dash-border">
@@ -44,16 +45,19 @@ export function JoinedRideCard({
       </div>
 
       <p className="text-lg font-bold text-dash-navy mt-2">
-        {originAddress ?? "—"} <span className="text-dash-text-muted">→</span> {destinationAddress ?? "—"}
+        {originAddress ?? t("unknownPlaceholder")} <span className="text-dash-text-muted">→</span>{" "}
+        {destinationAddress ?? t("unknownPlaceholder")}
       </p>
 
       <div className="h-px bg-dash-border my-3" />
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-dash-text-muted truncate">Driver: {driverName ?? "—"}</p>
+        <p className="text-sm text-dash-text-muted truncate">
+          {t("driverPrefix", { name: driverName ?? t("unknownPlaceholder") })}
+        </p>
         <div className="text-right shrink-0">
           <p className="text-lg font-bold text-dash-navy">EGP {price}</p>
-          <p className="text-xs text-dash-text-muted">total</p>
+          <p className="text-xs text-dash-text-muted">{t("total")}</p>
         </div>
       </div>
     </Link>

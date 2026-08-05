@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useSession } from "@/lib/auth/hooks";
 import { getMe } from "@/lib/api/profiles";
 import { getNearbyRides, type NearbyRide } from "@/lib/api/search";
@@ -14,15 +15,15 @@ function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-function formatDepartureLabel(iso: string): string {
+function formatDepartureLabel(iso: string, dayToday: string, dayTomorrow: string): string {
   const date = new Date(iso);
   const now = new Date();
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
 
   let dayLabel: string;
-  if (isSameDay(date, now)) dayLabel = "TODAY";
-  else if (isSameDay(date, tomorrow)) dayLabel = "TOMORROW";
+  if (isSameDay(date, now)) dayLabel = dayToday;
+  else if (isSameDay(date, tomorrow)) dayLabel = dayTomorrow;
   else dayLabel = date.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
 
   const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toUpperCase();
@@ -37,6 +38,7 @@ function formatDistanceLabel(meters: number): string {
 type GeoState = "idle" | "loading" | "granted" | "denied";
 
 export function PassengerDashboard() {
+  const t = useTranslations("passengerDashboard");
   const session = useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [nearby, setNearby] = useState<NearbyRide[]>([]);
@@ -87,20 +89,22 @@ export function PassengerDashboard() {
 
   const name = profile?.display_name ?? "Passenger";
   const firstName = name.split(" ")[0];
+  const dayToday = t("dayToday");
+  const dayTomorrow = t("dayTomorrow");
 
   return (
     <div className="pb-6">
-      <h1 className="text-2xl font-bold text-dash-navy mt-2">Ahlan, {firstName}!</h1>
-      <p className="text-dash-navy mt-1">Where are you headed today?</p>
+      <h1 className="text-2xl font-bold text-dash-navy mt-2">{t("greeting", { name: firstName })}</h1>
+      <p className="text-dash-navy mt-1">{t("subtitle")}</p>
 
       <Link
         href="/search"
         className="mt-4 block w-full text-center rounded-xl bg-dash-primary text-white font-semibold py-3"
       >
-        Find a Ride
+        {t("findARide")}
       </Link>
 
-      <h2 className="text-xl font-bold text-dash-navy mt-8 mb-3">Rides Near You</h2>
+      <h2 className="text-xl font-bold text-dash-navy mt-8 mb-3">{t("ridesNearYou")}</h2>
 
       {nearbyLoading ? (
         <div className="space-y-3">
@@ -109,18 +113,18 @@ export function PassengerDashboard() {
         </div>
       ) : geoState === "denied" ? (
         <div className="bg-dash-surface rounded-2xl p-6 text-center border border-dash-border">
-          <p className="text-dash-navy font-medium">Enable location to see nearby rides</p>
+          <p className="text-dash-navy font-medium">{t("enableLocationTitle")}</p>
           <p className="text-sm text-dash-text-muted mt-1">
-            Or search directly with your pickup and drop-off.
+            {t("enableLocationBody")}
           </p>
           <Link href="/search" className="text-sm text-dash-primary font-semibold mt-2 inline-block">
-            Go to Search →
+            {t("goToSearch")}
           </Link>
         </div>
       ) : nearby.length === 0 ? (
         <div className="bg-dash-surface rounded-2xl p-6 text-center border border-dash-border">
-          <p className="text-dash-navy font-medium">No rides near you right now</p>
-          <p className="text-sm text-dash-text-muted mt-1">Try searching for your full route instead.</p>
+          <p className="text-dash-navy font-medium">{t("noNearbyTitle")}</p>
+          <p className="text-sm text-dash-text-muted mt-1">{t("noNearbyBody")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -128,7 +132,7 @@ export function PassengerDashboard() {
             <AvailableRideCard
               key={ride.ride_id}
               rideId={ride.ride_id}
-              departureLabel={formatDepartureLabel(ride.departure_datetime)}
+              departureLabel={formatDepartureLabel(ride.departure_datetime, dayToday, dayTomorrow)}
               originAddress={ride.origin_address}
               destinationAddress={ride.destination_address}
               price={ride.per_seat_price}
@@ -143,14 +147,14 @@ export function PassengerDashboard() {
         </div>
       )}
 
-      <h2 className="text-xl font-bold text-dash-navy mt-8 mb-3">My Joined Rides</h2>
+      <h2 className="text-xl font-bold text-dash-navy mt-8 mb-3">{t("myJoinedRides")}</h2>
 
       {joinedLoading ? (
         <div className="h-32 bg-dash-surface rounded-2xl animate-pulse" />
       ) : joined.length === 0 ? (
         <div className="bg-dash-surface rounded-2xl p-6 text-center border border-dash-border">
-          <p className="text-dash-navy font-medium">No active bookings</p>
-          <p className="text-sm text-dash-text-muted mt-1">Rides you join will show up here.</p>
+          <p className="text-dash-navy font-medium">{t("noActiveBookingsTitle")}</p>
+          <p className="text-sm text-dash-text-muted mt-1">{t("noActiveBookingsBody")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -158,7 +162,11 @@ export function PassengerDashboard() {
             <JoinedRideCard
               key={booking.booking_id}
               href={`/bookings/${booking.booking_id}`}
-              departureLabel={booking.departure_datetime ? formatDepartureLabel(booking.departure_datetime) : "—"}
+              departureLabel={
+                booking.departure_datetime
+                  ? formatDepartureLabel(booking.departure_datetime, dayToday, dayTomorrow)
+                  : "—"
+              }
               originAddress={booking.origin_address}
               destinationAddress={booking.destination_address}
               status={booking.status}

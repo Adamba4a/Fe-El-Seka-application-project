@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { RatingBadge } from "@/components/ui/RatingBadge";
 
 interface AvailableRideCardProps {
@@ -16,14 +17,22 @@ interface AvailableRideCardProps {
   driverRatingCount: number;
 }
 
-function DriverAvatar({ name, avatarUrl }: { name: string | null; avatarUrl: string | null }) {
+function DriverAvatar({
+  name,
+  avatarUrl,
+  defaultName,
+}: {
+  name: string | null;
+  avatarUrl: string | null;
+  defaultName: string;
+}) {
   const [broken, setBroken] = useState(false);
   if (avatarUrl && !broken) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={avatarUrl}
-        alt={name ?? "Driver"}
+        alt={name ?? defaultName}
         className="w-9 h-9 rounded-full object-cover"
         onError={() => setBroken(true)}
       />
@@ -49,6 +58,7 @@ export function AvailableRideCard({
   driverRatingAvg,
   driverRatingCount,
 }: AvailableRideCardProps) {
+  const t = useTranslations("availableRideCard");
   return (
     <Link
       href={`/rides/${rideId}`}
@@ -69,11 +79,11 @@ export function AvailableRideCard({
 
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
-          <DriverAvatar name={driverName} avatarUrl={driverAvatarUrl} />
+          <DriverAvatar name={driverName} avatarUrl={driverAvatarUrl} defaultName={t("defaultDriverName")} />
           <div className="min-w-0">
-            <p className="text-sm font-medium text-dash-navy truncate">{driverName ?? "Driver"}</p>
+            <p className="text-sm font-medium text-dash-navy truncate">{driverName ?? t("defaultDriverName")}</p>
             <div className="flex items-center gap-2">
-              {isVerified && <p className="text-xs text-dash-primary">Verified driver</p>}
+              {isVerified && <p className="text-xs text-dash-primary">{t("verifiedDriver")}</p>}
               <RatingBadge ratingAvg={driverRatingAvg} ratingCount={driverRatingCount} />
             </div>
           </div>
@@ -81,7 +91,7 @@ export function AvailableRideCard({
 
         <div className="text-right shrink-0">
           <p className="text-lg font-bold text-dash-navy">EGP {price}</p>
-          <p className="text-xs text-dash-text-muted">per seat</p>
+          <p className="text-xs text-dash-text-muted">{t("perSeat")}</p>
         </div>
       </div>
     </Link>

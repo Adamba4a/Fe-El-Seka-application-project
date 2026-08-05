@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface TrackingStatusBannerProps {
   isStale: boolean;
@@ -13,6 +14,7 @@ export function TrackingStatusBanner({
   rideCompleted,
   onRedirectComplete,
 }: TrackingStatusBannerProps) {
+  const t = useTranslations("passenger.tracking");
   const [countdown, setCountdown] = useState(3);
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export function TrackingStatusBanner({
   if (rideCompleted) {
     return (
       <div className="w-full bg-green-600 text-white text-center py-3 px-4 text-sm font-medium">
-        Ride Completed — redirecting in {countdown}s…
+        {t("rideCompletedRedirecting", { seconds: countdown })}
       </div>
     );
   }
@@ -42,7 +44,7 @@ export function TrackingStatusBanner({
   if (isStale) {
     return (
       <div className="w-full bg-yellow-400 text-yellow-900 text-center py-3 px-4 text-sm font-medium">
-        Driver location may be outdated
+        {t("locationOutdated")}
       </div>
     );
   }
