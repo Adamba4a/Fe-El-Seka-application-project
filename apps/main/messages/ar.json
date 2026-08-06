@@ -721,7 +721,7 @@
       "sameLocation": "يجب أن تكون نقطة الانطلاق والوجهة مختلفتين.",
       "departureRequired": "يرجى إدخال تاريخ ووقت الانطلاق.",
       "departureInPast": "يجب أن يكون وقت الانطلاق في المستقبل.",
-      "departureTooFar": "يمكن جدولة الرحلات قبل 48 ساعة كحد أقصى.",
+      "departureTooFar": "لا يمكن جدولة الرحلة قبل أكثر من 48 ساعة من موعدها.",
       "seatsRange": "يجب أن يكون عدد المقاعد بين 1 و{maxSeats}."
     }
   },
@@ -742,7 +742,7 @@
   "upcomingTripCard": {
     "confirmed": "مؤكد",
     "pendingCount": "معلّق ({count})",
-    "waitingForMore": "في انتظار {count} أكثر...",
+    "waitingForMore": "في انتظار المزيد ({count})...",
     "estimatedPayout": "العائد المتوقع"
   },
   "passengerDashboard": {

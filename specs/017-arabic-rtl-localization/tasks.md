@@ -206,9 +206,15 @@ confirm dates/currency/numbers follow locale convention and copy reads as natura
       `apps/main/src/components/driver/UpcomingTripCard.tsx`,
       `apps/main/src/app/(driver)/rides/[id]/bookings/page.tsx`,
       `apps/main/src/app/(driver)/rides/new/page.tsx`.
-- [ ] T034 [P] [US3] Review `apps/main/messages/ar.json` copy for natural (non-literal) Arabic
+- [X] T034 [P] [US3] Review `apps/main/messages/ar.json` copy for natural (non-literal) Arabic
       phrasing across error, empty-state, and confirmation strings populated in T016–T019 (depends on
-      T016–T019)
+      T016–T019). Full-file review found the copy already reads naturally overall (dual forms used
+      correctly — `حرفان`, `وجهي`, `مختلفتين`, `كلمتا المرور`, `مقعدان`; idiomatic phrasing rather than
+      literal calques throughout). Fixed two spots that read as literal/awkward:
+      `rideForm.errors.departureTooFar` (was "يمكن جدولة الرحلات قبل 48 ساعة كحد أقصى." → now
+      "لا يمكن جدولة الرحلة قبل أكثر من 48 ساعة من موعدها.") and `upcomingTripCard.waitingForMore`
+      (was "في انتظار {count} أكثر..." → now "في انتظار المزيد ({count})...", matching the
+      `pendingCount` "معلّق ({count})" pattern already used elsewhere in the file).
 
 **Checkpoint**: All three user stories independently functional — `quickstart.md` Scenario 5 passes.
 (Scenario 4, OTP staying English, requires no task — FR-014 is satisfied by never touching Auth SMS
