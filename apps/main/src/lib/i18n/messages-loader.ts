@@ -25,8 +25,15 @@ const _cache = new Map<Locale, MessageCatalog>();
 let _initPromise: Promise<void> | null = null;
 let _lastLoadedAt = 0;
 
+// This runs server-side only (via request.ts's getRequestConfig), so it can use
+// the Docker-internal Supabase URL — matching the pattern in lib/supabase/server.ts —
+// instead of NEXT_PUBLIC_SUPABASE_URL, which is only reachable from the browser.
+function _catalogBaseUrl(): string {
+  return process.env.SUPABASE_INTERNAL_URL ?? env.supabaseUrl;
+}
+
 function _catalogUrl(locale: Locale): string {
-  return `${env.supabaseUrl}/storage/v1/object/public/${_BUCKET}/messages/${locale}.json`;
+  return `${_catalogBaseUrl()}/storage/v1/object/public/${_BUCKET}/messages/${locale}.json`;
 }
 
 async function _fetchCatalog(locale: Locale): Promise<MessageCatalog | null> {
