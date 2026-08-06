@@ -355,7 +355,8 @@
       "noRidesTitle": "No rides yet",
       "noRidesBody": "Post your first ride and start sharing your route",
       "postFirstRide": "Post your first ride",
-      "seatsAvailableCount": "{available}/{total} seats available"
+      "seatsAvailableCount": "{available}/{total} seats available",
+      "perSeatSuffix": "/seat"
     },
     "editRide": {
       "loadFailed": "Failed to load ride.",

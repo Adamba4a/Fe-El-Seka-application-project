@@ -1,5 +1,5 @@
-import { useTranslations } from "next-intl";
-import type { RideHistoryEntry } from "@fe-el-seka/shared";
+import { useLocale, useTranslations } from "next-intl";
+import type { RideHistoryEntry, Locale } from "@fe-el-seka/shared";
 
 const ACTION_DOT_COLORS: Record<string, string> = {
   created:   "bg-status-completed",
@@ -23,15 +23,17 @@ function formatRelativeTime(
   return t("daysAgo", { days });
 }
 
-function formatAbsoluteTime(iso: string): string {
-  return new Date(iso).toLocaleString("en-EG", {
+function formatAbsoluteTime(iso: string, locale: Locale): string {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", {
     dateStyle: "medium",
     timeStyle: "short",
-  });
+    numberingSystem: "latn",
+  }).format(new Date(iso));
 }
 
 export function RideHistoryLog({ entries }: { entries: RideHistoryEntry[] }) {
   const t = useTranslations("rideHistoryLog");
+  const locale = useLocale() as Locale;
 
   if (entries.length === 0) {
     return <p className="text-body-sm text-content-muted">{t("noHistory")}</p>;
@@ -72,7 +74,7 @@ export function RideHistoryLog({ entries }: { entries: RideHistoryEntry[] }) {
               <p className="text-caption text-content-muted mt-0.5">
                 {actor}
                 {" · "}
-                <span title={formatAbsoluteTime(entry.created_at)}>
+                <span title={formatAbsoluteTime(entry.created_at, locale)}>
                   {formatRelativeTime(entry.created_at, t)}
                 </span>
               </p>

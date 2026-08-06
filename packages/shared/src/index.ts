@@ -19,7 +19,7 @@ export type {
   RideListResponse,
   RideDetailResponse,
 } from "./types/rides";
-export { formatPhone, formatDate } from "./utils";
+export { formatPhone, formatDate, formatCurrency } from "./utils";
 
 export type {
   OtpRequest,

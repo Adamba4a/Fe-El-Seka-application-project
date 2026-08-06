@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -11,6 +11,8 @@ import { MatchScoreBadge } from "@/components/search/MatchScoreBadge";
 import { RatingBadge } from "@/components/ui/RatingBadge";
 import Link from "next/link";
 import { env } from "@/lib/env";
+import { formatCurrency } from "@fe-el-seka/shared";
+import type { Locale } from "@fe-el-seka/shared";
 
 const RideDetailMap = dynamic(
   () => import("@/components/bookings/RideDetailMap").then((m) => ({ default: m.RideDetailMap })),
@@ -74,14 +76,15 @@ interface PreviewRide {
 
 type PremiumOption = "standard" | "premium_pickup" | "premium_dropoff" | "premium_both";
 
-function formatDeparture(iso: string) {
-  return new Date(iso).toLocaleString("en-EG", {
+function formatDeparture(iso: string, locale: Locale) {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", {
     weekday: "long",
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  });
+    numberingSystem: "latn",
+  }).format(new Date(iso));
 }
 
 export default function PassengerRideDetailPage() {
@@ -89,6 +92,7 @@ export default function PassengerRideDetailPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const t = useTranslations("passenger.rideDetail");
+  const locale = useLocale() as Locale;
 
   // No origin/dest in the URL yet → this is a bare dashboard-card click, show
   // the lightweight preview instead of the full pickup/dropoff match view.
@@ -248,7 +252,7 @@ export default function PassengerRideDetailPage() {
           </div>
           <div className="flex justify-between text-content-secondary">
             <span>{t("departure")}</span>
-            <span className="font-medium text-content-primary">{formatDeparture(preview.departure_datetime)}</span>
+            <span className="font-medium text-content-primary">{formatDeparture(preview.departure_datetime, locale)}</span>
           </div>
           {preview.route_duration_minutes != null && (
             <div className="flex justify-between text-content-secondary">
@@ -264,7 +268,7 @@ export default function PassengerRideDetailPage() {
           </div>
           <div className="flex justify-between text-content-secondary">
             <span>{t("pricePerSeat")}</span>
-            <span className="font-medium text-content-primary">EGP {preview.per_seat_price}</span>
+            <span className="font-medium text-content-primary">{formatCurrency(Number(preview.per_seat_price), locale)}</span>
           </div>
         </div>
 
@@ -422,7 +426,7 @@ export default function PassengerRideDetailPage() {
       <div className="space-y-2 text-sm">
         <div className="flex justify-between text-content-secondary">
           <span>{t("departure")}</span>
-          <span className="font-medium text-content-primary">{formatDeparture(ride.departure_datetime)}</span>
+          <span className="font-medium text-content-primary">{formatDeparture(ride.departure_datetime, locale)}</span>
         </div>
         {ctx.estimated_travel_minutes && (
           <div className="flex justify-between text-content-secondary">
@@ -446,7 +450,7 @@ export default function PassengerRideDetailPage() {
         </div>
         <div className="flex justify-between text-content-secondary">
           <span>{t("basePrice")}</span>
-          <span className="font-medium text-content-primary">EGP {ride.per_seat_price}</span>
+          <span className="font-medium text-content-primary">{formatCurrency(Number(ride.per_seat_price), locale)}</span>
         </div>
       </div>
 
@@ -465,7 +469,7 @@ export default function PassengerRideDetailPage() {
             }`}
           >
             <span className="font-medium text-content-primary">{t("standard")}</span>
-            <span className="text-content-muted">EGP {ride.per_seat_price}</span>
+            <span className="text-content-muted">{formatCurrency(Number(ride.per_seat_price), locale)}</span>
           </button>
 
           {ctx.premium_pickup_available && (
@@ -484,7 +488,7 @@ export default function PassengerRideDetailPage() {
               }`}
             >
               <span className="font-medium text-amber-700">Premium Pickup</span>
-              <span className="text-amber-600">+EGP {(ctx.premium_pickup_fee ?? 0).toFixed(2)}</span>
+              <span className="text-amber-600">+{formatCurrency(ctx.premium_pickup_fee ?? 0, locale)}</span>
             </button>
           )}
 
@@ -504,7 +508,7 @@ export default function PassengerRideDetailPage() {
               }`}
             >
               <span className="font-medium text-amber-700">Premium Dropoff</span>
-              <span className="text-amber-600">+EGP {(ctx.premium_dropoff_fee ?? 0).toFixed(2)}</span>
+              <span className="text-amber-600">+{formatCurrency(ctx.premium_dropoff_fee ?? 0, locale)}</span>
             </button>
           )}
         </div>
@@ -514,7 +518,7 @@ export default function PassengerRideDetailPage() {
       <div className="space-y-3 pt-2 border-t border-border-default">
         <div className="flex justify-between text-sm font-semibold text-content-primary">
           <span>Total</span>
-          <span>EGP {totalPrice}</span>
+          <span>{formatCurrency(Number(totalPrice), locale)}</span>
         </div>
 
         <button
@@ -539,7 +543,7 @@ export default function PassengerRideDetailPage() {
             </div>
             <div className="flex justify-between text-content-secondary">
               <span>Departure</span>
-              <span className="font-medium text-content-primary">{formatDeparture(ride.departure_datetime)}</span>
+              <span className="font-medium text-content-primary">{formatDeparture(ride.departure_datetime, locale)}</span>
             </div>
             <div className="flex justify-between text-content-secondary">
               <span>Pickup</span>
@@ -558,23 +562,23 @@ export default function PassengerRideDetailPage() {
           <div className="border-t border-border-default pt-3 space-y-1 text-sm">
             <div className="flex justify-between text-content-secondary">
               <span>Base fare</span>
-              <span>EGP {ride.per_seat_price}</span>
+              <span>{formatCurrency(Number(ride.per_seat_price), locale)}</span>
             </div>
             {(premiumOption === "premium_pickup" || premiumOption === "premium_both") && ctx.premium_pickup_fee && (
               <div className="flex justify-between text-amber-700">
                 <span>Premium pickup</span>
-                <span>+EGP {ctx.premium_pickup_fee.toFixed(2)}</span>
+                <span>+{formatCurrency(ctx.premium_pickup_fee, locale)}</span>
               </div>
             )}
             {(premiumOption === "premium_dropoff" || premiumOption === "premium_both") && ctx.premium_dropoff_fee && (
               <div className="flex justify-between text-amber-700">
                 <span>Premium dropoff</span>
-                <span>+EGP {ctx.premium_dropoff_fee.toFixed(2)}</span>
+                <span>+{formatCurrency(ctx.premium_dropoff_fee, locale)}</span>
               </div>
             )}
             <div className="flex justify-between font-semibold text-content-primary pt-1 border-t border-border-default">
               <span>Total</span>
-              <span>EGP {totalPrice}</span>
+              <span>{formatCurrency(Number(totalPrice), locale)}</span>
             </div>
           </div>
 

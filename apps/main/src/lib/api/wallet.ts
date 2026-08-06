@@ -1,4 +1,6 @@
 import { env } from "../env";
+import { formatCurrency } from "@fe-el-seka/shared";
+import type { Locale } from "@fe-el-seka/shared";
 
 const base = env.apiUrl;
 
@@ -39,11 +41,6 @@ export async function getWallet(token: string, page = 1): Promise<WalletResponse
   return json;
 }
 
-export function formatEgp(amount: string | number): string {
-  return new Intl.NumberFormat("en-EG", {
-    style: "currency",
-    currency: "EGP",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(typeof amount === "string" ? parseFloat(amount) : amount);
+export function formatEgp(amount: string | number, locale: Locale = "en"): string {
+  return formatCurrency(typeof amount === "string" ? parseFloat(amount) : amount, locale);
 }

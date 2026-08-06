@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { createRide } from "@/lib/api/rides";
 import { getMyVehicle } from "@/lib/api/vehicles";
 import { RideForm } from "@/components/rides/RideForm";
 import { BottomSheet } from "@/components";
-import type { Ride, CreateRidePayload, Location, Coordinates } from "@fe-el-seka/shared";
+import { formatCurrency } from "@fe-el-seka/shared";
+import type { Ride, CreateRidePayload, Location, Coordinates, Locale } from "@fe-el-seka/shared";
 
 const RideMap = dynamic(
   () => import("@/components/rides/RideMap").then((m) => ({ default: m.RideMap })),
@@ -18,6 +19,7 @@ const RideMap = dynamic(
 
 export default function NewRidePage() {
   const t = useTranslations("driver.newRide");
+  const locale = useLocale() as Locale;
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +98,7 @@ export default function NewRidePage() {
           <div className="flex justify-between items-center py-3 border-t border-b border-border-default">
             <span className="text-sm text-content-secondary">{t("farePerSeatLabel")}</span>
             <span className="text-base font-semibold text-content-primary">
-              EGP {createdRide.price_per_seat}
+              {formatCurrency(Number(createdRide.price_per_seat), locale)}
             </span>
           </div>
           <p className="text-xs text-content-muted">

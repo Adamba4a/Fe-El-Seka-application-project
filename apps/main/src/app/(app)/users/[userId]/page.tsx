@@ -2,20 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/Spinner";
 import { RatingBadge } from "@/components/ui/RatingBadge";
 import { createClient } from "@/lib/supabase/client";
 import { getPublicProfile } from "@/lib/api/profiles";
-import type { PublicProfile } from "@fe-el-seka/shared";
-
-function formatDate(iso: string | null) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-EG", { year: "numeric", month: "short", day: "numeric" });
-}
+import { formatDate } from "@fe-el-seka/shared";
+import type { Locale, PublicProfile } from "@fe-el-seka/shared";
 
 export default function PublicProfilePage() {
   const t = useTranslations("users.publicProfile");
+  const locale = useLocale() as Locale;
   const params = useParams<{ userId: string }>();
   const userId = params.userId;
   const router = useRouter();
@@ -118,7 +115,9 @@ export default function PublicProfilePage() {
                 <p className="text-sm text-content-primary">
                   {r.origin_address ?? "—"} → {r.destination_address ?? "—"}
                 </p>
-                <p className="text-xs text-content-muted">{formatDate(r.departure_datetime)}</p>
+                <p className="text-xs text-content-muted">
+                  {r.departure_datetime ? formatDate(r.departure_datetime, locale) : "—"}
+                </p>
               </div>
             ))
           )}

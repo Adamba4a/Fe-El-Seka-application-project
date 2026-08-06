@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/Spinner";
 import { createClient } from "@/lib/supabase/client";
 import { getMe } from "@/lib/api/profiles";
+import { formatDate } from "@fe-el-seka/shared";
+import type { Locale } from "@fe-el-seka/shared";
 
 interface RatingComment {
   comment: string;
@@ -17,12 +19,9 @@ interface RatingSummary {
   comments: RatingComment[];
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-EG", { year: "numeric", month: "short", day: "numeric" });
-}
-
 export default function RatingSummaryPage() {
   const t = useTranslations("ratings.summary");
+  const locale = useLocale() as Locale;
   const [summary, setSummary] = useState<RatingSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +97,7 @@ export default function RatingSummaryPage() {
             summary.comments.map((c, i) => (
               <div key={i} className="border-t border-border-default first:border-t-0 pt-3 first:pt-0 space-y-1">
                 <p className="text-sm text-content-primary">{c.comment}</p>
-                <p className="text-xs text-content-muted">{formatDate(c.created_at)}</p>
+                <p className="text-xs text-content-muted">{formatDate(c.created_at, locale)}</p>
               </div>
             ))
           )}

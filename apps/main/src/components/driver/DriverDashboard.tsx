@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useSession } from "@/lib/auth/hooks";
 import { getMe } from "@/lib/api/profiles";
 import { listRides, listRideBookings } from "@/lib/api/rides";
-import type { Ride, Profile } from "@fe-el-seka/shared";
+import { formatCurrency } from "@fe-el-seka/shared";
+import type { Ride, Profile, Locale } from "@fe-el-seka/shared";
 import { StatsCard } from "@/components/driver/StatsCard";
 import { UpcomingTripCard } from "@/components/driver/UpcomingTripCard";
 
@@ -24,28 +25,36 @@ function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-function formatDepartureLabel(iso: string, todayLabel: string, tomorrowLabel: string): string {
+function formatDepartureLabel(iso: string, locale: Locale, todayLabel: string, tomorrowLabel: string): string {
   const date = new Date(iso);
   const now = new Date();
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
 
+  const intlLocale = locale === "ar" ? "ar-EG" : "en-EG";
+
   let dayLabel: string;
   if (isSameDay(date, now)) dayLabel = todayLabel;
   else if (isSameDay(date, tomorrow)) dayLabel = tomorrowLabel;
-  else dayLabel = date.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
+  else
+    dayLabel = new Intl.DateTimeFormat(intlLocale, {
+      month: "short",
+      day: "numeric",
+      numberingSystem: "latn",
+    }).format(date).toUpperCase();
 
-  const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toUpperCase();
+  const time = new Intl.DateTimeFormat(intlLocale, {
+    hour: "numeric",
+    minute: "2-digit",
+    numberingSystem: "latn",
+  }).format(date).toUpperCase();
   return `${dayLabel} • ${time}`;
-}
-
-function formatEgpWhole(amount: number): string {
-  return Math.round(amount).toLocaleString("en-US");
 }
 
 export function DriverDashboard() {
   const t = useTranslations("driverDashboard");
   const tNav = useTranslations("nav");
+  const locale = useLocale() as Locale;
   const session = useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [trips, setTrips] = useState<TripWithPassengers[]>([]);
@@ -120,7 +129,7 @@ export function DriverDashboard() {
       ) : (
         <>
           <div className="flex gap-3 mt-6 overflow-x-auto pb-1 -mx-4 px-4">
-            <StatsCard variant="dark" label={t("earningsLabel")} value={`EGP ${formatEgpWhole(earnings)}`} subLabel={t("allTime")} />
+            <StatsCard variant="dark" label={t("earningsLabel")} value={formatCurrency(earnings, locale)} subLabel={t("allTime")} />
             <StatsCard variant="light" label={t("ridesLabel")} value={String(completedCount)} subLabel={t("totalCompleted")} />
           </div>
 
@@ -137,12 +146,12 @@ export function DriverDashboard() {
                 <UpcomingTripCard
                   key={ride.id}
                   href={`/rides/${ride.id}/manage`}
-                  departureLabel={formatDepartureLabel(ride.departure_datetime, t("dayToday"), t("dayTomorrow"))}
+                  departureLabel={formatDepartureLabel(ride.departure_datetime, locale, t("dayToday"), t("dayTomorrow"))}
                   originAddress={ride.origin.address}
                   destinationAddress={ride.destination.address}
                   isFull={ride.available_seats === 0}
                   waitingCount={ride.available_seats}
-                  price={formatEgpWhole(parseFloat(ride.price_per_seat) * ride.booked_seats)}
+                  price={formatCurrency(parseFloat(ride.price_per_seat) * ride.booked_seats, locale)}
                   passengers={passengers}
                 />
               ))}

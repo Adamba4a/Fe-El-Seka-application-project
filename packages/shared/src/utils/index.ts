@@ -6,10 +6,19 @@ export function formatPhone(phone: string): string {
   return phone;
 }
 
-export function formatDate(isoString: string): string {
-  return new Date(isoString).toLocaleDateString("en-EG", {
+export function formatDate(isoString: string, locale: "en" | "ar" = "en"): string {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", {
     year: "numeric",
     month: "short",
     day: "numeric",
-  });
+    numberingSystem: "latn",
+  }).format(new Date(isoString));
+}
+
+export function formatCurrency(amount: number, locale: "en" | "ar" = "en"): string {
+  return new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-EG", {
+    style: "currency",
+    currency: "EGP",
+    numberingSystem: "latn",
+  }).format(amount);
 }

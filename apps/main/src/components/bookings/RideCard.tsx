@@ -1,8 +1,10 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { MatchScoreBadge } from "@/components/search/MatchScoreBadge";
 import { RatingBadge } from "@/components/ui/RatingBadge";
+import { formatCurrency } from "@fe-el-seka/shared";
+import type { Locale } from "@fe-el-seka/shared";
 
 export interface RideCandidate {
   ride_id: string;
@@ -33,14 +35,15 @@ export interface RideCandidate {
   };
 }
 
-function formatDeparture(iso: string) {
-  return new Date(iso).toLocaleString("en-EG", {
+function formatDeparture(iso: string, locale: Locale) {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", {
     weekday: "short",
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  });
+    numberingSystem: "latn",
+  }).format(new Date(iso));
 }
 
 function OverlapBar({ pct }: { pct: number }) {
@@ -64,6 +67,7 @@ interface RideCardProps {
 
 export function RideCard({ candidate, onClick }: RideCardProps) {
   const t = useTranslations("rideCard");
+  const locale = useLocale() as Locale;
   const isPremium = candidate.candidate_type === "premium";
   const isNearbyEndpoint = candidate.candidate_type === "nearby_endpoint";
   const totalPremiumFee =
@@ -95,7 +99,7 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
                 {candidate.driver.display_name ?? t("defaultDriverName")}
               </p>
               <div className="flex items-center gap-2">
-                <p className="text-xs text-content-muted">{formatDeparture(candidate.departure_datetime)}</p>
+                <p className="text-xs text-content-muted">{formatDeparture(candidate.departure_datetime, locale)}</p>
                 <RatingBadge ratingAvg={candidate.driver.rating_avg} ratingCount={candidate.driver.rating_count} />
               </div>
             </div>
@@ -113,7 +117,7 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
               </span>
             )}
             <span className="text-sm font-semibold text-content-primary">
-              EGP {candidate.per_seat_price}
+              {formatCurrency(Number(candidate.per_seat_price), locale)}
               {isPremium && totalPremiumFee > 0 && (
                 <span className="text-xs text-content-muted font-normal"> +{totalPremiumFee.toFixed(2)}</span>
               )}

@@ -1,8 +1,10 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { BookingStatusBadge } from "./BookingStatusBadge";
 import { RatingBadge } from "@/components/ui/RatingBadge";
+import { formatCurrency } from "@fe-el-seka/shared";
+import type { Locale } from "@fe-el-seka/shared";
 
 type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 
@@ -59,15 +61,16 @@ interface DriverVariantProps {
 
 type BookingCardProps = PassengerVariantProps | DriverVariantProps;
 
-function formatDateTime(iso?: string) {
+function formatDateTime(iso: string | undefined, locale: Locale) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString("en-EG", {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", {
     weekday: "short",
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  });
+    numberingSystem: "latn",
+  }).format(new Date(iso));
 }
 
 function formatCoord(pt: { lat: number; lng: number }) {
@@ -76,6 +79,7 @@ function formatCoord(pt: { lat: number; lng: number }) {
 
 export function BookingCard(props: BookingCardProps) {
   const t = useTranslations("bookingCard");
+  const locale = useLocale() as Locale;
   if (props.variant === "passenger") {
     const { booking, onClick } = props;
     const hasPremium = booking.premium_pickup_requested || booking.premium_dropoff_requested;
@@ -93,11 +97,11 @@ export function BookingCard(props: BookingCardProps) {
             <BookingStatusBadge status={booking.status} />
           </div>
           <p className="text-xs text-content-muted">
-            {formatDateTime(booking.departure_datetime)}
+            {formatDateTime(booking.departure_datetime, locale)}
           </p>
           <div className="flex items-center justify-between text-sm">
             <span className="text-content-muted">{t("total")}</span>
-            <span className="font-semibold text-content-primary">EGP {booking.total_price}</span>
+            <span className="font-semibold text-content-primary">{formatCurrency(Number(booking.total_price), locale)}</span>
           </div>
           {hasPremium && (
             <p className="text-xs text-amber-700">
@@ -149,7 +153,7 @@ export function BookingCard(props: BookingCardProps) {
             </div>
           </div>
           <div className="text-end text-sm shrink-0">
-            <p className="font-semibold text-content-primary">EGP {booking.total_price}</p>
+            <p className="font-semibold text-content-primary">{formatCurrency(Number(booking.total_price), locale)}</p>
             <p className="text-xs text-content-muted">{t("perSeat")}</p>
           </div>
         </div>

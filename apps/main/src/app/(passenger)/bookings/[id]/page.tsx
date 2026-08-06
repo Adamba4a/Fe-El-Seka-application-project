@@ -4,11 +4,13 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { BookingStatusBadge } from "@/components/bookings/BookingStatusBadge";
 import { Spinner } from "@/components/ui/Spinner";
 import { createClient } from "@/lib/supabase/client";
 import { useBookingStatus } from "@/lib/hooks/useBookingStatus";
+import { formatCurrency } from "@fe-el-seka/shared";
+import type { Locale } from "@fe-el-seka/shared";
 
 const RideDetailMap = dynamic(
   () => import("@/components/bookings/RideDetailMap").then((m) => ({ default: m.RideDetailMap })),
@@ -64,16 +66,17 @@ async function apiFetch(path: string, options?: RequestInit) {
   return res.json();
 }
 
-function formatDateTime(iso?: string | null) {
+function formatDateTime(iso: string | null | undefined, locale: Locale) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString("en-EG", {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  });
+    numberingSystem: "latn",
+  }).format(new Date(iso));
 }
 
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
@@ -95,6 +98,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
 export default function PassengerBookingDetailPage() {
   const t = useTranslations("passenger.bookingDetail");
   const tBookings = useTranslations("passenger.bookings");
+  const locale = useLocale() as Locale;
   const params = useParams<{ id: string }>();
   const bookingId = params.id;
   const router = useRouter();
@@ -239,7 +243,7 @@ export default function PassengerBookingDetailPage() {
           </div>
           <div>
             <p className="text-xs text-content-muted">{t("departure")}</p>
-            <p className="text-sm font-medium text-content-primary">{formatDateTime(booking.departure_datetime)}</p>
+            <p className="text-sm font-medium text-content-primary">{formatDateTime(booking.departure_datetime, locale)}</p>
           </div>
         </div>
       </div>
@@ -300,23 +304,23 @@ export default function PassengerBookingDetailPage() {
           <p className="text-sm font-medium text-content-primary">{t("priceBreakdown")}</p>
           <div className="flex justify-between text-sm">
             <span className="text-content-muted">{t("baseFare")}</span>
-            <span className="text-content-primary">EGP {booking.per_seat_price}</span>
+            <span className="text-content-primary">{formatCurrency(Number(booking.per_seat_price), locale)}</span>
           </div>
           {booking.premium_pickup_requested && booking.premium_pickup_fee && (
             <div className="flex justify-between text-sm">
               <span className="text-content-muted">{t("premiumPickup")}</span>
-              <span className="text-content-primary">EGP {booking.premium_pickup_fee}</span>
+              <span className="text-content-primary">{formatCurrency(Number(booking.premium_pickup_fee), locale)}</span>
             </div>
           )}
           {booking.premium_dropoff_requested && booking.premium_dropoff_fee && (
             <div className="flex justify-between text-sm">
               <span className="text-content-muted">{t("premiumDropoff")}</span>
-              <span className="text-content-primary">EGP {booking.premium_dropoff_fee}</span>
+              <span className="text-content-primary">{formatCurrency(Number(booking.premium_dropoff_fee), locale)}</span>
             </div>
           )}
           <div className="border-t border-border-default pt-2 flex justify-between font-semibold text-content-primary">
             <span>{t("total")}</span>
-            <span>EGP {booking.total_price}</span>
+            <span>{formatCurrency(Number(booking.total_price), locale)}</span>
           </div>
         </div>
       </div>
@@ -330,7 +334,7 @@ export default function PassengerBookingDetailPage() {
               <p className="text-xs text-red-600">{booking.cancellation_reason}</p>
             )}
             {booking.cancelled_at && (
-              <p className="text-xs text-red-500">{formatDateTime(booking.cancelled_at)}</p>
+              <p className="text-xs text-red-500">{formatDateTime(booking.cancelled_at, locale)}</p>
             )}
             {booking.late_cancellation && (
               <p className="text-xs text-amber-600 font-medium">{t("lateCancellation")}</p>

@@ -4,14 +4,15 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { RatingBadge } from "@/components/ui/RatingBadge";
 import { createClient } from "@/lib/supabase/client";
 import { getRide } from "@/lib/api/rides";
 import { useBookingStatus } from "@/lib/hooks/useBookingStatus";
-import type { Ride } from "@fe-el-seka/shared";
+import { formatCurrency } from "@fe-el-seka/shared";
+import type { Ride, Locale } from "@fe-el-seka/shared";
 
 const RideDetailMap = dynamic(
   () => import("@/components/bookings/RideDetailMap").then((m) => ({ default: m.RideDetailMap })),
@@ -68,6 +69,7 @@ async function apiFetch(path: string, options?: RequestInit) {
 export default function DriverRideBookingsPage() {
   const t = useTranslations("driver.bookings");
   const tNav = useTranslations("nav");
+  const locale = useLocale() as Locale;
   const params = useParams<{ id: string }>();
   const rideId = params.id;
   const router = useRouter();
@@ -304,7 +306,7 @@ export default function DriverRideBookingsPage() {
                   {booking.passenger.display_name ?? tNav("defaultPassengerName")}
                 </p>
                 <div className="flex items-center gap-2">
-                  <p className="text-xs text-content-muted">EGP {booking.total_price}</p>
+                  <p className="text-xs text-content-muted">{formatCurrency(Number(booking.total_price), locale)}</p>
                   <RatingBadge
                     ratingAvg={booking.passenger.rating_avg ?? null}
                     ratingCount={booking.passenger.rating_count ?? 0}

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { getRide, startRide, completeRide, cancelRide } from "@/lib/api/rides";
 import { reportLocation } from "@/lib/api/location";
@@ -12,7 +12,8 @@ import { RideStatusBadge } from "@/components/rides/RideStatusBadge";
 import { RideHistoryLog } from "@/components/rides/RideHistoryLog";
 import { StartCompleteActions } from "@/components/rides/StartCompleteActions";
 import { BottomSheet, Spinner } from "@/components";
-import type { Ride, RideHistoryEntry } from "@fe-el-seka/shared";
+import { formatCurrency } from "@fe-el-seka/shared";
+import type { Ride, RideHistoryEntry, Locale } from "@fe-el-seka/shared";
 
 const RideDetailMap = dynamic(
   () => import("@/components/bookings/RideDetailMap").then((m) => ({ default: m.RideDetailMap })),
@@ -28,19 +29,21 @@ function bearingDeg(from: GeolocationPosition, to: GeolocationPosition): number 
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("en-EG", {
+function formatDateTime(iso: string, locale: Locale) {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", {
     weekday: "long",
     month: "long",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  });
+    numberingSystem: "latn",
+  }).format(new Date(iso));
 }
 
 export default function RideManagePage() {
   const t = useTranslations("driver.manage");
   const tEditRide = useTranslations("driver.editRide");
+  const locale = useLocale() as Locale;
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [ride, setRide] = useState<Ride | null>(null);
@@ -214,7 +217,7 @@ export default function RideManagePage() {
           </div>
           <div>
             <p className="text-caption text-content-muted uppercase tracking-wide">{t("departure")}</p>
-            <p className="text-body-sm font-medium text-content-primary">{formatDate(ride.departure_datetime)}</p>
+            <p className="text-body-sm font-medium text-content-primary">{formatDateTime(ride.departure_datetime, locale)}</p>
           </div>
         </div>
 
@@ -236,7 +239,7 @@ export default function RideManagePage() {
             <p className="text-caption text-content-muted">{t("total")}</p>
           </div>
           <div className="text-center">
-            <p className="text-lg font-bold text-content-primary">EGP {ride.price_per_seat}</p>
+            <p className="text-lg font-bold text-content-primary">{formatCurrency(Number(ride.price_per_seat), locale)}</p>
             <p className="text-caption text-content-muted">{t("perSeat")}</p>
           </div>
         </div>

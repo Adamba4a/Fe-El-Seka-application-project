@@ -355,7 +355,8 @@
       "noRidesTitle": "لا توجد رحلات بعد",
       "noRidesBody": "انشر رحلتك الأولى وابدأ في مشاركة مسارك",
       "postFirstRide": "انشر رحلتك الأولى",
-      "seatsAvailableCount": "{available}/{total} مقاعد متاحة"
+      "seatsAvailableCount": "{available}/{total} مقاعد متاحة",
+      "perSeatSuffix": "/مقعد"
     },
     "editRide": {
       "loadFailed": "فشل تحميل الرحلة.",

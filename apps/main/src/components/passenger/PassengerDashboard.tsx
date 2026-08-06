@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useSession } from "@/lib/auth/hooks";
 import { getMe } from "@/lib/api/profiles";
 import { getNearbyRides, type NearbyRide } from "@/lib/api/search";
 import { listBookings, type PassengerBooking } from "@/lib/api/bookings";
-import type { Profile } from "@fe-el-seka/shared";
+import { formatCurrency } from "@fe-el-seka/shared";
+import type { Profile, Locale } from "@fe-el-seka/shared";
 import { AvailableRideCard } from "@/components/passenger/AvailableRideCard";
 import { JoinedRideCard } from "@/components/passenger/JoinedRideCard";
 
@@ -15,18 +16,29 @@ function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-function formatDepartureLabel(iso: string, dayToday: string, dayTomorrow: string): string {
+function formatDepartureLabel(iso: string, locale: Locale, dayToday: string, dayTomorrow: string): string {
   const date = new Date(iso);
   const now = new Date();
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
 
+  const intlLocale = locale === "ar" ? "ar-EG" : "en-EG";
+
   let dayLabel: string;
   if (isSameDay(date, now)) dayLabel = dayToday;
   else if (isSameDay(date, tomorrow)) dayLabel = dayTomorrow;
-  else dayLabel = date.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
+  else
+    dayLabel = new Intl.DateTimeFormat(intlLocale, {
+      month: "short",
+      day: "numeric",
+      numberingSystem: "latn",
+    }).format(date).toUpperCase();
 
-  const time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toUpperCase();
+  const time = new Intl.DateTimeFormat(intlLocale, {
+    hour: "numeric",
+    minute: "2-digit",
+    numberingSystem: "latn",
+  }).format(date).toUpperCase();
   return `${dayLabel} • ${time}`;
 }
 
@@ -39,6 +51,7 @@ type GeoState = "idle" | "loading" | "granted" | "denied";
 
 export function PassengerDashboard() {
   const t = useTranslations("passengerDashboard");
+  const locale = useLocale() as Locale;
   const session = useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [nearby, setNearby] = useState<NearbyRide[]>([]);
@@ -132,10 +145,10 @@ export function PassengerDashboard() {
             <AvailableRideCard
               key={ride.ride_id}
               rideId={ride.ride_id}
-              departureLabel={formatDepartureLabel(ride.departure_datetime, dayToday, dayTomorrow)}
+              departureLabel={formatDepartureLabel(ride.departure_datetime, locale, dayToday, dayTomorrow)}
               originAddress={ride.origin_address}
               destinationAddress={ride.destination_address}
-              price={ride.per_seat_price}
+              price={formatCurrency(Number(ride.per_seat_price), locale)}
               distanceLabel={formatDistanceLabel(ride.distance_meters)}
               driverName={ride.driver.display_name}
               driverAvatarUrl={ride.driver.avatar_url}
@@ -164,14 +177,14 @@ export function PassengerDashboard() {
               href={`/bookings/${booking.booking_id}`}
               departureLabel={
                 booking.departure_datetime
-                  ? formatDepartureLabel(booking.departure_datetime, dayToday, dayTomorrow)
+                  ? formatDepartureLabel(booking.departure_datetime, locale, dayToday, dayTomorrow)
                   : "—"
               }
               originAddress={booking.origin_address}
               destinationAddress={booking.destination_address}
               status={booking.status}
               driverName={booking.driver_display_name}
-              price={booking.total_price}
+              price={formatCurrency(Number(booking.total_price), locale)}
             />
           ))}
         </div>

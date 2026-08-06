@@ -184,11 +184,11 @@ confirm dates/currency/numbers follow locale convention and copy reads as natura
 
 ### Implementation for User Story 3
 
-- [ ] T032 [P] [US3] Extend `packages/shared/src/utils/index.ts` — add a `locale` parameter to
+- [X] T032 [P] [US3] Extend `packages/shared/src/utils/index.ts` — add a `locale` parameter to
       `formatDate()` and a new `formatCurrency(amount, locale)` for EGP, both forcing
       `numberingSystem: "latn"` per `research.md` R7 (depends on T005 — already complete from
       Foundational)
-- [ ] T033 [US3] Replace ad hoc `toLocaleString`/`Intl.*` formatting with the shared locale-aware
+- [X] T033 [US3] Replace ad hoc `toLocaleString`/`Intl.*` formatting with the shared locale-aware
       formatter in: `apps/main/src/app/(passenger)/bookings/[id]/page.tsx`,
       `apps/main/src/app/(passenger)/rides/[id]/page.tsx`,
       `apps/main/src/components/bookings/BookingCard.tsx`,
@@ -198,7 +198,14 @@ confirm dates/currency/numbers follow locale convention and copy reads as natura
       `apps/main/src/app/(driver)/rides/[id]/manage/page.tsx`,
       `apps/main/src/components/driver/DriverDashboard.tsx`, `apps/main/src/lib/api/wallet.ts`,
       `apps/main/src/components/rides/RideCard.tsx`, `apps/main/src/components/rides/RideHistoryLog.tsx`
-      (depends on T032)
+      (depends on T032). Also migrated 6 additional call sites found via audit (not in the original
+      list) with the same ad hoc `EGP {value}`/`toLocaleString("en-US"|"en-EG")` pattern:
+      `apps/main/src/components/passenger/PassengerDashboard.tsx`,
+      `apps/main/src/components/passenger/AvailableRideCard.tsx`,
+      `apps/main/src/components/passenger/JoinedRideCard.tsx`,
+      `apps/main/src/components/driver/UpcomingTripCard.tsx`,
+      `apps/main/src/app/(driver)/rides/[id]/bookings/page.tsx`,
+      `apps/main/src/app/(driver)/rides/new/page.tsx`.
 - [ ] T034 [P] [US3] Review `apps/main/messages/ar.json` copy for natural (non-literal) Arabic
       phrasing across error, empty-state, and confirmation strings populated in T016–T019 (depends on
       T016–T019)

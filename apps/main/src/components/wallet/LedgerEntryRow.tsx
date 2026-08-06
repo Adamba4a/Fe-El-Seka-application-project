@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { LedgerEntry } from "@/lib/api/wallet";
 import { formatEgp } from "@/lib/api/wallet";
+import type { Locale } from "@fe-el-seka/shared";
 
 interface Props {
   entry: LedgerEntry;
@@ -11,6 +12,7 @@ interface Props {
 
 function relativeTime(
   iso: string,
+  locale: Locale,
   t: (key: string, values?: Record<string, string | number>) => string
 ): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -21,11 +23,16 @@ function relativeTime(
   if (hrs < 24) return t("hoursAgo", { hours: hrs });
   const days = Math.floor(hrs / 24);
   if (days < 7) return t("daysAgo", { days });
-  return new Date(iso).toLocaleDateString("en-EG", { day: "numeric", month: "short" });
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", {
+    day: "numeric",
+    month: "short",
+    numberingSystem: "latn",
+  }).format(new Date(iso));
 }
 
 export function LedgerEntryRow({ entry }: Props) {
   const t = useTranslations("ledgerEntryRow");
+  const locale = useLocale() as Locale;
   const TYPE_LABELS: Record<LedgerEntry["type"], string> = {
     COMMISSION_DEBIT: t("commissionCharge"),
     ADMIN_CREDIT: t("balanceTopUp"),
@@ -42,7 +49,7 @@ export function LedgerEntryRow({ entry }: Props) {
           {TYPE_LABELS[entry.type]}
         </p>
         <div className="flex items-center gap-2 text-xs text-content-muted">
-          <span>{relativeTime(entry.created_at, t)}</span>
+          <span>{relativeTime(entry.created_at, locale, t)}</span>
           {entry.ride_id && entry.type === "COMMISSION_DEBIT" && (
             <Link
               href={`/rides/${entry.ride_id}/manage`}
@@ -55,7 +62,7 @@ export function LedgerEntryRow({ entry }: Props) {
         </div>
       </div>
       <p className={`font-semibold text-body-sm ${amountColor}`}>
-        {sign}{formatEgp(entry.amount_egp)}
+        {sign}{formatEgp(entry.amount_egp, locale)}
       </p>
     </div>
   );
