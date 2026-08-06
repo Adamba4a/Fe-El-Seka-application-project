@@ -557,6 +557,10 @@
   "dashboard": {
     "title": "Dashboard"
   },
+  "languagePrompt": {
+    "heading": "Choose your language",
+    "subheading": "اختر لغتك"
+  },
   "nav": {
     "verifiedDriver": "VERIFIED DRIVER",
     "notificationsAriaLabel": "Notifications",

@@ -159,12 +159,15 @@ per `quickstart.md` Scenario 2 (and Scenario 3 for the rollout prompt).
       authenticated, verified-passenger session (enforced in `middleware.ts`) and no test credentials
       were available in this session for a live browser confirmation, so no code change was needed
       and none was made.
-- [ ] T030 [P] [US2] Create
+- [X] T030 [P] [US2] Create
       `apps/main/src/app/(app)/settings/profile/LanguagePromptModal.tsx` — one-time, non-blocking
       prompt for authenticated users with `language_preference = NULL` (FR-013), rendered from a
       shared layout slot (depends on T009, T015 — both already complete from Foundational)
-- [ ] T031 [US2] Wire `LanguagePromptModal` into the app shell so it appears on first post-launch page
-      view for eligible users without blocking navigation underneath it (depends on T030, T015)
+- [X] T031 [US2] Wire `LanguagePromptModal` into the app shell so it appears on first post-launch page
+      view for eligible users without blocking navigation underneath it (depends on T030, T015) —
+      wired into `AppShell.tsx` (already the single choke point for `(app)`/`(driver)`/`(passenger)`,
+      per T027's notes), gated on the `profile` it already fetches via `getMe()`; renders as a fixed
+      overlay (not a route guard), so it never blocks navigation underneath it
 
 **Checkpoint**: User Stories 1 AND 2 both work independently — `quickstart.md` Scenarios 2 & 3 pass.
 

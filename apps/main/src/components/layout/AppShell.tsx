@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSession } from "@/lib/auth/hooks";
 import { getMe } from "@/lib/api/profiles";
+import { LanguagePromptModal } from "@/app/(app)/settings/profile/LanguagePromptModal";
 import type { Profile } from "@fe-el-seka/shared";
 import { TopBar } from "./TopBar";
 import { BottomNav } from "./BottomNav";
@@ -30,6 +31,9 @@ export function AppShell({ variant, children }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-dash-bg">
+      {session?.access_token && profile && profile.language_preference == null && (
+        <LanguagePromptModal accessToken={session.access_token} />
+      )}
       <TopBar variant={variant} userName={userName} avatarUrl={profile?.profile_photo_url} />
       <main className="max-w-2xl mx-auto px-4 pb-24">{children}</main>
       <BottomNav variant={variant} />

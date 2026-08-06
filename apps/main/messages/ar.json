@@ -557,6 +557,10 @@
   "dashboard": {
     "title": "لوحة التحكم"
   },
+  "languagePrompt": {
+    "heading": "اختر لغتك",
+    "subheading": "Choose your language"
+  },
   "nav": {
     "verifiedDriver": "سائق موثّق",
     "notificationsAriaLabel": "الإشعارات",
