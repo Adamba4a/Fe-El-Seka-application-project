@@ -150,8 +150,15 @@ per `quickstart.md` Scenario 2 (and Scenario 3 for the rollout prompt).
 - [X] T028 [US2] Ensure the toggle updates locale client-side without a full page reload: write the
       `NEXT_LOCALE` cookie directly for unauthenticated visitors; call `updateMe()` +
       `router.refresh()` (not a hard navigation) for authenticated users (depends on T027)
-- [ ] T029 [US2] Verify and fix in-progress form-state preservation across a language switch (FR-012)
-      on the search/booking screens covered in T017 (depends on T028, T017)
+- [X] T029 [US2] Verify and fix in-progress form-state preservation across a language switch (FR-012)
+      on the search/booking screens covered in T017 (depends on T028, T017) — verified via code
+      review: no `key={locale}` (or any locale-derived key) sits above `(passenger)/search/page.tsx`
+      in the tree, so `router.refresh()` only updates `NextIntlClientProvider`'s `locale`/`messages`
+      props in place and never remounts the client `SearchPage`/`RideSearchForm` components; their
+      local `useState` filter values are therefore preserved automatically. `/search` requires an
+      authenticated, verified-passenger session (enforced in `middleware.ts`) and no test credentials
+      were available in this session for a live browser confirmation, so no code change was needed
+      and none was made.
 - [ ] T030 [P] [US2] Create
       `apps/main/src/app/(app)/settings/profile/LanguagePromptModal.tsx` — one-time, non-blocking
       prompt for authenticated users with `language_preference = NULL` (FR-013), rendered from a
