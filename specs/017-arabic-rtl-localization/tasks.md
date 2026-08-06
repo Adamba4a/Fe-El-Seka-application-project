@@ -226,11 +226,41 @@ code.)
 
 **Purpose**: End-to-end validation and rollout bookkeeping
 
-- [ ] T035 [P] Run `quickstart.md` validation — all 7 scenarios (depends on completion of Phases 3–5)
-- [ ] T036 [P] Confirm SC-005 (zero critical layout defects) across primary flows in Arabic/RTL mode
-      on a narrow mobile viewport, per `quickstart.md` Scenario 7
-- [ ] T037 Update `docs/implementation-roadmap.md` marking "Phase 14 — Localization" complete (depends
-      on T035, T036)
+- [X] T035 [P] Run `quickstart.md` validation — all 7 scenarios (depends on completion of Phases 3–5).
+      No live test credentials/services available this session, so validated via code-review pass
+      (traced each scenario through source) rather than click-through — see
+      `feedback_code_review_when_no_live_env` memory convention. Findings: Scenarios 1–4, 6, 7 pass
+      (high/medium confidence — locale resolution in `middleware.ts`, `switchLocale()` soft-refresh
+      for FR-012, `LanguagePromptModal` rollout gating, OTP templates untouched, background message
+      refresh, RTL spot-checks on `BottomNav.tsx`/card components). Scenario 5 (FR-011 missing-key
+      fallback) initially found to LIKELY FAIL: `messages-loader.ts` only fell back to bundled English
+      at the whole-catalog level, so a key present in `en.json` but absent from a successfully-fetched
+      `ar.json` was simply missing, not English. **Fixed**: added `_deepMergeMessages()` to
+      `apps/main/src/lib/i18n/messages-loader.ts`, which recursively overlays each fetched locale's
+      catalog onto the bundled English catalog in `_loadAll()`, so any missing key now falls through to
+      its English string per the `contracts/message-catalog.md` contract. Typechecked clean
+      (`npx tsc --noEmit`). Scenario 5 now passes by construction.
+- [X] T036 [P] Confirm SC-005 (zero critical layout defects) across primary flows in Arabic/RTL mode
+      on a narrow mobile viewport, per `quickstart.md` Scenario 7. No live browser/test-account access
+      this session either, so extended the T035 Scenario 7 spot-check into a full grep-based audit of
+      `apps/main/src` for `truncate`/`whitespace-nowrap`/`overflow-hidden` and fixed pixel `w-*` widths
+      across the primary flows (search, booking, ride management). Findings: every `truncate` hit is on
+      dynamic user content (driver/passenger display names, geocoded addresses) inside a
+      `flex-1 min-w-0` sibling of a fixed-size avatar/icon — the same single-line-ellipsis pattern
+      applies identically in English and Arabic, and no translated static UI string (label/button/
+      heading) is truncated, so this doesn't trip FR-015 (which targets translated strings rendering
+      "without truncation" relative to their English source, not dynamic user data). The one
+      `whitespace-nowrap` case (`(driver)/rides/page.tsx` status filter pills) sits inside an
+      `overflow-x-auto` scroll container — standard horizontal tab-scroll pattern, no clipping/overlap
+      in either direction. Every fixed-pixel `w-*`/`h-*` hit found is an avatar, icon, spinner, skeleton
+      loader, OTP single-character digit box, or the `w-10` percentage-progress numeral (forced
+      `numberingSystem: "latn"` per T032/R7) — none size a variable-length translated text container,
+      consistent with the T021 finding that `packages/ui` has no physical-width text containers. No
+      critical layout defects found; no code changes needed.
+- [X] T037 Update `docs/implementation-roadmap.md` marking "Phase 14 — Localization" complete (depends
+      on T035, T036). Assigned ID `050` (next sequential after `049` in Phase 13), added `✅ Complete`
+      to the phase header and table per the convention used by Phases 10/13, and expanded the
+      Deliverables line to note all 37 tasks done and the code-review validation caveat.
 
 ---
 

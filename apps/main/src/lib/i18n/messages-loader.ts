@@ -41,6 +41,33 @@ async function _fetchCatalog(locale: Locale): Promise<MessageCatalog | null> {
   }
 }
 
+// Recursively overlays `overlay` onto `base`, keeping the base value for any
+// key `overlay` doesn't define. Used to backfill missing translation keys
+// with English rather than dropping them, per FR-011 / contracts/message-catalog.md
+// ("Any key present in en.json but absent from ar.json renders the English
+// string when the active locale is Arabic").
+function _deepMergeMessages(
+  base: AbstractIntlMessages,
+  overlay: AbstractIntlMessages,
+): AbstractIntlMessages {
+  const result: Record<string, unknown> = { ...base };
+  for (const key of Object.keys(overlay)) {
+    const overlayValue = overlay[key];
+    const baseValue = base[key];
+    const bothObjects =
+      overlayValue !== null &&
+      typeof overlayValue === "object" &&
+      !Array.isArray(overlayValue) &&
+      baseValue !== null &&
+      typeof baseValue === "object" &&
+      !Array.isArray(baseValue);
+    result[key] = bothObjects
+      ? _deepMergeMessages(baseValue as AbstractIntlMessages, overlayValue as AbstractIntlMessages)
+      : overlayValue;
+  }
+  return result as AbstractIntlMessages;
+}
+
 async function _loadAll(): Promise<void> {
   const fetched = await Promise.all(locales.map((locale) => _fetchCatalog(locale)));
   const anyLoaded = fetched.some((catalog) => catalog !== null);
@@ -57,7 +84,10 @@ async function _loadAll(): Promise<void> {
   fetched.forEach((catalog, i) => {
     const locale = locales[i];
     if (catalog) {
-      _cache.set(locale, catalog);
+      // Backfill any key missing from this locale's catalog with the
+      // bundled English value instead of leaving it absent (FR-011).
+      const messages = _deepMergeMessages(bundledEnMessages, catalog.messages);
+      _cache.set(locale, { ...catalog, messages });
     } else if (!_cache.has(locale)) {
       _cache.set(locale, { ..._bundledFallback, locale });
     }

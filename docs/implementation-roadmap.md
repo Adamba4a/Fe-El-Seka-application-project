@@ -549,13 +549,13 @@ Ongoing tracking of prediction distributions and acceptance rates per zone/time 
 
 ---
 
-## Phase 14 — Localization
+## Phase 14 — Localization ✅ Complete (017-arabic-rtl-localization)
 
-| ID | Name |
-|---|---|
-| TBD | arabic-rtl-localization |
+| ID | Name | Status |
+|---|---|---|
+| 050 | arabic-rtl-localization | ✅ Complete |
 
-**Deliverables:** Full Arabic UI, RTL layout, bilingual language toggle, next-intl integration
+**Deliverables:** Full Arabic UI, RTL layout, bilingual language toggle, next-intl integration, per-locale push notifications, locale-aware date/currency formatting, one-time rollout prompt for existing users. All 37 tasks (T001–T037) complete; validated via code-review pass against `quickstart.md`'s 7 scenarios (no live test credentials available this session — see spec's task notes for per-scenario confidence).
 
 ---
 
