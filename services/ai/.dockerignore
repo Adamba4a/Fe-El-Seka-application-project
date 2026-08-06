@@ -13,7 +13,6 @@ Dockerfile
 .dockerignore
 models/
 notebooks/
-pipelines/
 *.pkl
 *.joblib
 scripts/

@@ -22,6 +22,7 @@ WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
 COPY app/ /app/app/
+COPY pipelines/ /app/pipelines/
 
 # Face-match model weights are gitignored (large binaries) -- fetch them from
 # the OpenCV Zoo at build time instead of vendoring in the repo.

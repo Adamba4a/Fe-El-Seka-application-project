@@ -27,6 +27,7 @@ services:
       SUPABASE_URL: http://supabase_kong_fe-el-seka:8000
     volumes:
       - ./services/ai/app:/app/app
+      - ./services/ai/pipelines:/app/pipelines
     networks:
       - fe-el-seka-dev
       - supabase_network_fe-el-seka
@@ -44,6 +45,7 @@ services:
     volumes:
       - ./apps/main/src:/app/apps/main/src
       - ./apps/main/public:/app/apps/main/public
+      - ./apps/main/messages:/app/apps/main/messages
       - ./apps/main/tailwind.config.ts:/app/apps/main/tailwind.config.ts
       - ./packages:/app/packages
     networks:
