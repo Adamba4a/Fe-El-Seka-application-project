@@ -25,7 +25,7 @@
 - [X] T003 [P] Create `supabase/migrations/20260808000003_add_topup_request_to_audit_logs.sql` — `ALTER TABLE admin_audit_logs ADD COLUMN topup_request_id UUID NULL REFERENCES wallet_topup_requests(id)` per `data-model.md` §3
 - [X] T004 [P] Create `supabase/migrations/20260808000004_seed_vodafone_cash_number.sql` — `INSERT INTO platform_settings (key, value) VALUES ('vodafone_cash_number', '<placeholder-number>') ON CONFLICT (key) DO NOTHING` per `data-model.md` §4
 - [X] T005 [P] Create `supabase/migrations/20260808000005_create_topup_proofs_bucket.sql` — private Storage bucket `topup-proofs` (mirrors the existing `identity-documents` bucket migration's structure: bucket row + no public-read policy) per `data-model.md` §5
-- [ ] T006 Apply all Phase 1 migrations: `supabase db push` (run after T001–T005 are complete); verify `wallet_topup_requests` exists with correct indexes/RLS, `profiles`/`admin_audit_logs` have their new columns, the `vodafone_cash_number` row exists in `platform_settings`, and the `topup-proofs` bucket exists and is private
+- [X] T006 Apply all Phase 1 migrations: `supabase db push` (run after T001–T005 are complete); verify `wallet_topup_requests` exists with correct indexes/RLS, `profiles`/`admin_audit_logs` have their new columns, the `vodafone_cash_number` row exists in `platform_settings`, and the `topup-proofs` bucket exists and is private
 
 **Checkpoint**: All new schema objects exist in the database with correct constraints, indexes, and RLS policies.
 
