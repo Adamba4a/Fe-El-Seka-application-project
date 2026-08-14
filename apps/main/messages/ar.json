@@ -561,7 +561,8 @@
       "recentRides": "الرحلات الأخيرة",
       "noCompletedRides": "لا توجد رحلات مكتملة بعد.",
       "loadFailed": "فشل تحميل الملف الشخصي",
-      "notFound": "الملف الشخصي غير موجود"
+      "notFound": "الملف الشخصي غير موجود",
+      "phoneLabel": "اضغط للاتصال"
     }
   },
   "dashboard": {

@@ -101,9 +101,10 @@ async def get_public_profile(
     user_id: uuid.UUID,
     profile: dict = Depends(get_current_user),
 ) -> dict:
+    caller_id = uuid.UUID(str(profile["id"]))
     pool = get_pool()
     async with pool.acquire() as conn:
-        return await profile_service.get_public_profile(conn, user_id)
+        return await profile_service.get_public_profile(conn, user_id, caller_id)
 
 
 @router.get("/{user_id}/rating")

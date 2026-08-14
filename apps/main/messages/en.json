@@ -561,7 +561,8 @@
       "recentRides": "Recent rides",
       "noCompletedRides": "No completed rides yet.",
       "loadFailed": "Failed to load profile",
-      "notFound": "Profile not found"
+      "notFound": "Profile not found",
+      "phoneLabel": "Tap to call"
     }
   },
   "dashboard": {

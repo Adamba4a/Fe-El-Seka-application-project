@@ -76,3 +76,4 @@ class PublicProfileResponse(BaseModel):
     rating_count: int = 0
     total_rides: int = 0
     recent_rides: list[PublicRideSummary] = []
+    phone_number: str | None = None

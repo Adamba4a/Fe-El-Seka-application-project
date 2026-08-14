@@ -104,6 +104,18 @@ export default function PublicProfilePage() {
         <span className="text-sm font-semibold text-content-primary">{profile.total_rides}</span>
       </div>
 
+      {profile.phone_number && (
+        <a
+          href={`tel:${profile.phone_number}`}
+          className="rounded-xl border border-border-default bg-surface-card p-4 flex items-center justify-between hover:bg-surface-bg transition-colors"
+        >
+          <span className="text-sm text-content-muted">{t("phoneLabel")}</span>
+          <span className="text-sm font-semibold text-brand-primary" dir="ltr">
+            {profile.phone_number}
+          </span>
+        </a>
+      )}
+
       <div className="rounded-xl border border-border-default bg-surface-card">
         <div className="p-4 space-y-3">
           <p className="text-sm font-medium text-content-primary">{t("recentRides")}</p>

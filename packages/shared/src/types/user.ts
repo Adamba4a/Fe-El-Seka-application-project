@@ -40,6 +40,7 @@ export interface PublicProfile {
   rating_count: number;
   total_rides: number;
   recent_rides: PublicRideSummary[];
+  phone_number: string | null;
 }
 
 export interface ProfileSetup {

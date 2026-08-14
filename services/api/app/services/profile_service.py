@@ -105,12 +105,16 @@ async def upload_profile_photo(user_id: str, file: UploadFile) -> dict:
     return {"profile_photo_url": signed_url}
 
 
-async def get_public_profile(conn, user_id: uuid.UUID) -> dict:
-    """Public-facing profile: name, photo, verification, rating, ride history. No email/PII."""
+async def get_public_profile(conn, user_id: uuid.UUID, caller_id: uuid.UUID) -> dict:
+    """Public-facing profile: name, photo, verification, rating, ride history.
+
+    phone_number is included only when the caller shares a confirmed/completed
+    booking with this user — not exposed to arbitrary authenticated users.
+    """
     profile = await conn.fetchrow(
         """
         SELECT id, display_name, role, profile_photo_path, verification_status,
-               rating_avg, rating_count
+               rating_avg, rating_count, phone_number
         FROM profiles
         WHERE id = $1
         """,
@@ -160,6 +164,28 @@ async def get_public_profile(conn, user_id: uuid.UUID) -> dict:
             "profile-photos", profile["profile_photo_path"]
         )
 
+    phone_number = None
+    if caller_id == user_id:
+        phone_number = profile["phone_number"]
+    else:
+        shared_booking = await conn.fetchval(
+            """
+            SELECT 1
+            FROM bookings b
+            JOIN rides r ON r.id = b.ride_id
+            WHERE b.status IN ('confirmed', 'completed')
+              AND (
+                (r.driver_id = $1 AND b.passenger_id = $2)
+                OR (r.driver_id = $2 AND b.passenger_id = $1)
+              )
+            LIMIT 1
+            """,
+            user_id,
+            caller_id,
+        )
+        if shared_booking:
+            phone_number = profile["phone_number"]
+
     return {
         "id": str(profile["id"]),
         "display_name": profile["display_name"],
@@ -177,6 +203,7 @@ async def get_public_profile(conn, user_id: uuid.UUID) -> dict:
             }
             for r in recent_rows
         ],
+        "phone_number": phone_number,
     }
 
 
