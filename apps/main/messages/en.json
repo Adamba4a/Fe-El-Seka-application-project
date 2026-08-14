@@ -400,6 +400,27 @@
         "duplicate_payment_reference": "This payment reference has already been submitted.",
         "submission_locked": "Top-up submissions are locked. Please contact us at {email} for a manual review.",
         "generic": "Something went wrong. Please try again."
+      },
+      "history": {
+        "heading": "Top-Up History",
+        "backToTopup": "New Top-Up",
+        "loading": "Loading…",
+        "loadFailedPrefix": "Failed to load top-up history: {message}",
+        "empty": "You haven't submitted any top-up requests yet.",
+        "loadMore": "Load more",
+        "statuses": {
+          "PENDING": "Pending",
+          "APPROVED": "Approved",
+          "REJECTED": "Rejected",
+          "CANCELLED": "Cancelled"
+        },
+        "rejectionReasonPrefix": "Reason: {reason}",
+        "cancelAction": "Cancel request",
+        "cancelSheetTitle": "Cancel this top-up request?",
+        "cancelSheetBody": "You'll be able to submit a new request with the same payment reference right away.",
+        "cancelling": "Cancelling…",
+        "confirmCancellation": "Yes, cancel request",
+        "cancelError": "Failed to cancel the request. Please try again."
       }
     },
     "newRide": {

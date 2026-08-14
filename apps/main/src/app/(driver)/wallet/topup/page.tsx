@@ -103,7 +103,10 @@ export default function WalletTopupPage() {
       <div className="p-4 space-y-4 text-center">
         <h1 className="text-h3 text-content-primary">{t("pendingHeading")}</h1>
         <p className="text-body-sm text-content-secondary">{t("pendingBody")}</p>
-        <button onClick={() => router.push("/wallet")} className="text-body-sm text-brand-primary underline">
+        <button onClick={() => router.push("/wallet/topup/history")} className="text-body-sm text-brand-primary underline">
+          {t("history.heading")}
+        </button>
+        <button onClick={() => router.push("/wallet")} className="block mx-auto text-body-sm text-content-muted underline">
           {t("heading")}
         </button>
       </div>
@@ -112,9 +115,17 @@ export default function WalletTopupPage() {
 
   return (
     <div className="p-4 space-y-6">
-      <div>
-        <h1 className="text-h2 text-content-primary">{t("heading")}</h1>
-        <p className="text-body-sm text-content-muted mt-1">{t("instructions")}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-h2 text-content-primary">{t("heading")}</h1>
+          <p className="text-body-sm text-content-muted mt-1">{t("instructions")}</p>
+        </div>
+        <button
+          onClick={() => router.push("/wallet/topup/history")}
+          className="text-body-sm text-brand-primary font-medium hover:underline whitespace-nowrap"
+        >
+          {t("history.heading")}
+        </button>
       </div>
 
       <div className="bg-surface-card rounded-2xl p-5 border border-border-default">

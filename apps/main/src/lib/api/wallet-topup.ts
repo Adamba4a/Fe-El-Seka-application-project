@@ -25,6 +25,27 @@ export interface TopupSubmitResponse {
   created_at: string;
 }
 
+export interface TopupHistoryItem {
+  id: string;
+  amount_egp: string;
+  payment_reference: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  rejection_reason: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+}
+
+export interface TopupHistoryResponse {
+  items: TopupHistoryItem[];
+  pagination: { page: number; per_page: number; total_entries: number; total_pages: number };
+  is_locked: boolean;
+}
+
+export interface TopupCancelResponse {
+  id: string;
+  status: string;
+}
+
 export async function getSettings(token: string): Promise<TopupSettings> {
   const res = await fetch(`${base}/api/wallet/topup/settings`, {
     headers: authHeaders(token),
@@ -49,6 +70,25 @@ export async function submitRequest(
     method: "POST",
     headers: authHeaders(token),
     body: form,
+  });
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json;
+}
+
+export async function getHistory(token: string, page = 1): Promise<TopupHistoryResponse> {
+  const res = await fetch(`${base}/api/wallet/topup?page=${page}`, {
+    headers: authHeaders(token),
+  });
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json;
+}
+
+export async function cancelRequest(token: string, requestId: string): Promise<TopupCancelResponse> {
+  const res = await fetch(`${base}/api/wallet/topup/${requestId}/cancel`, {
+    method: "POST",
+    headers: authHeaders(token),
   });
   const json = await res.json();
   if (!res.ok) throw json;

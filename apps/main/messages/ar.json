@@ -400,6 +400,27 @@
         "duplicate_payment_reference": "تم إرسال رقم العملية هذا من قبل.",
         "submission_locked": "طلبات الشحن مقفلة. يرجى التواصل معنا على {email} للمراجعة اليدوية.",
         "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
+      },
+      "history": {
+        "heading": "سجل الشحن",
+        "backToTopup": "شحن جديد",
+        "loading": "جارٍ التحميل…",
+        "loadFailedPrefix": "فشل تحميل سجل الشحن: {message}",
+        "empty": "لم تقم بإرسال أي طلبات شحن حتى الآن.",
+        "loadMore": "تحميل المزيد",
+        "statuses": {
+          "PENDING": "قيد المراجعة",
+          "APPROVED": "تمت الموافقة",
+          "REJECTED": "مرفوض",
+          "CANCELLED": "ملغى"
+        },
+        "rejectionReasonPrefix": "السبب: {reason}",
+        "cancelAction": "إلغاء الطلب",
+        "cancelSheetTitle": "هل تريد إلغاء طلب الشحن هذا؟",
+        "cancelSheetBody": "ستتمكن من إرسال طلب جديد بنفس رقم العملية على الفور.",
+        "cancelling": "جارٍ الإلغاء…",
+        "confirmCancellation": "نعم، إلغاء الطلب",
+        "cancelError": "فشل إلغاء الطلب. يرجى المحاولة مرة أخرى."
       }
     },
     "newRide": {

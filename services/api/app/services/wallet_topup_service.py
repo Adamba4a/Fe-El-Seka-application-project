@@ -247,6 +247,86 @@ async def submit_request(
     }
 
 
+_DRIVER_PAGE_SIZE = 20
+
+
+async def list_driver_history(conn, driver_id: uuid.UUID, page: int, per_page: int = _DRIVER_PAGE_SIZE) -> dict:
+    """T027: the driver's own top-up requests (any status), newest-first, per
+    idx_topup_driver_history."""
+    per_page = min(per_page, 50)
+    offset = (page - 1) * per_page
+
+    rows = await conn.fetch(
+        """
+        SELECT id, amount_egp, payment_reference, status, rejection_reason, created_at, reviewed_at
+        FROM wallet_topup_requests
+        WHERE driver_id = $1
+        ORDER BY created_at DESC
+        LIMIT $2 OFFSET $3
+        """,
+        driver_id,
+        per_page,
+        offset,
+    )
+    total = await conn.fetchval(
+        "SELECT count(*) FROM wallet_topup_requests WHERE driver_id = $1", driver_id
+    )
+    total = int(total)
+    total_pages = max(1, (total + per_page - 1) // per_page)
+
+    items = [
+        {
+            "id": row["id"],
+            "amount_egp": row["amount_egp"],
+            "payment_reference": row["payment_reference"],
+            "status": row["status"],
+            "rejection_reason": row["rejection_reason"],
+            "created_at": row["created_at"],
+            "reviewed_at": row["reviewed_at"],
+        }
+        for row in rows
+    ]
+    return {
+        "items": items,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total_entries": total,
+            "total_pages": total_pages,
+        },
+        "is_locked": await _is_topup_locked(conn, driver_id),
+    }
+
+
+async def cancel_request(conn, request_id: uuid.UUID, driver_id: uuid.UUID) -> dict:
+    """T028: cancel the driver's own still-PENDING request (FR-006/FR-007) —
+    frees the payment_reference and lets the driver resubmit immediately."""
+    row = await conn.fetchrow(
+        "SELECT driver_id, status FROM wallet_topup_requests WHERE id = $1",
+        request_id,
+    )
+    if row is None or row["driver_id"] != driver_id:
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "forbidden", "message": "This top-up request does not belong to you"},
+        )
+    if row["status"] != "PENDING":
+        raise HTTPException(
+            status_code=409,
+            detail={"error": "not_cancellable", "message": "Only a pending request can be cancelled"},
+        )
+
+    updated = await conn.fetchrow(
+        """
+        UPDATE wallet_topup_requests SET status = 'CANCELLED'
+        WHERE id = $1
+        RETURNING id, status
+        """,
+        request_id,
+    )
+    return {"id": updated["id"], "status": updated["status"]}
+
+
 # ── Admin-facing (US2) ─────────────────────────────────────────────────────
 #
 # `profiles` has no phone-number column (its original `phone_number` column
