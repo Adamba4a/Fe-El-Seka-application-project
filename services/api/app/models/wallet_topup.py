@@ -53,7 +53,7 @@ class AdminTopupQueueItem(BaseModel):
     id: UUID
     driver_id: UUID
     driver_name: str
-    driver_phone: str
+    driver_email: str
     amount_egp: Decimal = Field(max_digits=12, decimal_places=2)
     payment_reference: str
     screenshot_url: str

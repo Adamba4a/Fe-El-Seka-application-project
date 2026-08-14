@@ -6,7 +6,7 @@ from decimal import Decimal
 import asyncpg
 from fastapi import HTTPException, UploadFile
 
-from app.services import storage_service
+from app.services import audit_service, fcm_service, storage_service, wallet_service
 
 _DEFAULT_VODAFONE_CASH_NUMBER = "VODAFONE_CASH_NUMBER_NOT_CONFIGURED"
 _DEFAULT_SUPPORT_EMAIL = "support@felseka.com"
@@ -245,3 +245,255 @@ async def submit_request(
         "payment_reference": row["payment_reference"],
         "created_at": row["created_at"],
     }
+
+
+# ── Admin-facing (US2) ─────────────────────────────────────────────────────
+#
+# `profiles` has no phone-number column (its original `phone_number` column
+# was renamed to `email` in migration 20260616000001, before this feature was
+# designed) — contracts/api.md and tasks.md T018/T024/T025 describe a
+# `driver_phone` field that doesn't exist in the schema. Every other admin
+# queue in this codebase (verification_router's AdminQueueResponse) already
+# identifies drivers by `email`, so AdminTopupQueueItem/AdminTopupHistoryItem
+# use `driver_email` here instead — same deviation pattern as T014's `/api`
+# routing prefix fix.
+
+_ADMIN_PAGE_SIZE = 20
+
+
+async def list_pending_queue(conn, page: int, limit: int = _ADMIN_PAGE_SIZE) -> dict:
+    """T018: PENDING requests oldest-first (FR-008), joined with driver identity,
+    with a signed screenshot URL per item."""
+    offset = (page - 1) * limit
+    rows = await conn.fetch(
+        """
+        SELECT r.id, r.driver_id, p.display_name AS driver_name, p.email AS driver_email,
+               r.amount_egp, r.payment_reference, r.screenshot_path, r.created_at
+        FROM wallet_topup_requests r
+        JOIN profiles p ON p.id = r.driver_id
+        WHERE r.status = 'PENDING'
+        ORDER BY r.created_at ASC
+        LIMIT $1 OFFSET $2
+        """,
+        limit,
+        offset,
+    )
+    total = await conn.fetchval("SELECT count(*) FROM wallet_topup_requests WHERE status = 'PENDING'")
+    items = [
+        {
+            "id": row["id"],
+            "driver_id": row["driver_id"],
+            "driver_name": row["driver_name"],
+            "driver_email": row["driver_email"],
+            "amount_egp": row["amount_egp"],
+            "payment_reference": row["payment_reference"],
+            "screenshot_url": storage_service.generate_signed_url("topup-proofs", row["screenshot_path"]) or "",
+            "created_at": row["created_at"],
+        }
+        for row in rows
+    ]
+    return {"total": int(total), "page": page, "items": items}
+
+
+async def approve_request(conn, request_id: uuid.UUID, admin_id: uuid.UUID) -> dict:
+    """T019: approve a PENDING request, crediting the wallet exactly once via the
+    same wallet_service calls api/admin/wallet_router.py's topup_wallet uses
+    (FR-009, NFR-006), and resetting the driver's rejection cycle (FR-014)."""
+    async with conn.transaction():
+        row = await conn.fetchrow(
+            "SELECT id, driver_id, amount_egp, status FROM wallet_topup_requests WHERE id = $1 FOR UPDATE",
+            request_id,
+        )
+        if row is None:
+            raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Top-up request not found"})
+        if row["status"] != "PENDING":
+            raise HTTPException(status_code=409, detail={"error": "conflict", "message": "Request already reviewed"})
+
+        driver_id = row["driver_id"]
+        amount = row["amount_egp"]
+
+        wallet = await wallet_service.get_wallet_with_lock(conn, driver_id)
+        await wallet_service.increment_balance(conn, wallet["id"], amount)
+        entry = await wallet_service.insert_ledger_entry(
+            conn,
+            wallet_id=wallet["id"],
+            driver_id=driver_id,
+            entry_type="ADMIN_CREDIT",
+            amount=amount,
+            created_by=admin_id,
+            note=f"wallet_topup_request:{request_id}",
+        )
+
+        reviewed = await conn.fetchrow(
+            """
+            UPDATE wallet_topup_requests
+            SET status = 'APPROVED', reviewed_by = $2, reviewed_at = now(), ledger_entry_id = $3
+            WHERE id = $1
+            RETURNING id, status, reviewed_by, reviewed_at
+            """,
+            request_id,
+            admin_id,
+            entry["id"],
+        )
+        await conn.execute(
+            "UPDATE profiles SET topup_lock_reset_at = now() WHERE id = $1",
+            driver_id,
+        )
+
+    new_balance_egp = Decimal(str(wallet["balance_egp"])) + Decimal(str(amount))
+
+    audit_service.append_log(
+        str(admin_id), "approved", str(driver_id), topup_request_id=str(request_id)
+    )
+    await fcm_service.send_push_notifications(
+        conn,
+        driver_id,
+        "wallet_topup_approved",
+        {"request_id": str(request_id), "amount_egp": str(amount)},
+    )
+
+    return {
+        "id": reviewed["id"],
+        "status": reviewed["status"],
+        "ledger_entry_id": entry["id"],
+        "new_balance_egp": new_balance_egp,
+        "reviewed_by": reviewed["reviewed_by"],
+        "reviewed_at": reviewed["reviewed_at"],
+    }
+
+
+async def reject_request(conn, request_id: uuid.UUID, admin_id: uuid.UUID, reason: str) -> dict:
+    """T020: reject a PENDING request with a mandatory reason (FR-010); locks the
+    driver out of resubmission on their 3rd rejection since the last reset (FR-014)."""
+    if not reason or not reason.strip():
+        raise HTTPException(status_code=422, detail={"error": "validation_error", "message": "reason is required"})
+    reason = reason.strip()
+
+    driver_locked = False
+    async with conn.transaction():
+        row = await conn.fetchrow(
+            "SELECT id, driver_id, status FROM wallet_topup_requests WHERE id = $1 FOR UPDATE",
+            request_id,
+        )
+        if row is None:
+            raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Top-up request not found"})
+        if row["status"] != "PENDING":
+            raise HTTPException(status_code=409, detail={"error": "conflict", "message": "Request already reviewed"})
+
+        driver_id = row["driver_id"]
+
+        reviewed = await conn.fetchrow(
+            """
+            UPDATE wallet_topup_requests
+            SET status = 'REJECTED', rejection_reason = $2, reviewed_by = $3, reviewed_at = now()
+            WHERE id = $1
+            RETURNING id, status, rejection_reason, reviewed_by, reviewed_at
+            """,
+            request_id,
+            reason,
+            admin_id,
+        )
+
+        rejected_count = await _rejected_count_since_reset(conn, driver_id)
+        if rejected_count >= 3:
+            driver_locked = True
+            await conn.execute("UPDATE profiles SET is_topup_locked = TRUE WHERE id = $1", driver_id)
+
+    audit_service.append_log(
+        str(admin_id), "rejected", str(driver_id), topup_request_id=str(request_id), reason=reason
+    )
+    await fcm_service.send_push_notifications(
+        conn, driver_id, "wallet_topup_rejected", {"request_id": str(request_id), "reason": reason}
+    )
+
+    return {
+        "id": reviewed["id"],
+        "status": reviewed["status"],
+        "rejection_reason": reviewed["rejection_reason"],
+        "reviewed_by": reviewed["reviewed_by"],
+        "reviewed_at": reviewed["reviewed_at"],
+        "driver_locked": driver_locked,
+    }
+
+
+async def list_review_history(
+    conn, page: int, outcome: str | None = None, q: str | None = None, limit: int = _ADMIN_PAGE_SIZE
+) -> dict:
+    """T021: reviewed (APPROVED/REJECTED) requests, newest-first, with optional
+    outcome/name-or-email filters."""
+    if outcome is not None and outcome not in ("APPROVED", "REJECTED"):
+        raise HTTPException(
+            status_code=422,
+            detail={"error": "validation_error", "message": "outcome must be APPROVED or REJECTED"},
+        )
+
+    offset = (page - 1) * limit
+    conditions = ["r.status IN ('APPROVED', 'REJECTED')"]
+    params: list = []
+
+    if outcome:
+        params.append(outcome)
+        conditions.append(f"r.status = ${len(params)}")
+    if q:
+        params.append(f"%{q}%")
+        conditions.append(f"(p.display_name ILIKE ${len(params)} OR p.email ILIKE ${len(params)})")
+
+    where_clause = " AND ".join(conditions)
+
+    total = await conn.fetchval(
+        f"""
+        SELECT count(*)
+        FROM wallet_topup_requests r
+        JOIN profiles p ON p.id = r.driver_id
+        WHERE {where_clause}
+        """,
+        *params,
+    )
+
+    params_with_paging = [*params, limit, offset]
+    rows = await conn.fetch(
+        f"""
+        SELECT r.id, r.driver_id, p.display_name AS driver_name, r.amount_egp, r.status,
+               r.rejection_reason, r.reviewed_by, r.reviewed_at, p.is_topup_locked AS driver_is_locked
+        FROM wallet_topup_requests r
+        JOIN profiles p ON p.id = r.driver_id
+        WHERE {where_clause}
+        ORDER BY r.reviewed_at DESC
+        LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
+        """,
+        *params_with_paging,
+    )
+
+    items = [
+        {
+            "request_id": row["id"],
+            "driver_id": row["driver_id"],
+            "driver_name": row["driver_name"],
+            "amount_egp": row["amount_egp"],
+            "status": row["status"],
+            "rejection_reason": row["rejection_reason"],
+            "reviewed_by": row["reviewed_by"],
+            "reviewed_at": row["reviewed_at"],
+            "driver_is_locked": bool(row["driver_is_locked"]),
+        }
+        for row in rows
+    ]
+    return {"total": int(total), "page": page, "items": items}
+
+
+async def unlock_driver(conn, driver_id: uuid.UUID, admin_id: uuid.UUID) -> dict:
+    """T021: clear a driver's 3-rejection submission lock (FR-016) and reset
+    their rejection cycle so past REJECTED rows stop counting toward the cap."""
+    row = await conn.fetchrow("SELECT is_topup_locked FROM profiles WHERE id = $1", driver_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Driver not found"})
+    if not row["is_topup_locked"]:
+        raise HTTPException(status_code=409, detail={"error": "conflict", "message": "Driver is not locked"})
+
+    await conn.execute(
+        "UPDATE profiles SET is_topup_locked = FALSE, topup_lock_reset_at = now() WHERE id = $1",
+        driver_id,
+    )
+    audit_service.append_log(str(admin_id), "unlocked", str(driver_id))
+
+    return {"driver_id": driver_id, "is_topup_locked": False}

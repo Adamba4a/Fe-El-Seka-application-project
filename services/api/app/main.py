@@ -22,6 +22,7 @@ from app.api.admin.users_router import router as admin_users_router
 from app.api.admin.vehicle_updates_router import router as admin_vehicle_updates_router
 from app.api.admin.verification_router import router as admin_verification_router
 from app.api.admin.wallet_router import router as admin_wallet_router
+from app.api.admin.wallet_topup_router import router as admin_wallet_topup_router
 from app.api.wallet.router import router as wallet_router
 from app.api.wallet_topup.router import router as wallet_topup_router
 from app.api.auth.router import router as auth_router
@@ -180,6 +181,11 @@ app.include_router(
     admin_wallet_router,
     prefix="/api/admin/drivers",
     tags=["admin"],
+)
+app.include_router(
+    admin_wallet_topup_router,
+    prefix="/api/admin/wallet-topup-requests",
+    tags=["admin-wallet-topup"],
 )
 app.include_router(
     admin_moderation_router,
