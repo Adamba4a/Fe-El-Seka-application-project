@@ -26,6 +26,7 @@ export interface DashboardOverview {
   pending_verifications: number;
   open_reports: number;
   drivers_at_or_below_zero: number;
+  pending_topups: number;
   trends: {
     rides_completed: TrendSeries;
     commission_collected_egp: TrendSeries;

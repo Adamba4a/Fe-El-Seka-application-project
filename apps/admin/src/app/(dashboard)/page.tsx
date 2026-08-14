@@ -108,6 +108,10 @@ export default function DashboardPage() {
               <p className="text-3xl font-bold">{data.drivers_at_or_below_zero}</p>
               <p className="text-sm text-gray-500 mt-1">Drivers at/below zero balance</p>
             </div>
+            <Link href="/wallet-topup" className="block border rounded-lg p-5 hover:bg-gray-50">
+              <p className="text-3xl font-bold">{data.pending_topups}</p>
+              <p className="text-sm text-gray-500 mt-1">Pending top-ups</p>
+            </Link>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
