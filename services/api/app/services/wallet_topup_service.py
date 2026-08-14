@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 
 import asyncpg
 from fastapi import HTTPException, UploadFile
@@ -12,6 +13,10 @@ _DEFAULT_SUPPORT_EMAIL = "support@felseka.com"
 
 _ALLOWED_TYPES = {"image/jpeg", "image/png"}
 _MAX_SCREENSHOT_BYTES = 10 * 1024 * 1024  # 10 MB
+# wallet_topup_requests.amount_egp is NUMERIC(12,2) — 10 digits before the
+# decimal point, 2 after. Enforced in app code so an oversized amount comes
+# back as a clean 422 instead of an unhandled Postgres numeric overflow 500.
+_MAX_AMOUNT_EGP = Decimal("9999999999.99")
 
 
 async def _get_vodafone_cash_number(conn) -> str:
@@ -117,10 +122,15 @@ async def submit_request(
 ) -> dict:
     """T012: create a PENDING top-up request (FR-002/FR-003/FR-004/FR-005).
 
-    Ordering mirrors verification_service.submit_documents: validate inputs,
-    check the submission lock, check for an existing PENDING row, read/validate
-    the screenshot bytes, insert the DB row, then upload to storage — so a bad
-    request never leaves an orphaned storage object.
+    Unlike verification_service.submit_documents, storage upload happens
+    BEFORE the DB insert here: a REJECTED wallet_topup_requests row counts
+    against the driver's 3-attempt submission-lock cap (FR-014/FR-015), so a
+    PENDING row created before a failed upload would leave the driver with a
+    broken/missing screenshot that an admin will likely reject through no
+    fault of the driver's — unfairly burning one of their 3 attempts. A
+    storage failure with no DB row yet is comparatively harmless (at worst an
+    orphaned object with no corresponding row) and simply surfaces as a clean
+    error the driver can retry.
     """
     if amount_egp is None or amount_egp <= 0:
         raise HTTPException(
@@ -128,6 +138,14 @@ async def submit_request(
             detail={
                 "error": "validation_error",
                 "message": "amount_egp must be greater than 0.00 EGP",
+            },
+        )
+    if amount_egp > _MAX_AMOUNT_EGP:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "validation_error",
+                "message": f"amount_egp must not exceed {_MAX_AMOUNT_EGP} EGP",
             },
         )
     if not payment_reference or not payment_reference.strip():
@@ -177,6 +195,16 @@ async def submit_request(
     ext = "jpg" if screenshot_file.content_type == "image/jpeg" else "png"
     screenshot_path = f"{driver_id}/{request_id}.{ext}"
 
+    # Upload before inserting the row (see docstring): a storage failure here
+    # leaves at most an orphaned object, never a PENDING row with a broken
+    # screenshot that would unfairly cost the driver a rejection-cap attempt.
+    storage_service.upload_file(
+        "topup-proofs",
+        screenshot_path,
+        screenshot_data,
+        screenshot_file.content_type,
+    )
+
     try:
         row = await conn.fetchrow(
             """
@@ -209,16 +237,6 @@ async def submit_request(
                 "message": "You already have a top-up request awaiting review.",
             },
         ) from exc
-
-    # DB row committed — now upload. A storage failure here is recoverable: the
-    # row exists so the admin queue will surface the submission (same rationale
-    # as verification_service.submit_documents).
-    storage_service.upload_file(
-        "topup-proofs",
-        screenshot_path,
-        screenshot_data,
-        screenshot_file.content_type,
-    )
 
     return {
         "id": row["id"],

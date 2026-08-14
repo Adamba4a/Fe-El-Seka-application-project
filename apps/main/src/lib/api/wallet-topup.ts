@@ -2,6 +2,11 @@ import { env } from "../env";
 
 const base = env.apiUrl;
 
+// Mirrors wallet_topup_service._DEFAULT_VODAFONE_CASH_NUMBER — the sentinel
+// the backend returns when an operator hasn't set the real Vodafone Cash
+// number yet, so the frontend must never display it as if it were real.
+export const VODAFONE_CASH_NUMBER_NOT_CONFIGURED = "VODAFONE_CASH_NUMBER_NOT_CONFIGURED";
+
 function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}` };
 }

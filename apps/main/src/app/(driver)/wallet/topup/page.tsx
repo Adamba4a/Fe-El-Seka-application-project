@@ -4,7 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
-import { getSettings, submitRequest, type TopupSettings } from "@/lib/api/wallet-topup";
+import {
+  getSettings,
+  submitRequest,
+  VODAFONE_CASH_NUMBER_NOT_CONFIGURED,
+  type TopupSettings,
+} from "@/lib/api/wallet-topup";
 import { DocumentUpload } from "@/components/verification/DocumentUpload";
 import { Spinner } from "@/components/ui/Spinner";
 
@@ -74,6 +79,18 @@ export default function WalletTopupPage() {
         <p className="text-body-sm text-content-secondary">
           {t("lockedBody", { email: settings.support_email ?? "" })}
         </p>
+        <button onClick={() => router.push("/wallet")} className="text-body-sm text-brand-primary underline">
+          {t("heading")}
+        </button>
+      </div>
+    );
+  }
+
+  if (settings.vodafone_cash_number === VODAFONE_CASH_NUMBER_NOT_CONFIGURED) {
+    return (
+      <div className="p-4 space-y-4 text-center">
+        <h1 className="text-h3 text-content-primary">{t("unavailableHeading")}</h1>
+        <p className="text-body-sm text-content-secondary">{t("unavailableBody")}</p>
         <button onClick={() => router.push("/wallet")} className="text-body-sm text-brand-primary underline">
           {t("heading")}
         </button>

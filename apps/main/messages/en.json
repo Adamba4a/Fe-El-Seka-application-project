@@ -392,6 +392,8 @@
       "pendingBody": "We're reviewing your top-up request. This usually takes a short while.",
       "lockedHeading": "Top-Up Submissions Locked",
       "lockedBody": "You've reached the limit for rejected top-up attempts. Please contact us at {email} for a manual review.",
+      "unavailableHeading": "Top-Up Temporarily Unavailable",
+      "unavailableBody": "Wallet top-up isn't set up yet. Please check back later.",
       "errors": {
         "validation_error": "Please check the amount, reference, and screenshot and try again.",
         "pending_request_exists": "You already have a top-up request awaiting review.",
