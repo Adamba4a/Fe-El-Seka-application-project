@@ -324,6 +324,7 @@
     "bookingDetail": {
       "title": "Booking Details",
       "driverLabel": "Driver",
+      "viewProfile": "View Profile",
       "departure": "Departure",
       "boardingPoint": "Boarding point",
       "alightingPoint": "Alighting point",
@@ -662,7 +663,8 @@
     "pickupDetour": "Pickup detour: +EGP {fee}",
     "dropoffDetour": "Dropoff detour: +EGP {fee}",
     "defaultDriverName": "Driver",
-    "defaultPassengerName": "Passenger"
+    "defaultPassengerName": "Passenger",
+    "viewProfile": "View Profile"
   },
   "rideCard": {
     "premium": "PREMIUM",

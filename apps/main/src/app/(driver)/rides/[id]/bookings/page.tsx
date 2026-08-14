@@ -286,6 +286,7 @@ export default function DriverRideBookingsPage() {
               onCancel={() => handleCancel(booking.booking_id)}
               onViewMap={ride ? () => setMapBooking(booking) : undefined}
               actionLoading={actionLoading === booking.booking_id}
+              viewProfileHref={`/users/${booking.passenger_id}`}
             />
           ))
         )}

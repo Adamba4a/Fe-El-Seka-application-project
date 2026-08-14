@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { BookingStatusBadge } from "./BookingStatusBadge";
 import { RatingBadge } from "@/components/ui/RatingBadge";
@@ -57,6 +58,8 @@ interface DriverVariantProps {
   actionLoading?: boolean;
   /** Set false to hide cancel until Phase 7 endpoint is live */
   cancelAvailable?: boolean;
+  /** Only pass this once the booking is confirmed/completed — that's when the backend exposes the passenger's phone number on that profile */
+  viewProfileHref?: string;
 }
 
 type BookingCardProps = PassengerVariantProps | DriverVariantProps;
@@ -116,7 +119,7 @@ export function BookingCard(props: BookingCardProps) {
   }
 
   // Driver variant
-  const { booking, onConfirm, onReject, onCancel, onViewMap, actionLoading, cancelAvailable = false } = props;
+  const { booking, onConfirm, onReject, onCancel, onViewMap, actionLoading, cancelAvailable = false, viewProfileHref } = props;
   const isPending = booking.status === "pending";
   const isConfirmed = booking.status === "confirmed";
   const passengerName = booking.passenger.display_name ?? t("defaultPassengerName");
@@ -190,6 +193,15 @@ export function BookingCard(props: BookingCardProps) {
               <p>{t("dropoffDetour", { fee: booking.premium_dropoff_fee ?? "—" })}</p>
             )}
           </div>
+        )}
+
+        {viewProfileHref && (
+          <Link
+            href={viewProfileHref}
+            className="inline-block text-xs text-brand-primary hover:underline"
+          >
+            {t("viewProfile")}
+          </Link>
         )}
 
         {isPending && (

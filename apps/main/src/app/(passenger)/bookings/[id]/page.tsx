@@ -23,6 +23,7 @@ interface BookingDetail {
   booking_id: string;
   ride_id: string;
   status: BookingStatus;
+  driver_id: string;
   driver_display_name?: string;
   driver_avatar_url?: string;
   departure_datetime?: string;
@@ -245,6 +246,14 @@ export default function PassengerBookingDetailPage() {
             <p className="text-xs text-content-muted">{t("departure")}</p>
             <p className="text-sm font-medium text-content-primary">{formatDateTime(booking.departure_datetime, locale)}</p>
           </div>
+          {(booking.status === "confirmed" || booking.status === "completed") && (
+            <Link
+              href={`/users/${booking.driver_id}`}
+              className="inline-block text-xs text-brand-primary hover:underline"
+            >
+              {t("viewProfile")}
+            </Link>
+          )}
         </div>
       </div>
 

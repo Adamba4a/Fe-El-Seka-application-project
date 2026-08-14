@@ -324,6 +324,7 @@
     "bookingDetail": {
       "title": "تفاصيل الحجز",
       "driverLabel": "السائق",
+      "viewProfile": "عرض الملف الشخصي",
       "departure": "الانطلاق",
       "boardingPoint": "نقطة الصعود",
       "alightingPoint": "نقطة النزول",
@@ -662,7 +663,8 @@
     "pickupDetour": "انحراف الصعود: +{fee} ج.م",
     "dropoffDetour": "انحراف النزول: +{fee} ج.م",
     "defaultDriverName": "سائق",
-    "defaultPassengerName": "راكب"
+    "defaultPassengerName": "راكب",
+    "viewProfile": "عرض الملف الشخصي"
   },
   "rideCard": {
     "premium": "مميز",
