@@ -369,8 +369,36 @@
       "loadFailedPrefix": "Failed to load wallet: {message}",
       "loading": "Loading…",
       "heading": "My Wallet",
+      "addBalance": "Add Balance",
       "transactionHistory": "Transaction History",
       "noTransactions": "No transactions yet. Add balance to start posting rides."
+    },
+    "walletTopup": {
+      "heading": "Add Balance",
+      "loading": "Loading…",
+      "loadFailedPrefix": "Failed to load top-up settings: {message}",
+      "instructions": "Send the amount via Vodafone Cash to the number below, then submit the details for review.",
+      "vodafoneCashNumberLabel": "Vodafone Cash Number",
+      "amountLabel": "Amount (EGP)",
+      "amountPlaceholder": "e.g. 200.00",
+      "paymentReferenceLabel": "Payment Reference",
+      "paymentReferencePlaceholder": "Transaction reference from the Vodafone Cash SMS",
+      "screenshotLabel": "Payment Screenshot",
+      "screenshotHelp": "JPEG or PNG, up to 10 MB",
+      "submit": "Submit for Review",
+      "submitting": "Submitting…",
+      "submitSuccess": "Your top-up request is pending review.",
+      "pendingHeading": "Pending Review",
+      "pendingBody": "We're reviewing your top-up request. This usually takes a short while.",
+      "lockedHeading": "Top-Up Submissions Locked",
+      "lockedBody": "You've reached the limit for rejected top-up attempts. Please contact us at {email} for a manual review.",
+      "errors": {
+        "validation_error": "Please check the amount, reference, and screenshot and try again.",
+        "pending_request_exists": "You already have a top-up request awaiting review.",
+        "duplicate_payment_reference": "This payment reference has already been submitted.",
+        "submission_locked": "Top-up submissions are locked. Please contact us at {email} for a manual review.",
+        "generic": "Something went wrong. Please try again."
+      }
     },
     "newRide": {
       "postedTitle": "Ride Posted!",

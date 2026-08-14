@@ -23,6 +23,7 @@ from app.api.admin.vehicle_updates_router import router as admin_vehicle_updates
 from app.api.admin.verification_router import router as admin_verification_router
 from app.api.admin.wallet_router import router as admin_wallet_router
 from app.api.wallet.router import router as wallet_router
+from app.api.wallet_topup.router import router as wallet_topup_router
 from app.api.auth.router import router as auth_router
 from app.api.health import router as health_router
 from app.api.internal.revocation_router import router as internal_router
@@ -197,6 +198,7 @@ app.include_router(bookings_router, prefix="/api/v1/bookings", tags=["bookings"]
 app.include_router(ratings_router, prefix="/api/v1/ratings", tags=["ratings"])
 app.include_router(reports_router, prefix="/api/v1/reports", tags=["reports"])
 app.include_router(wallet_router, prefix="/api/v1/drivers/me", tags=["wallet"])
+app.include_router(wallet_topup_router, prefix="/api/wallet/topup", tags=["wallet-topup"])
 app.include_router(internal_router, prefix="/api/v1/internal", tags=["internal"])
 app.include_router(routes_router, prefix="/api/routes", tags=["routes"])
 app.include_router(route_intelligence_router, prefix="/internal/route-intelligence", tags=["internal"])

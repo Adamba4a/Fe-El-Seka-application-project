@@ -22,6 +22,12 @@ request/response shapes.
 4. A verified driver user (`driver_jwt`, `driver_id`) and an admin user (`admin_jwt`).
 5. `platform_settings` seeded with a `vodafone_cash_number` row.
 
+**Note on paths below**: every curl command in this guide omits the leading `/api` prefix that
+`main.py` actually mounts routers under (e.g. `wallet_topup_router` → `/api/wallet/topup`,
+`admin_wallet_topup_router` → `/api/admin/wallet-topup-requests`, matching the existing
+`/api/verification` / `/api/admin/verification` convention). Prepend `/api` to every path below —
+e.g. `curl http://localhost:8000/api/wallet/topup/settings ...` — when actually running these.
+
 ---
 
 ## Scenario 1 — Driver Submits a Top-Up Request (US1, SC-001)
