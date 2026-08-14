@@ -12,6 +12,7 @@ export type VerificationStatus =
 export interface Profile {
   id: string;
   email: string;
+  phone_number: string | null;
   display_name: string;
   role: Role;
   profile_photo_url: string | null;
@@ -49,4 +50,5 @@ export interface ProfileSetup {
 export interface ProfileUpdate {
   display_name?: string;
   language_preference?: Locale;
+  phone_number?: string;
 }

@@ -1,6 +1,9 @@
+import re
 from typing import Literal
 
 from pydantic import BaseModel, field_validator
+
+_PHONE_RE = re.compile(r"^\+[1-9]\d{6,14}$")
 
 
 class ProfileSetup(BaseModel):
@@ -19,6 +22,7 @@ class ProfileSetup(BaseModel):
 class ProfileUpdate(BaseModel):
     display_name: str | None = None
     language_preference: Literal["en", "ar"] | None = None
+    phone_number: str | None = None
 
     @field_validator("display_name")
     @classmethod
@@ -30,10 +34,21 @@ class ProfileUpdate(BaseModel):
             raise ValueError("Display name must be 2–50 characters")
         return v
 
+    @field_validator("phone_number")
+    @classmethod
+    def validate_phone_number(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        v = v.strip()
+        if not _PHONE_RE.match(v):
+            raise ValueError("Phone number must be in the format +<7-15 digits>")
+        return v
+
 
 class ProfileResponse(BaseModel):
     id: str
     email: str
+    phone_number: str | None
     display_name: str
     role: str
     profile_photo_url: str | None

@@ -12,6 +12,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
 import type { Role } from "@fe-el-seka/shared";
 
+const PHONE_RE = /^\+[1-9]\d{6,14}$/;
+
 export default function ProfileOnboardingPage() {
   const router = useRouter();
   const t = useTranslations("onboarding.profile");
@@ -26,6 +28,7 @@ export default function ProfileOnboardingPage() {
   const [lockout, setLockout] = useState<{ message: string; support_email?: string } | null>(null);
 
   const [displayName, setDisplayName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [frontId, setFrontId] = useState<File | null>(null);
   const [backId, setBackId] = useState<File | null>(null);
@@ -65,6 +68,14 @@ export default function ProfileOnboardingPage() {
       setError(t("errors.nameTooShort"));
       return;
     }
+    if (!PHONE_RE.test(phoneNumber.trim())) {
+      setError(t("errors.phoneInvalid"));
+      return;
+    }
+    if (!photo) {
+      setError(t("errors.photoRequired"));
+      return;
+    }
     if (!frontId || !backId) {
       setError(t("errors.idRequired"));
       return;
@@ -82,7 +93,10 @@ export default function ProfileOnboardingPage() {
     if (!session) { router.replace("/login"); return; }
 
     try {
-      await updateMe(session.access_token, { display_name: displayName.trim() });
+      await updateMe(session.access_token, {
+        display_name: displayName.trim(),
+        phone_number: phoneNumber.trim(),
+      });
       if (photo) await uploadPhoto(session.access_token, photo);
       await submitDocuments(
         session.access_token,
@@ -162,6 +176,18 @@ export default function ProfileOnboardingPage() {
               placeholder={t("displayNamePlaceholder")}
               className="px-3 py-2 border border-border-default rounded-md text-body-sm outline-none focus:border-border-focus transition-colors"
               maxLength={50}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-label text-content-secondary">{t("phoneLabel")}</label>
+            <input
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder={t("phonePlaceholder")}
+              className="px-3 py-2 border border-border-default rounded-md text-body-sm outline-none focus:border-border-focus transition-colors"
+              maxLength={16}
             />
           </div>
 

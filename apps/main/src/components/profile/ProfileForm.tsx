@@ -8,30 +8,58 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/Spinner";
 
-type FormValues = { display_name: string };
+const PHONE_RE = /^\+[1-9]\d{6,14}$/;
+
+type FormValues = { display_name: string; phone_number?: string };
 
 interface ProfileFormProps {
-  defaultValues?: { display_name?: string; profile_photo_url?: string | null };
+  defaultValues?: {
+    display_name?: string;
+    profile_photo_url?: string | null;
+    phone_number?: string | null;
+  };
   onSubmit: (data: FormValues, photo: File | null) => Promise<void>;
   submitLabel?: string;
+  showPhone?: boolean;
+  photoRequired?: boolean;
 }
 
-export function ProfileForm({ defaultValues, onSubmit, submitLabel }: ProfileFormProps) {
+export function ProfileForm({
+  defaultValues,
+  onSubmit,
+  submitLabel,
+  showPhone = false,
+  photoRequired = false,
+}: ProfileFormProps) {
   const t = useTranslations("profileForm");
   const [photo, setPhoto] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const schema = z.object({
-    display_name: z.string().trim().min(2, t("errors.minChars")).max(50, t("errors.maxChars")),
-  });
+  const schema = z
+    .object({
+      display_name: z.string().trim().min(2, t("errors.minChars")).max(50, t("errors.maxChars")),
+      phone_number: z.string().trim().optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (showPhone && !PHONE_RE.test(data.phone_number ?? "")) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["phone_number"], message: t("errors.phoneInvalid") });
+      }
+    });
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { display_name: defaultValues?.display_name ?? "" },
+    defaultValues: {
+      display_name: defaultValues?.display_name ?? "",
+      phone_number: defaultValues?.phone_number ?? "",
+    },
   });
 
   const handle = async (data: FormValues) => {
+    if (photoRequired && !photo && !defaultValues?.profile_photo_url) {
+      setError(t("errors.photoRequired"));
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -56,6 +84,20 @@ export function ProfileForm({ defaultValues, onSubmit, submitLabel }: ProfileFor
         />
         {errors.display_name && <p className="text-caption text-content-destructive">{errors.display_name.message}</p>}
       </div>
+
+      {showPhone && (
+        <div className="flex flex-col gap-1">
+          <label className="text-label text-content-secondary">{t("phoneLabel")}</label>
+          <input
+            type="tel"
+            {...register("phone_number")}
+            placeholder={t("phonePlaceholder")}
+            maxLength={16}
+            className="px-3 py-2 border border-border-default rounded-md text-body-sm outline-none focus:border-border-focus transition-colors"
+          />
+          {errors.phone_number && <p className="text-caption text-content-destructive">{errors.phone_number.message}</p>}
+        </div>
+      )}
 
       {error && <p className="text-caption text-content-destructive">{error}</p>}
 

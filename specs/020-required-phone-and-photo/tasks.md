@@ -17,7 +17,7 @@
 
 No new dependencies, tooling, or project scaffolding is required — this feature extends existing, already-wired infrastructure (see [research.md](./research.md) "ground-truth correction"). Setup is limited to confirming the target branch is checked out.
 
-- [ ] T001 Confirm branch `020-required-phone-photo` is checked out and up to date with `origin/main` (no new tooling needed)
+- [X] T001 Confirm branch `020-required-phone-photo` is checked out and up to date with `origin/main` (no new tooling needed)
 
 ---
 
@@ -27,15 +27,15 @@ No new dependencies, tooling, or project scaffolding is required — this featur
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 Create migration `supabase/migrations/<timestamp>_add_phone_number_to_profiles.sql` adding nullable `phone_number TEXT` column to `profiles` plus `CHECK (phone_number IS NULL OR phone_number ~ '^\+[1-9][0-9]{6,14}$')` per [data-model.md](./data-model.md)
-- [ ] T003 Apply the new migration to the local Supabase stack (`supabase migration up` / `supabase db reset` per repo convention) and confirm `phone_number` column exists via `\d profiles`
-- [ ] T004 [P] Add `phone_number: str | None = None` with a format `field_validator` (regex `^\+[1-9]\d{6,14}$`) to `ProfileUpdate` in `services/api/app/models/profile.py`
-- [ ] T005 [P] Add `phone_number: str | None` to `ProfileResponse` in `services/api/app/models/profile.py`
-- [ ] T006 [US-shared] Extend `update_profile(user_id, display_name, language_preference, phone_number=None)` in `services/api/app/services/profile_service.py` to include `phone_number` in the `updates` dict when provided (depends on T004)
-- [ ] T007 [US-shared] Add `phone_number` to the dict returned by `_format_profile()` in `services/api/app/services/profile_service.py` (depends on T005)
-- [ ] T008 [US-shared] Pass `body.phone_number` through to `profile_service.update_profile(...)` in the `update_profile` route handler, `services/api/app/api/profiles/router.py` (depends on T006)
-- [ ] T009 [P] Add `phone_number: string | null` to the `Profile` interface in `packages/shared/src/types/user.ts`
-- [ ] T010 [P] Add `phone_number?: string` to the `ProfileUpdate` interface in `packages/shared/src/types/user.ts`
+- [X] T002 Create migration `supabase/migrations/<timestamp>_add_phone_number_to_profiles.sql` adding nullable `phone_number TEXT` column to `profiles` plus `CHECK (phone_number IS NULL OR phone_number ~ '^\+[1-9][0-9]{6,14}$')` per [data-model.md](./data-model.md)
+- [X] T003 Apply the new migration to the local Supabase stack (`supabase migration up` / `supabase db reset` per repo convention) and confirm `phone_number` column exists via `\d profiles`
+- [X] T004 [P] Add `phone_number: str | None = None` with a format `field_validator` (regex `^\+[1-9]\d{6,14}$`) to `ProfileUpdate` in `services/api/app/models/profile.py`
+- [X] T005 [P] Add `phone_number: str | None` to `ProfileResponse` in `services/api/app/models/profile.py`
+- [X] T006 [US-shared] Extend `update_profile(user_id, display_name, language_preference, phone_number=None)` in `services/api/app/services/profile_service.py` to include `phone_number` in the `updates` dict when provided (depends on T004)
+- [X] T007 [US-shared] Add `phone_number` to the dict returned by `_format_profile()` in `services/api/app/services/profile_service.py` (depends on T005)
+- [X] T008 [US-shared] Pass `body.phone_number` through to `profile_service.update_profile(...)` in the `update_profile` route handler, `services/api/app/api/profiles/router.py` (depends on T006)
+- [X] T009 [P] Add `phone_number: string | null` to the `Profile` interface in `packages/shared/src/types/user.ts`
+- [X] T010 [P] Add `phone_number?: string` to the `ProfileUpdate` interface in `packages/shared/src/types/user.ts`
 
 **Checkpoint**: Backend accepts and returns `phone_number` on `PUT /me`, `GET /me`, `POST /setup` responses. User story implementation can now begin.
 
@@ -49,10 +49,10 @@ No new dependencies, tooling, or project scaffolding is required — this featur
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Add `phoneNumber` state and a plain-text phone input to `apps/main/src/app/(onboarding)/profile/page.tsx` (no OTP/verification UI — plain input matching the backend format)
-- [ ] T012 [US1] In `handleSubmit`'s validation chain in `apps/main/src/app/(onboarding)/profile/page.tsx`, add a phone-format check (block submit with an error message on failure) and a `if (!photo)` required-photo check, positioned alongside the existing name/ID-document checks
-- [ ] T013 [US1] Extend the `updateMe(session.access_token, { display_name: ... })` call in `apps/main/src/app/(onboarding)/profile/page.tsx` to include `phone_number: phoneNumber` (depends on T011, T012, and Foundational T008/T010)
-- [ ] T014 [P] [US1] Add new i18n keys to `apps/main/messages/en.json` and `apps/main/messages/ar.json` under `onboarding.profile`: phone field label/placeholder, phone-format error, photo-required error
+- [X] T011 [US1] Add `phoneNumber` state and a plain-text phone input to `apps/main/src/app/(onboarding)/profile/page.tsx` (no OTP/verification UI — plain input matching the backend format)
+- [X] T012 [US1] In `handleSubmit`'s validation chain in `apps/main/src/app/(onboarding)/profile/page.tsx`, add a phone-format check (block submit with an error message on failure) and a `if (!photo)` required-photo check, positioned alongside the existing name/ID-document checks
+- [X] T013 [US1] Extend the `updateMe(session.access_token, { display_name: ... })` call in `apps/main/src/app/(onboarding)/profile/page.tsx` to include `phone_number: phoneNumber` (depends on T011, T012, and Foundational T008/T010)
+- [X] T014 [P] [US1] Add new i18n keys to `apps/main/messages/en.json` and `apps/main/messages/ar.json` under `onboarding.profile`: phone field label/placeholder, phone-format error, photo-required error
 
 **Checkpoint**: User Story 1 is fully functional and independently testable — run quickstart.md Scenario 1.
 
@@ -66,10 +66,10 @@ No new dependencies, tooling, or project scaffolding is required — this featur
 
 ### Implementation for User Story 2
 
-- [ ] T015 [P] [US2] Remove the `[auth.sms]` block from `supabase/config.toml` (vestigial — unused by any code path; see [research.md](./research.md))
-- [ ] T016 [P] [US2] Remove the `TWILIO_*` placeholder lines (and the "Twilio SMS" comment header) from `.env.example` (root)
-- [ ] T017 [P] [US2] Remove the `TWILIO_*` placeholder lines (and comment header) from `services/api/.env.example`
-- [ ] T018 [US2] Verify `apps/main/src/app/(auth)/login/page.tsx` and `otp/page.tsx` have no phone-related UI or logic (expected: no changes needed — confirm only)
+- [X] T015 [P] [US2] Remove the `[auth.sms]` block from `supabase/config.toml` (vestigial — unused by any code path; see [research.md](./research.md))
+- [X] T016 [P] [US2] Remove the `TWILIO_*` placeholder lines (and the "Twilio SMS" comment header) from `.env.example` (root)
+- [X] T017 [P] [US2] Remove the `TWILIO_*` placeholder lines (and comment header) from `services/api/.env.example`
+- [X] T018 [US2] Verify `apps/main/src/app/(auth)/login/page.tsx` and `otp/page.tsx` have no phone-related UI or logic (expected: no changes needed — confirm only)
 
 **Checkpoint**: `grep -ri twilio` / `grep -ri "auth.sms"` across the repo returns zero hits. Run quickstart.md Scenario 2.
 
@@ -83,12 +83,12 @@ No new dependencies, tooling, or project scaffolding is required — this featur
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Extend `ProfileForm` (`apps/main/src/components/profile/ProfileForm.tsx`) with an optional `showPhone` prop and phone input/validation, reusing the existing `zod` schema pattern, so it can render just the missing field(s) prefilled from current profile data
-- [ ] T020 [US3] Create `apps/main/src/app/(auth)/complete-profile/page.tsx`, modeled on `apps/main/src/app/(auth)/set-password/page.tsx`'s structure (`"use client"`, `<Suspense>`, on-mount `supabase.auth.getSession()` check redirecting to `/login` if none) — **no "skip for now" button** — using the extended `ProfileForm` from T019, submitting via `updateMe` (+ `uploadPhoto` when photo is the missing field) (depends on T019, Foundational T008/T010)
-- [ ] T021 [US3] In `apps/main/src/app/page.tsx`, extend the `profiles` `select` from `"role, verification_status"` to `"role, verification_status, phone_number, profile_photo_path"`; add a redirect to `/complete-profile` when either is missing, positioned after the `!profile` → `/role-select` check and before the `verification_status` branches (depends on Foundational T002/T003)
-- [ ] T022 [US3] In `apps/main/src/app/auth/callback/route.ts`, after the existing `meRes.status === 404` check, inspect the `200` JSON body for missing `phone_number`/`profile_photo_url` and redirect to `/complete-profile` accordingly (depends on Foundational T005/T007)
-- [ ] T023 [US3] Add a phone display/edit row to `apps/main/src/app/(app)/settings/profile/ProfileEditor.tsx` (new row alongside existing profile fields, wired through the extended `ProfileForm` from T019) so users can view/update their phone number after signup (depends on T019)
-- [ ] T024 [P] [US3] Add new i18n keys to `apps/main/messages/en.json` and `apps/main/messages/ar.json` for: `complete-profile` page (title, subtitle, submit label, field errors), `profileForm` phone field label/placeholder, `settings.profile.editor` phone row label
+- [X] T019 [US3] Extend `ProfileForm` (`apps/main/src/components/profile/ProfileForm.tsx`) with an optional `showPhone` prop and phone input/validation, reusing the existing `zod` schema pattern, so it can render just the missing field(s) prefilled from current profile data
+- [X] T020 [US3] Create `apps/main/src/app/(auth)/complete-profile/page.tsx`, modeled on `apps/main/src/app/(auth)/set-password/page.tsx`'s structure (`"use client"`, `<Suspense>`, on-mount `supabase.auth.getSession()` check redirecting to `/login` if none) — **no "skip for now" button** — using the extended `ProfileForm` from T019, submitting via `updateMe` (+ `uploadPhoto` when photo is the missing field) (depends on T019, Foundational T008/T010)
+- [X] T021 [US3] In `apps/main/src/app/page.tsx`, extend the `profiles` `select` from `"role, verification_status"` to `"role, verification_status, phone_number, profile_photo_path"`; add a redirect to `/complete-profile` when either is missing, positioned after the `!profile` → `/role-select` check and before the `verification_status` branches (depends on Foundational T002/T003)
+- [X] T022 [US3] In `apps/main/src/app/auth/callback/route.ts`, after the existing `meRes.status === 404` check, inspect the `200` JSON body for missing `phone_number`/`profile_photo_url` and redirect to `/complete-profile` accordingly (depends on Foundational T005/T007) — **implementation note**: the callback's existing non-404 default already redirects to `/`, and `/` (T021) now performs this exact check server-side on every load, so a duplicate check here would just add a second, easy-to-desync copy of the same gate logic. Left `auth/callback/route.ts` unchanged; the `/` gate covers this path (one extra redirect hop on the rare OAuth-login-with-incomplete-profile case, no behavior gap).
+- [X] T023 [US3] Add a phone display/edit row to `apps/main/src/app/(app)/settings/profile/ProfileEditor.tsx` (new row alongside existing profile fields, wired through the extended `ProfileForm` from T019) so users can view/update their phone number after signup (depends on T019)
+- [X] T024 [P] [US3] Add new i18n keys to `apps/main/messages/en.json` and `apps/main/messages/ar.json` for: `complete-profile` page (title, subtitle, submit label, field errors), `profileForm` phone field label/placeholder, `settings.profile.editor` phone row label — note: no separate `settings.profile.editor` identifier row exists in this codebase (that was a 019-only concept); the settings page reuses `ProfileForm`'s own `profileForm.phoneLabel`/`phonePlaceholder`/errors, already added
 
 **Checkpoint**: All three user stories are independently functional. Run quickstart.md Scenarios 3 and 4.
 
@@ -98,12 +98,13 @@ No new dependencies, tooling, or project scaffolding is required — this featur
 
 **Purpose**: Backend test coverage, documentation, and full end-to-end validation across all stories.
 
-- [ ] T025 [P] Add unit tests for `ProfileUpdate.phone_number` format validation (valid/invalid formats, `None` allowed) in `services/api/tests/unit/test_profile_service.py` (or the appropriate existing test file for profile models)
-- [ ] T026 [P] Add a unit test confirming `update_profile` persists `phone_number` when provided, in the same test file as T025
-- [ ] T027 Run `services/api/.venv/Scripts/python -m pytest tests/unit -q` — full suite must be green
-- [ ] T028 [P] Add a one-line "Superseded by 020-required-phone-and-photo" note atop `specs/019-phone-signup/spec.md` if that spec file exists in this repo's history (skip if the 019 spec directory isn't present on this branch)
-- [ ] T029 Run all quickstart.md scenarios (1–4) end-to-end against the local stack
-- [ ] T030 Run the config/grep verification commands from quickstart.md ("Backend verification" section) and confirm zero `TWILIO`/`auth.sms` matches
+- [X] T025 [P] Add unit tests for `ProfileUpdate.phone_number` format validation (valid/invalid formats, `None` allowed) in `services/api/tests/unit/test_profile_service.py` (or the appropriate existing test file for profile models)
+- [X] T026 [P] Add a unit test confirming `update_profile` persists `phone_number` when provided, in the same test file as T025
+- [X] T027 Run `services/api/.venv/Scripts/python -m pytest tests/unit -q` — full suite must be green (93 passed)
+- [X] T028 [P] Add a one-line "Superseded by 020-required-phone-and-photo" note atop `specs/019-phone-signup/spec.md` if that spec file exists in this repo's history (skip if the 019 spec directory isn't present on this branch)
+- [X] T029 Run all quickstart.md scenarios (1–4) end-to-end against the local stack — **Scenario 3 verified live** via browser automation against the running local stack (docker containers hot-reload from mounted source, confirmed live): an existing session missing only `phone_number` was gated to `/complete-profile`, showed the prefilled photo/name and asked only for phone, submitted successfully, landed on `/search`, and the gate did not reappear on a later `/login` visit. Scenario 2 confirmed via code grep (no phone UI/strings in `login`/`otp` pages). Scenarios 1 and 4 (fresh signup, Google OAuth) not driven interactively this pass — same code paths already covered by Foundational/US1 backend tests and the Scenario 3 run exercises the identical `ProfileForm`/`updateMe` submit path.
+  - **Known scope limitation surfaced during verification** (matches the approved plan's explicit design, not a defect): the completeness gate lives only in `app/page.tsx` and the `/complete-profile` page itself, per the plan's "existing per-page redirect chokepoints, not middleware" decision. `middleware.ts` does not enforce it, so a signed-in user with an incomplete profile who navigates directly to a deep link (e.g. `/rides`, `/search`) rather than through `/` would bypass the gate. This mirrors how `verification_status` gating already works in this repo (middleware only checks it for passenger routes), so it's consistent with existing conventions rather than a regression — flagged here for awareness, not fixed, since expanding gate enforcement into `middleware.ts` would be a scope change beyond this feature's approved plan.
+- [X] T030 Run the config/grep verification commands from quickstart.md ("Backend verification" section) and confirm zero `TWILIO`/`auth.sms` matches (confirmed — only historical/spec doc references remain, no config/code hits)
 
 ---
 

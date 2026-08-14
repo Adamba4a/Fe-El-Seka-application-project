@@ -56,6 +56,7 @@ def update_profile(
     user_id: str,
     display_name: str | None,
     language_preference: str | None = None,
+    phone_number: str | None = None,
 ) -> dict:
     sb = _supabase()
     updates: dict = {}
@@ -63,6 +64,8 @@ def update_profile(
         updates["display_name"] = display_name
     if language_preference is not None:
         updates["language_preference"] = language_preference
+    if phone_number is not None:
+        updates["phone_number"] = phone_number
     if not updates:
         return get_profile_me(user_id)
     resp = sb.table("profiles").update(updates).eq("id", user_id).execute()
@@ -186,6 +189,7 @@ def _format_profile(row: dict) -> dict:
     return {
         "id": row["id"],
         "email": row["email"],
+        "phone_number": row.get("phone_number"),
         "display_name": row["display_name"],
         "role": row["role"],
         "profile_photo_url": photo_url,

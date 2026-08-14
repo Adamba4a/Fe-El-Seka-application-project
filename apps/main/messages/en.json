@@ -101,6 +101,11 @@
         "signInFailed": "Password set, but could not sign you back in. Please sign in again.",
         "setFailed": "Could not set password. Please try again."
       }
+    },
+    "completeProfile": {
+      "title": "Complete your profile",
+      "subtitle": "We need a few more details before you can continue",
+      "submit": "Continue"
     }
   },
   "onboarding": {
@@ -111,6 +116,8 @@
       "subtitleRejected": "Your documents were rejected. Please resubmit.",
       "displayNameLabel": "Display name *",
       "displayNamePlaceholder": "Your name",
+      "phoneLabel": "Phone number *",
+      "phonePlaceholder": "+201234567890",
       "identityVerificationLabel": "Identity verification",
       "uploadNationalIdHint": "Upload your Egyptian National ID card",
       "submit": "Submit",
@@ -121,6 +128,8 @@
       "goToHome": "Go to home",
       "errors": {
         "nameTooShort": "Please enter your name (min 2 characters)",
+        "phoneInvalid": "Please enter a valid phone number, e.g. +201234567890",
+        "photoRequired": "Please add a profile photo",
         "idRequired": "Please upload both sides of your National ID",
         "licenseRequired": "Please upload your Driving License",
         "submissionFailed": "Submission failed. Please try again."
@@ -581,6 +590,8 @@
   "profileForm": {
     "displayNameLabel": "Display name",
     "displayNamePlaceholder": "Your name",
+    "phoneLabel": "Phone number",
+    "phonePlaceholder": "+201234567890",
     "save": "Save",
     "saving": "Saving…",
     "uploadPhoto": "Upload photo (optional)",
@@ -590,6 +601,8 @@
       "generic": "Something went wrong",
       "minChars": "Min 2 characters",
       "maxChars": "Max 50 characters",
+      "phoneInvalid": "Please enter a valid phone number, e.g. +201234567890",
+      "photoRequired": "Please add a profile photo",
       "invalidPhotoType": "Only JPEG and PNG files are accepted",
       "photoTooLarge": "Photo must be under 5 MB"
     }

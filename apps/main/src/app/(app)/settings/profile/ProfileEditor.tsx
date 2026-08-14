@@ -314,8 +314,11 @@ export function ProfileEditor({
   const [pendingUpdate, setPendingUpdate] = useState(initialPendingUpdate);
   const [saved, setSaved] = useState(false);
 
-  const handleProfileSubmit = async ({ display_name }: { display_name: string }, photo: File | null) => {
-    await updateMe(accessToken, { display_name });
+  const handleProfileSubmit = async (
+    { display_name, phone_number }: { display_name: string; phone_number?: string },
+    photo: File | null,
+  ) => {
+    await updateMe(accessToken, { display_name, phone_number });
     if (photo) await uploadPhoto(accessToken, photo);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -332,9 +335,15 @@ export function ProfileEditor({
       {saved && <p className="text-body-sm text-status-completed">{t("saved")}</p>}
       <RatingSummary ratingAvg={initialProfile.rating_avg} ratingCount={initialProfile.rating_count} />
       <ProfileForm
-        defaultValues={{ display_name: initialProfile.display_name, profile_photo_url: initialProfile.profile_photo_url }}
+        defaultValues={{
+          display_name: initialProfile.display_name,
+          profile_photo_url: initialProfile.profile_photo_url,
+          phone_number: initialProfile.phone_number,
+        }}
         onSubmit={handleProfileSubmit}
         submitLabel={t("saveChanges")}
+        showPhone
+        photoRequired
       />
       {vehicle && (
         <VehicleSection

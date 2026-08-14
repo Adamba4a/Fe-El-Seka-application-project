@@ -15,7 +15,7 @@ export default async function Home() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, verification_status")
+    .select("role, verification_status, phone_number, profile_photo_path")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -23,6 +23,10 @@ export default async function Home() {
 
   if (profile.verification_status === "unverified" || profile.verification_status === "rejected") {
     redirect("/profile");
+  }
+
+  if (!profile.phone_number || !profile.profile_photo_path) {
+    redirect("/complete-profile");
   }
 
   if (profile.verification_status === "suspended") {

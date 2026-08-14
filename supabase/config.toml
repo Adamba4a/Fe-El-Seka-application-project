@@ -64,12 +64,6 @@ content_path = "./supabase/templates/magic_link.html"
 subject = "Your Triplyy sign-in code"
 content_path = "./supabase/templates/confirmation.html"
 
-[auth.sms]
-enable_signup = true
-enable_confirmations = false
-template = "Your Triplyy OTP is {{ .Code }}"
-max_frequency = "5s"
-
 [analytics]
 enabled = false
 port = 54327
