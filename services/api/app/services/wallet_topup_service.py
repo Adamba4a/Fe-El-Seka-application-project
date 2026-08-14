@@ -6,7 +6,7 @@ from decimal import Decimal
 import asyncpg
 from fastapi import HTTPException, UploadFile
 
-from app.services import audit_service, fcm_service, storage_service, wallet_service
+from app.services import audit_service, storage_service, wallet_service
 
 _DEFAULT_VODAFONE_CASH_NUMBER = "VODAFONE_CASH_NUMBER_NOT_CONFIGURED"
 _DEFAULT_SUPPORT_EMAIL = "support@felseka.com"
@@ -261,6 +261,23 @@ async def submit_request(
 _ADMIN_PAGE_SIZE = 20
 
 
+async def _enqueue_notification(conn, recipient_user_id: uuid.UUID, event_type: str, payload: dict) -> None:
+    """Queue a push notification for async dispatch (mirrors moderation_service's
+    helper). MUST be called inside the same conn.transaction() as the state
+    change it announces: a direct `await fcm_service.send_push_notifications(...)`
+    after commit would let a Firebase/network failure turn an already-successful
+    approve/reject into a 500 for the admin, who'd then hit 409 on retry — this
+    row-insert is a local, non-network write that commits atomically with the
+    approval/rejection, and notification_dispatcher_loop (already running as a
+    background task, see main.py) delivers and retries it independently."""
+    await conn.execute(
+        "INSERT INTO notification_events (recipient_user_id, event_type, payload) VALUES ($1, $2, $3)",
+        recipient_user_id,
+        event_type,
+        payload,
+    )
+
+
 async def list_pending_queue(conn, page: int, limit: int = _ADMIN_PAGE_SIZE) -> dict:
     """T018: PENDING requests oldest-first (FR-008), joined with driver identity,
     with a signed screenshot URL per item."""
@@ -339,17 +356,17 @@ async def approve_request(conn, request_id: uuid.UUID, admin_id: uuid.UUID) -> d
             "UPDATE profiles SET topup_lock_reset_at = now() WHERE id = $1",
             driver_id,
         )
+        await _enqueue_notification(
+            conn,
+            driver_id,
+            "wallet_topup_approved",
+            {"request_id": str(request_id), "amount_egp": str(amount)},
+        )
 
     new_balance_egp = Decimal(str(wallet["balance_egp"])) + Decimal(str(amount))
 
     audit_service.append_log(
         str(admin_id), "approved", str(driver_id), topup_request_id=str(request_id)
-    )
-    await fcm_service.send_push_notifications(
-        conn,
-        driver_id,
-        "wallet_topup_approved",
-        {"request_id": str(request_id), "amount_egp": str(amount)},
     )
 
     return {
@@ -399,11 +416,15 @@ async def reject_request(conn, request_id: uuid.UUID, admin_id: uuid.UUID, reaso
             driver_locked = True
             await conn.execute("UPDATE profiles SET is_topup_locked = TRUE WHERE id = $1", driver_id)
 
+        await _enqueue_notification(
+            conn,
+            driver_id,
+            "wallet_topup_rejected",
+            {"request_id": str(request_id), "reason": reason},
+        )
+
     audit_service.append_log(
         str(admin_id), "rejected", str(driver_id), topup_request_id=str(request_id), reason=reason
-    )
-    await fcm_service.send_push_notifications(
-        conn, driver_id, "wallet_topup_rejected", {"request_id": str(request_id), "reason": reason}
     )
 
     return {
