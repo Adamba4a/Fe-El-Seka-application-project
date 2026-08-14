@@ -14,6 +14,8 @@ from app.models.wallet import PaginationMeta
 
 class TopupSettingsResponse(BaseModel):
     vodafone_cash_number: str
+    is_locked: bool
+    support_email: Optional[str] = None
 
 
 class TopupSubmitResponse(BaseModel):

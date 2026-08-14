@@ -44,6 +44,13 @@
 
 **Checkpoint**: `wallet_topup.py` schemas and `wallet_topup_service.py`'s shared helpers are importable with no errors; `fcm_service` and `audit_service` extensions don't break any existing caller (both new parameters are optional/additive).
 
+**Post-review amendment (2026-08-14, Gemini review of Phase 1-2)** — three fixes applied; downstream tasks below are updated to match, T001/T004/T007 left as-is for historical record:
+
+- New migrations `20260814000001`/`20260814000002`/`20260814000003` fix: (1) a missing `WITH CHECK` on the T001 driver-cancel RLS policy that let a driver arbitrarily edit `amount_egp` on their own row while it stayed `PENDING`; (2) `uq_topup_reference_active` now indexes `lower(trim(payment_reference))` so case/whitespace variants of the same reference still collide; (3) the T004 seed placeholder `'01000000000'` (a plausible-looking real number) is replaced with the obviously-invalid sentinel `'VODAFONE_CASH_NUMBER_NOT_CONFIGURED'` — **an operator must still set the real number via direct DB edit before driver-facing launch**.
+- `T007`'s `TopupSettingsResponse` now also has `is_locked: bool` and `support_email: Optional[str]` (already added to `models/wallet_topup.py`).
+- **T011** (`get_settings`) must now also call `_is_topup_locked()` (T008) and, when locked, `_get_support_email`-style lookup for `support_email`, returning both in the response — not just `vodafone_cash_number`.
+- **T017** (driver top-up form) must call `GET /wallet/topup/settings` on load and, if `is_locked` is `true`, render the locked/contact-support message immediately instead of showing the form — so a locked driver is never asked to pick a screenshot before finding out they can't submit.
+
 ---
 
 ## Phase 3: User Story 1 — Driver Submits a Top-Up Request (Priority: P1) 🎯 MVP

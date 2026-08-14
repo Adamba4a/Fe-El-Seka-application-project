@@ -27,9 +27,11 @@ All new SQL objects are additive — no existing table's columns are removed or 
 **Indexes / constraints**:
 
 ```sql
--- FR-005 / NFR-005 — reference number uniqueness among active requests, DB-enforced
+-- FR-005 / NFR-005 — reference number uniqueness among active requests, DB-enforced.
+-- Normalized (lower/trim) so case/whitespace variants of the same real-world
+-- reference still collide (post-review fix, 20260814000002).
 CREATE UNIQUE INDEX uq_topup_reference_active
-    ON wallet_topup_requests (payment_reference)
+    ON wallet_topup_requests (lower(trim(payment_reference)))
     WHERE status IN ('PENDING', 'APPROVED');
 
 -- FR-004 — at most one PENDING request per driver, DB-enforced (closes the same
@@ -63,7 +65,12 @@ before any transition, inside the same transaction as the write.
 **RLS** (mirrors `driver_wallets`/`driver_ledger_entries` RLS shape):
 
 - `SELECT`/`INSERT`: driver may act only where `driver_id = auth.uid()` (FR-002, FR-006).
-- `UPDATE` (cancel): driver may update only their own row, only while `status = 'PENDING'` (FR-007).
+- `UPDATE` (cancel): driver may update only their own row, only while `status = 'PENDING'`, and the
+  `WITH CHECK` requires the resulting row to have `status = 'CANCELLED'` (FR-007) — mirrors
+  `passenger_cancel_own_bookings`'s pattern (`20260624000001_phase6_bookings.sql`). Without this
+  explicit `WITH CHECK`, Postgres reuses the `USING` clause for it, which would let a driver update
+  `amount_egp`/`payment_reference`/`screenshot_path` on their own row while leaving it `PENDING`
+  (post-review fix, `20260814000001`).
 - Admin queue/approve/reject endpoints use the service-role key (same pattern as
   `admin/wallet_router.py`), bypassing RLS under application-level `get_current_admin` authorization
   (FR-012) — consistent with how `admin/verification_router.py` and `admin/wallet_router.py` already
@@ -104,6 +111,14 @@ No schema change — `platform_settings (key TEXT PRIMARY KEY, value TEXT NOT NU
 already exists and already has admin-only `UPDATE`/`INSERT` RLS policies and authenticated `SELECT`
 (`supabase/migrations/20260614000005_create_platform_settings.sql`,
 `20260614000006_rls_policies.sql`). FR-001 is satisfied by one `INSERT ... ON CONFLICT DO NOTHING` seed row.
+
+**Post-review fix (`20260814000003`)**: the original seed value (`'01000000000'`) was a
+validly-formatted Egyptian mobile number, indistinguishable from a real one to a driver — if an
+operator forgot to edit it before launch, drivers could send real money to a fake number with no
+signal anything was wrong. The seed/fallback value is now the obviously-invalid sentinel
+`'VODAFONE_CASH_NUMBER_NOT_CONFIGURED'`, so an unconfigured platform fails visibly instead of
+silently looking legitimate. **An operator must still set the real number via direct DB edit before
+this feature is exposed to drivers.**
 
 ---
 

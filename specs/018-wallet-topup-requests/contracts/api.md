@@ -12,14 +12,21 @@ strings (`"200.00"`), matching `011-financial-system`'s convention.
 
 ### GET /wallet/topup/settings
 
-Return the platform's current Vodafone Cash number for display on the request form (FR-001).
+Return the platform's current Vodafone Cash number for display on the request form (FR-001), and
+whether the driver is currently submission-locked (FR-014/FR-015) so the frontend can gate the form
+*before* the driver picks a screenshot — not only after a full `POST /wallet/topup` submission
+(fixed post-review: previously a locked driver only learned they were locked after attaching a
+screenshot and submitting).
 
 **Auth**: Any authenticated driver.
 
 **Response 200**:
 ```json
-{ "vodafone_cash_number": "01012345678" }
+{ "vodafone_cash_number": "01012345678", "is_locked": false, "support_email": null }
 ```
+
+When `is_locked` is `true`, `support_email` is populated (same value the `submission_locked` error
+below carries) so the frontend can render the locked message without a second round trip.
 
 ---
 
@@ -54,6 +61,9 @@ Submit a new top-up request (US1, FR-002/FR-003).
 | 403 | `submission_locked` | Driver has 3 `REJECTED` outcomes in the current cycle (FR-014/FR-015); body includes `support_email` |
 | 409 | `pending_request_exists` | Driver already has a `PENDING` request (FR-004); body includes the existing request's `id` and `amount_egp` |
 | 409 | `duplicate_payment_reference` | `payment_reference` matches another `PENDING`/`APPROVED` request (FR-005); `error_code = DUPLICATE_PAYMENT_REFERENCE` |
+
+Matching for `duplicate_payment_reference` is case/whitespace-insensitive (`lower(trim(...))`, see
+`uq_topup_reference_active`) — `"TXN123456"` and `" txn123456 "` collide (post-review fix).
 
 ---
 

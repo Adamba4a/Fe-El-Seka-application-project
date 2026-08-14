@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-_DEFAULT_VODAFONE_CASH_NUMBER = "01000000000"
+_DEFAULT_VODAFONE_CASH_NUMBER = "VODAFONE_CASH_NUMBER_NOT_CONFIGURED"
 
 
 async def _get_vodafone_cash_number(conn) -> str:
