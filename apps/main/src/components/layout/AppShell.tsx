@@ -32,7 +32,12 @@ export function AppShell({ variant, children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-dash-bg">
       {session?.access_token && profile && profile.language_preference == null && (
-        <LanguagePromptModal accessToken={session.access_token} />
+        <LanguagePromptModal
+          accessToken={session.access_token}
+          onSelected={(locale) =>
+            setProfile((prev) => (prev ? { ...prev, language_preference: locale } : prev))
+          }
+        />
       )}
       <TopBar variant={variant} userName={userName} avatarUrl={profile?.profile_photo_url} />
       <main className="max-w-2xl mx-auto px-4 pb-24">{children}</main>
