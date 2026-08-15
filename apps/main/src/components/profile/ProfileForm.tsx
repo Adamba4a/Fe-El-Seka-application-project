@@ -76,24 +76,24 @@ export function ProfileForm({
       <ProfilePhotoUpload onFile={setPhoto} currentUrl={defaultValues?.profile_photo_url} />
 
       <div className="flex flex-col gap-1">
-        <label className="text-label text-content-secondary">{t("displayNameLabel")}</label>
+        <label className="text-label text-dash-text-muted">{t("displayNameLabel")}</label>
         <input
           {...register("display_name")}
           placeholder={t("displayNamePlaceholder")}
-          className="px-3 py-2 border border-border-default rounded-md text-body-sm outline-none focus:border-border-focus transition-colors"
+          className="px-3 py-2.5 bg-dash-bg border border-transparent rounded-xl text-body-sm text-dash-navy outline-none focus:border-dash-primary transition-colors"
         />
         {errors.display_name && <p className="text-caption text-content-destructive">{errors.display_name.message}</p>}
       </div>
 
       {showPhone && (
         <div className="flex flex-col gap-1">
-          <label className="text-label text-content-secondary">{t("phoneLabel")}</label>
+          <label className="text-label text-dash-text-muted">{t("phoneLabel")}</label>
           <input
             type="tel"
             {...register("phone_number")}
             placeholder={t("phonePlaceholder")}
             maxLength={16}
-            className="px-3 py-2 border border-border-default rounded-md text-body-sm outline-none focus:border-border-focus transition-colors"
+            className="px-3 py-2.5 bg-dash-bg border border-transparent rounded-xl text-body-sm text-dash-navy outline-none focus:border-dash-primary transition-colors"
           />
           {errors.phone_number && <p className="text-caption text-content-destructive">{errors.phone_number.message}</p>}
         </div>
@@ -104,7 +104,7 @@ export function ProfileForm({
       <button
         type="submit"
         disabled={loading}
-        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
+        className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-dash-primary hover:opacity-90 text-white rounded-xl font-semibold disabled:opacity-50 transition-opacity"
       >
         {loading && <Spinner />}
         {loading ? t("saving") : (submitLabel ?? t("save"))}

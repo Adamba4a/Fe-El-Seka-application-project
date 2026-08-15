@@ -92,7 +92,13 @@ export function BottomNav({ variant }: { variant: "driver" | "passenger" }) {
                 active ? "text-dash-primary" : "text-dash-text-muted"
               }`}
             >
-              {item.icon}
+              <span
+                className={`flex items-center justify-center w-9 h-9 rounded-full transition-colors ${
+                  active ? "bg-dash-badge-bg" : ""
+                }`}
+              >
+                {item.icon}
+              </span>
               {t(item.labelKey)}
             </Link>
           );

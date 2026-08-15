@@ -75,33 +75,30 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
     (candidate.compatibility.premium_dropoff_fee ?? 0);
 
   return (
-    <button
-      type="button"
-      onClick={() => onClick(candidate)}
-      className="w-full text-start"
-    >
-      <div className="border border-border-default rounded-xl p-4 space-y-3 hover:border-brand-primary transition-colors bg-surface-card">
+    <div className="rounded-2xl bg-dash-surface shadow-sm p-5 space-y-4">
+      <button
+        type="button"
+        onClick={() => onClick(candidate)}
+        className="w-full text-start space-y-4"
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             {candidate.driver.avatar_url ? (
               <img
                 src={candidate.driver.avatar_url}
                 alt={candidate.driver.display_name ?? t("defaultDriverName")}
-                className="w-9 h-9 rounded-full object-cover shrink-0"
+                className="w-11 h-11 rounded-full object-cover shrink-0"
               />
             ) : (
-              <div className="w-9 h-9 rounded-full bg-surface-bg flex items-center justify-center shrink-0 text-sm font-medium text-content-secondary">
+              <div className="w-11 h-11 rounded-full bg-dash-bg flex items-center justify-center shrink-0 text-sm font-semibold text-dash-navy">
                 {(candidate.driver.display_name ?? "?")[0].toUpperCase()}
               </div>
             )}
             <div className="min-w-0">
-              <p className="text-sm font-medium text-content-primary truncate">
+              <p className="font-bold text-dash-navy truncate">
                 {candidate.driver.display_name ?? t("defaultDriverName")}
               </p>
-              <div className="flex items-center gap-2">
-                <p className="text-xs text-content-muted">{formatDeparture(candidate.departure_datetime, locale)}</p>
-                <RatingBadge ratingAvg={candidate.driver.rating_avg} ratingCount={candidate.driver.rating_count} />
-              </div>
+              <RatingBadge ratingAvg={candidate.driver.rating_avg} ratingCount={candidate.driver.rating_count} />
             </div>
           </div>
 
@@ -116,12 +113,34 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
                 {t("nearbyDropoff")}
               </span>
             )}
-            <span className="text-sm font-semibold text-content-primary">
+            <span className="text-xl font-bold text-dash-navy">
               {formatCurrency(Number(candidate.per_seat_price), locale)}
               {isPremium && totalPremiumFee > 0 && (
-                <span className="text-xs text-content-muted font-normal"> +{totalPremiumFee.toFixed(2)}</span>
+                <span className="text-xs text-dash-text-muted font-normal"> +{totalPremiumFee.toFixed(2)}</span>
               )}
             </span>
+          </div>
+        </div>
+
+        {/* Route: two stops connected by a dashed line, real fields only */}
+        <div className="flex gap-3">
+          <div className="flex flex-col items-center pt-1">
+            <span className="w-2.5 h-2.5 rounded-full border-2 border-dash-primary" />
+            <span className="flex-1 w-px border-s border-dashed border-dash-border my-1" />
+            <span className="w-2.5 h-2.5 rounded-full bg-dash-text-muted" />
+          </div>
+          <div className="flex-1 space-y-3 min-w-0">
+            <div>
+              <p className="text-sm font-medium text-dash-navy">{formatDeparture(candidate.departure_datetime, locale)}</p>
+              <p className="text-xs text-dash-text-muted">
+                {t("walkToPickup", { meters: Math.round(candidate.compatibility.pickup_walk_meters) })}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-dash-text-muted">
+                {t("seatsAvailable", { count: candidate.available_seats })}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -139,14 +158,15 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
             })}
           </p>
         )}
+      </button>
 
-        <div className="flex items-center justify-between text-xs text-content-muted">
-          <span>{t("seatsAvailable", { count: candidate.available_seats })}</span>
-          <span>
-            {t("walkToPickup", { meters: Math.round(candidate.compatibility.pickup_walk_meters) })}
-          </span>
-        </div>
-      </div>
-    </button>
+      <button
+        type="button"
+        onClick={() => onClick(candidate)}
+        className="w-full rounded-full bg-dash-primary hover:opacity-90 text-white py-2.5 text-sm font-semibold transition-opacity"
+      >
+        {t("book")}
+      </button>
+    </div>
   );
 }

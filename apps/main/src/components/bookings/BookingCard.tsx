@@ -89,22 +89,23 @@ export function BookingCard(props: BookingCardProps) {
 
     return (
       <div
-        className="rounded-xl border border-border-default bg-surface-card cursor-pointer transition-shadow hover:shadow-md"
+        className="rounded-2xl bg-dash-surface shadow-sm cursor-pointer transition-shadow hover:shadow-md"
         onClick={onClick}
       >
-        <div className="p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-sm text-content-primary">
+        <div className="p-5 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <span className="font-bold text-lg leading-tight text-dash-navy">
               {booking.driver_display_name ?? t("defaultDriverName")}
             </span>
             <BookingStatusBadge status={booking.status} />
           </div>
-          <p className="text-xs text-content-muted">
+          <p className="text-sm text-dash-text-muted">
             {formatDateTime(booking.departure_datetime, locale)}
           </p>
+          <div className="h-px bg-dash-border" />
           <div className="flex items-center justify-between text-sm">
-            <span className="text-content-muted">{t("total")}</span>
-            <span className="font-semibold text-content-primary">{formatCurrency(Number(booking.total_price), locale)}</span>
+            <span className="text-dash-text-muted">{t("total")}</span>
+            <span className="text-xl font-bold text-dash-navy">{formatCurrency(Number(booking.total_price), locale)}</span>
           </div>
           {hasPremium && (
             <p className="text-xs text-amber-700">

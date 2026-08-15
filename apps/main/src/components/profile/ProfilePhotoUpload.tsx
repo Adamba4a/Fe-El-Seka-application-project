@@ -46,16 +46,16 @@ export function ProfilePhotoUpload({ onFile, currentUrl }: ProfilePhotoUploadPro
       <button
         type="button"
         onClick={() => ref.current?.click()}
-        className="w-20 h-20 rounded-full border-2 border-dashed border-border-default flex items-center justify-center overflow-hidden cursor-pointer hover:border-brand-primary transition-colors focus:outline-none focus:border-border-focus"
+        className="w-28 h-28 rounded-full bg-dash-surface shadow-md ring-4 ring-white flex items-center justify-center overflow-hidden cursor-pointer hover:opacity-90 transition-opacity focus:outline-none"
         aria-label={t("uploadPhotoAriaLabel")}
       >
         {preview ? (
           <img src={preview} alt={t("uploadPhotoAriaLabel")} className="w-full h-full object-cover" />
         ) : (
-          <span className="text-3xl text-content-muted">👤</span>
+          <span className="text-4xl text-dash-text-muted">👤</span>
         )}
       </button>
-      <button type="button" onClick={() => ref.current?.click()} className="text-body-sm text-brand-primary underline">
+      <button type="button" onClick={() => ref.current?.click()} className="text-body-sm text-dash-primary font-semibold hover:underline">
         {preview ? t("changePhoto") : t("uploadPhoto")}
       </button>
       {error && <p className="text-caption text-content-destructive">{error}</p>}

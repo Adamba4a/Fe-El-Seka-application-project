@@ -672,7 +672,8 @@
     "nearbyEndpointNote": "Driver ends ~{distance} km ({duration} min) from your destination — you'll need your own transport for the rest of the way.",
     "seatsAvailable": "{count, plural, one {# seat} other {# seats}} available",
     "walkToPickup": "{meters}m walk to pickup",
-    "defaultDriverName": "Driver"
+    "defaultDriverName": "Driver",
+    "book": "Book"
   },
   "matchScoreBadge": {
     "matchPercent": "{score}% match"

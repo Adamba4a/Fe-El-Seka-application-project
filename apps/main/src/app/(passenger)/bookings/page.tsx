@@ -103,19 +103,19 @@ export default function PassengerBookingsPage() {
   const visible = filterByTab(bookings, activeTab);
 
   return (
-    <div className="max-w-md mx-auto p-4 space-y-4">
-      <h1 className="text-xl font-semibold">{t("title")}</h1>
+    <div className="max-w-md mx-auto py-2 space-y-5">
+      <h1 className="text-3xl font-bold text-dash-navy">{t("title")}</h1>
 
       {/* Tab bar */}
-      <div className="flex border-b border-border-default">
+      <div className="flex border-b border-dash-border">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${
+            className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
               activeTab === tab.id
-                ? "border-b-2 border-brand-primary text-brand-primary"
-                : "text-content-muted hover:text-content-primary"
+                ? "border-b-2 border-dash-primary text-dash-primary"
+                : "text-dash-text-muted hover:text-dash-navy"
             }`}
           >
             {tab.label}

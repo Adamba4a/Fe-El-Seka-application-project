@@ -178,13 +178,13 @@ export default function SearchPage() {
               <button
                 type="button"
                 onClick={() => router.push("/dashboard")}
-                className="text-content-muted hover:text-content-secondary"
+                className="text-dash-navy hover:opacity-70"
               >
                 <span className="inline-block rtl:rotate-180">←</span>
               </button>
               <div>
-                <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
-                <p className="text-sm text-content-muted mt-1">{t("subheading")}</p>
+                <h1 className="text-h3 font-bold text-dash-navy">{t("heading")}</h1>
+                <p className="text-sm text-dash-text-muted mt-1">{t("subheading")}</p>
               </div>
             </div>
 
@@ -204,18 +204,18 @@ export default function SearchPage() {
               <button
                 type="button"
                 onClick={() => router.push("/dashboard")}
-                className="text-content-muted hover:text-content-secondary"
+                className="text-dash-navy hover:opacity-70"
               >
                 <span className="inline-block rtl:rotate-180">←</span>
               </button>
               <div className="flex-1 flex items-center justify-between">
-                <p className="text-sm text-content-muted">
+                <p className="text-sm text-dash-text-muted">
                   {t("ridesFound", { count: candidates.length })}
                 </p>
                 <button
                   type="button"
                   onClick={handleNewSearch}
-                  className="text-sm text-brand-primary font-medium"
+                  className="text-sm text-dash-primary font-semibold"
                 >
                   {t("newSearch")}
                 </button>
@@ -224,8 +224,8 @@ export default function SearchPage() {
 
             {candidates.length === 0 ? (
               <div className="py-12 text-center space-y-2">
-                <p className="text-content-primary font-medium">{t("noRidesFoundTitle")}</p>
-                <p className="text-sm text-content-muted">
+                <p className="text-dash-navy font-medium">{t("noRidesFoundTitle")}</p>
+                <p className="text-sm text-dash-text-muted">
                   {t("noRidesFoundBody")}
                 </p>
               </div>

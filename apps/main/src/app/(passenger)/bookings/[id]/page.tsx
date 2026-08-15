@@ -209,47 +209,48 @@ export default function PassengerBookingDetailPage() {
     booking.status === "pending" || booking.status === "confirmed";
 
   return (
-    <div className="max-w-md mx-auto space-y-4">
+    <div className="max-w-md mx-auto space-y-4 py-2">
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={() => router.back()}
-          className="text-content-muted hover:text-content-secondary"
+          className="text-dash-navy hover:opacity-70"
         >
           <span className="inline-block rtl:rotate-180">←</span>
         </button>
-        <h1 className="text-xl font-semibold text-content-primary">{t("title")}</h1>
+        <h1 className="text-xl font-bold text-dash-navy flex-1">{t("title")}</h1>
         <BookingStatusBadge status={booking.status} />
       </div>
 
       {/* Driver & departure */}
-      <div className="rounded-xl border border-border-default bg-surface-card">
-        <div className="p-4 space-y-3">
+      <div className="rounded-2xl bg-dash-surface shadow-sm">
+        <div className="p-5 space-y-3">
           <div className="flex items-center gap-3">
             {booking.driver_avatar_url ? (
               <img
                 src={booking.driver_avatar_url}
                 alt={booking.driver_display_name ?? t("driverLabel")}
-                className="h-10 w-10 rounded-full object-cover shrink-0"
+                className="h-12 w-12 rounded-full object-cover shrink-0"
               />
             ) : (
-              <div className="h-10 w-10 rounded-full bg-surface-bg flex items-center justify-center shrink-0 text-sm font-medium text-content-secondary">
+              <div className="h-12 w-12 rounded-full bg-dash-bg flex items-center justify-center shrink-0 text-sm font-semibold text-dash-navy">
                 {(booking.driver_display_name ?? "D")[0].toUpperCase()}
               </div>
             )}
             <div>
-              <p className="font-medium text-content-primary">{booking.driver_display_name ?? t("driverLabel")}</p>
-              <p className="text-xs text-content-muted">{t("driverLabel")}</p>
+              <p className="font-bold text-dash-navy">{booking.driver_display_name ?? t("driverLabel")}</p>
+              <p className="text-xs text-dash-text-muted">{t("driverLabel")}</p>
             </div>
           </div>
+          <div className="h-px bg-dash-border" />
           <div>
-            <p className="text-xs text-content-muted">{t("departure")}</p>
-            <p className="text-sm font-medium text-content-primary">{formatDateTime(booking.departure_datetime, locale)}</p>
+            <p className="text-xs text-dash-text-muted">{t("departure")}</p>
+            <p className="text-sm font-medium text-dash-navy">{formatDateTime(booking.departure_datetime, locale)}</p>
           </div>
           {(booking.status === "confirmed" || booking.status === "completed") && (
             <Link
               href={`/users/${booking.driver_id}`}
-              className="inline-block text-xs text-brand-primary hover:underline"
+              className="inline-block text-xs text-dash-primary font-semibold hover:underline"
             >
               {t("viewProfile")}
             </Link>
@@ -267,18 +268,18 @@ export default function PassengerBookingDetailPage() {
       />
 
       {/* Route points */}
-      <div className="rounded-xl border border-border-default bg-surface-card">
-        <div className="p-4 space-y-3">
+      <div className="rounded-2xl bg-dash-surface shadow-sm">
+        <div className="p-5 space-y-3">
           <div>
-            <p className="text-xs text-content-muted uppercase tracking-wide">{t("boardingPoint")}</p>
-            <p className="text-sm font-medium text-content-primary">
+            <p className="text-xs text-dash-text-muted uppercase tracking-wide">{t("boardingPoint")}</p>
+            <p className="text-sm font-medium text-dash-navy">
               {boardingAddress ?? t("loadingLocation")}
             </p>
           </div>
-          <div className="border-t border-border-default" />
+          <div className="border-t border-dash-border" />
           <div>
-            <p className="text-xs text-content-muted uppercase tracking-wide">{t("alightingPoint")}</p>
-            <p className="text-sm font-medium text-content-primary">
+            <p className="text-xs text-dash-text-muted uppercase tracking-wide">{t("alightingPoint")}</p>
+            <p className="text-sm font-medium text-dash-navy">
               {alightingAddress ?? t("loadingLocation")}
             </p>
           </div>
@@ -289,7 +290,7 @@ export default function PassengerBookingDetailPage() {
       {booking.status === "confirmed" && (
         <Link
           href={`/rides/${booking.ride_id}/tracking`}
-          className="flex items-center justify-center gap-2 w-full rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white px-4 py-3 text-sm font-semibold transition-colors"
+          className="flex items-center justify-center gap-2 w-full rounded-2xl bg-dash-primary hover:opacity-90 text-white px-4 py-3.5 text-sm font-semibold transition-opacity"
         >
           <span>📍</span>
           {t("trackLive")}
@@ -300,7 +301,7 @@ export default function PassengerBookingDetailPage() {
       {booking.status === "completed" && (
         <Link
           href={`/ratings/${booking.booking_id}`}
-          className="flex items-center justify-center gap-2 w-full rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white px-4 py-3 text-sm font-semibold transition-colors"
+          className="flex items-center justify-center gap-2 w-full rounded-2xl bg-dash-primary hover:opacity-90 text-white px-4 py-3.5 text-sm font-semibold transition-opacity"
         >
           <span>⭐</span>
           {t("rateAndReport")}
@@ -308,26 +309,26 @@ export default function PassengerBookingDetailPage() {
       )}
 
       {/* Price breakdown */}
-      <div className="rounded-xl border border-border-default bg-surface-card">
-        <div className="p-4 space-y-2">
-          <p className="text-sm font-medium text-content-primary">{t("priceBreakdown")}</p>
+      <div className="rounded-2xl bg-dash-surface shadow-sm">
+        <div className="p-5 space-y-2">
+          <p className="text-sm font-bold text-dash-navy">{t("priceBreakdown")}</p>
           <div className="flex justify-between text-sm">
-            <span className="text-content-muted">{t("baseFare")}</span>
-            <span className="text-content-primary">{formatCurrency(Number(booking.per_seat_price), locale)}</span>
+            <span className="text-dash-text-muted">{t("baseFare")}</span>
+            <span className="text-dash-navy">{formatCurrency(Number(booking.per_seat_price), locale)}</span>
           </div>
           {booking.premium_pickup_requested && booking.premium_pickup_fee && (
             <div className="flex justify-between text-sm">
-              <span className="text-content-muted">{t("premiumPickup")}</span>
-              <span className="text-content-primary">{formatCurrency(Number(booking.premium_pickup_fee), locale)}</span>
+              <span className="text-dash-text-muted">{t("premiumPickup")}</span>
+              <span className="text-dash-navy">{formatCurrency(Number(booking.premium_pickup_fee), locale)}</span>
             </div>
           )}
           {booking.premium_dropoff_requested && booking.premium_dropoff_fee && (
             <div className="flex justify-between text-sm">
-              <span className="text-content-muted">{t("premiumDropoff")}</span>
-              <span className="text-content-primary">{formatCurrency(Number(booking.premium_dropoff_fee), locale)}</span>
+              <span className="text-dash-text-muted">{t("premiumDropoff")}</span>
+              <span className="text-dash-navy">{formatCurrency(Number(booking.premium_dropoff_fee), locale)}</span>
             </div>
           )}
-          <div className="border-t border-border-default pt-2 flex justify-between font-semibold text-content-primary">
+          <div className="border-t border-dash-border pt-2 flex justify-between font-bold text-dash-navy">
             <span>{t("total")}</span>
             <span>{formatCurrency(Number(booking.total_price), locale)}</span>
           </div>
@@ -336,8 +337,8 @@ export default function PassengerBookingDetailPage() {
 
       {/* Cancellation info */}
       {booking.status === "cancelled" && (
-        <div className="rounded-xl border border-red-100 bg-red-50">
-          <div className="p-4 space-y-1">
+        <div className="rounded-2xl border border-red-100 bg-red-50">
+          <div className="p-5 space-y-1">
             <p className="text-sm font-medium text-red-700">{t("bookingCancelledTitle")}</p>
             {booking.cancellation_reason && (
               <p className="text-xs text-red-600">{booking.cancellation_reason}</p>
@@ -357,17 +358,17 @@ export default function PassengerBookingDetailPage() {
         <button
           type="button"
           onClick={() => setShowConfirm(true)}
-          className="w-full rounded-xl border border-border-default text-content-destructive hover:bg-status-cancelled-bg px-4 py-2.5 text-sm font-medium transition-colors"
+          className="w-full rounded-2xl border border-dash-border bg-dash-surface text-content-destructive hover:bg-status-cancelled-bg px-4 py-3 text-sm font-semibold transition-colors"
         >
           {t("cancelBooking")}
         </button>
       )}
 
       {showConfirm && (
-        <div className="rounded-xl border border-red-200 bg-surface-card">
-          <div className="p-4 space-y-3">
-            <p className="text-sm font-medium text-content-primary">{t("cancelConfirmTitle")}</p>
-            <p className="text-xs text-content-muted">
+        <div className="rounded-2xl border border-red-200 bg-dash-surface shadow-sm">
+          <div className="p-5 space-y-3">
+            <p className="text-sm font-bold text-dash-navy">{t("cancelConfirmTitle")}</p>
+            <p className="text-xs text-dash-text-muted">
               {t("cancelConfirmBody")}
             </p>
             <div className="flex gap-2">
@@ -384,7 +385,7 @@ export default function PassengerBookingDetailPage() {
                 type="button"
                 onClick={() => setShowConfirm(false)}
                 disabled={cancelling}
-                className="flex-1 rounded-xl border border-border-default text-content-primary hover:bg-surface-bg px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
+                className="flex-1 rounded-xl border border-dash-border text-dash-navy hover:bg-dash-bg px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
               >
                 {t("keepBooking")}
               </button>

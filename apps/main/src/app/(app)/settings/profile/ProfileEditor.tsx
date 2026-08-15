@@ -13,7 +13,7 @@ import type { Locale, Profile, Vehicle, VehicleUpdateRequestRecord } from "@fe-e
 const currentYear = new Date().getFullYear();
 
 const inputClass =
-  "border border-border-default rounded-xl px-2 py-1 text-body-sm text-right outline-none focus:border-border-focus transition-colors";
+  "bg-dash-bg border border-transparent rounded-xl px-2 py-1 text-body-sm text-right text-dash-navy outline-none focus:border-dash-primary transition-colors";
 
 // ─── Quick edit: color + seat_count ──────────────────────────────────────────
 
@@ -59,11 +59,11 @@ function QuickEditForm({ vehicle, token, onSaved, onClose }: {
       {error && <p className="text-caption text-content-destructive">{error}</p>}
       <div className="flex gap-2 pt-1">
         <button onClick={onClose}
-          className="flex-1 border border-border-default rounded-xl py-2 text-body-sm text-content-secondary hover:bg-surface-bg transition-colors">
+          className="flex-1 border border-dash-border rounded-xl py-2 text-body-sm text-dash-text-muted hover:bg-dash-bg transition-colors">
           {tc("cancel")}
         </button>
         <button onClick={handleSave} disabled={saving}
-          className="flex-1 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-2 text-body-sm font-medium disabled:opacity-50 transition-colors">
+          className="flex-1 bg-dash-primary hover:opacity-90 text-white rounded-xl py-2 text-body-sm font-medium disabled:opacity-50 transition-opacity">
           {saving ? tc("saving") : tc("save")}
         </button>
       </div>
@@ -109,7 +109,7 @@ function StructuralEditForm({ vehicle, token, onSubmitted, onClose }: {
 
   return (
     <div className="space-y-3 pt-1">
-      <p className="text-caption text-status-in-progress bg-status-in-progress-bg border border-border-default rounded-xl p-2">
+      <p className="text-caption text-status-in-progress bg-status-in-progress-bg border border-dash-border rounded-xl p-2">
         {t("reviewRequiredNotice")}
       </p>
       <Field label={t("plateNumberLabel")}>
@@ -128,11 +128,11 @@ function StructuralEditForm({ vehicle, token, onSubmitted, onClose }: {
       {error && <p className="text-caption text-content-destructive">{error}</p>}
       <div className="flex gap-2 pt-1">
         <button onClick={onClose}
-          className="flex-1 border border-border-default rounded-xl py-2 text-body-sm text-content-secondary hover:bg-surface-bg transition-colors">
+          className="flex-1 border border-dash-border rounded-xl py-2 text-body-sm text-dash-text-muted hover:bg-dash-bg transition-colors">
           {tc("cancel")}
         </button>
         <button onClick={handleSubmit} disabled={saving}
-          className="flex-1 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-2 text-body-sm font-medium disabled:opacity-50 transition-colors">
+          className="flex-1 bg-dash-primary hover:opacity-90 text-white rounded-xl py-2 text-body-sm font-medium disabled:opacity-50 transition-opacity">
           {saving ? t("submitting") : t("submitForReview")}
         </button>
       </div>
@@ -156,13 +156,13 @@ function VehicleSection({ vehicle: initialVehicle, pendingUpdate: initialPending
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-content-primary">{t("heading")}</h2>
+        <h2 className="font-bold text-dash-navy">{t("heading")}</h2>
         {editMode === "none" && (
-          <button onClick={() => setEditMode("quick")} className="text-body-sm text-brand-primary hover:underline">{tc("edit")}</button>
+          <button onClick={() => setEditMode("quick")} className="text-body-sm text-dash-primary font-semibold hover:underline">{tc("edit")}</button>
         )}
       </div>
 
-      <div className="bg-surface-bg rounded-xl p-4 space-y-2 text-body-sm">
+      <div className="bg-dash-surface rounded-2xl shadow-sm p-5 space-y-2 text-body-sm">
         <Row label={t("plateLabel")} value={initialVehicle.plate_number} />
         <Row label={t("makeLabel")} value={initialVehicle.make} />
         <Row label={t("modelLabel")} value={initialVehicle.model} />
@@ -171,7 +171,7 @@ function VehicleSection({ vehicle: initialVehicle, pendingUpdate: initialPending
         <Row label={t("seatsLabel")} value={String(initialVehicle.seat_count)} />
 
         {initialPending && editMode === "none" && (
-          <div className="mt-2 p-2 bg-status-in-progress-bg border border-border-default rounded-xl text-caption text-status-in-progress space-y-1">
+          <div className="mt-2 p-2 bg-status-in-progress-bg border border-dash-border rounded-xl text-caption text-status-in-progress space-y-1">
             <p className="font-semibold">{t("pendingReviewNotice")}</p>
             {initialPending.plate_number && <p>{t("pendingPlate", { value: initialPending.plate_number })}</p>}
             {initialPending.make && <p>{t("pendingMake", { value: initialPending.make })}</p>}
@@ -185,7 +185,7 @@ function VehicleSection({ vehicle: initialVehicle, pendingUpdate: initialPending
             <QuickEditForm vehicle={initialVehicle} token={token} onSaved={onVehicleSaved} onClose={() => setEditMode("none")} />
             {!initialPending && (
               <button onClick={() => setEditMode("structural")}
-                className="w-full text-caption text-status-in-progress border border-border-default rounded-xl py-1.5 hover:bg-status-in-progress-bg mt-1 transition-colors">
+                className="w-full text-caption text-status-in-progress border border-dash-border rounded-xl py-1.5 hover:bg-status-in-progress-bg mt-1 transition-colors">
                 {t("changeStructural")}
               </button>
             )}
@@ -210,8 +210,8 @@ function VehicleSection({ vehicle: initialVehicle, pendingUpdate: initialPending
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-content-muted">{label}</span>
-      <span className="font-medium text-content-primary">{value}</span>
+      <span className="text-dash-text-muted">{label}</span>
+      <span className="font-medium text-dash-navy">{value}</span>
     </div>
   );
 }
@@ -219,7 +219,7 @@ function Row({ label, value }: { label: string; value: string }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-content-muted">{label}</span>
+      <span className="text-dash-text-muted">{label}</span>
       {children}
     </div>
   );
@@ -250,8 +250,8 @@ function LanguageSection({ accessToken }: { accessToken: string }) {
 
   return (
     <div className="space-y-3">
-      <h2 className="font-semibold text-content-primary">{t("heading")}</h2>
-      <div className="flex gap-2">
+      <h2 className="font-bold text-dash-navy">{t("heading")}</h2>
+      <div className="flex gap-2 bg-dash-surface rounded-2xl shadow-sm p-1.5">
         {(["en", "ar"] as const).map((locale) => (
           <button
             key={locale}
@@ -259,10 +259,10 @@ function LanguageSection({ accessToken }: { accessToken: string }) {
             onClick={() => handleSelect(locale)}
             disabled={saving}
             aria-pressed={currentLocale === locale}
-            className={`flex-1 rounded-xl border py-2 text-body-sm font-medium transition-colors disabled:opacity-50 ${
+            className={`flex-1 rounded-xl py-2 text-body-sm font-semibold transition-colors disabled:opacity-50 ${
               currentLocale === locale
-                ? "border-brand-primary bg-brand-primary text-content-inverse"
-                : "border-border-default text-content-secondary hover:bg-surface-bg"
+                ? "bg-dash-primary text-content-inverse"
+                : "text-dash-text-muted hover:bg-dash-bg"
             }`}
           >
             {t(locale === "en" ? "english" : "arabic")}
@@ -279,15 +279,15 @@ function LanguageSection({ accessToken }: { accessToken: string }) {
 function RatingSummary({ ratingAvg, ratingCount }: { ratingAvg: number | null; ratingCount: number }) {
   const t = useTranslations("settings.profile.editor.rating");
   return (
-    <div className="bg-surface-bg rounded-xl p-4 flex items-center justify-between">
-      <span className="text-body-sm text-content-muted">{t("label")}</span>
+    <div className="bg-dash-surface rounded-2xl shadow-sm p-5 flex items-center justify-between">
+      <span className="text-body-sm text-dash-navy">{t("label")}</span>
       {ratingCount === 0 || ratingAvg === null ? (
-        <span className="text-body-sm text-content-muted">{t("notRatedYet")}</span>
+        <span className="text-body-sm italic text-dash-text-muted">{t("notRatedYet")}</span>
       ) : (
         <span className="inline-flex items-center gap-1 text-body-sm font-semibold text-amber-600">
           <span aria-hidden="true">★</span>
           {ratingAvg.toFixed(1)}
-          <span className="text-content-muted font-normal">
+          <span className="text-dash-text-muted font-normal">
             ({t("count", { count: ratingCount })})
           </span>
         </span>
@@ -325,12 +325,12 @@ export function ProfileEditor({
   };
 
   return (
-    <main className="max-w-sm mx-auto p-6 space-y-6">
+    <main className="max-w-sm mx-auto py-4 space-y-6">
       <div className="flex items-center gap-3">
-        <a href={initialProfile.role === "passenger" ? "/search" : "/rides"} className="text-content-muted hover:text-content-secondary text-lg leading-none">
+        <a href={initialProfile.role === "passenger" ? "/search" : "/rides"} className="text-dash-navy hover:opacity-70 text-lg leading-none">
           <span className="inline-block rtl:rotate-180">←</span>
         </a>
-        <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
+        <h1 className="text-h3 font-bold text-dash-navy">{t("heading")}</h1>
       </div>
       {saved && <p className="text-body-sm text-status-completed">{t("saved")}</p>}
       <RatingSummary ratingAvg={initialProfile.rating_avg} ratingCount={initialProfile.rating_count} />
@@ -359,10 +359,10 @@ export function ProfileEditor({
 
       <PasswordSettings accessToken={accessToken} />
 
-      <div className="pt-4 border-t border-border-default">
+      <div className="pt-2">
         <a
           href="/signout"
-          className="w-full flex items-center justify-center py-3 border border-border-default rounded-xl text-body-sm text-content-destructive font-medium hover:bg-status-cancelled-bg transition-colors"
+          className="w-full flex items-center justify-center py-3 bg-dash-surface shadow-sm rounded-2xl text-body-sm text-content-destructive font-semibold hover:opacity-80 transition-opacity"
         >
           {t("signOut")}
         </a>
