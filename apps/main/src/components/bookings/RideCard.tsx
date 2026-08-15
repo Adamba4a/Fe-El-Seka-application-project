@@ -75,7 +75,7 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
     (candidate.compatibility.premium_dropoff_fee ?? 0);
 
   return (
-    <div className="rounded-2xl bg-dash-surface shadow-sm p-5 space-y-4">
+    <div className="rounded-2xl bg-dash-surface shadow-sm border border-dash-border p-5 space-y-4">
       <button
         type="button"
         onClick={() => onClick(candidate)}

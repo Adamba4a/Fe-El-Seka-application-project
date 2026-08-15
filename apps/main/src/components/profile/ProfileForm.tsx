@@ -80,7 +80,7 @@ export function ProfileForm({
         <input
           {...register("display_name")}
           placeholder={t("displayNamePlaceholder")}
-          className="px-3 py-2.5 bg-dash-bg border border-transparent rounded-xl text-body-sm text-dash-navy outline-none focus:border-dash-primary transition-colors"
+          className="px-3 py-2.5 bg-dash-surface shadow-sm border border-dash-border rounded-xl text-body-sm text-dash-navy outline-none focus:border-dash-primary transition-colors"
         />
         {errors.display_name && <p className="text-caption text-content-destructive">{errors.display_name.message}</p>}
       </div>
@@ -93,7 +93,7 @@ export function ProfileForm({
             {...register("phone_number")}
             placeholder={t("phonePlaceholder")}
             maxLength={16}
-            className="px-3 py-2.5 bg-dash-bg border border-transparent rounded-xl text-body-sm text-dash-navy outline-none focus:border-dash-primary transition-colors"
+            className="px-3 py-2.5 bg-dash-surface shadow-sm border border-dash-border rounded-xl text-body-sm text-dash-navy outline-none focus:border-dash-primary transition-colors"
           />
           {errors.phone_number && <p className="text-caption text-content-destructive">{errors.phone_number.message}</p>}
         </div>
