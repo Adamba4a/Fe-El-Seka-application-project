@@ -279,20 +279,26 @@ function LanguageSection({ accessToken }: { accessToken: string }) {
 function RatingSummary({ ratingAvg, ratingCount }: { ratingAvg: number | null; ratingCount: number }) {
   const t = useTranslations("settings.profile.editor.rating");
   return (
-    <div className="bg-dash-surface rounded-2xl shadow-sm p-5 flex items-center justify-between">
+    <a
+      href="/ratings"
+      className="bg-dash-surface rounded-2xl shadow-sm p-5 flex items-center justify-between hover:opacity-90 transition-opacity"
+    >
       <span className="text-body-sm text-dash-navy">{t("label")}</span>
-      {ratingCount === 0 || ratingAvg === null ? (
-        <span className="text-body-sm italic text-dash-text-muted">{t("notRatedYet")}</span>
-      ) : (
-        <span className="inline-flex items-center gap-1 text-body-sm font-semibold text-amber-600">
-          <span aria-hidden="true">★</span>
-          {ratingAvg.toFixed(1)}
-          <span className="text-dash-text-muted font-normal">
-            ({t("count", { count: ratingCount })})
+      <span className="flex items-center gap-2">
+        {ratingCount === 0 || ratingAvg === null ? (
+          <span className="text-body-sm italic text-dash-text-muted">{t("notRatedYet")}</span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-body-sm font-semibold text-amber-600">
+            <span aria-hidden="true">★</span>
+            {ratingAvg.toFixed(1)}
+            <span className="text-dash-text-muted font-normal">
+              ({t("count", { count: ratingCount })})
+            </span>
           </span>
-        </span>
-      )}
-    </div>
+        )}
+        <span className="text-dash-text-muted rtl:rotate-180" aria-hidden="true">›</span>
+      </span>
+    </a>
   );
 }
 
