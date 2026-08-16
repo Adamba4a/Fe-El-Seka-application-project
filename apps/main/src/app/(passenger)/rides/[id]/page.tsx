@@ -279,7 +279,7 @@ export default function PassengerRideDetailPage() {
             const params = new URLSearchParams({ departure_at: preview.departure_datetime });
             router.push(`/rides/${id}/book?${params}`);
           }}
-          className="w-full bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-colors"
+          className="w-full bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-opacity"
         >
           {noSeats ? t("noSeatsAvailable") : t("bookSeat")}
         </button>
@@ -525,7 +525,7 @@ export default function PassengerRideDetailPage() {
           type="button"
           disabled={noSeats}
           onClick={handleBook}
-          className="w-full bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-colors"
+          className="w-full bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-opacity"
         >
           {noSeats ? "No Seats Available" : "Book Seat"}
         </button>
@@ -590,7 +590,7 @@ export default function PassengerRideDetailPage() {
             type="button"
             onClick={confirmBooking}
             disabled={bookingLoading}
-            className="w-full flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-colors"
+            className="w-full flex items-center justify-center gap-2 bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-opacity"
           >
             {bookingLoading && <Spinner />}
             {bookingLoading ? "Booking…" : "Confirm Booking"}

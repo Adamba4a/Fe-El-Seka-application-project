@@ -172,7 +172,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 bg-[#F3EAD8] relative">
+    <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg relative">
       <LanguageToggle className="absolute top-4 end-4 text-body-sm font-semibold text-brand-primary bg-surface-card rounded-full px-3 py-1 shadow-sm disabled:opacity-50" />
       <div className="w-full max-w-sm">
         <div className="bg-surface-card rounded-3xl shadow-lg p-8 space-y-6">
@@ -244,7 +244,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading || !email || !password}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-opacity"
               >
                 {loading && <Spinner />}
                 {loading ? t("signingIn") : t("signIn")}
@@ -319,7 +319,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading || !email}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-opacity"
               >
                 {loading && <Spinner />}
                 {loading ? t("sendingCode") : t("sendCode")}

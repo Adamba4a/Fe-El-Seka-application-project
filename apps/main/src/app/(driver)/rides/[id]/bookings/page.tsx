@@ -246,13 +246,13 @@ export default function DriverRideBookingsPage() {
       </div>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+        <h2 className="text-sm font-medium text-content-secondary uppercase tracking-wide">
           {t("pendingRequests", { count: pending.length })}
         </h2>
         {pending.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">
-            {t("noPending")}
-          </p>
+          <div className="rounded-2xl bg-surface-bg p-6 text-center">
+            <p className="text-sm text-content-muted">{t("noPending")}</p>
+          </div>
         ) : (
           pending.map((booking) => (
             <BookingCard
@@ -270,13 +270,13 @@ export default function DriverRideBookingsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+        <h2 className="text-sm font-medium text-content-secondary uppercase tracking-wide">
           {t("confirmedPassengers", { count: confirmed.length })}
         </h2>
         {confirmed.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">
-            {t("noConfirmed")}
-          </p>
+          <div className="rounded-2xl bg-surface-bg p-6 text-center">
+            <p className="text-sm text-content-muted">{t("noConfirmed")}</p>
+          </div>
         ) : (
           confirmed.map((booking) => (
             <BookingCard
@@ -295,42 +295,62 @@ export default function DriverRideBookingsPage() {
 
       {completed.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          <h2 className="text-sm font-medium text-content-secondary uppercase tracking-wide">
             {t("completed", { count: completed.length })}
           </h2>
-          {completed.map((booking) => (
-            <div
-              key={booking.booking_id}
-              className="rounded-xl border border-border-default bg-surface-card p-4 flex items-center justify-between gap-3"
-            >
-              <div className="min-w-0">
-                <p className="font-medium text-sm text-content-primary truncate">
-                  {booking.passenger.display_name ?? tNav("defaultPassengerName")}
-                </p>
-                <div className="flex items-center gap-2">
-                  <p className="text-xs text-content-muted">{formatCurrency(Number(booking.total_price), locale)}</p>
-                  <RatingBadge
-                    ratingAvg={booking.passenger.rating_avg ?? null}
-                    ratingCount={booking.passenger.rating_count ?? 0}
-                  />
+          {completed.map((booking) => {
+            const passengerName = booking.passenger.display_name ?? tNav("defaultPassengerName");
+            const initials = passengerName
+              .split(" ")
+              .map((w) => w[0])
+              .slice(0, 2)
+              .join("")
+              .toUpperCase();
+            return (
+              <div
+                key={booking.booking_id}
+                className="rounded-2xl bg-surface-bg p-4 space-y-4"
+              >
+                <div className="flex items-center gap-3">
+                  {booking.passenger.avatar_url ? (
+                    <img
+                      src={booking.passenger.avatar_url}
+                      alt={passengerName}
+                      className="h-12 w-12 rounded-full object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="h-12 w-12 rounded-full bg-surface-card flex items-center justify-center shrink-0 text-sm font-semibold text-content-secondary">
+                      {initials}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-semibold text-content-primary truncate">{passengerName}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="rounded-full bg-surface-card px-2.5 py-1 text-xs font-medium text-content-secondary">
+                        {formatCurrency(Number(booking.total_price), locale)}
+                      </span>
+                      <RatingBadge
+                        ratingAvg={booking.passenger.rating_avg ?? null}
+                        ratingCount={booking.passenger.rating_count ?? 0}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="shrink-0 flex flex-col items-end gap-1.5">
                 <Link
                   href={`/ratings/${booking.booking_id}`}
-                  className="rounded-lg bg-brand-primary hover:bg-brand-primary-hover text-white px-3 py-1.5 text-xs font-semibold transition-colors"
+                  className="block w-full text-center rounded-xl bg-dash-primary hover:opacity-90 text-white py-3 text-sm font-semibold transition-opacity"
                 >
                   {t("rateAndReport")}
                 </Link>
                 <Link
                   href={`/users/${booking.passenger_id}`}
-                  className="text-xs text-brand-primary hover:underline"
+                  className="block text-center text-xs text-brand-primary hover:underline"
                 >
                   {t("viewProfile")}
                 </Link>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </section>
       )}
 

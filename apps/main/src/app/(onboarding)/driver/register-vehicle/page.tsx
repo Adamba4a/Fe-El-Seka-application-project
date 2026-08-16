@@ -33,7 +33,7 @@ export default function RegisterVehiclePage() {
         <p className="text-body-sm text-content-muted">{t("successBody")}</p>
         <a
           href="/rides/new"
-          className="block w-full py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse text-body-sm font-medium rounded-xl text-center transition-colors"
+          className="block w-full py-3 px-4 bg-dash-primary hover:opacity-90 text-content-inverse text-body-sm font-medium rounded-xl text-center transition-opacity"
         >
           {t("postFirstRide")}
         </a>

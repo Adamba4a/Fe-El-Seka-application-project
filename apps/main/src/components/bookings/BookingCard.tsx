@@ -211,7 +211,7 @@ export function BookingCard(props: BookingCardProps) {
               type="button"
               onClick={onConfirm}
               disabled={actionLoading}
-              className="flex-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-primary hover:bg-brand-primary-hover text-content-inverse disabled:opacity-50 transition-colors"
+              className="flex-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-dash-primary hover:opacity-90 text-content-inverse disabled:opacity-50 transition-opacity"
             >
               {t("confirm")}
             </button>

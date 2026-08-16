@@ -68,7 +68,7 @@ export function StartCompleteActions({
           type="button"
           onClick={handleStart}
           disabled={startLoading}
-          className="w-full flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-colors"
+          className="w-full flex items-center justify-center gap-2 bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-opacity"
         >
           {startLoading && <Spinner />}
           {startLoading ? t("starting") : t("startRide")}
@@ -80,7 +80,7 @@ export function StartCompleteActions({
           type="button"
           onClick={handleComplete}
           disabled={completeLoading}
-          className="w-full flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-colors"
+          className="w-full flex items-center justify-center gap-2 bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-opacity"
         >
           {completeLoading && <Spinner />}
           {completeLoading ? t("completing") : t("completeRide")}

@@ -89,26 +89,37 @@ export default function PublicProfilePage() {
         <h1 className="text-xl font-semibold text-content-primary">{t("heading")}</h1>
       </div>
 
-      <div className="rounded-xl border border-border-default bg-surface-card p-4 flex items-center gap-4">
+      <div className="rounded-xl border border-border-default bg-surface-card p-6 flex flex-col items-center text-center gap-3">
         {profile.profile_photo_url ? (
           <img
             src={profile.profile_photo_url}
             alt={profile.display_name}
-            className="w-16 h-16 rounded-full object-cover shrink-0"
+            className="w-24 h-24 rounded-full object-cover shrink-0"
           />
         ) : (
-          <div className="w-16 h-16 rounded-full bg-surface-bg flex items-center justify-center shrink-0 text-lg font-semibold text-content-secondary">
+          <div className="w-24 h-24 rounded-full bg-surface-bg flex items-center justify-center shrink-0 text-2xl font-semibold text-content-secondary">
             {initials}
           </div>
         )}
-        <div className="min-w-0">
-          <p className="font-semibold text-content-primary truncate">{profile.display_name}</p>
-          <div className="flex items-center gap-2 mt-1">
-            {profile.verification_status === "verified" && (
-              <span className="text-xs text-green-600 font-medium">{t("verifiedPrefix", { role: profile.role })}</span>
-            )}
-            <RatingBadge ratingAvg={profile.rating_avg} ratingCount={profile.rating_count} />
-          </div>
+        <p className="text-lg font-bold text-content-primary">{profile.display_name}</p>
+        <div className="flex items-center gap-2 flex-wrap justify-center">
+          {profile.verification_status === "verified" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-700 text-xs font-medium px-2.5 py-1">
+              <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5" aria-hidden="true">
+                <path
+                  fillRule="evenodd"
+                  d="M10 1.5l2.6 1.3 2.9-.3 1 2.7 2.5 1.6-1 2.7 1 2.7-2.5 1.6-1 2.7-2.9-.3L10 18.5l-2.6-1.3-2.9.3-1-2.7-2.5-1.6 1-2.7-1-2.7 2.5-1.6 1-2.7 2.9.3L10 1.5z"
+                />
+                <path
+                  fillRule="evenodd"
+                  d="M13.2 8.2a.75.75 0 00-1.1-1L9 10.3 7.9 9.2a.75.75 0 10-1.1 1l1.8 1.8c.3.3.8.3 1.1 0l3.5-3.8z"
+                  fill="white"
+                />
+              </svg>
+              {t("verifiedPrefix", { role: profile.role })}
+            </span>
+          )}
+          <RatingBadge ratingAvg={profile.rating_avg} ratingCount={profile.rating_count} />
         </div>
       </div>
 
@@ -124,7 +135,12 @@ export default function PublicProfilePage() {
           href={`tel:${profile.phone_number}`}
           className="rounded-xl border border-border-default bg-surface-card p-4 flex items-center justify-between hover:bg-surface-bg transition-colors"
         >
-          <span className="text-sm text-content-muted">{t("phoneLabel")}</span>
+          <span className="flex items-center gap-2 text-sm text-content-muted">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-brand-primary" aria-hidden="true">
+              <path d="M3.5 2.5a1 1 0 011-1h2.2a1 1 0 01.98.8l.6 3a1 1 0 01-.5 1.08l-1.3.7a11.4 11.4 0 005.4 5.4l.7-1.3a1 1 0 011.08-.5l3 .6a1 1 0 01.8.98v2.2a1 1 0 01-1 1h-1C7.9 15.48 4.52 12.1 3.5 5.5v-3z" />
+            </svg>
+            {t("phoneLabel")}
+          </span>
           <span className="text-sm font-semibold text-brand-primary" dir="ltr">
             {profile.phone_number}
           </span>
@@ -138,11 +154,19 @@ export default function PublicProfilePage() {
             <p className="text-sm text-content-muted">{t("noCompletedRides")}</p>
           ) : (
             profile.recent_rides.map((r, i) => (
-              <div key={i} className="border-t border-border-default first:border-t-0 pt-3 first:pt-0 space-y-1">
-                <p className="text-sm text-content-primary">
-                  {r.origin_address ?? "—"} → {r.destination_address ?? "—"}
-                </p>
-                <p className="text-xs text-content-muted">
+              <div key={i} className="border-t border-border-default first:border-t-0 pt-3 first:pt-0">
+                <div className="flex gap-3">
+                  <div className="flex flex-col items-center pt-1">
+                    <span className="w-2 h-2 rounded-full bg-content-muted shrink-0" aria-hidden="true" />
+                    <span className="w-px flex-1 bg-border-default my-1" aria-hidden="true" />
+                    <span className="w-2 h-2 bg-brand-primary shrink-0" aria-hidden="true" />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-3 pb-0.5">
+                    <p className="text-sm text-content-primary">{r.origin_address ?? "—"}</p>
+                    <p className="text-sm text-content-primary">{r.destination_address ?? "—"}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-content-muted mt-2">
                   {r.departure_datetime ? formatDate(r.departure_datetime, locale) : "—"}
                 </p>
               </div>

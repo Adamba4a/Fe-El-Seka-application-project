@@ -45,19 +45,6 @@ function Avatar({
   );
 }
 
-function BellIcon() {
-  return (
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 0 0-4-5.65V5a2 2 0 1 0-4 0v.35A6 6 0 0 0 6 11v3.2a2 2 0 0 1-.6 1.4L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"
-      />
-    </svg>
-  );
-}
-
 function GearIcon() {
   return (
     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -76,10 +63,9 @@ interface TopBarProps {
   variant: "driver" | "passenger";
   userName: string;
   avatarUrl?: string | null;
-  notificationCount?: number;
 }
 
-export function TopBar({ variant, userName, avatarUrl, notificationCount = 0 }: TopBarProps) {
+export function TopBar({ variant, userName, avatarUrl }: TopBarProps) {
   const t = useTranslations("nav");
   const tc = useTranslations("common");
   return (
@@ -102,12 +88,6 @@ export function TopBar({ variant, userName, avatarUrl, notificationCount = 0 }: 
 
         <div className="flex items-center gap-4">
           <LanguageToggle />
-          <button aria-label={t("notificationsAriaLabel")} className="relative text-dash-navy">
-            <BellIcon />
-            {notificationCount > 0 && (
-              <span className="absolute -top-0.5 -end-0.5 w-2 h-2 rounded-full bg-red-500" />
-            )}
-          </button>
           {variant === "driver" ? (
             <Link href="/settings/profile" aria-label={t("settingsAriaLabel")} className="text-dash-navy">
               <GearIcon />

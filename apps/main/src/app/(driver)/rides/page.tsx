@@ -50,7 +50,7 @@ export default function MyRidesPage() {
         <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
         <Link
           href="/rides/new"
-          className="bg-brand-primary hover:bg-brand-primary-hover text-content-inverse text-body-sm font-medium px-4 py-2 rounded-xl transition-colors"
+          className="bg-dash-primary hover:opacity-90 text-content-inverse text-body-sm font-medium px-4 py-2 rounded-xl transition-opacity"
         >
           {t("postARide")}
         </Link>
@@ -64,7 +64,7 @@ export default function MyRidesPage() {
             onClick={() => setActiveStatus(tab.value)}
             className={`whitespace-nowrap px-3 py-1.5 rounded-full text-body-sm font-medium transition-colors ${
               activeStatus === tab.value
-                ? "bg-brand-primary text-content-inverse"
+                ? "bg-dash-primary text-content-inverse"
                 : "bg-surface-bg text-content-secondary hover:bg-border-default"
             }`}
           >
@@ -97,7 +97,7 @@ export default function MyRidesPage() {
           <p className="text-body-sm text-content-muted">{t("noRidesBody")}</p>
           <Link
             href="/rides/new"
-            className="inline-block px-6 py-3 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium transition-colors"
+            className="inline-block px-6 py-3 bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl font-medium transition-opacity"
           >
             {t("postFirstRide")}
           </Link>

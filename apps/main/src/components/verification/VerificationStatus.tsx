@@ -45,7 +45,7 @@ export function VerificationStatusScreen({ status, role }: Props) {
         <p className="text-body-sm text-content-secondary">{t("verifiedBody")}</p>
         <Link
           href={href}
-          className="block w-full py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium text-center transition-colors"
+          className="block w-full py-3 px-4 bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl font-medium text-center transition-opacity"
         >
           {label}
         </Link>
@@ -71,7 +71,7 @@ export function VerificationStatusScreen({ status, role }: Props) {
         )}
         <Link
           href={resubmitHref}
-          className="block w-full py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium text-center transition-colors"
+          className="block w-full py-3 px-4 bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl font-medium text-center transition-opacity"
         >
           {t("resubmit")}
         </Link>

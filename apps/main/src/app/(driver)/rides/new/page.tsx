@@ -107,7 +107,7 @@ export default function NewRidePage() {
           <button
             type="button"
             onClick={() => router.push(`/rides/${createdRide.id}/manage`)}
-            className="w-full bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl py-3 font-medium transition-colors"
+            className="w-full bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl py-3 font-medium transition-opacity"
           >
             {t("viewRide")}
           </button>

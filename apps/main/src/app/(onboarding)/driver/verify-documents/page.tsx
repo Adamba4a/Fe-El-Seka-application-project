@@ -112,7 +112,7 @@ export default function DriverVerifyDocumentsPage() {
           <button
             type="submit"
             disabled={loading || !frontId || !backId || !license}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-opacity"
           >
             {loading && <Spinner />}
             {loading ? t("submitting") : t("submitForReview")}

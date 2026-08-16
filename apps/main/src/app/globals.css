@@ -9,7 +9,7 @@
   --color-brand-accent:            #E8A217;
 
   /* Surfaces */
-  --color-surface-bg:              #F8F9FA;
+  --color-surface-bg:              #EEF3F6;
   --color-surface-card:            #FFFFFF;
   --color-surface-overlay:         rgba(0, 0, 0, 0.50);
   --color-surface-destructive:     #DC2626;
@@ -40,7 +40,7 @@
   /* Dashboard shell (007-frontend-redesign) — scoped to shared TopBar/BottomNav
      and the two dashboard pages only. Deliberately separate from --color-brand-*
      so the rest of the app is untouched by this redesign pass. */
-  --color-dash-bg:                 #F3EAD8;
+  --color-dash-bg:                 #EEF3F6;
   --color-dash-surface:            #FFFFFF;
   --color-dash-primary:            #16587B;
   --color-dash-navy:               #00405D;

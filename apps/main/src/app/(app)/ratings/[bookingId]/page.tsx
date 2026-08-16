@@ -221,7 +221,7 @@ export default function RateReportPage() {
                     type="button"
                     onClick={submitRating}
                     disabled={stars < 1 || ratingState === "submitting"}
-                    className="w-full rounded-xl bg-brand-primary hover:bg-brand-primary-hover text-white px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full rounded-xl bg-dash-primary hover:opacity-90 text-white px-4 py-2.5 text-sm font-semibold transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {ratingState === "submitting" && <Spinner />}
                     {t("submitRating")}

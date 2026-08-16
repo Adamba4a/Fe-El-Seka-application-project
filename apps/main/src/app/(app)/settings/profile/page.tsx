@@ -89,7 +89,7 @@ export default function SettingsProfilePage() {
         </div>
         <button
           onClick={() => window.location.reload()}
-          className="w-full py-2 bg-brand-primary hover:bg-brand-primary-hover text-content-inverse rounded-xl text-body-sm font-medium transition-colors"
+          className="w-full py-2 bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl text-body-sm font-medium transition-opacity"
         >
           {tc("retry")}
         </button>
