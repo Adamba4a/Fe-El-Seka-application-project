@@ -77,6 +77,14 @@ _NOTIFICATION_TEMPLATES: dict[str, dict[str, tuple[str, str]]] = {
             "تمت إعادة تفعيل حسابك. يمكنك الآن استئناف الحجز والقيادة.",
         ),
     },
+    "wallet_topup_approved": {
+        "en": ("Top-Up Approved", "Your wallet top-up request has been approved and credited."),
+        "ar": ("تمت الموافقة على شحن المحفظة", "تمت الموافقة على طلب شحن محفظتك وتم إضافة الرصيد."),
+    },
+    "wallet_topup_rejected": {
+        "en": ("Top-Up Rejected", "Your wallet top-up request was not approved."),
+        "ar": ("تم رفض طلب شحن المحفظة", "لم تتم الموافقة على طلب شحن محفظتك."),
+    },
 }
 
 # Locale-aware fallback for event types with no entry above (mirrors the FR-011

@@ -10,7 +10,13 @@ import type { Locale } from "@fe-el-seka/shared";
 // language_preference is still NULL. Non-blocking by design (research.md R5):
 // it's a plain overlay, not a route guard like /onboarding/verify-id, so the
 // app underneath remains navigable — it only disappears once a choice is made.
-export function LanguagePromptModal({ accessToken }: { accessToken: string }) {
+export function LanguagePromptModal({
+  accessToken,
+  onSelected,
+}: {
+  accessToken: string;
+  onSelected: (locale: Locale) => void;
+}) {
   const t = useTranslations("languagePrompt");
   const tl = useTranslations("settings.profile.editor.language");
   const router = useRouter();
@@ -21,6 +27,10 @@ export function LanguagePromptModal({ accessToken }: { accessToken: string }) {
     setSaving(true);
     try {
       await switchLocale(locale, accessToken);
+      // switchLocale only persists to the DB / cookie — router.refresh() re-runs
+      // server components but not this modal's parent's client-fetched profile
+      // state, so the modal wouldn't otherwise disappear until a full reload.
+      onSelected(locale);
       router.refresh();
     } finally {
       setSaving(false);

@@ -22,6 +22,7 @@ async def get_kpis(pool, period: Period) -> dict:
         pending_verifications,
         open_reports,
         drivers_at_or_below_zero,
+        pending_topups,
     ) = await asyncio.gather(
         pool.fetch("SELECT role, COUNT(*) AS count FROM profiles GROUP BY role"),
         pool.fetchval(
@@ -52,6 +53,7 @@ async def get_kpis(pool, period: Period) -> dict:
               AND COALESCE(w.balance_egp, 0) - COALESCE(w.reserved_egp, 0) <= 0
             """
         ),
+        pool.fetchval("SELECT COUNT(*) FROM wallet_topup_requests WHERE status = 'PENDING'"),
     )
 
     users_by_role = {role: 0 for role in _ROLES}
@@ -68,6 +70,7 @@ async def get_kpis(pool, period: Period) -> dict:
         "pending_verifications": int(pending_verifications),
         "open_reports": int(open_reports),
         "drivers_at_or_below_zero": int(drivers_at_or_below_zero),
+        "pending_topups": int(pending_topups),
     }
 
 

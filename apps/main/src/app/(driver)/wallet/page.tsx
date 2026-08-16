@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { getWallet, type WalletResponse } from "@/lib/api/wallet";
 import { WalletBalanceCard } from "@/components/wallet/WalletBalanceCard";
@@ -50,7 +51,15 @@ export default function WalletPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
+        <Link
+          href="/wallet/topup"
+          className="text-body-sm text-brand-primary font-medium hover:underline"
+        >
+          {t("addBalance")}
+        </Link>
+      </div>
 
       <WalletBalanceCard
         balance_egp={wallet.balance_egp}
