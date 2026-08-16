@@ -191,14 +191,14 @@ export default function RideManagePage() {
           <div className="flex items-center gap-3">
             <Link
               href={`/rides/${ride.id}/bookings`}
-              className="text-body-sm text-brand-primary font-medium hover:underline"
+              className="rounded-xl bg-dash-primary px-4 py-2 text-body-sm font-semibold text-content-inverse hover:opacity-90 transition-opacity"
             >
               {t("bookings")}
             </Link>
             {ride.status === "scheduled" && (
               <Link
                 href={`/rides/${ride.id}/edit`}
-                className="text-body-sm text-brand-primary font-medium hover:underline"
+                className="rounded-xl bg-dash-primary px-4 py-2 text-body-sm font-semibold text-content-inverse hover:opacity-90 transition-opacity"
               >
                 {t("edit")}
               </Link>

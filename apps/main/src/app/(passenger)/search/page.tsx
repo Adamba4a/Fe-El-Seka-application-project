@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
@@ -18,6 +18,13 @@ const RideMap = dynamic(
 );
 
 type Phase = "form" | "results";
+
+const LAST_SEARCH_KEY = "passengerSearch:last";
+
+interface StoredSearch {
+  candidates: RideCandidate[];
+  searchMeta: { origin: SearchLocation; destination: SearchLocation; departure_at: string };
+}
 
 function toSearchLocation(loc?: Location, bbox?: SearchBbox | null): SearchLocation | undefined {
   if (!loc) return undefined;
@@ -42,6 +49,22 @@ export default function SearchPage() {
   const [destination, setDestination] = useState<Location | undefined>();
   const [destinationBbox, setDestinationBbox] = useState<SearchBbox | null>(null);
   const [selecting, setSelecting] = useState<"origin" | "destination" | null>(null);
+
+  // Restore the last search's results when returning here (e.g. via the ride
+  // detail page's "back to results" button) — otherwise this page's state is
+  // lost on remount and the user lands back on the empty form.
+  useEffect(() => {
+    const raw = sessionStorage.getItem(LAST_SEARCH_KEY);
+    if (!raw) return;
+    try {
+      const stored: StoredSearch = JSON.parse(raw);
+      setCandidates(stored.candidates);
+      setSearchMeta(stored.searchMeta);
+      setPhase("results");
+    } catch {
+      sessionStorage.removeItem(LAST_SEARCH_KEY);
+    }
+  }, []);
 
   const handlePinDrop = async (coords: Coordinates, address: string) => {
     const loc: Location = { coordinates: coords, address };
@@ -113,10 +136,15 @@ export default function SearchPage() {
         return;
       }
 
+      const meta = { origin: searchOrigin, destination: searchDestination, departure_at: departureAt };
       setCandidates(json.candidates ?? []);
-      setSearchMeta({ origin: searchOrigin, destination: searchDestination, departure_at: departureAt });
+      setSearchMeta(meta);
       setPhase("results");
       setSheetOpen(true);
+      sessionStorage.setItem(
+        LAST_SEARCH_KEY,
+        JSON.stringify({ candidates: json.candidates ?? [], searchMeta: meta } satisfies StoredSearch)
+      );
     } catch {
       setError(t("errors.network"));
     } finally {
@@ -140,6 +168,7 @@ export default function SearchPage() {
     setPhase("form");
     setError(null);
     setSheetOpen(true);
+    sessionStorage.removeItem(LAST_SEARCH_KEY);
   };
 
   return (

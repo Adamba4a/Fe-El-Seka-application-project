@@ -238,11 +238,11 @@ export default function DriverRideBookingsPage() {
         <button
           type="button"
           onClick={() => router.back()}
-          className="text-content-muted hover:text-content-secondary"
+          className="text-dash-navy hover:opacity-70"
         >
           <span className="inline-block rtl:rotate-180">←</span>
         </button>
-        <h1 className="text-xl font-semibold">{t("heading")}</h1>
+        <h1 className="text-h3 font-bold text-dash-navy">{t("heading")}</h1>
       </div>
 
       <section className="space-y-3">
@@ -324,7 +324,7 @@ export default function DriverRideBookingsPage() {
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="font-semibold text-content-primary truncate">{passengerName}</p>
+                    <p className="font-semibold text-dash-navy truncate">{passengerName}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="rounded-full bg-surface-card px-2.5 py-1 text-xs font-medium text-content-secondary">
                         {formatCurrency(Number(booking.total_price), locale)}

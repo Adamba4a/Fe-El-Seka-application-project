@@ -55,7 +55,7 @@ export default function WalletPage() {
         <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
         <Link
           href="/wallet/topup"
-          className="text-body-sm text-brand-primary font-medium hover:underline"
+          className="rounded-xl bg-dash-primary px-4 py-2 text-body-sm font-semibold text-content-inverse hover:opacity-90 transition-opacity"
         >
           {t("addBalance")}
         </Link>
