@@ -1,0 +1,11 @@
+-- Security fix: public.driver_locations_view was created without
+-- security_invoker, so (pre-PG15 view semantics) it ran with the view
+-- owner's permissions rather than the querying user's — bypassing the
+-- driver_locations RLS policies entirely. Since anon/authenticated hold
+-- SELECT on the view, this let ANY caller (including unauthenticated
+-- anon) read every driver's live GPS location for every active ride,
+-- not just their own or a ride they have a confirmed booking on.
+--
+-- security_invoker = true makes the view re-check the querying role's
+-- own RLS policies on driver_locations, closing the leak.
+ALTER VIEW public.driver_locations_view SET (security_invoker = true);
