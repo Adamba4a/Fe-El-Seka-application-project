@@ -10,6 +10,11 @@ import { getPublicProfile } from "@/lib/api/profiles";
 import { formatDate } from "@fe-el-seka/shared";
 import type { Locale, PublicProfile } from "@fe-el-seka/shared";
 
+interface RatingComment {
+  comment: string;
+  created_at: string;
+}
+
 export default function PublicProfilePage() {
   const t = useTranslations("users.publicProfile");
   const locale = useLocale() as Locale;
@@ -18,6 +23,7 @@ export default function PublicProfilePage() {
   const router = useRouter();
 
   const [profile, setProfile] = useState<PublicProfile | null>(null);
+  const [comments, setComments] = useState<RatingComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +36,15 @@ export default function PublicProfilePage() {
         } = await supabase.auth.getSession();
         if (!session) throw new Error("Not signed in");
         setProfile(await getPublicProfile(session.access_token, userId));
+
+        const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+        const res = await fetch(`${base}/api/profiles/${userId}/rating`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (res.ok) {
+          const summary = await res.json();
+          setComments(summary.comments ?? []);
+        }
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : t("loadFailed"));
       } finally {
@@ -130,6 +145,22 @@ export default function PublicProfilePage() {
                 <p className="text-xs text-content-muted">
                   {r.departure_datetime ? formatDate(r.departure_datetime, locale) : "—"}
                 </p>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border-default bg-surface-card">
+        <div className="p-4 space-y-3">
+          <p className="text-sm font-medium text-content-primary">{t("commentsLabel")}</p>
+          {comments.length === 0 ? (
+            <p className="text-sm text-content-muted">{t("noComments")}</p>
+          ) : (
+            comments.map((c, i) => (
+              <div key={i} className="border-t border-border-default first:border-t-0 pt-3 first:pt-0 space-y-1">
+                <p className="text-sm text-content-primary">{c.comment}</p>
+                <p className="text-xs text-content-muted">{formatDate(c.created_at, locale)}</p>
               </div>
             ))
           )}

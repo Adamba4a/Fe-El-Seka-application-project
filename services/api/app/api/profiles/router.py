@@ -112,13 +112,10 @@ async def get_rating_summary(
     user_id: uuid.UUID,
     profile: dict = Depends(get_current_user),
 ) -> dict:
-    caller_id = uuid.UUID(str(profile["id"]))
-    if user_id != caller_id:
-        raise HTTPException(
-            status_code=403,
-            detail={"error": "forbidden", "message": "You can only view your own rating summary"},
-        )
-
+    # Open to any authenticated viewer, not just the ratee: get_own_rating_summary
+    # already applies the double-blind reveal filter (FR-008) and never attributes
+    # a comment to its rater (FR-007), so the result is safe to show on any
+    # profile view, not just the ratee's own settings page.
     pool = get_pool()
     async with pool.acquire() as conn:
         summary = await rating_service.get_own_rating_summary(conn, user_id)

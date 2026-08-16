@@ -563,7 +563,9 @@
       "noCompletedRides": "لا توجد رحلات مكتملة بعد.",
       "loadFailed": "فشل تحميل الملف الشخصي",
       "notFound": "الملف الشخصي غير موجود",
-      "phoneLabel": "اضغط للاتصال"
+      "phoneLabel": "اضغط للاتصال",
+      "commentsLabel": "التعليقات",
+      "noComments": "لا توجد تعليقات بعد."
     }
   },
   "dashboard": {
