@@ -17,6 +17,7 @@ interface PassengerBooking {
   departure_datetime?: string;
   per_seat_price: string;
   total_price: string;
+  seats?: number;
   premium_pickup_requested?: boolean;
   premium_dropoff_requested?: boolean;
   premium_pickup_fee?: string | null;
@@ -34,6 +35,7 @@ interface DriverBooking {
   };
   per_seat_price: string;
   total_price: string;
+  seats?: number;
   boarding_point: { lat: number; lng: number };
   alighting_point: { lat: number; lng: number };
   premium_pickup_requested?: boolean;
@@ -103,6 +105,12 @@ export function BookingCard(props: BookingCardProps) {
             {formatDateTime(booking.departure_datetime, locale)}
           </p>
           <div className="h-px bg-dash-border" />
+          {(booking.seats ?? 1) > 1 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-dash-text-muted">{t("seats")}</span>
+              <span className="font-medium text-dash-navy">{booking.seats}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between text-sm">
             <span className="text-dash-text-muted">{t("total")}</span>
             <span className="text-xl font-bold text-dash-navy">{formatCurrency(Number(booking.total_price), locale)}</span>
@@ -158,7 +166,9 @@ export function BookingCard(props: BookingCardProps) {
           </div>
           <div className="text-end text-sm shrink-0">
             <p className="font-semibold text-content-primary">{formatCurrency(Number(booking.total_price), locale)}</p>
-            <p className="text-xs text-content-muted">{t("perSeat")}</p>
+            <p className="text-xs text-content-muted">
+              {(booking.seats ?? 1) > 1 ? t("seatsCount", { count: booking.seats ?? 1 }) : t("perSeat")}
+            </p>
           </div>
         </div>
 
@@ -199,9 +209,10 @@ export function BookingCard(props: BookingCardProps) {
         {viewProfileHref && (
           <Link
             href={viewProfileHref}
-            className="inline-block text-xs text-brand-primary hover:underline"
+            className="flex items-center justify-between text-xs font-medium px-3 py-2 rounded-lg bg-surface-bg border border-transparent hover:border-border-default text-dash-primary transition-colors"
           >
-            {t("viewProfile")}
+            <span>{t("viewProfile")}</span>
+            <span className="text-content-muted">→</span>
           </Link>
         )}
 
@@ -219,7 +230,7 @@ export function BookingCard(props: BookingCardProps) {
               type="button"
               onClick={onReject}
               disabled={actionLoading}
-              className="flex-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-surface-destructive text-content-inverse disabled:opacity-50 transition-colors"
+              className="flex-1 px-3 py-1.5 rounded-lg text-sm font-medium border border-status-cancelled text-status-cancelled bg-surface-card hover:bg-status-cancelled-bg disabled:opacity-50 transition-colors"
             >
               {t("reject")}
             </button>

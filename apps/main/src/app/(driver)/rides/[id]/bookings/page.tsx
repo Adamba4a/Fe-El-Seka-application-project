@@ -33,6 +33,7 @@ interface DriverBooking {
   };
   per_seat_price: string;
   total_price: string;
+  seats: number;
   boarding_point: { lat: number; lng: number };
   alighting_point: { lat: number; lng: number };
   premium_pickup_requested?: boolean;
@@ -328,6 +329,7 @@ export default function DriverRideBookingsPage() {
                     <div className="flex items-center gap-2 mt-1">
                       <span className="rounded-full bg-surface-card px-2.5 py-1 text-xs font-medium text-content-secondary">
                         {formatCurrency(Number(booking.total_price), locale)}
+                        {booking.seats > 1 ? ` · ${booking.seats} ${t("seats")}` : ""}
                       </span>
                       <RatingBadge
                         ratingAvg={booking.passenger.rating_avg ?? null}
@@ -344,9 +346,10 @@ export default function DriverRideBookingsPage() {
                 </Link>
                 <Link
                   href={`/users/${booking.passenger_id}`}
-                  className="block text-center text-xs text-brand-primary hover:underline"
+                  className="flex items-center justify-between text-xs font-medium px-3 py-2 rounded-lg bg-surface-card border border-transparent hover:border-border-default text-dash-primary transition-colors"
                 >
-                  {t("viewProfile")}
+                  <span>{t("viewProfile")}</span>
+                  <span className="text-content-muted">→</span>
                 </Link>
               </div>
             );

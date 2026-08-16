@@ -40,6 +40,12 @@ interface PassengerContext {
   premium_dropoff_fee: number | null;
 }
 
+interface ExistingBooking {
+  booking_id: string;
+  status: string;
+  seats: number;
+}
+
 interface RideDetail {
   id: string;
   status: string;
@@ -56,6 +62,7 @@ interface DetailResponse {
   ride: RideDetail;
   passenger_context: PassengerContext;
   match_score_pct: number | null;
+  existing_booking: ExistingBooking | null;
 }
 
 interface PreviewRide {
@@ -72,6 +79,7 @@ interface PreviewRide {
   route_geometry: object | null;
   route_distance_km: number;
   route_duration_minutes: number | null;
+  existing_booking: ExistingBooking | null;
 }
 
 type PremiumOption = "standard" | "premium_pickup" | "premium_dropoff" | "premium_both";
@@ -110,6 +118,7 @@ export default function PassengerRideDetailPage() {
   const [gone, setGone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [premiumOption, setPremiumOption] = useState<PremiumOption>("standard");
+  const [seatCount, setSeatCount] = useState(1);
   const [showSheet, setShowSheet] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
@@ -229,7 +238,7 @@ export default function PassengerRideDetailPage() {
           </div>
           <Link
             href={`/users/${preview.driver.id}`}
-            className="shrink-0 text-xs text-brand-primary hover:underline"
+            className="shrink-0 rounded-xl bg-dash-primary px-3 py-2 text-xs font-semibold text-content-inverse hover:opacity-90 transition-opacity"
           >
             {t("viewProfile")}
           </Link>
@@ -272,17 +281,30 @@ export default function PassengerRideDetailPage() {
           </div>
         </div>
 
-        <button
-          type="button"
-          disabled={noSeats}
-          onClick={() => {
-            const params = new URLSearchParams({ departure_at: preview.departure_datetime });
-            router.push(`/rides/${id}/book?${params}`);
-          }}
-          className="w-full bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-opacity"
-        >
-          {noSeats ? t("noSeatsAvailable") : t("bookSeat")}
-        </button>
+        {preview.existing_booking ? (
+          <div className="space-y-2 p-4 rounded-xl bg-surface-bg border border-border-default">
+            <p className="text-sm font-medium text-content-primary">{t("existingBookingTitle")}</p>
+            <p className="text-xs text-content-muted">{t("existingBookingBody")}</p>
+            <Link
+              href={`/bookings/${preview.existing_booking.booking_id}`}
+              className="block w-full text-center bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl py-3 font-medium transition-opacity"
+            >
+              {t("manageBooking")}
+            </Link>
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={noSeats}
+            onClick={() => {
+              const params = new URLSearchParams({ departure_at: preview.departure_datetime });
+              router.push(`/rides/${id}/book?${params}`);
+            }}
+            className="w-full bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-opacity"
+          >
+            {noSeats ? t("noSeatsAvailable") : t("bookSeat")}
+          </button>
+        )}
       </div>
     );
   }
@@ -306,7 +328,9 @@ export default function PassengerRideDetailPage() {
     return 0;
   })();
 
-  const totalPrice = (parseFloat(ride.per_seat_price) + premiumFee).toFixed(2);
+  const maxSeats = Math.min(ride.available_seats, 8);
+  const clampedSeatCount = Math.max(1, Math.min(seatCount, maxSeats || 1));
+  const totalPrice = (parseFloat(ride.per_seat_price) * clampedSeatCount + premiumFee).toFixed(2);
   const noSeats = ride.available_seats === 0;
 
   const handleBook = () => {
@@ -343,6 +367,7 @@ export default function PassengerRideDetailPage() {
           premium_dropoff_requested: premiumOption === "premium_dropoff" || premiumOption === "premium_both",
           premium_pickup_fee: pickupFee,
           premium_dropoff_fee: dropoffFee,
+          seats: clampedSeatCount,
         }),
       });
 
@@ -403,7 +428,7 @@ export default function PassengerRideDetailPage() {
         </div>
         <Link
           href={`/users/${ride.driver.id}`}
-          className="shrink-0 text-xs text-brand-primary hover:underline"
+          className="shrink-0 rounded-xl bg-dash-primary px-3 py-2 text-xs font-semibold text-content-inverse hover:opacity-90 transition-opacity"
         >
           {t("viewProfile")}
         </Link>
@@ -516,19 +541,57 @@ export default function PassengerRideDetailPage() {
 
       {/* Price summary + Book button */}
       <div className="space-y-3 pt-2 border-t border-border-default">
+        {!detail.existing_booking && !noSeats && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-content-secondary">{t("numberOfSeats")}</span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setSeatCount((n) => Math.max(1, n - 1))}
+                disabled={clampedSeatCount <= 1}
+                className="w-8 h-8 rounded-full border border-border-default text-content-primary disabled:opacity-40 hover:bg-surface-bg transition-colors"
+              >
+                −
+              </button>
+              <span className="w-6 text-center font-semibold text-content-primary">{clampedSeatCount}</span>
+              <button
+                type="button"
+                onClick={() => setSeatCount((n) => Math.min(maxSeats, n + 1))}
+                disabled={clampedSeatCount >= maxSeats}
+                className="w-8 h-8 rounded-full border border-border-default text-content-primary disabled:opacity-40 hover:bg-surface-bg transition-colors"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-between text-sm font-semibold text-content-primary">
           <span>Total</span>
           <span>{formatCurrency(Number(totalPrice), locale)}</span>
         </div>
 
-        <button
-          type="button"
-          disabled={noSeats}
-          onClick={handleBook}
-          className="w-full bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-opacity"
-        >
-          {noSeats ? "No Seats Available" : "Book Seat"}
-        </button>
+        {detail.existing_booking ? (
+          <div className="space-y-2 p-4 rounded-xl bg-surface-bg border border-border-default">
+            <p className="text-sm font-medium text-content-primary">{t("existingBookingTitle")}</p>
+            <p className="text-xs text-content-muted">{t("existingBookingBody")}</p>
+            <Link
+              href={`/bookings/${detail.existing_booking.booking_id}`}
+              className="block w-full text-center bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl py-3 font-medium transition-opacity"
+            >
+              {t("manageBooking")}
+            </Link>
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={noSeats}
+            onClick={handleBook}
+            className="w-full bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-opacity"
+          >
+            {noSeats ? "No Seats Available" : "Book Seat"}
+          </button>
+        )}
       </div>
 
       {/* Booking confirmation bottom sheet */}
@@ -561,8 +624,12 @@ export default function PassengerRideDetailPage() {
 
           <div className="border-t border-border-default pt-3 space-y-1 text-sm">
             <div className="flex justify-between text-content-secondary">
+              <span>Seats</span>
+              <span className="font-medium text-content-primary">{clampedSeatCount}</span>
+            </div>
+            <div className="flex justify-between text-content-secondary">
               <span>Base fare</span>
-              <span>{formatCurrency(Number(ride.per_seat_price), locale)}</span>
+              <span>{formatCurrency(Number(ride.per_seat_price) * clampedSeatCount, locale)}</span>
             </div>
             {(premiumOption === "premium_pickup" || premiumOption === "premium_both") && ctx.premium_pickup_fee && (
               <div className="flex justify-between text-amber-700">

@@ -81,8 +81,9 @@ async def create_booking(
     premium_dropoff: bool,
     premium_pickup_fee: Optional[float],
     premium_dropoff_fee: Optional[float],
+    seats: int = 1,
 ) -> dict:
-    """Atomically reserve a seat and create a pending booking. Must be called with a pool conn."""
+    """Atomically reserve `seats` seats and create a pending booking. Must be called with a pool conn."""
     async with conn.transaction():
         # 1. Lock the ride row to prevent concurrent seat races
         ride = await conn.fetchrow(
@@ -101,10 +102,11 @@ async def create_booking(
         if dep <= datetime.now(timezone.utc):
             raise HTTPException(status_code=422, detail={"error": "ride_departed", "message": "Ride has already departed"})
 
-        # 2. Atomic seat claim — zero rows means fully booked
+        # 2. Atomic seat claim — zero rows means not enough seats remain
         claimed = await conn.fetchrow(
-            "UPDATE rides SET booked_seats = booked_seats + 1 WHERE id = $1 AND booked_seats < total_seats RETURNING id",
+            "UPDATE rides SET booked_seats = booked_seats + $2 WHERE id = $1 AND booked_seats + $2 <= total_seats RETURNING id",
             ride_id,
+            seats,
         )
         if claimed is None:
             raise HTTPException(status_code=409, detail={"error": "no_seats_available", "message": "No seats available on this ride"})
@@ -113,27 +115,27 @@ async def create_booking(
         per_seat = Decimal(str(ride["price_per_seat"]))
         pu_fee = Decimal(str(premium_pickup_fee)) if premium_pickup and premium_pickup_fee else Decimal("0")
         do_fee = Decimal(str(premium_dropoff_fee)) if premium_dropoff and premium_dropoff_fee else Decimal("0")
-        total = per_seat + pu_fee + do_fee
+        total = per_seat * seats + pu_fee + do_fee
 
         # 4. Insert booking — unique index raises UniqueViolation on duplicate active booking
         try:
             row = await conn.fetchrow(
                 """
                 INSERT INTO bookings (
-                    ride_id, passenger_id, per_seat_price, total_price,
+                    ride_id, passenger_id, per_seat_price, total_price, seats,
                     passenger_pickup_point, passenger_dropoff_point,
                     premium_pickup_requested, premium_dropoff_requested,
                     premium_pickup_fee, premium_dropoff_fee
                 ) VALUES (
-                    $1, $2, $3, $4,
-                    ST_SetSRID(ST_MakePoint($5, $6), 4326),
-                    ST_SetSRID(ST_MakePoint($7, $8), 4326),
-                    $9, $10, $11, $12
-                ) RETURNING id, status, per_seat_price, total_price,
+                    $1, $2, $3, $4, $5,
+                    ST_SetSRID(ST_MakePoint($6, $7), 4326),
+                    ST_SetSRID(ST_MakePoint($8, $9), 4326),
+                    $10, $11, $12, $13
+                ) RETURNING id, status, per_seat_price, total_price, seats,
                            premium_pickup_requested, premium_dropoff_requested,
                            premium_pickup_fee, premium_dropoff_fee, created_at
                 """,
-                ride_id, passenger_id, per_seat, total,
+                ride_id, passenger_id, per_seat, total, seats,
                 boarding_lng, boarding_lat,      # MakePoint(lng, lat)
                 alighting_lng, alighting_lat,
                 premium_pickup, premium_dropoff,
@@ -255,7 +257,7 @@ async def reject_booking(
     async with conn.transaction():
         row = await conn.fetchrow(
             """
-            SELECT b.id, b.status, b.ride_id, b.passenger_id,
+            SELECT b.id, b.status, b.ride_id, b.passenger_id, b.seats,
                    b.premium_pickup_requested, b.per_seat_price,
                    r.departure_datetime
             FROM bookings b
@@ -327,10 +329,11 @@ async def reject_booking(
                 )
                 return {"id": booking_id, "status": "confirmed", "cancelled_by": None, "fallback_applied": True}
 
-        # No fallback — cancel the booking and release the seat
+        # No fallback — cancel the booking and release the seats
         await conn.execute(
-            "UPDATE rides SET booked_seats = GREATEST(booked_seats - 1, 0) WHERE id = $1",
+            "UPDATE rides SET booked_seats = GREATEST(booked_seats - $2, 0) WHERE id = $1",
             ride_id,
+            row["seats"],
         )
         updated = await conn.fetchrow(
             """
@@ -386,7 +389,7 @@ async def cancel_booking(
     async with conn.transaction():
         row = await conn.fetchrow(
             """
-            SELECT b.id, b.status, b.ride_id, b.passenger_id,
+            SELECT b.id, b.status, b.ride_id, b.passenger_id, b.seats,
                    r.driver_id, r.departure_datetime
             FROM bookings b
             JOIN rides r ON r.id = b.ride_id
@@ -426,8 +429,9 @@ async def cancel_booking(
         late_cancellation = time_until_dep < timedelta(hours=2)
 
         await conn.execute(
-            "UPDATE rides SET booked_seats = GREATEST(booked_seats - 1, 0) WHERE id = $1",
+            "UPDATE rides SET booked_seats = GREATEST(booked_seats - $2, 0) WHERE id = $1",
             row["ride_id"],
+            row["seats"],
         )
 
         cancelled_by_val = caller_role if caller_role in ("passenger", "driver") else "system"
@@ -507,6 +511,87 @@ async def cancel_booking(
     return dict(updated)
 
 
+async def add_booking_seats(
+    conn,
+    booking_id: uuid.UUID,
+    passenger_id: uuid.UUID,
+    additional_seats: int,
+) -> dict:
+    """Increase the seat count on an existing pending/confirmed booking. Must be called with a pool conn."""
+    async with conn.transaction():
+        row = await conn.fetchrow(
+            """
+            SELECT b.id, b.status, b.ride_id, b.passenger_id, b.seats, b.per_seat_price,
+                   r.driver_id, r.departure_datetime
+            FROM bookings b
+            JOIN rides r ON r.id = b.ride_id
+            WHERE b.id = $1
+            FOR UPDATE OF b
+            """,
+            booking_id,
+        )
+        if row is None:
+            raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Booking not found"})
+        if row["passenger_id"] != passenger_id:
+            raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "Access denied"})
+        if row["status"] not in ("pending", "confirmed"):
+            raise HTTPException(status_code=409, detail={"error": "booking_terminal", "message": "Booking is not active"})
+
+        dep = row["departure_datetime"]
+        if dep.tzinfo is None:
+            dep = dep.replace(tzinfo=timezone.utc)
+        if dep <= datetime.now(timezone.utc):
+            raise HTTPException(status_code=422, detail={"error": "ride_departed", "message": "Ride has already departed"})
+
+        claimed = await conn.fetchrow(
+            "UPDATE rides SET booked_seats = booked_seats + $2 WHERE id = $1 AND booked_seats + $2 <= total_seats RETURNING id",
+            row["ride_id"],
+            additional_seats,
+        )
+        if claimed is None:
+            raise HTTPException(status_code=409, detail={"error": "no_seats_available", "message": "No seats available on this ride"})
+
+        per_seat = Decimal(str(row["per_seat_price"]))
+        extra_cost = per_seat * additional_seats
+        updated = await conn.fetchrow(
+            """
+            UPDATE bookings
+            SET seats = seats + $2, total_price = total_price + $3
+            WHERE id = $1
+            RETURNING id, status, seats, total_price
+            """,
+            booking_id,
+            additional_seats,
+            extra_cost,
+        )
+
+        await _insert_audit_log(
+            conn, booking_id, "seats_added", passenger_id, "passenger",
+            row["status"], row["status"], {"additional_seats": additional_seats},
+        )
+
+        await enqueue_booking_notification(
+            conn,
+            "booking_seats_added",
+            row["driver_id"],
+            {"ride_id": str(row["ride_id"]), "booking_id": str(booking_id), "additional_seats": additional_seats},
+        )
+        await _enqueue_fcm_notification(
+            conn,
+            "booking_seats_added",
+            row["driver_id"],
+            {
+                "ride_id": str(row["ride_id"]),
+                "booking_id": str(booking_id),
+                "additional_seats": additional_seats,
+                "departure_datetime": row["departure_datetime"].isoformat() if row["departure_datetime"] else "",
+                "deep_link": f"/(driver)/rides/{row['ride_id']}/bookings",
+            },
+        )
+
+    return dict(updated)
+
+
 async def cancel_all_bookings_for_ride(conn, ride_id: uuid.UUID) -> int:
     """Cancel all pending and confirmed bookings for a ride. Used by ride cascade. Returns count."""
     rows = await conn.fetch(
@@ -542,7 +627,7 @@ async def _expire_pending_bookings(pool) -> None:
             async with conn.transaction():
                 locked = await conn.fetchrow(
                     """
-                    SELECT b.id, b.passenger_id, b.ride_id, r.departure_datetime
+                    SELECT b.id, b.passenger_id, b.ride_id, b.seats, r.departure_datetime
                     FROM bookings b
                     JOIN rides r ON r.id = b.ride_id
                     WHERE b.id = $1 AND b.status = 'pending'
@@ -566,8 +651,9 @@ async def _expire_pending_bookings(pool) -> None:
                 )
 
                 await conn.execute(
-                    "UPDATE rides SET booked_seats = GREATEST(booked_seats - 1, 0) WHERE id = $1",
+                    "UPDATE rides SET booked_seats = GREATEST(booked_seats - $2, 0) WHERE id = $1",
                     locked["ride_id"],
+                    locked["seats"],
                 )
 
                 await _insert_audit_log(

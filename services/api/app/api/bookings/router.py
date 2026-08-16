@@ -11,6 +11,7 @@ from app.core.database import get_pool
 from app.dependencies.auth import get_current_user
 from app.dependencies.verification import get_current_verified_passenger
 from app.models.booking import (
+    BookingAddSeatsRequest,
     BookingCancelRequest,
     BookingCreateRequest,
     BookingListItem,
@@ -45,6 +46,7 @@ async def book_ride(
             premium_dropoff=body.premium_dropoff_requested,
             premium_pickup_fee=body.premium_pickup_fee,
             premium_dropoff_fee=body.premium_dropoff_fee,
+            seats=body.seats,
         )
 
     return JSONResponse(
@@ -55,6 +57,7 @@ async def book_ride(
             "status": booking["status"],
             "per_seat_price": str(booking["per_seat_price"]),
             "total_price": str(booking["total_price"]),
+            "seats": booking["seats"],
             "premium_pickup_requested": booking["premium_pickup_requested"],
             "premium_dropoff_requested": booking["premium_dropoff_requested"],
             "premium_pickup_fee": str(booking["premium_pickup_fee"]) if booking["premium_pickup_fee"] is not None else None,
@@ -90,7 +93,7 @@ async def list_bookings(
             f"""
             SELECT
                 b.id, b.ride_id, b.status,
-                b.per_seat_price, b.total_price,
+                b.per_seat_price, b.total_price, b.seats,
                 b.premium_pickup_requested, b.premium_dropoff_requested,
                 b.premium_pickup_fee, b.premium_dropoff_fee,
                 b.created_at, b.confirmed_at, b.cancelled_at,
@@ -126,6 +129,7 @@ async def list_bookings(
             destination_address=r["destination_address"],
             per_seat_price=f"{float(r['per_seat_price']):.2f}",
             total_price=f"{float(r['total_price']):.2f}",
+            seats=r["seats"],
             premium_pickup_requested=r["premium_pickup_requested"],
             premium_dropoff_requested=r["premium_dropoff_requested"],
             premium_pickup_fee=f"{float(r['premium_pickup_fee']):.2f}" if r["premium_pickup_fee"] is not None else None,
@@ -159,7 +163,7 @@ async def get_booking(
             """
             SELECT
                 b.id, b.ride_id, b.passenger_id, b.status,
-                b.per_seat_price, b.total_price,
+                b.per_seat_price, b.total_price, b.seats,
                 b.premium_pickup_requested, b.premium_dropoff_requested,
                 b.premium_pickup_fee, b.premium_dropoff_fee,
                 b.cancellation_reason, b.late_cancellation,
@@ -169,6 +173,7 @@ async def get_booking(
                 ST_Y(b.passenger_dropoff_point::geometry) AS alighting_lat,
                 ST_X(b.passenger_dropoff_point::geometry) AS alighting_lng,
                 r.departure_datetime, r.driver_id,
+                r.total_seats, r.booked_seats,
                 ST_AsGeoJSON(r.route_geometry) AS route_geometry_geojson,
                 p.display_name AS driver_display_name,
                 p.profile_photo_path AS driver_avatar_url,
@@ -218,6 +223,8 @@ async def get_booking(
         "departure_datetime": b["departure_datetime"].isoformat() if b["departure_datetime"] else None,
         "per_seat_price": f"{float(b['per_seat_price']):.2f}",
         "total_price": f"{float(b['total_price']):.2f}",
+        "seats": b["seats"],
+        "available_seats": max(b["total_seats"] - b["booked_seats"], 0),
         "premium_pickup_requested": b["premium_pickup_requested"],
         "premium_dropoff_requested": b["premium_dropoff_requested"],
         "premium_pickup_fee": f"{float(b['premium_pickup_fee']):.2f}" if b["premium_pickup_fee"] is not None else None,
@@ -257,4 +264,26 @@ async def cancel_booking_passenger(
         "cancelled_by": result["cancelled_by"],
         "late_cancellation": result["late_cancellation"],
         "cancelled_at": result["cancelled_at"].isoformat(),
+    }
+
+
+# ── POST /api/v1/bookings/{booking_id}/seats ─────────────────────────────────
+
+@router.post("/{booking_id}/seats")
+async def add_booking_seats(
+    booking_id: uuid.UUID,
+    body: BookingAddSeatsRequest,
+    profile: dict = Depends(get_current_verified_passenger),
+):
+    passenger_id = uuid.UUID(str(profile["id"]))
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        result = await booking_service.add_booking_seats(
+            conn, booking_id, passenger_id, body.seats
+        )
+    return {
+        "booking_id": str(result["id"]),
+        "status": result["status"],
+        "seats": result["seats"],
+        "total_price": str(result["total_price"]),
     }

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class GeoPointSchema(BaseModel):
@@ -23,10 +23,15 @@ class BookingCreateRequest(BaseModel):
     # Fees displayed to the passenger on the detail screen; stored verbatim at booking time
     premium_pickup_fee: Optional[float] = None
     premium_dropoff_fee: Optional[float] = None
+    seats: int = Field(1, ge=1, le=8)
 
 
 class BookingCancelRequest(BaseModel):
     reason: Optional[str] = None
+
+
+class BookingAddSeatsRequest(BaseModel):
+    seats: int = Field(..., ge=1, le=8)
 
 
 # ── Response schemas ─────────────────────────────────────────────────────────
@@ -37,11 +42,13 @@ class BookingResponse(BaseModel):
     status: str
     per_seat_price: str
     total_price: str
+    seats: int
     premium_pickup_requested: bool
     premium_dropoff_requested: bool
     premium_pickup_fee: Optional[str]
     premium_dropoff_fee: Optional[str]
     created_at: datetime
+    available_seats: Optional[int] = None
 
 
 class BookingListItem(BaseModel):
@@ -54,6 +61,7 @@ class BookingListItem(BaseModel):
     destination_address: Optional[str] = None
     per_seat_price: str
     total_price: str
+    seats: int
     premium_pickup_requested: bool
     premium_dropoff_requested: bool
     premium_pickup_fee: Optional[str]
@@ -86,6 +94,7 @@ class DriverBookingItem(BaseModel):
     status: str
     per_seat_price: str
     total_price: str
+    seats: int
     boarding_point: GeoPointSchema
     alighting_point: GeoPointSchema
     premium_pickup_requested: bool
@@ -111,3 +120,10 @@ class DriverRejectResponse(BaseModel):
     status: str
     cancelled_by: Optional[str]
     fallback_applied: bool
+
+
+class BookingAddSeatsResponse(BaseModel):
+    booking_id: UUID
+    status: str
+    seats: int
+    total_price: str

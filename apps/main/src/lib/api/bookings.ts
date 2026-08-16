@@ -12,6 +12,7 @@ export interface PassengerBooking {
   destination_address: string | null;
   per_seat_price: string;
   total_price: string;
+  seats: number;
   created_at: string;
 }
 
@@ -33,6 +34,24 @@ export async function listBookings(
 
   const res = await fetch(`${base}/api/v1/bookings/?${query}`, {
     headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json;
+}
+
+export async function addBookingSeats(
+  token: string,
+  bookingId: string,
+  seats: number
+): Promise<{ booking_id: string; status: string; seats: number; total_price: string }> {
+  const res = await fetch(`${base}/api/v1/bookings/${bookingId}/seats`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ seats }),
   });
   const json = await res.json();
   if (!res.ok) throw json;

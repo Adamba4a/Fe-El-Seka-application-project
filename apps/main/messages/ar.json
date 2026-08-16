@@ -258,6 +258,10 @@
       "walkFromDropoff": "المشي من نقطة النزول",
       "bookSeat": "احجز مقعدًا",
       "noSeatsAvailable": "لا توجد مقاعد متاحة",
+      "numberOfSeats": "عدد المقاعد",
+      "existingBookingTitle": "لديك بالفعل حجز في هذه الرحلة",
+      "existingBookingBody": "أدر حجزك لإضافة مقاعد أخرى أو للاطلاع على حالته.",
+      "manageBooking": "إدارة الحجز",
       "pickupDropoffOption": "خيار الصعود / النزول",
       "standard": "عادي",
       "premiumPickup": "صعود مميز",
@@ -332,6 +336,7 @@
       "trackLive": "تتبّع مباشر",
       "rateAndReport": "قيّم وأبلغ",
       "priceBreakdown": "تفاصيل السعر",
+      "seats": "المقاعد",
       "baseFare": "الأجرة الأساسية",
       "premiumPickup": "صعود مميز",
       "premiumDropoff": "نزول مميز",
@@ -345,9 +350,17 @@
       "yesCancel": "نعم، ألغِ",
       "keepBooking": "الاحتفاظ بالحجز",
       "bookingNotFound": "الحجز غير موجود",
+      "addSeats": "إضافة مقاعد",
+      "addSeatsBody": "تحتاج لإحضار المزيد من الأشخاص؟ أضف مقاعد إلى هذا الحجز.",
+      "addSeatsSubmit": "إضافة {count} مقاعد",
+      "addSeatsSubmitOne": "إضافة مقعد واحد",
+      "addingSeats": "جارٍ الإضافة…",
+      "addSeatsSuccess": "تمت إضافة المقاعد بنجاح.",
+      "noMoreSeats": "هذه الرحلة مكتملة الحجز — لا توجد مقاعد إضافية متاحة.",
       "errors": {
         "loadFailed": "فشل تحميل الحجز",
-        "cancelFailed": "فشل إلغاء الحجز"
+        "cancelFailed": "فشل إلغاء الحجز",
+        "addSeatsFailed": "فشل إضافة المقاعد"
       }
     }
   },
@@ -488,6 +501,7 @@
       "tryAgain": "أعد المحاولة",
       "rateAndReport": "قيّم وأبلغ",
       "viewProfile": "عرض الملف الشخصي",
+      "seats": "مقاعد",
       "pickupDropoffMapTitle": "نقطة الصعود والنزول لـ {name}"
     }
   },
@@ -703,6 +717,8 @@
   "bookingCard": {
     "total": "الإجمالي",
     "perSeat": "/ مقعد",
+    "seats": "المقاعد",
+    "seatsCount": "{count} مقاعد",
     "premiumServiceIncluded": "تشمل خدمة مميزة",
     "pickupFeeNote": " (+‏{fee} ج.م صعود)",
     "dropoffFeeNote": " (+‏{fee} ج.م نزول)",

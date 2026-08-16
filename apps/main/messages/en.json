@@ -258,6 +258,10 @@
       "walkFromDropoff": "Walk from dropoff",
       "bookSeat": "Book Seat",
       "noSeatsAvailable": "No Seats Available",
+      "numberOfSeats": "Number of seats",
+      "existingBookingTitle": "You already have a booking on this ride",
+      "existingBookingBody": "Manage your booking to add more seats or check its status.",
+      "manageBooking": "Manage Booking",
       "pickupDropoffOption": "Pickup / Dropoff Option",
       "standard": "Standard",
       "premiumPickup": "Premium Pickup",
@@ -332,6 +336,7 @@
       "trackLive": "Track Live",
       "rateAndReport": "Rate & Report",
       "priceBreakdown": "Price Breakdown",
+      "seats": "Seats",
       "baseFare": "Base fare",
       "premiumPickup": "Premium pickup",
       "premiumDropoff": "Premium dropoff",
@@ -345,9 +350,17 @@
       "yesCancel": "Yes, Cancel",
       "keepBooking": "Keep Booking",
       "bookingNotFound": "Booking not found",
+      "addSeats": "Add Seats",
+      "addSeatsBody": "Need to bring more people? Add seats to this booking.",
+      "addSeatsSubmit": "Add {count} Seats",
+      "addSeatsSubmitOne": "Add 1 Seat",
+      "addingSeats": "Adding…",
+      "addSeatsSuccess": "Seats added successfully.",
+      "noMoreSeats": "This ride is fully booked — no more seats available.",
       "errors": {
         "loadFailed": "Failed to load booking",
-        "cancelFailed": "Failed to cancel booking"
+        "cancelFailed": "Failed to cancel booking",
+        "addSeatsFailed": "Failed to add seats"
       }
     }
   },
@@ -488,6 +501,7 @@
       "tryAgain": "Try again",
       "rateAndReport": "Rate & Report",
       "viewProfile": "View Profile",
+      "seats": "seats",
       "pickupDropoffMapTitle": "{name}'s pickup & dropoff"
     }
   },
@@ -703,6 +717,8 @@
   "bookingCard": {
     "total": "Total",
     "perSeat": "/ seat",
+    "seats": "Seats",
+    "seatsCount": "{count} seats",
     "premiumServiceIncluded": "Premium service included",
     "pickupFeeNote": " (+EGP {fee} pickup)",
     "dropoffFeeNote": " (+EGP {fee} dropoff)",

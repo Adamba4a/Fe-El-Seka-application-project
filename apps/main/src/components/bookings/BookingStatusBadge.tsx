@@ -5,10 +5,10 @@ import { useTranslations } from "next-intl";
 type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 
 const STATUS_CLASSNAMES: Record<BookingStatus, string> = {
-  pending: "bg-amber-100 text-amber-800 border-amber-200",
-  confirmed: "bg-green-100 text-green-800 border-green-200",
-  cancelled: "bg-red-100 text-red-800 border-red-200",
-  completed: "bg-gray-100 text-gray-600 border-gray-200",
+  pending: "bg-status-in-progress-bg text-status-in-progress border-transparent",
+  confirmed: "bg-status-completed-bg text-status-completed border-transparent",
+  cancelled: "bg-status-cancelled-bg text-status-cancelled border-transparent",
+  completed: "bg-surface-bg text-content-muted border-transparent",
 };
 
 interface BookingStatusBadgeProps {

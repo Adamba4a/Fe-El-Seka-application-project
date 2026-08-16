@@ -340,6 +340,7 @@ async def get_ride_preview(
     ride_id: uuid.UUID,
     _user: dict = Depends(get_current_user),
 ):
+    caller_id = uuid.UUID(str(_user["id"]))
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -361,6 +362,10 @@ async def get_ride_preview(
             WHERE r.id = $1
             """,
             ride_id,
+        )
+        existing = await conn.fetchrow(
+            "SELECT id, status, seats FROM bookings WHERE ride_id = $1 AND passenger_id = $2 AND status IN ('pending', 'confirmed')",
+            ride_id, caller_id,
         )
 
     if row is None:
@@ -404,6 +409,10 @@ async def get_ride_preview(
             "route_distance_km": float(ride["route_distance_km"] or 0),
             "route_duration_minutes": ride["route_duration_minutes"],
         },
+        "existing_booking": (
+            {"booking_id": str(existing["id"]), "status": existing["status"], "seats": existing["seats"]}
+            if existing else None
+        ),
     })
 
 
@@ -428,6 +437,7 @@ async def get_ride_passenger_detail(
     departure_at: Optional[datetime] = Query(None),
     _user: dict = Depends(get_current_user),
 ):
+    caller_id = uuid.UUID(str(_user["id"]))
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -449,6 +459,10 @@ async def get_ride_passenger_detail(
             WHERE r.id = $1
             """,
             ride_id,
+        )
+        existing = await conn.fetchrow(
+            "SELECT id, status, seats FROM bookings WHERE ride_id = $1 AND passenger_id = $2 AND status IN ('pending', 'confirmed')",
+            ride_id, caller_id,
         )
 
     if row is None:
@@ -574,6 +588,10 @@ async def get_ride_passenger_detail(
             "premium_dropoff_fee": compat.premium_dropoff_fee_egp,
         },
         "match_score_pct": match_score_pct,
+        "existing_booking": (
+            {"booking_id": str(existing["id"]), "status": existing["status"], "seats": existing["seats"]}
+            if existing else None
+        ),
     })
 
 
@@ -616,6 +634,7 @@ async def list_ride_bookings(
                 b.status,
                 b.per_seat_price,
                 b.total_price,
+                b.seats,
                 b.premium_pickup_requested,
                 b.premium_pickup_fee,
                 b.premium_dropoff_requested,
@@ -658,6 +677,7 @@ async def list_ride_bookings(
             status=r["status"],
             per_seat_price=f"{float(r['per_seat_price']):.2f}",
             total_price=f"{float(r['total_price']):.2f}",
+            seats=r["seats"],
             boarding_point={"lat": r["boarding_lat"], "lng": r["boarding_lng"]},
             alighting_point={"lat": r["alighting_lat"], "lng": r["alighting_lng"]},
             premium_pickup_requested=r["premium_pickup_requested"],

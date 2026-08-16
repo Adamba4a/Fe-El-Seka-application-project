@@ -29,6 +29,8 @@ interface BookingDetail {
   departure_datetime?: string;
   per_seat_price: string;
   total_price: string;
+  seats: number;
+  available_seats: number;
   premium_pickup_requested: boolean;
   premium_dropoff_requested: boolean;
   premium_pickup_fee?: string | null;
@@ -111,6 +113,10 @@ export default function PassengerBookingDetailPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [boardingAddress, setBoardingAddress] = useState<string | null>(null);
   const [alightingAddress, setAlightingAddress] = useState<string | null>(null);
+  const [showAddSeats, setShowAddSeats] = useState(false);
+  const [addSeatsCount, setAddSeatsCount] = useState(1);
+  const [addingSeats, setAddingSeats] = useState(false);
+  const [addSeatsError, setAddSeatsError] = useState<string | null>(null);
 
   const { lastEvent } = useBookingStatus({ bookingId });
 
@@ -186,6 +192,34 @@ export default function PassengerBookingDetailPage() {
     }
   }
 
+  async function handleAddSeats() {
+    if (!booking) return;
+    setAddingSeats(true);
+    setAddSeatsError(null);
+    try {
+      const res = await apiFetch(`/api/v1/bookings/${bookingId}/seats`, {
+        method: "POST",
+        body: JSON.stringify({ seats: addSeatsCount }),
+      });
+      setBooking((prev) =>
+        prev
+          ? {
+              ...prev,
+              seats: res.seats,
+              total_price: res.total_price,
+              available_seats: Math.max(prev.available_seats - addSeatsCount, 0),
+            }
+          : prev
+      );
+      setShowAddSeats(false);
+      setAddSeatsCount(1);
+    } catch (e: unknown) {
+      setAddSeatsError(e instanceof Error ? e.message : t("errors.addSeatsFailed"));
+    } finally {
+      setAddingSeats(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
@@ -250,7 +284,7 @@ export default function PassengerBookingDetailPage() {
           {(booking.status === "confirmed" || booking.status === "completed") && (
             <Link
               href={`/users/${booking.driver_id}`}
-              className="inline-block text-xs text-dash-primary font-semibold hover:underline"
+              className="block w-full text-center rounded-xl bg-dash-primary px-4 py-2 text-sm font-semibold text-content-inverse hover:opacity-90 transition-opacity"
             >
               {t("viewProfile")}
             </Link>
@@ -312,9 +346,15 @@ export default function PassengerBookingDetailPage() {
       <div className="rounded-2xl bg-dash-surface shadow-sm">
         <div className="p-5 space-y-2">
           <p className="text-sm font-bold text-dash-navy">{t("priceBreakdown")}</p>
+          {booking.seats > 1 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-dash-text-muted">{t("seats")}</span>
+              <span className="text-dash-navy">{booking.seats}</span>
+            </div>
+          )}
           <div className="flex justify-between text-sm">
             <span className="text-dash-text-muted">{t("baseFare")}</span>
-            <span className="text-dash-navy">{formatCurrency(Number(booking.per_seat_price), locale)}</span>
+            <span className="text-dash-navy">{formatCurrency(Number(booking.per_seat_price) * booking.seats, locale)}</span>
           </div>
           {booking.premium_pickup_requested && booking.premium_pickup_fee && (
             <div className="flex justify-between text-sm">
@@ -334,6 +374,72 @@ export default function PassengerBookingDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Add seats */}
+      {isCancellable && booking.available_seats > 0 && !showAddSeats && (
+        <button
+          type="button"
+          onClick={() => { setAddSeatsCount(1); setAddSeatsError(null); setShowAddSeats(true); }}
+          className="w-full rounded-2xl border border-dash-border bg-dash-surface text-dash-primary hover:bg-dash-bg px-4 py-3 text-sm font-semibold transition-colors"
+        >
+          {t("addSeats")}
+        </button>
+      )}
+
+      {showAddSeats && (
+        <div className="rounded-2xl border border-dash-border bg-dash-surface shadow-sm">
+          <div className="p-5 space-y-3">
+            <p className="text-sm font-bold text-dash-navy">{t("addSeats")}</p>
+            <p className="text-xs text-dash-text-muted">{t("addSeatsBody")}</p>
+
+            <div className="flex items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => setAddSeatsCount((n) => Math.max(1, n - 1))}
+                disabled={addSeatsCount <= 1}
+                className="w-8 h-8 rounded-full border border-dash-border text-dash-navy disabled:opacity-40 hover:bg-dash-bg transition-colors"
+              >
+                −
+              </button>
+              <span className="w-6 text-center font-semibold text-dash-navy">{addSeatsCount}</span>
+              <button
+                type="button"
+                onClick={() => setAddSeatsCount((n) => Math.min(booking.available_seats, 8, n + 1))}
+                disabled={addSeatsCount >= Math.min(booking.available_seats, 8)}
+                className="w-8 h-8 rounded-full border border-dash-border text-dash-navy disabled:opacity-40 hover:bg-dash-bg transition-colors"
+              >
+                +
+              </button>
+            </div>
+
+            {addSeatsError && <p className="text-xs text-content-destructive text-center">{addSeatsError}</p>}
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleAddSeats}
+                disabled={addingSeats}
+                className="flex-1 rounded-xl bg-dash-primary text-content-inverse px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {addingSeats && <Spinner />}
+                {addingSeats
+                  ? t("addingSeats")
+                  : addSeatsCount === 1
+                    ? t("addSeatsSubmitOne")
+                    : t("addSeatsSubmit", { count: addSeatsCount })}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAddSeats(false)}
+                disabled={addingSeats}
+                className="flex-1 rounded-xl border border-dash-border text-dash-navy hover:bg-dash-bg px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {t("keepBooking")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cancellation info */}
       {booking.status === "cancelled" && (
