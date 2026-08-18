@@ -2,12 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { PendingApprovalWait } from "@/components/PendingApprovalWait";
+import { SuspendedScreen } from "@/components/SuspendedScreen";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const supabase = createClient();
-  const t = await getTranslations("home");
   const tc = await getTranslations("common");
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -30,20 +30,7 @@ export default async function Home() {
   }
 
   if (profile.verification_status === "suspended") {
-    return (
-      <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
-        <div className="w-full max-w-sm text-center space-y-4">
-          <h1 className="text-h2 text-content-primary">{tc("appName")}</h1>
-          <p className="text-body-sm text-content-destructive">{t("suspendedMessage")}</p>
-          <a
-            href="/signout"
-            className="inline-block py-3 px-4 border border-border-default rounded-xl text-body-sm text-content-secondary font-medium hover:bg-surface-bg transition-colors"
-          >
-            {t("signOut")}
-          </a>
-        </div>
-      </main>
-    );
+    return <SuspendedScreen />;
   }
 
   if (profile.verification_status === "verified") {

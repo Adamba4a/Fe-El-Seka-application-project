@@ -5,6 +5,8 @@ import { useTranslations } from "next-intl";
 import { useSession } from "@/lib/auth/hooks";
 import { getMe } from "@/lib/api/profiles";
 import { LanguagePromptModal } from "@/app/(app)/settings/profile/LanguagePromptModal";
+import { onAccountSuspended } from "@/lib/auth/suspension-watcher";
+import { SuspendedScreen } from "@/components/SuspendedScreen";
 import type { Profile } from "@fe-el-seka/shared";
 import { TopBar } from "./TopBar";
 import { BottomNav } from "./BottomNav";
@@ -17,7 +19,10 @@ interface AppShellProps {
 export function AppShell({ variant, children }: AppShellProps) {
   const session = useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [suspended, setSuspended] = useState(false);
   const t = useTranslations("nav");
+
+  useEffect(() => onAccountSuspended(() => setSuspended(true)), []);
 
   useEffect(() => {
     if (!session?.access_token) return;
@@ -28,6 +33,8 @@ export function AppShell({ variant, children }: AppShellProps) {
 
   const userName =
     profile?.display_name ?? (variant === "driver" ? t("defaultDriverName") : t("defaultPassengerName"));
+
+  if (suspended) return <SuspendedScreen />;
 
   return (
     <div className="min-h-screen bg-dash-bg">
