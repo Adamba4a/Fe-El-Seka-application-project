@@ -1,6 +1,6 @@
 import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from supabase import create_client
 
 from app.core.config import settings
@@ -10,13 +10,23 @@ from app.models.verification import (
     AdminSubmissionDetail,
     RejectRequest,
 )
-from app.services import audit_service, storage_service
+from app.services import audit_service, notification_service, storage_service
 
 router = APIRouter()
 
 
 def _supabase():
     return create_client(settings.supabase_url, settings.supabase_service_role_key)
+
+
+def _enqueue_push_notification(sb, recipient_user_id: str, event_type: str, payload: dict) -> None:
+    """Mirrors wallet_topup_service._enqueue_notification, via the sync client
+    this router already uses (no asyncpg conn/transaction here)."""
+    sb.table("notification_events").insert({
+        "recipient_user_id": recipient_user_id,
+        "event_type": event_type,
+        "payload": payload,
+    }).execute()
 
 
 @router.get("/queue", response_model=AdminQueueResponse)
@@ -196,6 +206,7 @@ def get_submission(
 @router.post("/{submission_id}/approve")
 def approve_submission(
     submission_id: str,
+    background_tasks: BackgroundTasks,
     profile: dict = Depends(get_current_admin),
 ) -> dict:
     sb = _supabase()
@@ -229,6 +240,17 @@ def approve_submission(
         .execute()
     )
 
+    _enqueue_push_notification(
+        sb, user_id, "verification_approved", {"submission_id": submission_id}
+    )
+    recipient = sb.table("profiles").select("email").eq("id", user_id).single().execute()
+    if recipient.data and recipient.data.get("email"):
+        background_tasks.add_task(
+            notification_service.send_verification_decision_email,
+            recipient_email=recipient.data["email"],
+            approved=True,
+        )
+
     audit_id = audit_service.append_log(
         profile["id"], "approved", user_id, submission_id=submission_id
     )
@@ -244,6 +266,7 @@ def approve_submission(
 def reject_submission(
     submission_id: str,
     body: RejectRequest,
+    background_tasks: BackgroundTasks,
     profile: dict = Depends(get_current_admin),
 ) -> dict:
     if not body.reason or not body.reason.strip():
@@ -290,6 +313,19 @@ def reject_submission(
     if is_third:
         profile_update["is_submission_locked"] = True
     sb.table("profiles").update(profile_update).eq("id", user_id).execute()
+
+    _enqueue_push_notification(
+        sb, user_id, "verification_rejected",
+        {"submission_id": submission_id, "reason": body.reason.strip()},
+    )
+    recipient = sb.table("profiles").select("email").eq("id", user_id).single().execute()
+    if recipient.data and recipient.data.get("email"):
+        background_tasks.add_task(
+            notification_service.send_verification_decision_email,
+            recipient_email=recipient.data["email"],
+            approved=False,
+            rejection_reason=body.reason.strip(),
+        )
 
     audit_id = audit_service.append_log(
         profile["id"],

@@ -21,8 +21,12 @@ export default async function Home() {
 
   if (!profile) redirect("/role-select");
 
-  if (profile.verification_status === "unverified" || profile.verification_status === "rejected") {
+  if (profile.verification_status === "unverified") {
     redirect("/profile");
+  }
+
+  if (profile.verification_status === "rejected") {
+    redirect(profile.role === "driver" ? "/driver/verify-documents" : "/verify-id");
   }
 
   if (!profile.phone_number || !profile.profile_photo_path) {

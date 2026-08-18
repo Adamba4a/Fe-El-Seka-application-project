@@ -85,6 +85,14 @@ _NOTIFICATION_TEMPLATES: dict[str, dict[str, tuple[str, str]]] = {
         "en": ("Top-Up Rejected", "Your wallet top-up request was not approved."),
         "ar": ("تم رفض طلب شحن المحفظة", "لم تتم الموافقة على طلب شحن محفظتك."),
     },
+    "verification_approved": {
+        "en": ("Identity Verified", "Your identity was verified. You can now book and take rides."),
+        "ar": ("تم التحقق من الهوية", "تم التحقق من هويتك. يمكنك الآن حجز الرحلات وقيادتها."),
+    },
+    "verification_rejected": {
+        "en": ("Verification Not Approved", "Your identity verification was not approved. Open the app for details."),
+        "ar": ("لم تتم الموافقة على التحقق", "لم تتم الموافقة على التحقق من هويتك. افتح التطبيق للتفاصيل."),
+    },
 }
 
 # Locale-aware fallback for event types with no entry above (mirrors the FR-011

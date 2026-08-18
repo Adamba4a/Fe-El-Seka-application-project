@@ -108,7 +108,8 @@ export async function middleware(request: NextRequest) {
       .single();
 
     if (profile && isPassengerRoute(pathname) && profile.verification_status !== "verified") {
-      return NextResponse.redirect(new URL("/onboarding/verify-id", origin));
+      const dest = profile.verification_status === "rejected" ? "/verify-id" : "/profile";
+      return NextResponse.redirect(new URL(dest, origin));
     }
 
     if (profile && isLocale(profile.language_preference)) {

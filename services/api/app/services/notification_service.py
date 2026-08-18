@@ -69,21 +69,57 @@ async def _send_via_mailpit(to: str, subject: str, html: str) -> None:
     await asyncio.to_thread(_send)
 
 
-async def _send_cancellation_email(passenger_email: str, ride_id: uuid.UUID) -> None:
-    subject = "Your ride has been cancelled"
-    html = _build_email_html(ride_id)
-
+async def _send_email(to: str, subject: str, html: str) -> None:
     if _use_mailpit():
-        logger.info("Sending via Mailpit → %s", passenger_email)
-        await _send_via_mailpit(passenger_email, subject, html)
+        logger.info("Sending via Mailpit → %s", to)
+        await _send_via_mailpit(to, subject, html)
     else:
         resend.api_key = settings.resend_api_key
         resend.Emails.send({
             "from": _FROM_ADDRESS,
-            "to": passenger_email,
+            "to": to,
             "subject": subject,
             "html": html,
         })
+
+
+async def _send_cancellation_email(passenger_email: str, ride_id: uuid.UUID) -> None:
+    await _send_email(passenger_email, "Your ride has been cancelled", _build_email_html(ride_id))
+
+
+async def send_verification_decision_email(
+    recipient_email: str, approved: bool, rejection_reason: str | None = None
+) -> None:
+    """Fire-and-forget notification for an admin verification approve/reject
+    decision. Not queued via email_notifications — that table's ride_id is
+    NOT NULL (Phase 6 design assumed every email was ride-linked), and a
+    verification decision has no associated ride. Sent directly from
+    BackgroundTasks instead, mirroring verification_service's own
+    fire-and-forget AI triage: a transient send failure just logs a warning
+    rather than blocking or retrying the admin's already-committed decision.
+    """
+    if approved:
+        subject = "Your identity has been verified"
+        html = (
+            "<p>Good news — your identity verification was approved."
+            " You can now book and take rides on Triplyy.</p>"
+        )
+    else:
+        subject = "Your identity verification was not approved"
+        reason_html = (
+            f"<p><strong>Reason:</strong> {rejection_reason}</p>" if rejection_reason else ""
+        )
+        html = (
+            "<p>Your identity verification submission was not approved.</p>"
+            f"{reason_html}"
+            "<p>Please review the details and resubmit your documents in the app.</p>"
+        )
+    try:
+        await _send_email(recipient_email, subject, html)
+    except Exception:
+        logger.warning(
+            "Verification decision email failed to send to %s", recipient_email, exc_info=True
+        )
 
 
 async def _process_pending_emails() -> None:

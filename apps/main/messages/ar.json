@@ -113,7 +113,9 @@
     "profile": {
       "title": "أكمل ملفك الشخصي",
       "subtitleDefault": "أعدّ حسابك للبدء",
-      "subtitleRejected": "تم رفض مستنداتك. يرجى إعادة تقديمها.",
+      "progressLabel": "اكتمل {completed} من {total} خطوات",
+      "photoUploading": "جارٍ الرفع…",
+      "photoUploadedLabel": "✓ تم رفع الصورة",
       "displayNameLabel": "الاسم المعروض *",
       "displayNamePlaceholder": "اسمك",
       "phoneLabel": "رقم الهاتف *",
@@ -130,6 +132,7 @@
         "nameTooShort": "يرجى إدخال اسمك (حرفان على الأقل)",
         "phoneInvalid": "يرجى إدخال رقم هاتف صحيح، مثل ‎+201234567890",
         "photoRequired": "يرجى إضافة صورة شخصية",
+        "photoUploadFailed": "فشل رفع الصورة. يرجى المحاولة مرة أخرى.",
         "idRequired": "يرجى تحميل وجهي بطاقة الرقم القومي",
         "licenseRequired": "يرجى تحميل رخصة القيادة",
         "submissionFailed": "فشل الإرسال. يرجى المحاولة مرة أخرى."

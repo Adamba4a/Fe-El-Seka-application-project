@@ -12,6 +12,7 @@ import { Spinner } from "@/components/ui/Spinner";
 export default function VerifyIdPage() {
   const router = useRouter();
   const t = useTranslations("onboarding.verifyId");
+  const tStatus = useTranslations("onboarding.verificationStatus");
   const [initializing, setInitializing] = useState(true);
   const [frontId, setFrontId] = useState<File | null>(null);
   const [backId, setBackId] = useState<File | null>(null);
@@ -19,6 +20,7 @@ export default function VerifyIdPage() {
   const [lockout, setLockout] = useState<{ message: string; support_email?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
 
   useEffect(() => {
     async function checkStatus() {
@@ -33,6 +35,9 @@ export default function VerifyIdPage() {
         }
         if (status.verification_status === "pending_review") {
           setSubmitted(true);
+        }
+        if (status.verification_status === "rejected" && status.rejection_reason) {
+          setRejectionReason(status.rejection_reason);
         }
       } catch {
         // no prior submission — show form
@@ -102,6 +107,15 @@ export default function VerifyIdPage() {
           <h1 className="text-h3 text-content-primary">{t("title")}</h1>
           <p className="text-body-sm text-content-muted mt-1">{t("subtitle")}</p>
         </div>
+
+        {rejectionReason && (
+          <div className="bg-status-cancelled-bg border border-status-cancelled rounded-xl px-4 py-3 text-start">
+            <p className="text-caption text-content-destructive uppercase tracking-wide mb-1">
+              {tStatus("reasonLabel")}
+            </p>
+            <p className="text-body-sm text-content-secondary">{rejectionReason}</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <DocumentUpload label={t("frontIdLabel")} onFile={setFrontId} required />

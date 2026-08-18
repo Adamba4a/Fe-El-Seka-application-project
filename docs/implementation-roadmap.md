@@ -524,6 +524,7 @@ This only works if the data needed to learn from is captured correctly from day 
 | 049 | model-monitoring-drift-detection | ✅ Complete |
 | TBD | demand-forecasting | ❌ Not started |
 | TBD | fraud-detection | ❌ Not started |
+| TBD | verification-retrain-pipeline | ❌ Not started |
 
 > 046–049 are implemented on branch `016-continuous-learning-pipeline` (all tasks complete, unit/integration-tested, and live-validated end-to-end against a local Supabase instance as of 2026-08-04). **Not yet merged to `main` or deployed** — the feature's migrations have only been applied locally, not to any production database.
 
@@ -545,7 +546,10 @@ New model versions run in shadow mode first — predictions logged but not shown
 ### 049 — model-monitoring-drift-detection ✅ Complete (016-continuous-learning-pipeline, US4)
 Ongoing tracking of prediction distributions and acceptance rates per zone/time so a degrading model is caught by monitoring, not by user complaints. Includes periodic human spot-audits of live model decisions, especially in the early low-volume period.
 
-**Deliverables:** Full instrumentation and exploration strategy live at launch (✅ done); automated real-data retraining pipeline with champion/challenger gating (✅ done, pending production deploy); shadow deployment and gradual rollout (✅ done, pending production deploy); drift monitoring (✅ done, pending production deploy); demand prediction per zone/time (not started); fraud and anomaly detection (not started).
+### TBD — verification-retrain-pipeline
+Depends on accumulated real reviewed submissions (target: hundreds, not the 6-identity calibration sample the 014-ai-identity-verification advisory-only decision was based on). Once advisory-mode has logged AI signals (OCR name-match, face-match, image-quality) next to each admin's actual approve/reject decision for long enough, mirror 046–049's dataset/retrain/evaluation pattern: export signals→decision as a labeled dataset, retrain a real classifier (simple model — logistic regression, not xgboost, given the small feature count), evaluate on held-out data. The bar is higher than match_score/ride_ranker: requires a human reviewing precision/recall (not just an AUC/held-out-accuracy gate) before ever considering flipping any part of verification to auto-decide, since fraud is the failure mode. Building the dataset-export + retrain-script infrastructure itself is a small lift (reuses the existing ModelRegistry pattern, no shadow-live-traffic serving needed since verification isn't in the matching path) — but it should wait until submission volume exists, since testing it against a handful of rows validates that the code runs, not that it's trustworthy. Auto-decide itself is a separate, later decision gated on that human sign-off, not on model metrics alone.
+
+**Deliverables:** Full instrumentation and exploration strategy live at launch (✅ done); automated real-data retraining pipeline with champion/challenger gating (✅ done, pending production deploy); shadow deployment and gradual rollout (✅ done, pending production deploy); drift monitoring (✅ done, pending production deploy); demand prediction per zone/time (not started); fraud and anomaly detection (not started); identity-verification retrain pipeline toward auto-decide (not started, gated on submission volume).
 
 ---
 

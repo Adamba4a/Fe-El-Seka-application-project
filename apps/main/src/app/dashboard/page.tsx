@@ -23,7 +23,7 @@ export default async function DashboardPage() {
   // (passenger) route group's guard. Drivers have no equivalent check here,
   // mirroring the (driver) route group's guard.
   if (!isDriver && !error && profile && profile.verification_status !== "verified") {
-    redirect("/onboarding/verify-id");
+    redirect(profile.verification_status === "rejected" ? "/verify-id" : "/profile");
   }
 
   return (
