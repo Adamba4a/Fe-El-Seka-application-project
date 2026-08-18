@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createAdminBrowserClient } from "@/lib/supabase/browser-client";
 import { getDriverWallet, type WalletData } from "@/lib/api/admin-wallet";
 import { AdminWalletSummary } from "@/components/wallet/AdminWalletSummary";
@@ -44,6 +45,7 @@ export default function DriverWalletPage({ params }: { params: { id: string } })
 
   return (
     <main className="p-8 space-y-8 max-w-3xl">
+      <Link href={`/users/${params.id}`} className="text-sm text-blue-600 hover:underline">← User Detail</Link>
       <h1 className="text-xl font-semibold">Driver Wallet</h1>
       <p className="text-xs text-gray-400 font-mono">{wallet.driver_id}</p>
 

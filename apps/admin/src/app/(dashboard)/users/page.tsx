@@ -69,7 +69,8 @@ export default function UsersPage() {
 
   return (
     <main className="p-8 space-y-6 max-w-4xl">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <Link href="/" className="text-sm text-blue-600 hover:underline">← Dashboard</Link>
         <h1 className="text-xl font-semibold">Users ({total})</h1>
       </div>
 

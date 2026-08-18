@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
 import {
   getQueue,
@@ -82,7 +83,10 @@ export default function ModerationPage() {
 
   return (
     <main className="p-8 space-y-10 max-w-3xl">
-      <h1 className="text-2xl font-semibold">Moderation</h1>
+      <div className="flex items-center gap-4">
+        <Link href="/" className="text-sm text-blue-600 hover:underline">← Dashboard</Link>
+        <h1 className="text-2xl font-semibold">Moderation</h1>
+      </div>
 
       {notice && (
         <div className="rounded border border-green-200 bg-green-50 text-green-800 text-sm p-3">

@@ -78,7 +78,10 @@ export default function WalletTopupQueuePage() {
   return (
     <main className="p-8 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Wallet Top-Up Queue ({total})</h1>
+        <div className="flex items-center gap-4">
+          <Link href="/" className="text-sm text-blue-600 hover:underline">← Dashboard</Link>
+          <h1 className="text-2xl font-semibold">Wallet Top-Up Queue ({total})</h1>
+        </div>
         <Link href="/wallet-topup/history" className="text-sm text-blue-600 hover:underline">
           View history
         </Link>

@@ -5,6 +5,7 @@ import Link from "next/link";
 export default function DriverDetailPage({ params }: { params: { id: string } }) {
   return (
     <main className="p-8 space-y-6 max-w-xl">
+      <Link href={`/users/${params.id}`} className="text-sm text-blue-600 hover:underline">← User Detail</Link>
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Driver</h1>
         <span className="font-mono text-xs text-gray-400">{params.id}</span>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
 import type { AdminSubmissionDetail } from "@fe-el-seka/shared";
 import { getSubmission, approve, reject, unlock } from "@/lib/api/admin-verification";
@@ -73,7 +74,10 @@ export default function SubmissionDetailPage({ params }: { params: { submission_
 
   return (
     <main className="p-8 space-y-6 max-w-2xl">
-      <h1 className="text-xl font-semibold">Submission Detail</h1>
+      <div className="flex items-center gap-4">
+        <Link href="/verification" className="text-sm text-blue-600 hover:underline">← Queue</Link>
+        <h1 className="text-xl font-semibold">Submission Detail</h1>
+      </div>
 
       <dl className="grid grid-cols-2 gap-2 text-sm">
         <dt className="text-gray-500">User</dt><dd>{detail.user_name}</dd>

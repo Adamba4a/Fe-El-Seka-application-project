@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createAdminBrowserClient } from "@/lib/supabase/browser-client";
 import { getDetail, suspend, reinstate, type UserDetail } from "@/lib/api/admin-users";
 import { UserActionPanel } from "@/components/users/UserActionPanel";
@@ -49,7 +50,10 @@ export default function UserDetailPage({ params }: { params: { user_id: string }
 
   return (
     <main className="p-8 space-y-8 max-w-3xl">
-      <h1 className="text-xl font-semibold">User Detail</h1>
+      <div className="flex items-center gap-4">
+        <Link href="/users" className="text-sm text-blue-600 hover:underline">← Users</Link>
+        <h1 className="text-xl font-semibold">User Detail</h1>
+      </div>
 
       <section className="space-y-3">
         <div className="flex items-start gap-4">
