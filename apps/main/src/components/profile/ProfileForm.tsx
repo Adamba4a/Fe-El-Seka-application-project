@@ -8,7 +8,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/Spinner";
 
-const PHONE_RE = /^\+[1-9]\d{6,14}$/;
+const PHONE_RE = /^\+2\d{11}$/;
 
 type FormValues = { display_name: string; phone_number?: string };
 

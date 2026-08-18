@@ -59,11 +59,17 @@ export default function SubmissionDetailPage({ params }: { params: { submission_
   if (!detail) return <main className="p-8 text-gray-400">Loading…</main>;
 
   const { front_id, back_id, license } = detail.document_signed_urls;
-  const docUrls = [front_id, back_id, ...(license ? [license] : [])];
-  const labels =
+  const docUrls = [
+    front_id,
+    back_id,
+    ...(license ? [license] : []),
+    ...(detail.profile_photo_signed_url ? [detail.profile_photo_signed_url] : []),
+  ];
+  const idLabels =
     detail.submission_type === "driver_id_license" && license
       ? ["Front ID", "Back ID", "License"]
       : ["Front ID", "Back ID"];
+  const labels = [...idLabels, ...(detail.profile_photo_signed_url ? ["Profile Photo"] : [])];
 
   return (
     <main className="p-8 space-y-6 max-w-2xl">
@@ -72,6 +78,7 @@ export default function SubmissionDetailPage({ params }: { params: { submission_
       <dl className="grid grid-cols-2 gap-2 text-sm">
         <dt className="text-gray-500">User</dt><dd>{detail.user_name}</dd>
         <dt className="text-gray-500">Email</dt><dd>{detail.email}</dd>
+        <dt className="text-gray-500">Phone</dt><dd>{detail.phone_number ?? "—"}</dd>
         <dt className="text-gray-500">Type</dt><dd className="capitalize">{detail.submission_type.replace(/_/g, " ")}</dd>
         <dt className="text-gray-500">Submitted</dt><dd>{new Date(detail.submitted_at).toLocaleString()}</dd>
         <dt className="text-gray-500">Attempt</dt><dd>{detail.attempt_number}/3</dd>

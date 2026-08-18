@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
 import type { Role } from "@fe-el-seka/shared";
 
-const PHONE_RE = /^\+[1-9]\d{6,14}$/;
+const PHONE_RE = /^\+2\d{11}$/;
 
 export default function ProfileOnboardingPage() {
   const router = useRouter();

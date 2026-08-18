@@ -11,7 +11,7 @@ from app.services import profile_service as svc
 
 
 class TestProfileUpdatePhoneNumberValidation:
-    @pytest.mark.parametrize("value", ["+201234567", "+15551234567", "+9491234567890"])
+    @pytest.mark.parametrize("value", ["+201234567890", "+201012345678", "+201555555555"])
     def test_accepts_valid_formats(self, value):
         assert ProfileUpdate(phone_number=value).phone_number == value
 
@@ -22,14 +22,24 @@ class TestProfileUpdatePhoneNumberValidation:
         assert ProfileUpdate().phone_number is None
 
     @pytest.mark.parametrize(
-        "value", ["0123456789", "not-a-phone", "+1", "+0123456789", "12345"]
+        "value",
+        [
+            "0123456789",
+            "not-a-phone",
+            "+1",
+            "+0123456789",
+            "12345",
+            "+201234567",  # too short: 9 digits after +2, needs 11
+            "+2012345678901",  # too long: 13 digits after +2
+            "+15551234567",  # non-Egyptian country code
+        ],
     )
     def test_rejects_invalid_formats(self, value):
         with pytest.raises(ValidationError):
             ProfileUpdate(phone_number=value)
 
     def test_strips_surrounding_whitespace(self):
-        assert ProfileUpdate(phone_number="  +201234567  ").phone_number == "+201234567"
+        assert ProfileUpdate(phone_number="  +201234567890  ").phone_number == "+201234567890"
 
 
 # ── update_profile: phone_number persistence ─────────────────────────────────

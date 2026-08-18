@@ -663,7 +663,7 @@
     "phonePlaceholder": "+201234567890",
     "save": "Save",
     "saving": "Saving…",
-    "uploadPhoto": "Upload photo (optional)",
+    "uploadPhoto": "Upload photo *",
     "changePhoto": "Change photo",
     "uploadPhotoAriaLabel": "Upload profile photo",
     "errors": {

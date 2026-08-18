@@ -62,12 +62,20 @@ async def submit_documents(
     # Check lock
     profile = (
         sb.table("profiles")
-        .select("is_submission_locked, display_name, profile_photo_path")
+        .select("is_submission_locked, display_name, profile_photo_path, phone_number")
         .eq("id", user_id)
         .single()
         .execute()
         .data
     )
+    if profile and not (profile.get("phone_number") and profile.get("profile_photo_path")):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "profile_incomplete",
+                "message": "Add your phone number and profile photo before submitting documents.",
+            },
+        )
     if profile and profile["is_submission_locked"]:
         support_email = _get_support_email()
         raise HTTPException(

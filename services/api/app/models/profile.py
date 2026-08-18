@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, field_validator
 
-_PHONE_RE = re.compile(r"^\+[1-9]\d{6,14}$")
+_PHONE_RE = re.compile(r"^\+2\d{11}$")
 
 
 class ProfileSetup(BaseModel):
@@ -41,7 +41,7 @@ class ProfileUpdate(BaseModel):
             return v
         v = v.strip()
         if not _PHONE_RE.match(v):
-            raise ValueError("Phone number must be in the format +<7-15 digits>")
+            raise ValueError("Phone number must be an Egyptian number in the format +2 followed by 11 digits, e.g. +201234567890")
         return v
 
 

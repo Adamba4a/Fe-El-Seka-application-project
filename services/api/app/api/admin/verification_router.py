@@ -147,7 +147,7 @@ def get_submission(
 ) -> dict:
     sb = _supabase()
     resp = sb.table("verification_submissions").select(
-        "*, profiles(display_name, email)"
+        "*, profiles(display_name, email, phone_number, profile_photo_path)"
     ).eq("id", submission_id).single().execute()
 
     if not resp.data:
@@ -159,6 +159,9 @@ def get_submission(
     row = resp.data
     p = row.get("profiles") or {}
     doc_urls = storage_service.get_identity_document_urls(row)
+    profile_photo_signed_url = storage_service.generate_signed_url(
+        "profile-photos", p.get("profile_photo_path")
+    )
 
     ai_readout = None
     if row.get("ai_processed_at"):
@@ -183,6 +186,8 @@ def get_submission(
         "submission_type": row["submission_type"],
         "submitted_at": str(row["submitted_at"]),
         "attempt_number": row["attempt_number"],
+        "phone_number": p.get("phone_number"),
+        "profile_photo_signed_url": profile_photo_signed_url,
         "document_signed_urls": doc_urls,
         "ai_readout": ai_readout,
     }

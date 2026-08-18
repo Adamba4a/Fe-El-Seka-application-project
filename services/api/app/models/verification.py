@@ -47,6 +47,8 @@ class AIReadout(BaseModel):
 
 
 class AdminSubmissionDetail(AdminQueueItem):
+    phone_number: str | None = None
+    profile_photo_signed_url: str | None = None
     document_signed_urls: dict
     ai_readout: AIReadout | None = None
 

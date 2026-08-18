@@ -58,6 +58,8 @@ export interface AIReadout {
 }
 
 export interface AdminSubmissionDetail extends AdminQueueItem {
+  phone_number: string | null;
+  profile_photo_signed_url: string | null;
   document_signed_urls: {
     front_id: string;
     back_id: string;
