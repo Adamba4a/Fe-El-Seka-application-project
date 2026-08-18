@@ -13,13 +13,13 @@ dependencies = [
     "pyarrow>=15.0.0",
     "osmnx>=1.9.0",
     "numpy>=1.26.0",
-    "supabase>=2.4.0",
     "opencv-contrib-python-headless>=4.9.0",
     "pytesseract>=0.3.10",
     "pyarabic>=0.6.15",
     "rapidfuzz>=3.6.0",
     "pillow>=10.0.0",
     "python-multipart>=0.0.9",
+    "boto3>=1.43.73",
 ]
 
 [build-system]

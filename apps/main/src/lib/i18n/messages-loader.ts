@@ -1,12 +1,8 @@
 import type { Locale } from "@fe-el-seka/shared";
 import type { AbstractIntlMessages } from "next-intl";
-import { env } from "../env";
 import { locales } from "./config";
 import bundledEnMessages from "../../../messages/en.json";
 
-// Public content bucket — mirrors the plain bucket-name convention used by
-// services/api/app/services/storage_service.py (e.g. "profile-photos").
-const _BUCKET = "app-content";
 const _REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
 type MessageCatalog = {
@@ -25,15 +21,19 @@ const _cache = new Map<Locale, MessageCatalog>();
 let _initPromise: Promise<void> | null = null;
 let _lastLoadedAt = 0;
 
-// This runs server-side only (via request.ts's getRequestConfig), so it can use
-// the Docker-internal Supabase URL — matching the pattern in lib/supabase/server.ts —
-// instead of NEXT_PUBLIC_SUPABASE_URL, which is only reachable from the browser.
-function _catalogBaseUrl(): string {
-  return process.env.SUPABASE_INTERNAL_URL ?? env.supabaseUrl;
+// Public R2 dev URL for the app-content bucket (e.g. https://pub-xxxx.r2.dev).
+// Read directly via process.env (server-only var) rather than through
+// lib/env.ts, which only validates NEXT_PUBLIC_* client-bundled vars.
+// Validated at module load (not inside _fetchCatalog's try/catch) so a
+// misconfigured deployment fails loudly on first request instead of
+// silently degrading to the bundled-English fallback forever.
+if (!process.env.R2_APP_CONTENT_PUBLIC_URL) {
+  throw new Error("Missing required environment variable: R2_APP_CONTENT_PUBLIC_URL");
 }
+const _CATALOG_BASE_URL = process.env.R2_APP_CONTENT_PUBLIC_URL;
 
 function _catalogUrl(locale: Locale): string {
-  return `${_catalogBaseUrl()}/storage/v1/object/public/${_BUCKET}/messages/${locale}.json`;
+  return `${_CATALOG_BASE_URL}/messages/${locale}.json`;
 }
 
 async function _fetchCatalog(locale: Locale): Promise<MessageCatalog | null> {

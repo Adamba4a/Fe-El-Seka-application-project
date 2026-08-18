@@ -7,12 +7,6 @@ from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 class Settings(BaseSettings):
     database_url: str
     supabase_url: str
-    # Base URL to substitute into browser-facing signed storage URLs. Needed
-    # because docker-compose overrides supabase_url to an internal-only
-    # container hostname for server-to-server calls; browsers can't resolve
-    # that. Defaults to supabase_url, which is already browser-reachable
-    # outside docker-compose (bare `uv run` dev, and production).
-    supabase_public_url: str = ""
     supabase_anon_key: str = ""
     supabase_service_role_key: str
     supabase_jwt_secret: str = ""
@@ -38,6 +32,14 @@ class Settings(BaseSettings):
     internal_secret: str = ""
     firebase_service_account_secret_name: str = "firebase_service_account"
     ai_service_url: str = "http://localhost:8001"
+
+    r2_account_id: str = ""
+    r2_access_key_id: str = ""
+    r2_secret_access_key: str = ""
+
+    @property
+    def r2_endpoint_url(self) -> str:
+        return f"https://{self.r2_account_id}.r2.cloudflarestorage.com"
 
     model_config = SettingsConfigDict(
         env_file=".env",

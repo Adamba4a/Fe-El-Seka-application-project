@@ -7,9 +7,9 @@ from pathlib import Path
 import joblib
 import pandas as pd
 from fastapi import APIRouter
-from supabase import create_client
 
 from app.config import get_settings
+from app.core.r2_client import get_r2_client
 from app.models.training import RetrainRequest, RetrainResponse
 from app.services.model_registry import ModelRegistry
 from pipelines.training.train_from_real_data import TrainingGateError, train_from_real_data
@@ -26,8 +26,9 @@ def _make_version() -> str:
 
 def _download_dataset(storage_path: str) -> pd.DataFrame:
     s = get_settings()
-    client = create_client(s.supabase_url, s.supabase_service_role_key)
-    data = client.storage.from_(s.training_datasets_bucket).download(storage_path)
+    data = get_r2_client().get_object(
+        Bucket=s.training_datasets_bucket, Key=storage_path
+    )["Body"].read()
     return pd.read_parquet(io.BytesIO(data))
 
 

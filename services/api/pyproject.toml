@@ -16,6 +16,7 @@ dependencies = [
     "firebase-admin>=6.3.0",
     "tzdata>=2024.1",
     "pyarrow>=15.0.0",
+    "boto3>=1.43.73",
 ]
 
 [build-system]

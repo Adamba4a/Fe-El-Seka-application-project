@@ -3,9 +3,8 @@ import logging
 import tempfile
 from pathlib import Path
 
-from supabase import Client, create_client
-
 from app.config import get_settings
+from app.core.r2_client import get_r2_client
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +21,13 @@ def _version_to_path(version: str) -> str:
 class ModelRegistry:
     def __init__(self) -> None:
         s = get_settings()
-        self._client: Client = create_client(s.supabase_url, s.supabase_service_role_key)
+        self._client = get_r2_client()
         self._bucket = s.model_registry_bucket
 
     def get_latest_version(self, model_type: str) -> str:
         path = f"{model_type}/latest.json"
         try:
-            data = self._client.storage.from_(self._bucket).download(path)
+            data = self._client.get_object(Bucket=self._bucket, Key=path)["Body"].read()
             return json.loads(data)["version"]
         except Exception as exc:
             raise RegistryError(f"Failed to fetch latest version for {model_type}: {exc}") from exc
@@ -37,7 +36,7 @@ class ModelRegistry:
         version_path = _version_to_path(version)
         remote = f"{model_type}/{version_path}/model.joblib"
         try:
-            data = self._client.storage.from_(self._bucket).download(remote)
+            data = self._client.get_object(Bucket=self._bucket, Key=remote)["Body"].read()
             tmp = tempfile.NamedTemporaryFile(suffix=".joblib", delete=False)
             tmp.write(data)
             tmp.flush()
@@ -50,8 +49,11 @@ class ModelRegistry:
         remote = f"{model_type}/{version_path}/model.joblib"
         try:
             with open(local_path, "rb") as f:
-                self._client.storage.from_(self._bucket).upload(
-                    remote, f.read(), {"content-type": "application/octet-stream"}
+                self._client.put_object(
+                    Bucket=self._bucket,
+                    Key=remote,
+                    Body=f.read(),
+                    ContentType="application/octet-stream",
                 )
             logger.info("Uploaded %s model v%s", model_type, version)
         except Exception as exc:
@@ -62,8 +64,8 @@ class ModelRegistry:
         remote = f"{model_type}/{version_path}/metadata.json"
         try:
             payload = json.dumps(metadata).encode()
-            self._client.storage.from_(self._bucket).upload(
-                remote, payload, {"content-type": "application/json"}
+            self._client.put_object(
+                Bucket=self._bucket, Key=remote, Body=payload, ContentType="application/json"
             )
         except Exception as exc:
             raise RegistryError(
@@ -74,15 +76,9 @@ class ModelRegistry:
         remote = f"{model_type}/latest.json"
         payload = json.dumps({"version": version}).encode()
         try:
-            # Try update first; fall back to upload for new bucket paths
-            try:
-                self._client.storage.from_(self._bucket).update(
-                    remote, payload, {"content-type": "application/json"}
-                )
-            except Exception:
-                self._client.storage.from_(self._bucket).upload(
-                    remote, payload, {"content-type": "application/json"}
-                )
+            self._client.put_object(
+                Bucket=self._bucket, Key=remote, Body=payload, ContentType="application/json"
+            )
         except Exception as exc:
             raise RegistryError(f"Failed to write latest.json for {model_type}: {exc}") from exc
 
@@ -92,7 +88,7 @@ class ModelRegistry:
         pre-feature and between rollout cycles)."""
         path = f"{model_type}/candidate.json"
         try:
-            data = self._client.storage.from_(self._bucket).download(path)
+            data = self._client.get_object(Bucket=self._bucket, Key=path)["Body"].read()
             return json.loads(data)["version"]
         except Exception:
             return None
@@ -101,15 +97,9 @@ class ModelRegistry:
         remote = f"{model_type}/candidate.json"
         payload = json.dumps({"version": version}).encode()
         try:
-            # Try update first; fall back to upload for new bucket paths
-            try:
-                self._client.storage.from_(self._bucket).update(
-                    remote, payload, {"content-type": "application/json"}
-                )
-            except Exception:
-                self._client.storage.from_(self._bucket).upload(
-                    remote, payload, {"content-type": "application/json"}
-                )
+            self._client.put_object(
+                Bucket=self._bucket, Key=remote, Body=payload, ContentType="application/json"
+            )
         except Exception as exc:
             raise RegistryError(f"Failed to write candidate.json for {model_type}: {exc}") from exc
 
@@ -118,6 +108,6 @@ class ModelRegistry:
         burn-in, or rollback. Not an error if it never existed."""
         remote = f"{model_type}/candidate.json"
         try:
-            self._client.storage.from_(self._bucket).remove([remote])
+            self._client.delete_object(Bucket=self._bucket, Key=remote)
         except Exception as exc:
             logger.warning("Failed to clear candidate.json for %s: %s", model_type, exc)

@@ -1,21 +1,6 @@
-from urllib.parse import urlsplit, urlunsplit
-
-from supabase import create_client
-
-from app.core.config import settings
+from app.core.r2_client import get_r2_client
 
 _SIGNED_URL_EXPIRY = 3600  # 60 minutes
-
-
-def _supabase():
-    return create_client(settings.supabase_url, settings.supabase_service_role_key)
-
-
-def _to_public_url(url: str) -> str:
-    public_base = settings.supabase_public_url or settings.supabase_url
-    public = urlsplit(public_base)
-    signed = urlsplit(url)
-    return urlunsplit((public.scheme, public.netloc, signed.path, signed.query, signed.fragment))
 
 
 def generate_signed_url(
@@ -23,24 +8,12 @@ def generate_signed_url(
 ) -> str | None:
     if not path:
         return None
-    sb = _supabase()
     try:
-        resp = sb.storage.from_(bucket).create_signed_url(path, expires_in)
-        # storage3 v2.x returns a dict; key changed from "signedURL" to "signedUrl"
-        if isinstance(resp, dict):
-            url = (
-                resp.get("signedUrl")
-                or resp.get("signedURL")
-                or resp.get("signed_url")
-            )
-        else:
-            # Fallback for object-style responses
-            url = (
-                getattr(resp, "signed_url", None)
-                or getattr(resp, "signedUrl", None)
-                or getattr(resp, "signedURL", None)
-            )
-        return _to_public_url(url) if url else None
+        return get_r2_client().generate_presigned_url(
+            "get_object",
+            Params={"Bucket": bucket, "Key": path},
+            ExpiresIn=expires_in,
+        )
     except Exception:
         return None
 
@@ -61,16 +34,15 @@ def get_identity_document_urls(submission: dict) -> dict:
 def download_file(bucket: str, path: str) -> bytes | None:
     if not path:
         return None
-    sb = _supabase()
     try:
-        return sb.storage.from_(bucket).download(path)
+        resp = get_r2_client().get_object(Bucket=bucket, Key=path)
+        return resp["Body"].read()
     except Exception:
         return None
 
 
 def upload_file(bucket: str, path: str, data: bytes, content_type: str) -> str:
-    sb = _supabase()
-    sb.storage.from_(bucket).upload(
-        path, data, {"content-type": content_type, "upsert": "true"}
+    get_r2_client().put_object(
+        Bucket=bucket, Key=path, Body=data, ContentType=content_type
     )
     return path

@@ -10,6 +10,14 @@ class Settings(BaseSettings):
     training_datasets_bucket: str = "training-datasets"
     ai_version: str = "0.1.0"
 
+    r2_account_id: str = ""
+    r2_access_key_id: str = ""
+    r2_secret_access_key: str = ""
+
+    @property
+    def r2_endpoint_url(self) -> str:
+        return f"https://{self.r2_account_id}.r2.cloudflarestorage.com"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=False,
