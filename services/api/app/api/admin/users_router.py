@@ -9,7 +9,7 @@ from supabase import create_client
 
 from app.core.config import settings
 from app.dependencies.roles import get_current_admin
-from app.services import audit_service, auth_service
+from app.services import audit_service, auth_service, storage_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -97,7 +97,10 @@ def get_user_detail(
     sb = _supabase()
     p = (
         sb.table("profiles")
-        .select("id, display_name, email, role, verification_status, created_at")
+        .select(
+            "id, display_name, email, role, verification_status, created_at,"
+            " phone_number, profile_photo_path"
+        )
         .eq("id", user_id)
         .maybe_single()
         .execute()
@@ -113,10 +116,14 @@ def get_user_detail(
             "user_id": row["id"],
             "display_name": row.get("display_name") or "",
             "email": row.get("email") or "",
+            "phone_number": row.get("phone_number"),
             "role": role,
             "verification_status": row["verification_status"],
             "created_at": str(row["created_at"]),
             "is_admin_role": role == "admin",
+            "profile_photo_signed_url": storage_service.generate_signed_url(
+                "profile-photos", row.get("profile_photo_path")
+            ),
         },
         "rides": [],
         "bookings": [],

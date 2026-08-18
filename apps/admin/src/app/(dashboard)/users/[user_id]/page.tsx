@@ -52,22 +52,44 @@ export default function UserDetailPage({ params }: { params: { user_id: string }
       <h1 className="text-xl font-semibold">User Detail</h1>
 
       <section className="space-y-3">
-        <dl className="grid grid-cols-2 gap-2 text-sm">
-          <dt className="text-gray-500">Name</dt><dd>{profile.display_name || "—"}</dd>
-          <dt className="text-gray-500">Email</dt><dd>{profile.email}</dd>
-          <dt className="text-gray-500">Role</dt><dd className="capitalize">{profile.role}</dd>
-          <dt className="text-gray-500">Status</dt>
-          <dd>
-            <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${
-              profile.verification_status === "verified" ? "bg-green-100 text-green-700" :
-              profile.verification_status === "suspended" ? "bg-red-100 text-red-700" :
-              "bg-yellow-100 text-yellow-700"
-            }`}>
-              {profile.verification_status.replace(/_/g, " ")}
-            </span>
-          </dd>
-          <dt className="text-gray-500">Joined</dt><dd>{new Date(profile.created_at).toLocaleString()}</dd>
-        </dl>
+        <div className="flex items-start gap-4">
+          {profile.profile_photo_signed_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={profile.profile_photo_signed_url}
+              alt="Profile"
+              className="w-20 h-20 rounded-full object-cover border"
+            />
+          )}
+          <dl className="grid grid-cols-2 gap-2 text-sm flex-1">
+            <dt className="text-gray-500">User ID</dt>
+            <dd className="flex items-center gap-2">
+              <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded select-all">{profile.user_id}</code>
+              <button
+                type="button"
+                onClick={() => navigator.clipboard.writeText(profile.user_id)}
+                className="text-xs text-blue-600 hover:underline"
+              >
+                Copy
+              </button>
+            </dd>
+            <dt className="text-gray-500">Name</dt><dd>{profile.display_name || "—"}</dd>
+            <dt className="text-gray-500">Email</dt><dd>{profile.email}</dd>
+            <dt className="text-gray-500">Phone</dt><dd>{profile.phone_number ?? "—"}</dd>
+            <dt className="text-gray-500">Role</dt><dd className="capitalize">{profile.role}</dd>
+            <dt className="text-gray-500">Status</dt>
+            <dd>
+              <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${
+                profile.verification_status === "verified" ? "bg-green-100 text-green-700" :
+                profile.verification_status === "suspended" ? "bg-red-100 text-red-700" :
+                "bg-yellow-100 text-yellow-700"
+              }`}>
+                {profile.verification_status.replace(/_/g, " ")}
+              </span>
+            </dd>
+            <dt className="text-gray-500">Joined</dt><dd>{new Date(profile.created_at).toLocaleString()}</dd>
+          </dl>
+        </div>
 
         {profile.role === "driver" && (
           <a
