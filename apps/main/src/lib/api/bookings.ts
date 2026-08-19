@@ -2,6 +2,17 @@ import { env } from "../env";
 
 const base = env.apiUrl;
 
+// FastAPI's default HTTPException handler wraps our {error, message} dict under
+// a "detail" key ({"detail": {"error": ..., "message": ...}}) — unwrap it so
+// callers can check err.error / err.message directly.
+function unwrapError(body: unknown): { error?: string; message?: string } {
+  if (body && typeof body === "object" && "detail" in body) {
+    const detail = (body as { detail: unknown }).detail;
+    if (detail && typeof detail === "object") return detail;
+  }
+  return (body ?? {}) as { error?: string; message?: string };
+}
+
 export interface PassengerBooking {
   booking_id: string;
   ride_id: string;
@@ -36,7 +47,7 @@ export async function listBookings(
     headers: { Authorization: `Bearer ${token}` },
   });
   const json = await res.json();
-  if (!res.ok) throw json;
+  if (!res.ok) throw unwrapError(json);
   return json;
 }
 
@@ -54,6 +65,6 @@ export async function addBookingSeats(
     body: JSON.stringify({ seats }),
   });
   const json = await res.json();
-  if (!res.ok) throw json;
+  if (!res.ok) throw unwrapError(json);
   return json;
 }

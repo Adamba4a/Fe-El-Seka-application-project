@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.database import get_pool
 from app.dependencies.auth import get_current_user
+from app.dependencies.roles import get_current_passenger
 from app.dependencies.verification import get_current_verified_passenger
 from app.models.booking import (
     BookingAddSeatsRequest,
@@ -74,7 +75,7 @@ async def list_bookings(
     status_filter: Optional[str] = Query(None, alias="status"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=50),
-    profile: dict = Depends(get_current_verified_passenger),
+    profile: dict = Depends(get_current_passenger),
 ):
     passenger_id = uuid.UUID(str(profile["id"]))
     page_size = min(page_size, 50)
@@ -249,7 +250,7 @@ async def get_booking(
 async def cancel_booking_passenger(
     booking_id: uuid.UUID,
     payload: BookingCancelRequest = None,
-    profile: dict = Depends(get_current_verified_passenger),
+    profile: dict = Depends(get_current_passenger),
 ):
     passenger_id = uuid.UUID(str(profile["id"]))
     reason = payload.reason if payload else None
