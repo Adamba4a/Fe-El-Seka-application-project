@@ -243,6 +243,8 @@
       "departure": "الانطلاق",
       "rideTime": "مدة الرحلة",
       "estimatedRideTime": "مدة الرحلة المتوقعة",
+      "minutesShort": "{minutes} دقيقة",
+      "seats": "المقاعد",
       "availableSeats": "المقاعد المتاحة",
       "full": "ممتلئة",
       "pricePerSeat": "السعر لكل مقعد",

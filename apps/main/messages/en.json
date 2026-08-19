@@ -243,6 +243,8 @@
       "departure": "Departure",
       "rideTime": "Ride time",
       "estimatedRideTime": "Estimated ride time",
+      "minutesShort": "{minutes} min",
+      "seats": "Seats",
       "availableSeats": "Available seats",
       "full": "Full",
       "pricePerSeat": "Price per seat",

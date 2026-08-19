@@ -268,7 +268,7 @@ export default function PassengerRideDetailPage() {
           {preview.route_duration_minutes != null && (
             <div className="flex justify-between text-content-secondary">
               <span>{t("rideTime")}</span>
-              <span className="font-medium text-content-primary">{preview.route_duration_minutes} min</span>
+              <span className="font-medium text-content-primary">{t("minutesShort", { minutes: preview.route_duration_minutes })}</span>
             </div>
           )}
           <div className="flex justify-between text-content-secondary">
@@ -464,7 +464,7 @@ export default function PassengerRideDetailPage() {
         {ctx.estimated_travel_minutes && (
           <div className="flex justify-between text-content-secondary">
             <span>{t("estimatedRideTime")}</span>
-            <span className="font-medium text-content-primary">{ctx.estimated_travel_minutes} min</span>
+            <span className="font-medium text-content-primary">{t("minutesShort", { minutes: ctx.estimated_travel_minutes })}</span>
           </div>
         )}
         <div className="flex justify-between text-content-secondary">
@@ -575,7 +575,7 @@ export default function PassengerRideDetailPage() {
         )}
 
         <div className="flex justify-between text-sm font-semibold text-content-primary">
-          <span>Total</span>
+          <span>{t("total")}</span>
           <span>{formatCurrency(Number(totalPrice), locale)}</span>
         </div>
 
@@ -597,7 +597,7 @@ export default function PassengerRideDetailPage() {
             onClick={handleBook}
             className="w-full bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-opacity"
           >
-            {noSeats ? "No Seats Available" : "Book Seat"}
+            {noSeats ? t("noSeatsAvailable") : t("bookSeat")}
           </button>
         )}
       </div>
@@ -605,54 +605,54 @@ export default function PassengerRideDetailPage() {
       {/* Booking confirmation bottom sheet */}
       <BottomSheet isOpen={showSheet} onClose={() => { setShowSheet(false); setBookingError(null); }}>
         <div className="space-y-4 pt-1">
-          <h2 className="text-base font-semibold text-content-primary">Confirm Booking</h2>
+          <h2 className="text-base font-semibold text-content-primary">{t("confirmBooking")}</h2>
 
           <div className="space-y-2 text-sm">
             <div className="flex justify-between text-content-secondary">
-              <span>Driver</span>
+              <span>{t("driver")}</span>
               <span className="font-medium text-content-primary">{ride.driver.display_name ?? "—"}</span>
             </div>
             <div className="flex justify-between text-content-secondary">
-              <span>Departure</span>
+              <span>{t("departure")}</span>
               <span className="font-medium text-content-primary">{formatDeparture(ride.departure_datetime, locale)}</span>
             </div>
             <div className="flex justify-between text-content-secondary">
-              <span>Pickup</span>
+              <span>{t("pickup")}</span>
               <span className="font-medium text-content-primary">
-                {ctx.pickup_walk_meters}m walk to boarding point
+                {t("pickupWalkNote", { meters: ctx.pickup_walk_meters })}
               </span>
             </div>
             <div className="flex justify-between text-content-secondary">
-              <span>Dropoff</span>
+              <span>{t("dropoff")}</span>
               <span className="font-medium text-content-primary">
-                {ctx.dropoff_walk_meters}m walk from alighting point
+                {t("dropoffWalkNote", { meters: ctx.dropoff_walk_meters })}
               </span>
             </div>
           </div>
 
           <div className="border-t border-border-default pt-3 space-y-1 text-sm">
             <div className="flex justify-between text-content-secondary">
-              <span>Seats</span>
+              <span>{t("seats")}</span>
               <span className="font-medium text-content-primary">{clampedSeatCount}</span>
             </div>
             <div className="flex justify-between text-content-secondary">
-              <span>Base fare</span>
+              <span>{t("baseFare")}</span>
               <span>{formatCurrency(Number(ride.per_seat_price) * clampedSeatCount, locale)}</span>
             </div>
             {(premiumOption === "premium_pickup" || premiumOption === "premium_both") && ctx.premium_pickup_fee && (
               <div className="flex justify-between text-amber-700">
-                <span>Premium pickup</span>
+                <span>{t("premiumPickupFee")}</span>
                 <span>+{formatCurrency(ctx.premium_pickup_fee, locale)}</span>
               </div>
             )}
             {(premiumOption === "premium_dropoff" || premiumOption === "premium_both") && ctx.premium_dropoff_fee && (
               <div className="flex justify-between text-amber-700">
-                <span>Premium dropoff</span>
+                <span>{t("premiumDropoffFee")}</span>
                 <span>+{formatCurrency(ctx.premium_dropoff_fee, locale)}</span>
               </div>
             )}
             <div className="flex justify-between font-semibold text-content-primary pt-1 border-t border-border-default">
-              <span>Total</span>
+              <span>{t("total")}</span>
               <span>{formatCurrency(Number(totalPrice), locale)}</span>
             </div>
           </div>
@@ -668,7 +668,7 @@ export default function PassengerRideDetailPage() {
             className="w-full flex items-center justify-center gap-2 bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl py-3 font-medium disabled:opacity-50 transition-opacity"
           >
             {bookingLoading && <Spinner />}
-            {bookingLoading ? "Booking…" : "Confirm Booking"}
+            {bookingLoading ? t("booking") : t("confirmBooking")}
           </button>
         </div>
       </BottomSheet>
