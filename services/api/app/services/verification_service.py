@@ -142,7 +142,6 @@ async def submit_documents(
         # Paths are pre-computed so they can be inserted before the upload.
         "front_id_path": f"{user_id}/nid_front_{submission_id}.{front_ext}",
         "back_id_path": f"{user_id}/nid_back_{submission_id}.{back_ext}",
-        "selfie_path": f"{user_id}/selfie_{submission_id}.{selfie_ext}",
     }
     if license_data:
         lic_ext = "jpg" if license.content_type == "image/jpeg" else "png"
@@ -177,12 +176,6 @@ async def submit_documents(
         back_data,
         back_id.content_type,
     )
-    storage_service.upload_file(
-        "identity-documents",
-        row["selfie_path"],
-        selfie_data,
-        selfie.content_type,
-    )
     if license_data:
         storage_service.upload_file(
             "identity-documents",
@@ -191,9 +184,24 @@ async def submit_documents(
             license.content_type,
         )
 
+    # The selfie doubles as the user's public profile photo: it becomes their
+    # avatar throughout the app (not just a verification artifact), so it is
+    # stored in the profile-photos bucket and set on profiles.profile_photo_path
+    # exactly as the Settings photo upload does.
+    profile_photo_path = f"{user_id}/profile.{selfie_ext}"
+    storage_service.upload_file(
+        "profile-photos",
+        profile_photo_path,
+        selfie_data,
+        selfie.content_type,
+    )
+
     (
         sb.table("profiles")
-        .update({"verification_status": "pending_review"})
+        .update({
+            "verification_status": "pending_review",
+            "profile_photo_path": profile_photo_path,
+        })
         .eq("id", user_id)
         .execute()
     )
