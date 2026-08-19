@@ -67,7 +67,12 @@ export default function RatingSummaryPage() {
 
   return (
     <div className="max-w-md mx-auto space-y-4">
-      <h1 className="text-xl font-semibold text-content-primary">{t("heading")}</h1>
+      <div className="flex items-center gap-3">
+        <a href="/settings/profile" className="text-content-primary hover:opacity-70 text-lg leading-none">
+          <span className="inline-block rtl:rotate-180">←</span>
+        </a>
+        <h1 className="text-xl font-semibold text-content-primary">{t("heading")}</h1>
+      </div>
 
       <div className="rounded-xl border border-border-default bg-surface-card">
         <div className="p-4 flex items-center gap-4">

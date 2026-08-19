@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.database import get_pool
 from app.dependencies.auth import get_current_user
+from app.dependencies.roles import get_current_driver
 from app.dependencies.verification import get_current_verified_driver
 from app.models.booking import (
     BookingCancelRequest,
@@ -145,7 +146,7 @@ async def list_rides(
     status_filter: Optional[str] = Query(None, alias="status"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=50),
-    profile: dict = Depends(get_current_verified_driver),
+    profile: dict = Depends(get_current_driver),
 ):
     driver_id = uuid.UUID(str(profile["id"]))
     result = await ride_service.list_rides(
@@ -164,7 +165,7 @@ async def list_rides(
 @router.get("/{ride_id}")
 async def get_ride(
     ride_id: uuid.UUID,
-    profile: dict = Depends(get_current_verified_driver),
+    profile: dict = Depends(get_current_driver),
 ):
     driver_id = uuid.UUID(str(profile["id"]))
     try:

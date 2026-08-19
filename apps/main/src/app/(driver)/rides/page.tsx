@@ -33,8 +33,9 @@ export default function MyRidesPage() {
       if (!session) return;
       const res = await listRides(session.access_token, { status: status || undefined });
       setRides(res.rides);
-    } catch {
-      setError(t("loadFailed"));
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setError(e?.message ?? t("loadFailed"));
     } finally {
       setLoading(false);
     }

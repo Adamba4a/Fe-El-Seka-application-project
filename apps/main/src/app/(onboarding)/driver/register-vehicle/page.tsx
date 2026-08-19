@@ -47,6 +47,9 @@ export default function RegisterVehiclePage() {
   return (
     <main className="min-h-screen flex items-center justify-center p-4 bg-surface-bg">
       <div className="w-full max-w-sm space-y-6">
+        <a href="/rides" className="inline-block text-content-primary hover:opacity-70 text-lg leading-none">
+          <span className="inline-block rtl:rotate-180">←</span>
+        </a>
         <div className="text-center">
           <h1 className="text-h3 text-content-primary">{t("title")}</h1>
           <p className="text-body-sm text-content-muted mt-1">{t("subtitle")}</p>

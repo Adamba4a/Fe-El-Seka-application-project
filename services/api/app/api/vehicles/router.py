@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.dependencies.roles import get_current_driver
-from app.dependencies.verification import get_current_verified_driver
 from app.models.vehicle import (
     VehicleRegister,
     VehicleResponse,
@@ -21,7 +20,7 @@ router = APIRouter()
 )
 def register_vehicle(
     body: VehicleRegister,
-    profile: dict = Depends(get_current_verified_driver),
+    profile: dict = Depends(get_current_driver),
 ) -> dict:
     return vehicle_service.register_vehicle(profile["id"], body.model_dump())
 
@@ -34,7 +33,7 @@ def get_vehicle(profile: dict = Depends(get_current_driver)) -> dict:
 @router.put("/me", response_model=VehicleResponse)
 def update_vehicle(
     body: VehicleUpdate,
-    profile: dict = Depends(get_current_verified_driver),
+    profile: dict = Depends(get_current_driver),
 ) -> dict:
     return vehicle_service.update_vehicle(profile["id"], body.color, body.seat_count)
 
@@ -42,7 +41,7 @@ def update_vehicle(
 @router.post("/me/update-request", response_model=VehicleUpdateRequestResponse)
 def submit_vehicle_update_request(
     body: VehicleUpdateRequest,
-    profile: dict = Depends(get_current_verified_driver),
+    profile: dict = Depends(get_current_driver),
 ) -> dict:
     data = body.model_dump(exclude_none=True)
     if not data:
