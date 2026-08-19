@@ -46,6 +46,13 @@ class ProfileUpdate(BaseModel):
             raise ValueError("Phone number must be an Egyptian number in the format +2 followed by 11 digits, e.g. +201234567890")
         return v
 
+    @field_validator("date_of_birth", mode="before")
+    @classmethod
+    def validate_date_of_birth(cls, v: object) -> object:
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
+
 
 class ProfileResponse(BaseModel):
     id: str
