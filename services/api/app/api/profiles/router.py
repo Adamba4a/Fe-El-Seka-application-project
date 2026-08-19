@@ -84,7 +84,11 @@ def update_profile(
     profile: dict = Depends(get_current_user),
 ) -> dict:
     return profile_service.update_profile(
-        profile["id"], body.display_name, body.language_preference, body.phone_number
+        profile["id"],
+        body.display_name,
+        body.language_preference,
+        body.phone_number,
+        body.date_of_birth.isoformat() if body.date_of_birth else None,
     )
 
 

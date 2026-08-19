@@ -22,6 +22,7 @@ export interface Profile {
   rating_count: number;
   created_at: string;
   language_preference: Locale | null;
+  date_of_birth: string | null;
 }
 
 export interface PublicRideSummary {
@@ -52,4 +53,5 @@ export interface ProfileUpdate {
   display_name?: string;
   language_preference?: Locale;
   phone_number?: string;
+  date_of_birth?: string;
 }

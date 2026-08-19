@@ -1,4 +1,5 @@
 import re
+from datetime import date
 from typing import Literal
 
 from pydantic import BaseModel, field_validator
@@ -23,6 +24,7 @@ class ProfileUpdate(BaseModel):
     display_name: str | None = None
     language_preference: Literal["en", "ar"] | None = None
     phone_number: str | None = None
+    date_of_birth: date | None = None
 
     @field_validator("display_name")
     @classmethod
@@ -58,6 +60,7 @@ class ProfileResponse(BaseModel):
     rating_count: int = 0
     created_at: str
     language_preference: str | None = None
+    date_of_birth: str | None = None
 
 
 class PublicRideSummary(BaseModel):

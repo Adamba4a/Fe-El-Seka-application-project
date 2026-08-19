@@ -101,11 +101,6 @@
         "signInFailed": "Password set, but could not sign you back in. Please sign in again.",
         "setFailed": "Could not set password. Please try again."
       }
-    },
-    "completeProfile": {
-      "title": "Complete your profile",
-      "subtitle": "We need a few more details before you can continue",
-      "submit": "Continue"
     }
   },
   "onboarding": {

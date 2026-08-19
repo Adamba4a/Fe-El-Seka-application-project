@@ -57,6 +57,7 @@ def update_profile(
     display_name: str | None,
     language_preference: str | None = None,
     phone_number: str | None = None,
+    date_of_birth: str | None = None,
 ) -> dict:
     sb = _supabase()
     updates: dict = {}
@@ -66,6 +67,8 @@ def update_profile(
         updates["language_preference"] = language_preference
     if phone_number is not None:
         updates["phone_number"] = phone_number
+    if date_of_birth is not None:
+        updates["date_of_birth"] = date_of_birth
     if not updates:
         return get_profile_me(user_id)
     resp = sb.table("profiles").update(updates).eq("id", user_id).execute()
@@ -226,4 +229,5 @@ def _format_profile(row: dict) -> dict:
         "rating_count": row.get("rating_count") or 0,
         "created_at": str(row["created_at"]),
         "language_preference": row.get("language_preference"),
+        "date_of_birth": str(row["date_of_birth"]) if row.get("date_of_birth") else None,
     }
