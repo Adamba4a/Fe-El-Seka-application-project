@@ -16,6 +16,7 @@ async def submit_documents(
     background_tasks: BackgroundTasks,
     front_id: UploadFile = File(...),
     back_id: UploadFile = File(...),
+    selfie: UploadFile = File(...),
     license: UploadFile | None = File(None),
     profile: dict = Depends(get_current_user),
 ) -> dict:
@@ -24,6 +25,7 @@ async def submit_documents(
         user_role=profile["role"],
         front_id=front_id,
         back_id=back_id,
+        selfie=selfie,
         license=license,
         background_tasks=background_tasks,
     )

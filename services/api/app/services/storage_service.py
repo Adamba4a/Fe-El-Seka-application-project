@@ -24,6 +24,7 @@ def get_identity_document_urls(submission: dict) -> dict:
         ("front_id_path", "front_id"),
         ("back_id_path", "back_id"),
         ("license_path", "license"),
+        ("selfie_path", "selfie"),
     ]:
         path = submission.get(field)
         if path:

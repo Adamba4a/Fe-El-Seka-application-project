@@ -59,18 +59,23 @@ export default function SubmissionDetailPage({ params }: { params: { submission_
   if (error) return <main className="p-8 text-red-600">{error}</main>;
   if (!detail) return <main className="p-8 text-gray-400">Loading…</main>;
 
-  const { front_id, back_id, license } = detail.document_signed_urls;
+  const { front_id, back_id, license, selfie } = detail.document_signed_urls;
   const docUrls = [
     front_id,
     back_id,
     ...(license ? [license] : []),
+    ...(selfie ? [selfie] : []),
     ...(detail.profile_photo_signed_url ? [detail.profile_photo_signed_url] : []),
   ];
   const idLabels =
     detail.submission_type === "driver_id_license" && license
       ? ["Front ID", "Back ID", "License"]
       : ["Front ID", "Back ID"];
-  const labels = [...idLabels, ...(detail.profile_photo_signed_url ? ["Profile Photo"] : [])];
+  const labels = [
+    ...idLabels,
+    ...(selfie ? ["Selfie"] : []),
+    ...(detail.profile_photo_signed_url ? ["Profile Photo (settings)"] : []),
+  ];
 
   return (
     <main className="p-8 space-y-6 max-w-2xl">

@@ -7,12 +7,13 @@ interface DocumentUploadProps {
   label: string;
   onFile: (file: File) => void;
   required?: boolean;
+  capture?: "user" | "environment";
 }
 
 const ALLOWED = ["image/jpeg", "image/png"];
 const MAX_BYTES = 10 * 1024 * 1024;
 
-export function DocumentUpload({ label, onFile, required }: DocumentUploadProps) {
+export function DocumentUpload({ label, onFile, required, capture }: DocumentUploadProps) {
   const t = useTranslations("documentUpload");
   const ref = useRef<HTMLInputElement>(null);
   const objectUrlRef = useRef<string | null>(null);
@@ -70,6 +71,7 @@ export function DocumentUpload({ label, onFile, required }: DocumentUploadProps)
         ref={ref}
         type="file"
         accept="image/jpeg,image/png"
+        capture={capture}
         className="hidden"
         onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
       />

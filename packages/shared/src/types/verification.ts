@@ -64,6 +64,7 @@ export interface AdminSubmissionDetail extends AdminQueueItem {
     front_id: string;
     back_id: string;
     license?: string;
+    selfie?: string;
   };
   ai_readout: AIReadout | null;
 }

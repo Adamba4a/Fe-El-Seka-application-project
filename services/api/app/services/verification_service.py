@@ -54,6 +54,7 @@ async def submit_documents(
     user_role: str,
     front_id: UploadFile,
     back_id: UploadFile,
+    selfie: UploadFile,
     license: UploadFile | None,
     background_tasks: BackgroundTasks,
 ) -> dict:
@@ -62,20 +63,12 @@ async def submit_documents(
     # Check lock
     profile = (
         sb.table("profiles")
-        .select("is_submission_locked, display_name, profile_photo_path, phone_number")
+        .select("is_submission_locked, display_name")
         .eq("id", user_id)
         .single()
         .execute()
         .data
     )
-    if profile and not (profile.get("phone_number") and profile.get("profile_photo_path")):
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "error": "profile_incomplete",
-                "message": "Add your phone number and profile photo before submitting documents.",
-            },
-        )
     if profile and profile["is_submission_locked"]:
         support_email = _get_support_email()
         raise HTTPException(
@@ -116,6 +109,7 @@ async def submit_documents(
 
     front_data = await _validate_and_read(front_id)
     back_data = await _validate_and_read(back_id)
+    selfie_data = await _validate_and_read(selfie)
     license_data = None
     if license and user_role == "driver":
         license_data = await _validate_and_read(license)
@@ -136,6 +130,7 @@ async def submit_documents(
 
     front_ext = "jpg" if front_id.content_type == "image/jpeg" else "png"
     back_ext = "jpg" if back_id.content_type == "image/jpeg" else "png"
+    selfie_ext = "jpg" if selfie.content_type == "image/jpeg" else "png"
 
     # Build the DB row first; upload to storage only after a successful insert
     # so we never create orphaned storage objects.
@@ -147,6 +142,7 @@ async def submit_documents(
         # Paths are pre-computed so they can be inserted before the upload.
         "front_id_path": f"{user_id}/nid_front_{submission_id}.{front_ext}",
         "back_id_path": f"{user_id}/nid_back_{submission_id}.{back_ext}",
+        "selfie_path": f"{user_id}/selfie_{submission_id}.{selfie_ext}",
     }
     if license_data:
         lic_ext = "jpg" if license.content_type == "image/jpeg" else "png"
@@ -181,6 +177,12 @@ async def submit_documents(
         back_data,
         back_id.content_type,
     )
+    storage_service.upload_file(
+        "identity-documents",
+        row["selfie_path"],
+        selfie_data,
+        selfie.content_type,
+    )
     if license_data:
         storage_service.upload_file(
             "identity-documents",
@@ -209,7 +211,8 @@ async def submit_documents(
         front_content_type=front_id.content_type,
         back_data=back_data,
         back_content_type=back_id.content_type,
-        profile_photo_path=(profile or {}).get("profile_photo_path"),
+        selfie_data=selfie_data,
+        selfie_content_type=selfie.content_type,
     )
 
     return {
@@ -268,19 +271,14 @@ async def _run_ai_verification(
     front_content_type: str,
     back_data: bytes,
     back_content_type: str,
-    profile_photo_path: str | None,
+    selfie_data: bytes,
+    selfie_content_type: str,
 ) -> None:
     try:
-        selfie = None
-        if profile_photo_path:
-            selfie_data = storage_service.download_file("profile-photos", profile_photo_path)
-            if selfie_data:
-                selfie = (selfie_data, "image/jpeg")
-
         readout = await ai_client.verify_submission(
             front_id=(front_data, front_content_type),
             back_id=(back_data, back_content_type),
-            selfie=selfie,
+            selfie=(selfie_data, selfie_content_type),
             display_name=display_name,
             submission_type=submission_type,
         )

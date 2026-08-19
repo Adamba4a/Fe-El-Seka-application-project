@@ -16,6 +16,7 @@ export default function DriverVerifyDocumentsPage() {
   const [initializing, setInitializing] = useState(true);
   const [frontId, setFrontId] = useState<File | null>(null);
   const [backId, setBackId] = useState<File | null>(null);
+  const [selfie, setSelfie] = useState<File | null>(null);
   const [license, setLicense] = useState<File | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [lockout, setLockout] = useState<{ message: string; support_email?: string } | null>(null);
@@ -50,7 +51,7 @@ export default function DriverVerifyDocumentsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!frontId || !backId || !license) { setError(t("errors.allRequired")); return; }
+    if (!frontId || !backId || !selfie || !license) { setError(t("errors.allRequired")); return; }
     setLoading(true);
     setError("");
 
@@ -59,7 +60,7 @@ export default function DriverVerifyDocumentsPage() {
     if (!session) { router.replace("/login"); return; }
 
     try {
-      await submitDocuments(session.access_token, frontId, backId, license);
+      await submitDocuments(session.access_token, frontId, backId, selfie, license);
       setSubmitted(true);
     } catch (err: unknown) {
       const e = err as { error?: string; message?: string; support_email?: string };
@@ -124,11 +125,12 @@ export default function DriverVerifyDocumentsPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <DocumentUpload label={t("frontIdLabel")} onFile={setFrontId} required />
           <DocumentUpload label={t("backIdLabel")} onFile={setBackId} required />
+          <DocumentUpload label={t("selfieLabel")} onFile={setSelfie} required capture="user" />
           <DocumentUpload label={t("licenseLabel")} onFile={setLicense} required />
           {error && <p className="text-caption text-content-destructive">{error}</p>}
           <button
             type="submit"
-            disabled={loading || !frontId || !backId || !license}
+            disabled={loading || !frontId || !backId || !selfie || !license}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-opacity"
           >
             {loading && <Spinner />}

@@ -16,6 +16,7 @@ export default function VerifyIdPage() {
   const [initializing, setInitializing] = useState(true);
   const [frontId, setFrontId] = useState<File | null>(null);
   const [backId, setBackId] = useState<File | null>(null);
+  const [selfie, setSelfie] = useState<File | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [lockout, setLockout] = useState<{ message: string; support_email?: string } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -49,7 +50,7 @@ export default function VerifyIdPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!frontId || !backId) { setError(t("errors.bothRequired")); return; }
+    if (!frontId || !backId || !selfie) { setError(t("errors.bothRequired")); return; }
     setLoading(true);
     setError("");
 
@@ -58,7 +59,7 @@ export default function VerifyIdPage() {
     if (!session) { router.replace("/login"); return; }
 
     try {
-      await submitDocuments(session.access_token, frontId, backId);
+      await submitDocuments(session.access_token, frontId, backId, selfie);
       setSubmitted(true);
     } catch (err: unknown) {
       const e = err as { error?: string; message?: string; support_email?: string };
@@ -123,10 +124,11 @@ export default function VerifyIdPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <DocumentUpload label={t("frontIdLabel")} onFile={setFrontId} required />
           <DocumentUpload label={t("backIdLabel")} onFile={setBackId} required />
+          <DocumentUpload label={t("selfieLabel")} onFile={setSelfie} required capture="user" />
           {error && <p className="text-caption text-content-destructive">{error}</p>}
           <button
             type="submit"
-            disabled={loading || !frontId || !backId}
+            disabled={loading || !frontId || !backId || !selfie}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-opacity"
           >
             {loading && <Spinner />}

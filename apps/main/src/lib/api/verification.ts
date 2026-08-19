@@ -18,11 +18,13 @@ export async function submitDocuments(
   token: string,
   frontId: File,
   backId: File,
+  selfie: File,
   license?: File
 ): Promise<VerificationSubmission> {
   const form = new FormData();
   form.append("front_id", frontId);
   form.append("back_id", backId);
+  form.append("selfie", selfie);
   if (license) form.append("license", license);
 
   const res = await fetch(`${base}/api/verification/submit`, {
