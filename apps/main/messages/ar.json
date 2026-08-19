@@ -633,6 +633,8 @@
   },
   "nav": {
     "verifiedDriver": "سائق موثّق",
+    "verifyIdentity": "تحقق من الهوية",
+    "pendingReview": "التحقق قيد المراجعة",
     "notificationsAriaLabel": "الإشعارات",
     "settingsAriaLabel": "الإعدادات",
     "profileAriaLabel": "الملف الشخصي",
@@ -654,7 +656,7 @@
     "phonePlaceholder": "+201234567890",
     "save": "حفظ",
     "saving": "جارٍ الحفظ…",
-    "uploadPhoto": "تحميل صورة *",
+    "uploadPhoto": "تحميل صورة",
     "changePhoto": "تغيير الصورة",
     "uploadPhotoAriaLabel": "تحميل صورة الملف الشخصي",
     "errors": {
@@ -662,7 +664,6 @@
       "minChars": "حرفان على الأقل",
       "maxChars": "50 حرفًا كحد أقصى",
       "phoneInvalid": "يرجى إدخال رقم هاتف صحيح، مثل ‎+201234567890",
-      "photoRequired": "يرجى إضافة صورة شخصية",
       "invalidPhotoType": "يُقبل فقط ملفات JPEG وPNG",
       "photoTooLarge": "يجب أن تكون الصورة أقل من 5 ميغابايت"
     }

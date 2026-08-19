@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useSession } from "@/lib/auth/hooks";
 import { getMe } from "@/lib/api/profiles";
@@ -18,18 +19,22 @@ interface AppShellProps {
 
 export function AppShell({ variant, children }: AppShellProps) {
   const session = useSession();
+  const pathname = usePathname();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [suspended, setSuspended] = useState(false);
   const t = useTranslations("nav");
 
   useEffect(() => onAccountSuspended(() => setSuspended(true)), []);
 
+  // Re-fetch on every navigation (not just once per session) so a
+  // verification_status change (e.g. approved while browsing) is picked up
+  // by the next page view instead of staying cached for the whole session.
   useEffect(() => {
     if (!session?.access_token) return;
     getMe(session.access_token)
       .then(setProfile)
       .catch(() => {});
-  }, [session]);
+  }, [session, pathname]);
 
   const userName =
     profile?.display_name ?? (variant === "driver" ? t("defaultDriverName") : t("defaultPassengerName"));
@@ -46,7 +51,12 @@ export function AppShell({ variant, children }: AppShellProps) {
           }
         />
       )}
-      <TopBar variant={variant} userName={userName} avatarUrl={profile?.profile_photo_url} />
+      <TopBar
+        variant={variant}
+        userName={userName}
+        avatarUrl={profile?.profile_photo_url}
+        verificationStatus={profile?.verification_status}
+      />
       <main className="max-w-2xl mx-auto px-4 pb-24">{children}</main>
       <BottomNav variant={variant} />
     </div>

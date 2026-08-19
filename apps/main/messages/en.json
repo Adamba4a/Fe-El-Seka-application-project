@@ -633,6 +633,8 @@
   },
   "nav": {
     "verifiedDriver": "VERIFIED DRIVER",
+    "verifyIdentity": "Verify identity",
+    "pendingReview": "Verification pending",
     "notificationsAriaLabel": "Notifications",
     "settingsAriaLabel": "Settings",
     "profileAriaLabel": "Profile",
@@ -654,7 +656,7 @@
     "phonePlaceholder": "+201234567890",
     "save": "Save",
     "saving": "Saving…",
-    "uploadPhoto": "Upload photo *",
+    "uploadPhoto": "Upload photo",
     "changePhoto": "Change photo",
     "uploadPhotoAriaLabel": "Upload profile photo",
     "errors": {
@@ -662,7 +664,6 @@
       "minChars": "Min 2 characters",
       "maxChars": "Max 50 characters",
       "phoneInvalid": "Please enter a valid phone number, e.g. +201234567890",
-      "photoRequired": "Please add a profile photo",
       "invalidPhotoType": "Only JPEG and PNG files are accepted",
       "photoTooLarge": "Photo must be under 5 MB"
     }

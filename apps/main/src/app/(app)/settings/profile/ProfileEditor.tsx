@@ -349,7 +349,6 @@ export function ProfileEditor({
         onSubmit={handleProfileSubmit}
         submitLabel={t("saveChanges")}
         showPhone
-        photoRequired
       />
       {vehicle && (
         <VehicleSection

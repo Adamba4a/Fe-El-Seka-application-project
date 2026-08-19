@@ -21,7 +21,6 @@ interface ProfileFormProps {
   onSubmit: (data: FormValues, photo: File | null) => Promise<void>;
   submitLabel?: string;
   showPhone?: boolean;
-  photoRequired?: boolean;
 }
 
 export function ProfileForm({
@@ -29,7 +28,6 @@ export function ProfileForm({
   onSubmit,
   submitLabel,
   showPhone = false,
-  photoRequired = false,
 }: ProfileFormProps) {
   const t = useTranslations("profileForm");
   const [photo, setPhoto] = useState<File | null>(null);
@@ -56,10 +54,6 @@ export function ProfileForm({
   });
 
   const handle = async (data: FormValues) => {
-    if (photoRequired && !photo && !defaultValues?.profile_photo_url) {
-      setError(t("errors.photoRequired"));
-      return;
-    }
     setLoading(true);
     setError("");
     try {

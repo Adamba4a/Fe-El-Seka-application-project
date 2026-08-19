@@ -4,6 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { LanguageToggle } from "./LanguageToggle";
+import type { Profile } from "@fe-el-seka/shared";
+
+type VerificationStatus = Profile["verification_status"];
 
 function initials(name: string): string {
   return name
@@ -63,9 +66,36 @@ interface TopBarProps {
   variant: "driver" | "passenger";
   userName: string;
   avatarUrl?: string | null;
+  verificationStatus?: VerificationStatus;
 }
 
-export function TopBar({ variant, userName, avatarUrl }: TopBarProps) {
+function VerifyBadge({ variant, status }: { variant: "driver" | "passenger"; status: VerificationStatus }) {
+  const t = useTranslations("nav");
+  const href = variant === "driver" ? "/driver/verify-documents" : "/verify-id";
+
+  if (status === "verified") {
+    return (
+      <p className="text-[11px] font-semibold tracking-wide text-dash-primary flex items-center gap-1 mt-0.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-dash-primary inline-block" />
+        {t("verifiedDriver")}
+      </p>
+    );
+  }
+
+  if (status === "suspended") return null;
+
+  return (
+    <Link
+      href={href}
+      className="text-[11px] font-semibold tracking-wide text-status-in-progress flex items-center gap-1 mt-0.5"
+    >
+      <span className="w-1.5 h-1.5 rounded-full bg-status-in-progress inline-block" />
+      {status === "pending_review" ? t("pendingReview") : t("verifyIdentity")}
+    </Link>
+  );
+}
+
+export function TopBar({ variant, userName, avatarUrl, verificationStatus }: TopBarProps) {
   const t = useTranslations("nav");
   const tc = useTranslations("common");
   return (
@@ -76,14 +106,16 @@ export function TopBar({ variant, userName, avatarUrl }: TopBarProps) {
             <Avatar url={avatarUrl} name={userName} />
             <div>
               <p className="text-dash-navy font-semibold leading-tight">{userName}</p>
-              <p className="text-[11px] font-semibold tracking-wide text-dash-primary flex items-center gap-1 mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-dash-primary inline-block" />
-                {t("verifiedDriver")}
-              </p>
+              {verificationStatus && <VerifyBadge variant={variant} status={verificationStatus} />}
             </div>
           </div>
         ) : (
-          <span className="text-2xl font-bold text-dash-navy">{tc("appName")}</span>
+          <div>
+            <span className="text-2xl font-bold text-dash-navy">{tc("appName")}</span>
+            {verificationStatus && verificationStatus !== "verified" && (
+              <VerifyBadge variant={variant} status={verificationStatus} />
+            )}
+          </div>
         )}
 
         <div className="flex items-center gap-4">

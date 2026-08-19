@@ -19,11 +19,11 @@ export default async function DashboardPage() {
 
   const isDriver = !error && profile?.role === "driver";
 
-  // Passengers must be verified before seeing the dashboard, mirroring the
-  // (passenger) route group's guard. Drivers have no equivalent check here,
-  // mirroring the (driver) route group's guard.
-  if (!isDriver && !error && profile && profile.verification_status !== "verified") {
-    redirect(profile.verification_status === "rejected" ? "/verify-id" : "/profile");
+  // Rejected users are sent to resubmit, mirroring app/page.tsx's redirect —
+  // unverified, pending_review, and verified all get full dashboard access;
+  // verification is enforced at gated actions, not here.
+  if (!isDriver && !error && profile && profile.verification_status === "rejected") {
+    redirect("/verify-id");
   }
 
   return (
