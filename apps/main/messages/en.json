@@ -108,28 +108,19 @@
     "profile": {
       "title": "Complete your profile",
       "subtitleDefault": "Set up your account to get started",
-      "progressLabel": "{completed} of {total} steps complete",
-      "photoUploading": "Uploading…",
-      "photoUploadedLabel": "✓ Photo uploaded",
       "displayNameLabel": "Display name *",
       "displayNamePlaceholder": "Your name",
       "phoneLabel": "Phone number *",
       "phonePlaceholder": "+201234567890",
-      "identityVerificationLabel": "Identity verification",
-      "uploadNationalIdHint": "Upload your Egyptian National ID card",
+      "dateOfBirthLabel": "Date of birth *",
       "submit": "Submit",
       "submitting": "Submitting…",
       "loading": "Loading…",
-      "documentsSubmittedTitle": "Documents submitted",
-      "documentsSubmittedBody": "Your identity is under review. We will notify you once a decision is made.",
-      "goToHome": "Go to home",
       "errors": {
         "nameTooShort": "Please enter your name (min 2 characters)",
         "phoneInvalid": "Please enter a valid phone number, e.g. +201234567890",
-        "photoRequired": "Please add a profile photo",
-        "photoUploadFailed": "Photo upload failed. Please try again.",
-        "idRequired": "Please upload both sides of your National ID",
-        "licenseRequired": "Please upload your Driving License",
+        "dobRequired": "Please enter your date of birth",
+        "underage": "You must be at least 18 years old to use Triplyy.",
         "submissionFailed": "Submission failed. Please try again."
       }
     },
@@ -177,9 +168,11 @@
         "submissionFailed": "Submission failed. Please try again."
       }
     },
-    "pendingApproval": {
-      "underReview": "Your documents are under review.",
-      "autoUpdateNotice": "This page will update automatically once a decision is made."
+    "verificationRequired": {
+      "title": "Verify your identity",
+      "body": "You need to verify your identity before you can do this. It only takes a few minutes.",
+      "cta": "Verify identity",
+      "dismiss": "Not now"
     },
     "lockout": {
       "title": "Submission limit reached",

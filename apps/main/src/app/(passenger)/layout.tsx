@@ -9,16 +9,5 @@ export default async function PassengerLayout({ children }: { children: React.Re
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("verification_status")
-    .eq("id", user.id)
-    .single();
-
-  // Redirect unverified users; allow transient DB errors through to avoid bounce loops
-  if (!error && profile && profile.verification_status !== "verified") {
-    redirect(profile.verification_status === "rejected" ? "/verify-id" : "/profile");
-  }
-
   return <AppShell variant="passenger">{children}</AppShell>;
 }

@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from fastapi import HTTPException, UploadFile
 from supabase import create_client
@@ -8,6 +9,15 @@ from app.services import storage_service
 
 _ALLOWED_PHOTO_TYPES = {"image/jpeg", "image/png"}
 _MAX_PHOTO_BYTES = 5 * 1024 * 1024  # 5 MB
+MIN_SIGNUP_AGE_YEARS = 18
+
+
+def _calculate_age(dob: date) -> int:
+    today = date.today()
+    age = today.year - dob.year
+    if (today.month, today.day) < (dob.month, dob.day):
+        age -= 1
+    return age
 
 
 def _supabase():
@@ -57,7 +67,7 @@ def update_profile(
     display_name: str | None,
     language_preference: str | None = None,
     phone_number: str | None = None,
-    date_of_birth: str | None = None,
+    date_of_birth: date | None = None,
 ) -> dict:
     sb = _supabase()
     updates: dict = {}
@@ -68,7 +78,15 @@ def update_profile(
     if phone_number is not None:
         updates["phone_number"] = phone_number
     if date_of_birth is not None:
-        updates["date_of_birth"] = date_of_birth
+        if _calculate_age(date_of_birth) < MIN_SIGNUP_AGE_YEARS:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "underage",
+                    "message": f"You must be at least {MIN_SIGNUP_AGE_YEARS} years old to use Triplyy.",
+                },
+            )
+        updates["date_of_birth"] = date_of_birth.isoformat()
     if not updates:
         return get_profile_me(user_id)
     resp = sb.table("profiles").update(updates).eq("id", user_id).execute()

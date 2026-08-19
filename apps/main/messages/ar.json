@@ -108,28 +108,19 @@
     "profile": {
       "title": "أكمل ملفك الشخصي",
       "subtitleDefault": "أعدّ حسابك للبدء",
-      "progressLabel": "اكتمل {completed} من {total} خطوات",
-      "photoUploading": "جارٍ الرفع…",
-      "photoUploadedLabel": "✓ تم رفع الصورة",
       "displayNameLabel": "الاسم المعروض *",
       "displayNamePlaceholder": "اسمك",
       "phoneLabel": "رقم الهاتف *",
       "phonePlaceholder": "+201234567890",
-      "identityVerificationLabel": "التحقق من الهوية",
-      "uploadNationalIdHint": "قم بتحميل بطاقة الرقم القومي المصرية",
+      "dateOfBirthLabel": "تاريخ الميلاد *",
       "submit": "إرسال",
       "submitting": "جارٍ الإرسال…",
       "loading": "جارٍ التحميل…",
-      "documentsSubmittedTitle": "تم إرسال المستندات",
-      "documentsSubmittedBody": "هويتك قيد المراجعة. سنخطرك فور اتخاذ القرار.",
-      "goToHome": "الذهاب إلى الرئيسية",
       "errors": {
         "nameTooShort": "يرجى إدخال اسمك (حرفان على الأقل)",
         "phoneInvalid": "يرجى إدخال رقم هاتف صحيح، مثل ‎+201234567890",
-        "photoRequired": "يرجى إضافة صورة شخصية",
-        "photoUploadFailed": "فشل رفع الصورة. يرجى المحاولة مرة أخرى.",
-        "idRequired": "يرجى تحميل وجهي بطاقة الرقم القومي",
-        "licenseRequired": "يرجى تحميل رخصة القيادة",
+        "dobRequired": "يرجى إدخال تاريخ ميلادك",
+        "underage": "يجب أن يكون عمرك 18 عامًا على الأقل لاستخدام Triplyy.",
         "submissionFailed": "فشل الإرسال. يرجى المحاولة مرة أخرى."
       }
     },
@@ -177,9 +168,11 @@
         "submissionFailed": "فشل الإرسال. يرجى المحاولة مرة أخرى."
       }
     },
-    "pendingApproval": {
-      "underReview": "مستنداتك قيد المراجعة.",
-      "autoUpdateNotice": "سيتم تحديث هذه الصفحة تلقائيًا فور اتخاذ القرار."
+    "verificationRequired": {
+      "title": "تحقق من هويتك",
+      "body": "يجب عليك التحقق من هويتك قبل أن تتمكن من القيام بذلك. الأمر يستغرق بضع دقائق فقط.",
+      "cta": "تحقق من الهوية",
+      "dismiss": "ليس الآن"
     },
     "lockout": {
       "title": "تم بلوغ حد المحاولات المسموح بها",

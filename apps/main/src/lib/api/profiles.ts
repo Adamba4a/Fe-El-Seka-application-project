@@ -7,13 +7,24 @@ function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 }
 
+// FastAPI's default HTTPException handler wraps our {error, message} dict under
+// a "detail" key ({"detail": {"error": ..., "message": ...}}) — unwrap it so
+// callers can check err.error / err.message directly.
+async function parseErrorResponse(res: Response): Promise<{ error?: string; message?: string }> {
+  const body = await res.json();
+  if (body && typeof body === "object" && body.detail && typeof body.detail === "object") {
+    return body.detail;
+  }
+  return body;
+}
+
 export async function setupProfile(token: string, data: ProfileSetup): Promise<Profile> {
   const res = await fetch(`${base}/api/profiles/setup`, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw await res.json();
+  if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
 }
 
@@ -21,7 +32,7 @@ export async function getMe(token: string): Promise<Profile> {
   const res = await fetch(`${base}/api/profiles/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) throw await res.json();
+  if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
 }
 
@@ -31,7 +42,7 @@ export async function updateMe(token: string, data: ProfileUpdate): Promise<Prof
     headers: authHeaders(token),
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw await res.json();
+  if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
 }
 
@@ -39,7 +50,7 @@ export async function getPublicProfile(token: string, userId: string): Promise<P
   const res = await fetch(`${base}/api/profiles/${userId}/public`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) throw await res.json();
+  if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
 }
 
@@ -51,6 +62,6 @@ export async function uploadPhoto(token: string, file: File): Promise<{ profile_
     headers: { Authorization: `Bearer ${token}` },
     body: form,
   });
-  if (!res.ok) throw await res.json();
+  if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
 }

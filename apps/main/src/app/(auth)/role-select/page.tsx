@@ -26,14 +26,12 @@ export default function RoleSelectPage() {
       try {
         await setupProfile(session.access_token, { role, display_name: "New User" });
       } catch (err: unknown) {
-        const e = err as { detail?: { error?: string; message?: string } | string; message?: string };
-        const detail = typeof e?.detail === "object" ? e.detail : null;
-        if (detail?.error === "already_exists") {
+        const e = err as { error?: string; message?: string };
+        if (e?.error === "already_exists") {
           router.push("/profile");
           return;
         }
-        const msg = detail?.message ?? (e as { message?: string })?.message;
-        setError(msg ?? t("errors.saveFailed"));
+        setError(e?.message ?? t("errors.saveFailed"));
         return;
       }
       // Google users already have provider-managed auth — a local password

@@ -88,7 +88,7 @@ def update_profile(
         body.display_name,
         body.language_preference,
         body.phone_number,
-        body.date_of_birth.isoformat() if body.date_of_birth else None,
+        body.date_of_birth,
     )
 
 

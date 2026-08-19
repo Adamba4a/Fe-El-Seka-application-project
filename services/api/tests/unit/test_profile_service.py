@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
+from fastapi import HTTPException
 from pydantic import ValidationError
 
 from app.models.profile import ProfileUpdate
@@ -124,3 +127,42 @@ class TestUpdateProfilePersistsPhoneNumber:
         payload, _ = fake._table.captured_updates[0]
         assert payload == {"display_name": "New Name"}
         assert "phone_number" not in payload
+
+
+# ── update_profile: date_of_birth minimum-age gate (Spec 021, FR-002/FR-017) ─
+
+
+class TestUpdateProfileMinimumAge:
+    def test_persists_date_of_birth_when_of_age(self, monkeypatch):
+        fake = _FakeSupabase(_base_row())
+        monkeypatch.setattr(svc, "_supabase", lambda: fake)
+        dob = date(date.today().year - 25, 1, 1)
+
+        result = svc.update_profile("user-1", None, None, None, dob)
+
+        payload, _ = fake._table.captured_updates[0]
+        assert payload == {"date_of_birth": dob.isoformat()}
+        assert result["date_of_birth"] == dob.isoformat()
+
+    def test_rejects_date_of_birth_under_minimum_age(self, monkeypatch):
+        fake = _FakeSupabase(_base_row())
+        monkeypatch.setattr(svc, "_supabase", lambda: fake)
+        today = date.today()
+        dob = date(today.year - 17, today.month, today.day)
+
+        with pytest.raises(HTTPException) as exc_info:
+            svc.update_profile("user-1", None, None, None, dob)
+
+        assert exc_info.value.status_code == 422
+        assert exc_info.value.detail["error"] == "underage"
+        assert fake._table.captured_updates == []
+
+    def test_accepts_date_of_birth_on_exact_birthday_at_minimum_age(self, monkeypatch):
+        fake = _FakeSupabase(_base_row())
+        monkeypatch.setattr(svc, "_supabase", lambda: fake)
+        today = date.today()
+        dob = date(today.year - svc.MIN_SIGNUP_AGE_YEARS, today.month, today.day)
+
+        result = svc.update_profile("user-1", None, None, None, dob)
+
+        assert result["date_of_birth"] == dob.isoformat()
