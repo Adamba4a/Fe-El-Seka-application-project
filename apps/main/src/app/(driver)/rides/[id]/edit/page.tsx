@@ -27,7 +27,7 @@ export default function EditRidePage() {
         const detail = await getRide(session.access_token, id);
         setRide(detail.ride);
       } catch (err: any) {
-        setFetchError(err?.detail?.message ?? t("loadFailed"));
+        setFetchError(err?.message ?? t("loadFailed"));
       }
     };
     load();

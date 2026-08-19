@@ -163,7 +163,7 @@ export default function RideManagePage() {
       setIsCancelOpen(false);
       setCancelReason("");
     } catch (err: any) {
-      setCancelError(err?.detail?.message ?? t("cancelError"));
+      setCancelError(err?.message ?? t("cancelError"));
     } finally {
       setCancelLoading(false);
     }

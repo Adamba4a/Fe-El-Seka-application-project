@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { RatingBadge } from "@/components/ui/RatingBadge";
+import { VerificationRequiredModal } from "@/components/verification/VerificationRequiredModal";
 import { createClient } from "@/lib/supabase/client";
 import { getRide } from "@/lib/api/rides";
 import { useBookingStatus } from "@/lib/hooks/useBookingStatus";
@@ -58,11 +59,13 @@ async function apiFetch(path: string, options?: RequestInit) {
     },
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    // FastAPI wraps errors as { detail: { message: "..." } } or { detail: "string" }
+    const body = await res.json().catch(() => ({}));
+    // FastAPI wraps errors as { detail: { error, message } } or { detail: "string" }
+    const detail =
+      body?.detail && typeof body.detail === "object" ? body.detail : body;
     const msg =
-      err?.detail?.message ?? err?.detail ?? err?.message ?? `HTTP ${res.status}`;
-    throw new Error(msg);
+      detail?.message ?? (typeof body?.detail === "string" ? body.detail : undefined) ?? `HTTP ${res.status}`;
+    throw { error: detail?.error, message: msg };
   }
   return res.json();
 }
@@ -81,6 +84,7 @@ export default function DriverRideBookingsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [ride, setRide] = useState<Ride | null>(null);
   const [mapBooking, setMapBooking] = useState<DriverBooking | null>(null);
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -101,8 +105,8 @@ export default function DriverRideBookingsPage() {
       setError(null);
       const data = await apiFetch(`/api/v1/rides/${rideId}/bookings`);
       setBookings(data.bookings ?? []);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t("loadFailed"));
+    } catch (e: any) {
+      setError(e?.message ?? t("loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -133,8 +137,12 @@ export default function DriverRideBookingsPage() {
           b.booking_id === bookingId ? { ...b, status: "confirmed" } : b
         )
       );
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : t("confirmFailed"));
+    } catch (e: any) {
+      if (e?.error === "verification_required") {
+        setVerifyModalOpen(true);
+      } else {
+        alert(e?.message ?? t("confirmFailed"));
+      }
     } finally {
       setActionLoading(null);
     }
@@ -176,8 +184,12 @@ export default function DriverRideBookingsPage() {
           )
         );
       }
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : t("rejectFailed"));
+    } catch (e: any) {
+      if (e?.error === "verification_required") {
+        setVerifyModalOpen(true);
+      } else {
+        alert(e?.message ?? t("rejectFailed"));
+      }
     } finally {
       setActionLoading(null);
     }
@@ -200,8 +212,8 @@ export default function DriverRideBookingsPage() {
           b.booking_id === bookingId ? { ...b, status: "cancelled" } : b
         )
       );
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : t("cancelFailed"));
+    } catch (e: any) {
+      alert(e?.message ?? t("cancelFailed"));
     } finally {
       setActionLoading(null);
     }
@@ -373,6 +385,12 @@ export default function DriverRideBookingsPage() {
           </div>
         )}
       </BottomSheet>
+
+      <VerificationRequiredModal
+        isOpen={verifyModalOpen}
+        onClose={() => setVerifyModalOpen(false)}
+        role="driver"
+      />
     </div>
   );
 }

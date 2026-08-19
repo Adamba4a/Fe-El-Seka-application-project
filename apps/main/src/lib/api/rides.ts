@@ -17,6 +17,17 @@ function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 }
 
+// FastAPI's default HTTPException handler wraps our {error, message} dict under
+// a "detail" key ({"detail": {"error": ..., "message": ...}}) — unwrap it so
+// callers can check err.error / err.message directly.
+function unwrapError(body: unknown): { error?: string; message?: string } {
+  if (body && typeof body === "object" && "detail" in body) {
+    const detail = (body as { detail: unknown }).detail;
+    if (detail && typeof detail === "object") return detail;
+  }
+  return (body ?? {}) as { error?: string; message?: string };
+}
+
 export async function createRide(token: string, data: CreateRidePayload): Promise<Ride> {
   const res = await fetch(`${base}/api/v1/rides`, {
     method: "POST",
@@ -24,7 +35,7 @@ export async function createRide(token: string, data: CreateRidePayload): Promis
     body: JSON.stringify(data),
   });
   const json = await res.json();
-  if (!res.ok) throw json;
+  if (!res.ok) throw unwrapError(json);
   return json.ride;
 }
 
@@ -41,7 +52,7 @@ export async function listRides(
     headers: { Authorization: `Bearer ${token}` },
   });
   const json = await res.json();
-  if (!res.ok) throw json;
+  if (!res.ok) throw unwrapError(json);
   return json;
 }
 
@@ -66,7 +77,7 @@ export async function listRideBookings(
     headers: { Authorization: `Bearer ${token}` },
   });
   const json = await res.json();
-  if (!res.ok) throw json;
+  if (!res.ok) throw unwrapError(json);
   return json.bookings;
 }
 
@@ -75,7 +86,7 @@ export async function getRide(token: string, id: string): Promise<RideDetailResp
     headers: { Authorization: `Bearer ${token}` },
   });
   const json = await res.json();
-  if (!res.ok) throw json;
+  if (!res.ok) throw unwrapError(json);
   return json;
 }
 
@@ -86,7 +97,7 @@ export async function editRide(token: string, id: string, data: EditRidePayload)
     body: JSON.stringify(data),
   });
   const json = await res.json();
-  if (!res.ok) throw json;
+  if (!res.ok) throw unwrapError(json);
   return json.ride;
 }
 
@@ -97,7 +108,7 @@ export async function cancelRide(token: string, id: string, data: CancelRidePayl
     body: JSON.stringify(data),
   });
   const json = await res.json();
-  if (!res.ok) throw json;
+  if (!res.ok) throw unwrapError(json);
   return json.ride;
 }
 
@@ -108,7 +119,7 @@ export async function startRide(token: string, id: string): Promise<Ride> {
     body: "{}",
   });
   const json = await res.json();
-  if (!res.ok) throw json;
+  if (!res.ok) throw unwrapError(json);
   return json.ride;
 }
 
@@ -119,6 +130,6 @@ export async function completeRide(token: string, id: string): Promise<Ride> {
     body: "{}",
   });
   const json = await res.json();
-  if (!res.ok) throw json;
+  if (!res.ok) throw unwrapError(json);
   return json.ride;
 }

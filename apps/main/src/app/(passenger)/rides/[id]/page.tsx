@@ -9,6 +9,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { MatchScoreBadge } from "@/components/search/MatchScoreBadge";
 import { RatingBadge } from "@/components/ui/RatingBadge";
+import { VerificationRequiredModal } from "@/components/verification/VerificationRequiredModal";
 import Link from "next/link";
 import { env } from "@/lib/env";
 import { formatCurrency } from "@fe-el-seka/shared";
@@ -122,6 +123,7 @@ export default function PassengerRideDetailPage() {
   const [showSheet, setShowSheet] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -376,14 +378,20 @@ export default function PassengerRideDetailPage() {
         router.push(`/bookings/${json.booking_id}`);
         return;
       }
-      if (res.status === 409) {
+      const err = json && typeof json === "object" && json.detail && typeof json.detail === "object"
+        ? json.detail
+        : json;
+      if (res.status === 403 && err?.error === "verification_required") {
+        setShowSheet(false);
+        setShowVerifyModal(true);
+      } else if (res.status === 409) {
         setBookingError(
-          json.error === "duplicate_booking"
+          err?.error === "duplicate_booking"
             ? t("errors.duplicateBooking")
             : t("errors.noSeats")
         );
       } else {
-        setBookingError(json.message ?? t("errors.bookingFailed"));
+        setBookingError(err?.message ?? t("errors.bookingFailed"));
       }
     } catch {
       setBookingError(t("errors.networkBooking"));
@@ -664,6 +672,12 @@ export default function PassengerRideDetailPage() {
           </button>
         </div>
       </BottomSheet>
+
+      <VerificationRequiredModal
+        isOpen={showVerifyModal}
+        onClose={() => setShowVerifyModal(false)}
+        role="passenger"
+      />
     </div>
   );
 }

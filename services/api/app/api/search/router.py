@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.core.database import get_pool
-from app.dependencies.verification import get_current_verified_passenger
+from app.dependencies.roles import get_current_passenger
 from app.models.ai import CandidateFeatures, PassengerRequestFeatures, ZoneCentroid
 from app.models.route import GeoPoint
 from app.services import (
@@ -191,7 +191,7 @@ async def nearby_rides(
     lat: float = Query(..., ge=-90, le=90),
     lng: float = Query(..., ge=-180, le=180),
     limit: int = Query(2, ge=1, le=5),
-    _profile: dict = Depends(get_current_verified_passenger),
+    _profile: dict = Depends(get_current_passenger),
 ) -> JSONResponse:
     # "Nearby" must mean actually nearby — ordering by distance with no cap
     # returns the closest N rides in the whole system even if the closest one
@@ -254,7 +254,7 @@ async def nearby_rides(
 async def search_rides(
     body: SearchRidesRequest,
     background_tasks: BackgroundTasks,
-    _profile: dict = Depends(get_current_verified_passenger),
+    _profile: dict = Depends(get_current_passenger),
 ) -> JSONResponse:
     origin = GeoPoint(lat=body.origin.lat, lng=body.origin.lng)
     destination = GeoPoint(lat=body.destination.lat, lng=body.destination.lng)

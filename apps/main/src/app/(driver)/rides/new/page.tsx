@@ -9,6 +9,7 @@ import { createRide } from "@/lib/api/rides";
 import { getMyVehicle } from "@/lib/api/vehicles";
 import { RideForm } from "@/components/rides/RideForm";
 import { BottomSheet } from "@/components";
+import { VerificationRequiredModal } from "@/components/verification/VerificationRequiredModal";
 import { formatCurrency } from "@fe-el-seka/shared";
 import type { Ride, CreateRidePayload, Location, Coordinates, Locale } from "@fe-el-seka/shared";
 
@@ -24,6 +25,7 @@ export default function NewRidePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdRide, setCreatedRide] = useState<Ride | null>(null);
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [vehicleChecked, setVehicleChecked] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(true);
   const [origin, setOrigin] = useState<Location | undefined>();
@@ -82,8 +84,11 @@ export default function NewRidePage() {
       const ride = await createRide(session.access_token, payload);
       setCreatedRide(ride);
     } catch (err: any) {
-      const detail = err?.detail ?? err;
-      setError(detail?.message ?? t("postFailed"));
+      if (err?.error === "verification_required") {
+        setVerifyModalOpen(true);
+      } else {
+        setError(err?.message ?? t("postFailed"));
+      }
     } finally {
       setLoading(false);
     }
@@ -126,6 +131,12 @@ export default function NewRidePage() {
 
   return (
     <>
+      <VerificationRequiredModal
+        isOpen={verifyModalOpen}
+        onClose={() => setVerifyModalOpen(false)}
+        role="driver"
+      />
+
       {/* Full-screen Leaflet map — always rendered behind the BottomSheet */}
       <div className="fixed inset-0 z-20">
         <RideMap onPinDrop={handlePinDrop} fullScreen />
