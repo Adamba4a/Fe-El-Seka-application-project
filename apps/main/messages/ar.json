@@ -108,8 +108,8 @@
     "profile": {
       "title": "أكمل ملفك الشخصي",
       "subtitleDefault": "أعدّ حسابك للبدء",
-      "displayNameLabel": "الاسم المعروض *",
-      "displayNamePlaceholder": "اسمك",
+      "displayNameLabel": "الاسم الكامل (الأول والأخير) *",
+      "displayNamePlaceholder": "أدخل اسمك الأول والأخير، كما يظهر في بطاقتك",
       "phoneLabel": "رقم الهاتف *",
       "phonePlaceholder": "+201234567890",
       "dateOfBirthLabel": "تاريخ الميلاد *",
@@ -652,8 +652,8 @@
     "switchToArabic": "التبديل إلى العربية"
   },
   "profileForm": {
-    "displayNameLabel": "الاسم المعروض",
-    "displayNamePlaceholder": "اسمك",
+    "displayNameLabel": "الاسم الكامل (الأول والأخير)",
+    "displayNamePlaceholder": "أدخل اسمك الأول والأخير، كما يظهر في بطاقتك",
     "phoneLabel": "رقم الهاتف",
     "phonePlaceholder": "+201234567890",
     "save": "حفظ",

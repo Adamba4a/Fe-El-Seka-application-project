@@ -108,8 +108,8 @@
     "profile": {
       "title": "Complete your profile",
       "subtitleDefault": "Set up your account to get started",
-      "displayNameLabel": "Display name *",
-      "displayNamePlaceholder": "Your name",
+      "displayNameLabel": "Full name (first & last) *",
+      "displayNamePlaceholder": "Enter first and last name, as on your ID",
       "phoneLabel": "Phone number *",
       "phonePlaceholder": "+201234567890",
       "dateOfBirthLabel": "Date of birth *",
@@ -652,8 +652,8 @@
     "switchToArabic": "التبديل إلى العربية"
   },
   "profileForm": {
-    "displayNameLabel": "Display name",
-    "displayNamePlaceholder": "Your name",
+    "displayNameLabel": "Full name (first & last)",
+    "displayNamePlaceholder": "Enter first and last name, as on your ID",
     "phoneLabel": "Phone number",
     "phonePlaceholder": "+201234567890",
     "save": "Save",
