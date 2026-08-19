@@ -12,11 +12,15 @@ export default async function Home() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, verification_status")
+    .select("role, display_name, verification_status")
     .eq("id", user.id)
     .maybeSingle();
 
   if (!profile) redirect("/role-select");
+
+  // "New User" is the placeholder set at role-select, before the user has
+  // submitted their real name/phone/date of birth — signup isn't complete yet.
+  if (profile.display_name === "New User") redirect("/profile");
 
   if (profile.verification_status === "rejected") {
     redirect(profile.role === "driver" ? "/driver/verify-documents" : "/verify-id");
