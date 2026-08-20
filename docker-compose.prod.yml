@@ -32,6 +32,16 @@ services:
         reservations:
           memory: 128M
 
+  osrm:
+    image: ghcr.io/adamba4a/fe-el-seka-osrm:latest
+    restart: always
+    networks:
+      - fe-el-seka-prod
+    deploy:
+      resources:
+        reservations:
+          memory: 512M
+
   nginx:
     image: nginx:1.27-alpine
     restart: always
