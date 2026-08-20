@@ -5,7 +5,8 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": ["R2_APP_CONTENT_PUBLIC_URL", "SUPABASE_SERVICE_ROLE_KEY", "BACKEND_INTERNAL_URL"]
     },
     "lint": {
       "dependsOn": ["^build"]
