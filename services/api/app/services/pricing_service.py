@@ -14,8 +14,9 @@ PLATFORM_COMMISSION_RATE: float = 0.20
 FARE_SPLIT_SEATS: int = 3
 
 _DEFAULTS: dict[str, Any] = {
-    "fuel_price_per_litre": 15.00,
+    "fuel_price_per_litre": 22.25,
     "safety_margin": 5.00,
+    "distance_rate_per_km": 0.30,
     "corridor_buffer_radius_m": 500,
     "min_overlap_pct": 30.00,
     "max_pickup_walk_m": 1500,
@@ -86,16 +87,19 @@ def _calc_fee_from_distance(
     config = get_pricing_config()
     fuel_price = float(config["fuel_price_per_litre"])
     safety = float(config["safety_margin"])
+    distance_rate = float(config["distance_rate_per_km"])
 
     fuel_cost = (distance_km / FUEL_EFFICIENCY_KM_PER_L) * fuel_price
     commission = fuel_cost * PLATFORM_COMMISSION_RATE
+    distance_fee = distance_km * distance_rate
     divisor = split_by if split_by is not None else seat_count
-    per_seat = round((fuel_cost + commission + safety) / divisor)
+    per_seat = round((fuel_cost + commission + distance_fee + safety) / divisor)
     total = per_seat * seat_count
 
     return {
         "fuel_cost_egp": round(fuel_cost, 2),
         "platform_commission_egp": round(commission, 2),
+        "distance_fee_egp": round(distance_fee, 2),
         "safety_margin_egp": round(safety, 2),
         "per_seat_price_egp": float(per_seat),
         "total_collected_egp": float(total),

@@ -82,6 +82,7 @@ class FareEstimateResponse(BaseModel):
     fuel_price_per_litre_egp: float
     fuel_cost_egp: float
     platform_commission_egp: float
+    distance_fee_egp: float
     safety_margin_egp: float
     seat_count: int
     per_seat_price_egp: float

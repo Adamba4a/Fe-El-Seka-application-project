@@ -46,7 +46,7 @@ _RIDE_COLS = """
     price_per_seat, status, cancellation_reason, cancellation_source,
     notes, created_at, updated_at,
     route_distance_km, route_duration_minutes,
-    fuel_cost_egp, platform_commission_egp, safety_margin_egp, price_source,
+    fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp, price_source,
     started_at, completed_at,
     ST_AsGeoJSON(route_geometry) AS route_geometry_geojson
 """
@@ -87,6 +87,9 @@ def _to_response(row: dict) -> RideResponse:
         ),
         platform_commission_egp=(
             float(row["platform_commission_egp"]) if row["platform_commission_egp"] is not None else None
+        ),
+        distance_fee_egp=(
+            float(row["distance_fee_egp"]) if row["distance_fee_egp"] is not None else None
         ),
         safety_margin_egp=(
             float(row["safety_margin_egp"]) if row["safety_margin_egp"] is not None else None
@@ -129,6 +132,7 @@ async def create_ride(
     route_duration_minutes: int,
     fuel_cost_egp: float,
     platform_commission_egp: float,
+    distance_fee_egp: float,
     safety_margin_egp: float,
     price_per_seat: float,
 ) -> RideResponse:
@@ -190,7 +194,9 @@ async def create_ride(
             from app.services.commission_service import check_available_balance, create_reservation
 
             max_commission = (
-                Decimal(str(fuel_cost_egp)) * Decimal("0.20") + Decimal(str(safety_margin_egp))
+                Decimal(str(fuel_cost_egp)) * Decimal("0.20")
+                + Decimal(str(distance_fee_egp))
+                + Decimal(str(safety_margin_egp))
             ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             wallet = await _ws.get_wallet_with_lock(conn, driver_id)
 
@@ -217,13 +223,13 @@ async def create_ride(
                     destination_coordinates, destination_address,
                     departure_datetime, total_seats, booked_seats, price_per_seat, notes, status,
                     route_geometry, route_distance_km, route_duration_minutes,
-                    fuel_cost_egp, platform_commission_egp, safety_margin_egp, price_source
+                    fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp, price_source
                 ) VALUES (
                     $1, $2,
                     ST_GeomFromText($3, 4326)::geography, $4,
                     ST_GeomFromText($5, 4326)::geography, $6,
                     $7, $8, 0, $9, $10, 'scheduled',
-                    ST_SetSRID(ST_GeomFromGeoJSON($11), 4326), $12, $13, $14, $15, $16, 'system'
+                    ST_SetSRID(ST_GeomFromGeoJSON($11), 4326), $12, $13, $14, $15, $16, $17, 'system'
                 )
                 RETURNING {_RIDE_COLS}
                 """,
@@ -233,7 +239,7 @@ async def create_ride(
                 dep, payload.total_seats, price_per_seat, payload.notes,
                 json.dumps(route_geometry_geojson),
                 route_distance_km, route_duration_minutes,
-                fuel_cost_egp, platform_commission_egp, safety_margin_egp,
+                fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp,
             )
 
             await conn.execute(
@@ -398,6 +404,7 @@ async def edit_ride(
                         sets.append(f"price_per_seat = {add_param(new_price)}")
                         sets.append(f"fuel_cost_egp = {add_param(new_fare.fuel_cost_egp)}")
                         sets.append(f"platform_commission_egp = {add_param(new_fare.platform_commission_egp)}")
+                        sets.append(f"distance_fee_egp = {add_param(new_fare.distance_fee_egp)}")
                         sets.append(f"safety_margin_egp = {add_param(new_fare.safety_margin_egp)}")
 
             if payload.notes is not None and payload.notes != ride["notes"]:

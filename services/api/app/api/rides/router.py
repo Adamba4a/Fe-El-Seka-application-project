@@ -129,6 +129,7 @@ async def create_ride(
             route_duration_minutes=route.duration_minutes,
             fuel_cost_egp=fare.fuel_cost_egp,
             platform_commission_egp=fare.platform_commission_egp,
+            distance_fee_egp=fare.distance_fee_egp,
             safety_margin_egp=fare.safety_margin_egp,
             price_per_seat=fare.per_seat_price_egp,
         )

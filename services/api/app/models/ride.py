@@ -71,6 +71,7 @@ class RideResponse(BaseModel):
     route_duration_minutes: Optional[int] = None
     fuel_cost_egp: Optional[float] = None
     platform_commission_egp: Optional[float] = None
+    distance_fee_egp: Optional[float] = None
     safety_margin_egp: Optional[float] = None
     price_source: Optional[str] = None
     started_at: Optional[datetime] = None

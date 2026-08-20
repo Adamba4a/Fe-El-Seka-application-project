@@ -29,10 +29,10 @@ async def deduct_commission(
     """Deduct proportional commission for each confirmed booking that just completed.
 
     For each confirmed booking:
-        commission = ROUND((fuel_cost_egp * 0.20 + safety_margin_egp) / total_seats, 2)
+        commission = ROUND((fuel_cost_egp * 0.20 + distance_fee_egp + safety_margin_egp) / total_seats, 2)
 
-    The platform keeps both the 20% fuel-cost commission and the flat safety margin —
-    the safety margin is platform revenue, not a driver buffer.
+    The platform keeps the 20% fuel-cost commission plus the flat safety margin and the
+    per-km distance fee in full — both are platform revenue, not a driver buffer.
 
     Does NOT release the CommissionReservation — the caller (complete_ride) must call
     release_reservation() separately after this function returns.
@@ -48,6 +48,11 @@ async def deduct_commission(
         if ride.get("fuel_cost_egp") is not None
         else Decimal("0")
     )
+    distance_fee = (
+        Decimal(str(ride["distance_fee_egp"]))
+        if ride.get("distance_fee_egp") is not None
+        else Decimal("0")
+    )
     safety_margin = (
         Decimal(str(ride["safety_margin_egp"]))
         if ride.get("safety_margin_egp") is not None
@@ -58,7 +63,9 @@ async def deduct_commission(
     wallet = await wallet_service.get_wallet_with_lock(conn, driver_id)
     wallet_id = wallet["id"]
 
-    if not confirmed_bookings or total_seats == 0 or (fuel_cost == Decimal("0") and safety_margin == Decimal("0")):
+    if not confirmed_bookings or total_seats == 0 or (
+        fuel_cost == Decimal("0") and distance_fee == Decimal("0") and safety_margin == Decimal("0")
+    ):
         logger.info(
             "wallet_write operation=COMMISSION_DEBIT driver_id=%s ride_id=%s "
             "bookings=0 amount_egp=0.00 (no confirmed bookings — nothing charged)",
@@ -67,9 +74,9 @@ async def deduct_commission(
         )
         return
 
-    commission_per_booking = ((fuel_cost * COMMISSION_RATE + safety_margin) / total_seats).quantize(
-        Decimal("0.01"), rounding=ROUND_HALF_UP
-    )
+    commission_per_booking = (
+        (fuel_cost * COMMISSION_RATE + distance_fee + safety_margin) / total_seats
+    ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     for booking in confirmed_bookings:
         await wallet_service.insert_ledger_entry(
