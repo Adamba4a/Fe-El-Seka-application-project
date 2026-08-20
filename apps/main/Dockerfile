@@ -32,11 +32,16 @@ ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_NOMINATIM_URL
 ARG NEXT_PUBLIC_MAPTILER_KEY
+# Server-only (not NEXT_PUBLIC_*, so not inlined into the client bundle) but
+# still required at build time: messages-loader.ts validates it at module
+# load, and `next build` executes that module while collecting page data.
+ARG R2_APP_CONTENT_PUBLIC_URL
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
     NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY \
     NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_PUBLIC_NOMINATIM_URL=$NEXT_PUBLIC_NOMINATIM_URL \
-    NEXT_PUBLIC_MAPTILER_KEY=$NEXT_PUBLIC_MAPTILER_KEY
+    NEXT_PUBLIC_MAPTILER_KEY=$NEXT_PUBLIC_MAPTILER_KEY \
+    R2_APP_CONTENT_PUBLIC_URL=$R2_APP_CONTENT_PUBLIC_URL
 
 RUN pnpm --filter @fe-el-seka/main build && mkdir -p ./apps/main/public
 
