@@ -34,10 +34,15 @@ export function RideMap({ label, initialCoordinates, onPinDrop, fullScreen = fal
   const reverseGeocode = useCallback(
     async (lat: number, lng: number) => {
       setLoading(true);
+      // The public Nominatim instance has no SLA and can stall for a long time
+      // with no response — without a timeout, dropping a pin can look
+      // completely frozen. Bound the wait so it always falls back promptly.
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 6000);
       try {
         const res = await fetch(
           `${NOMINATIM_URL}/reverse?lat=${lat}&lon=${lng}&format=json`,
-          { headers: { "Accept-Language": "en" } }
+          { headers: { "Accept-Language": "en" }, signal: controller.signal }
         );
         if (!res.ok) throw new Error("Nominatim error");
         const data = await res.json();
@@ -49,6 +54,7 @@ export function RideMap({ label, initialCoordinates, onPinDrop, fullScreen = fal
         setAddress(fallback);
         onPinDropRef.current({ lat, lng }, fallback);
       } finally {
+        clearTimeout(timer);
         setLoading(false);
       }
     },
@@ -120,7 +126,16 @@ export function RideMap({ label, initialCoordinates, onPinDrop, fullScreen = fal
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (fullScreen) {
-    return <div ref={containerRef} className="w-full h-full" />;
+    return (
+      <div className="relative w-full h-full">
+        <div ref={containerRef} className="w-full h-full" />
+        {loading && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] bg-surface-card border border-border-default rounded-full px-4 py-2 shadow-sm">
+            <p className="text-caption text-content-secondary">{t("gettingAddress")}</p>
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
