@@ -85,6 +85,16 @@ _NOTIFICATION_TEMPLATES: dict[str, dict[str, tuple[str, str]]] = {
         "en": ("Top-Up Rejected", "Your wallet top-up request was not approved."),
         "ar": ("تم رفض طلب شحن المحفظة", "لم تتم الموافقة على طلب شحن محفظتك."),
     },
+    "car_maintenance_earned": {
+        "en": (
+            "Free Car Maintenance Earned!",
+            "You've reached 3000 EGP in car maintenance savings. We'll be in touch to arrange your free maintenance.",
+        ),
+        "ar": (
+            "لقد استحققت صيانة سيارة مجانية!",
+            "لقد وصلت إلى 3000 جنيه في مدخرات صيانة السيارة. سنتواصل معك لترتيب الصيانة المجانية.",
+        ),
+    },
     "verification_approved": {
         "en": ("Identity Verified", "Your identity was verified. You can now book and take rides."),
         "ar": ("تم التحقق من الهوية", "تم التحقق من هويتك. يمكنك الآن حجز الرحلات وقيادتها."),

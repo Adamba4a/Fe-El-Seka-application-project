@@ -15,6 +15,7 @@ logging.basicConfig(
 )
 
 from app.api.users.router import router as users_router
+from app.api.admin.car_maintenance_router import router as admin_car_maintenance_router
 from app.api.admin.dashboard_router import router as admin_dashboard_router
 from app.api.admin.financial_router import router as admin_financial_router
 from app.api.admin.moderation_router import router as admin_moderation_router
@@ -186,6 +187,11 @@ app.include_router(
     admin_wallet_topup_router,
     prefix="/api/admin/wallet-topup-requests",
     tags=["admin-wallet-topup"],
+)
+app.include_router(
+    admin_car_maintenance_router,
+    prefix="/api/admin/car-maintenance-rewards",
+    tags=["admin-car-maintenance"],
 )
 app.include_router(
     admin_moderation_router,

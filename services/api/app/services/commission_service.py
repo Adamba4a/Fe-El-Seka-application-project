@@ -8,7 +8,7 @@ from typing import Optional
 
 from fastapi import HTTPException
 
-from app.services import wallet_service
+from app.services import car_maintenance_service, wallet_service
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +77,9 @@ async def deduct_commission(
     commission_per_booking = (
         (fuel_cost * COMMISSION_RATE + distance_fee + safety_margin) / total_seats
     ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    distance_fee_per_booking = (distance_fee / total_seats).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
 
     for booking in confirmed_bookings:
         await wallet_service.insert_ledger_entry(
@@ -90,6 +93,13 @@ async def deduct_commission(
             fuel_cost_egp_snapshot=fuel_cost,
         )
         await wallet_service.decrement_balance(conn, wallet_id, commission_per_booking)
+
+    # The distance-fee share of what was just debited funds the driver's free
+    # car-maintenance savings counter (100% platform revenue, credited back as a
+    # driver benefit once CAR_MAINTENANCE_THRESHOLD_EGP is reached).
+    await car_maintenance_service.accumulate_and_maybe_grant(
+        conn, driver_id, wallet_id, distance_fee_per_booking * len(confirmed_bookings)
+    )
 
     total_deducted = commission_per_booking * len(confirmed_bookings)
     logger.info(

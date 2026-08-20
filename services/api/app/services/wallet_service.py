@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 # Wallet read / upsert
 # ─────────────────────────────────────────────────────────────────────────────
 
-_WALLET_COLS = "id, driver_id, balance_egp, reserved_egp, created_at, updated_at"
+_WALLET_COLS = (
+    "id, driver_id, balance_egp, reserved_egp, car_maintenance_savings_egp, created_at, updated_at"
+)
 
 
 async def get_or_create_wallet(conn, driver_id: uuid.UUID) -> dict:
@@ -85,6 +87,33 @@ async def decrement_reserved(conn, wallet_id: uuid.UUID, amount: Decimal) -> Non
         "UPDATE driver_wallets SET reserved_egp = GREATEST(reserved_egp - $2, 0), updated_at = now() WHERE id = $1",
         wallet_id,
         amount,
+    )
+
+
+async def increment_car_maintenance_savings(conn, wallet_id: uuid.UUID, amount: Decimal) -> Decimal:
+    """Add amount to car_maintenance_savings_egp and return the new total.
+
+    Used by commission_service to accumulate each booking's distance-fee share toward
+    the free car-maintenance threshold (CAR_MAINTENANCE_THRESHOLD_EGP).
+    """
+    row = await conn.fetchrow(
+        """
+        UPDATE driver_wallets
+        SET car_maintenance_savings_egp = car_maintenance_savings_egp + $2, updated_at = now()
+        WHERE id = $1
+        RETURNING car_maintenance_savings_egp
+        """,
+        wallet_id,
+        amount,
+    )
+    return Decimal(str(row["car_maintenance_savings_egp"]))
+
+
+async def reset_car_maintenance_savings(conn, wallet_id: uuid.UUID) -> None:
+    """Reset car_maintenance_savings_egp to 0.00 after a reward is earned."""
+    await conn.execute(
+        "UPDATE driver_wallets SET car_maintenance_savings_egp = 0.00, updated_at = now() WHERE id = $1",
+        wallet_id,
     )
 
 

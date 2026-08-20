@@ -819,7 +819,10 @@
     "noUpcomingBody": "Post a ride to start getting bookings.",
     "postRideAriaLabel": "Post a new ride",
     "dayToday": "TODAY",
-    "dayTomorrow": "TOMORROW"
+    "dayTomorrow": "TOMORROW",
+    "carMaintenanceSavingsTitle": "Savings for Your Car",
+    "carMaintenanceSavingsBody": "Every ride, a small share goes toward free car maintenance. Reach {threshold} to earn it.",
+    "carMaintenanceSavingsProgress": "{current} of {threshold}"
   },
   "upcomingTripCard": {
     "confirmed": "CONFIRMED",

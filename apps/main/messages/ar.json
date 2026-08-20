@@ -819,7 +819,10 @@
     "noUpcomingBody": "انشر رحلة لتبدأ في تلقي الحجوزات.",
     "postRideAriaLabel": "نشر رحلة جديدة",
     "dayToday": "اليوم",
-    "dayTomorrow": "غدًا"
+    "dayTomorrow": "غدًا",
+    "carMaintenanceSavingsTitle": "مدخرات صيانة سيارتك",
+    "carMaintenanceSavingsBody": "من كل رحلة، يذهب جزء صغير نحو صيانة مجانية لسيارتك. اجمع {threshold} لتحصل عليها.",
+    "carMaintenanceSavingsProgress": "{current} من {threshold}"
   },
   "upcomingTripCard": {
     "confirmed": "مؤكد",
