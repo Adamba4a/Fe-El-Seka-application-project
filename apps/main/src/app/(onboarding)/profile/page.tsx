@@ -85,7 +85,7 @@ export default function ProfileOnboardingPage() {
         phone_number: phoneNumber.trim(),
         date_of_birth: dateOfBirth,
       });
-      router.push(role === "driver" ? "/" : "/search");
+      router.push(role === "driver" ? "/" : "/dashboard");
     } catch (err: unknown) {
       const e = err as { error?: string; message?: string };
       if (e?.error === "underage") {
