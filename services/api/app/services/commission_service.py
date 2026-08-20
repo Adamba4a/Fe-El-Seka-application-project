@@ -25,8 +25,11 @@ async def deduct_commission(
 ) -> None:
     """Deduct proportional commission for each confirmed booking that just completed.
 
-    For each confirmed booking:
-        commission = ROUND((fuel_cost_egp * 0.20 + distance_fee_egp + safety_margin_egp) / total_seats, 2)
+    Commission is charged per seat, not per booking row — a single booking can reserve
+    more than one seat (see the multi-seat booking feature), and each of those seats
+    must be charged its share:
+        per_seat = (fuel_cost_egp * 0.20 + distance_fee_egp + safety_margin_egp) / total_seats
+        commission for a booking = ROUND(per_seat * booking.seats, 2)
 
     The platform keeps the 20% fuel-cost commission plus the flat safety margin and the
     per-km distance fee in full — both are platform revenue, not a driver buffer.
@@ -71,41 +74,46 @@ async def deduct_commission(
         )
         return
 
-    commission_per_booking = (
-        (fuel_cost * COMMISSION_RATE + distance_fee + safety_margin) / total_seats
-    ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    distance_fee_per_booking = (distance_fee / total_seats).quantize(
-        Decimal("0.01"), rounding=ROUND_HALF_UP
-    )
+    per_seat_commission = (fuel_cost * COMMISSION_RATE + distance_fee + safety_margin) / total_seats
+    per_seat_distance_fee = distance_fee / total_seats
 
+    total_deducted = Decimal("0.00")
+    total_distance_fee = Decimal("0.00")
     for booking in confirmed_bookings:
+        seats = int(booking.get("seats", 1))
+        commission_amount = (per_seat_commission * seats).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        distance_fee_amount = (per_seat_distance_fee * seats).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
         await wallet_service.insert_ledger_entry(
             conn,
             wallet_id=wallet_id,
             driver_id=driver_id,
             entry_type="COMMISSION_DEBIT",
-            amount=commission_per_booking,
+            amount=commission_amount,
             ride_id=ride_id,
             booking_id=booking["id"],
             fuel_cost_egp_snapshot=fuel_cost,
         )
-        await wallet_service.decrement_balance(conn, wallet_id, commission_per_booking)
+        await wallet_service.decrement_balance(conn, wallet_id, commission_amount)
+        total_deducted += commission_amount
+        total_distance_fee += distance_fee_amount
 
     # The distance-fee share of what was just debited funds the driver's free
     # car-maintenance savings counter (100% platform revenue, credited back as a
     # driver benefit once CAR_MAINTENANCE_THRESHOLD_EGP is reached).
     await car_maintenance_service.accumulate_and_maybe_grant(
-        conn, driver_id, wallet_id, distance_fee_per_booking * len(confirmed_bookings)
+        conn, driver_id, wallet_id, total_distance_fee
     )
 
-    total_deducted = commission_per_booking * len(confirmed_bookings)
     logger.info(
         "wallet_write operation=COMMISSION_DEBIT driver_id=%s ride_id=%s "
-        "bookings=%d per_booking_egp=%s total_deducted_egp=%s",
+        "bookings=%d total_deducted_egp=%s",
         driver_id,
         ride_id,
         len(confirmed_bookings),
-        commission_per_booking,
         total_deducted,
     )
 

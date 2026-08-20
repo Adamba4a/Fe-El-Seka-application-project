@@ -598,9 +598,11 @@ async def complete_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideRespons
                 ride_id, driver_id,
             )
 
-            # Capture confirmed bookings before cascade transitions them to completed
+            # Capture confirmed bookings before cascade transitions them to completed.
+            # `seats` is required here — deduct_commission() charges per seat, not per
+            # booking row, since a single booking can reserve more than one seat.
             confirmed_bookings = await conn.fetch(
-                "SELECT id, passenger_id FROM bookings WHERE ride_id = $1 AND status = 'confirmed'",
+                "SELECT id, passenger_id, seats FROM bookings WHERE ride_id = $1 AND status = 'confirmed'",
                 ride_id,
             )
 
