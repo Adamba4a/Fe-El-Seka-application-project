@@ -22,6 +22,16 @@ jobs:
     name: TypeScript Apps
     runs-on: ubuntu-latest
     needs: secret-scan
+    # Build-time-only placeholders: Next.js requires these NEXT_PUBLIC_* vars
+    # (and admin's SUPABASE_SERVICE_ROLE_KEY) to be *set* at build to pass the
+    # required-env check in lib/env.ts, but the build never calls out to
+    # Supabase/R2 with them — no real credentials needed here.
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
+      R2_APP_CONTENT_PUBLIC_URL: https://ci-placeholder.r2.dev
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v3
@@ -43,6 +53,14 @@ jobs:
     defaults:
       run:
         working-directory: services/api
+    # Placeholders only: Settings() requires these to be non-empty to
+    # construct, but the full test suite (incl. "integration") mocks the DB
+    # pool/Supabase client rather than connecting for real, so no live
+    # database or Supabase project is needed to run pytest in CI.
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:54322/postgres
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
