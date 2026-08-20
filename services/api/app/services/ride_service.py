@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime, timezone, timedelta
-from decimal import Decimal, ROUND_HALF_UP
+from datetime import datetime, timedelta, timezone
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Optional
 
 from app.core.database import get_pool
-from app.services.pricing_service import calculate_fare
 from app.models.ride import (
     CoordinatesSchema,
     CreateRideRequest,
@@ -18,6 +17,7 @@ from app.models.ride import (
     RideListResponse,
     RideResponse,
 )
+from app.services.pricing_service import calculate_fare
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Custom exceptions
@@ -190,6 +190,7 @@ async def create_ride(
             # the check and the ride creation are atomic; concurrent rides by the same
             # driver are serialized by the advisory lock already held above.
             from fastapi import HTTPException as _HTTPException
+
             from app.services import wallet_service as _ws
             from app.services.commission_service import check_available_balance, create_reservation
 
@@ -359,7 +360,9 @@ async def edit_ride(
                 if dep <= now:
                     raise RideServiceError("ride_departure_past", "Departure time must be in the future.")
                 if dep > now + timedelta(hours=48):
-                    raise RideServiceError("ride_departure_too_far", "Rides can only be scheduled up to 48 hours in advance.")
+                    raise RideServiceError(
+                        "ride_departure_too_far", "Rides can only be scheduled up to 48 hours in advance."
+                    )
                 if dep != ride["departure_datetime"]:
                     changed_fields["departure_datetime"] = {
                         "before": ride["departure_datetime"].isoformat(),
@@ -381,7 +384,9 @@ async def edit_ride(
                     "before": ride["destination_address"],
                     "after": payload.destination.address,
                 }
-                sets.append(f"destination_coordinates = ST_GeomFromText({add_param(f'POINT({dlng} {dlat})')}, 4326)::geography")
+                sets.append(
+                    f"destination_coordinates = ST_GeomFromText({add_param(f'POINT({dlng} {dlat})')}, 4326)::geography"
+                )
                 sets.append(f"destination_address = {add_param(payload.destination.address)}")
 
             if payload.total_seats is not None:
@@ -412,7 +417,7 @@ async def edit_ride(
                 sets.append(f"notes = {add_param(payload.notes)}")
 
             if sets:
-                sets.append(f"updated_at = now()")
+                sets.append("updated_at = now()")
                 id_param = add_param(ride_id)
                 row = await conn.fetchrow(
                     f"UPDATE rides SET {', '.join(sets)} WHERE id = {id_param} RETURNING {_RIDE_COLS}",
@@ -497,7 +502,10 @@ async def cancel_ride(
             dep = row["departure_datetime"]
             for b in confirmed_passengers:
                 await conn.execute(
-                    "INSERT INTO notification_events (recipient_user_id, event_type, payload) VALUES ($1, 'ride_cancelled', $2)",
+                    """
+                    INSERT INTO notification_events (recipient_user_id, event_type, payload)
+                    VALUES ($1, 'ride_cancelled', $2)
+                    """,
                     b["passenger_id"],
                     {
                         "ride_id": str(ride_id),
@@ -533,7 +541,10 @@ async def start_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideResponse:
                 )
 
             row = await conn.fetchrow(
-                f"UPDATE rides SET status = 'in_progress', started_at = now(), updated_at = now() WHERE id = $1 RETURNING {_RIDE_COLS}",
+                f"""
+                UPDATE rides SET status = 'in_progress', started_at = now(), updated_at = now()
+                WHERE id = $1 RETURNING {_RIDE_COLS}
+                """,
                 ride_id,
             )
             await conn.execute(
@@ -547,7 +558,10 @@ async def start_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideResponse:
             )
             for b in confirmed_bookings:
                 await conn.execute(
-                    "INSERT INTO notification_events (recipient_user_id, event_type, payload) VALUES ($1, 'ride_started', $2)",
+                    """
+                    INSERT INTO notification_events (recipient_user_id, event_type, payload)
+                    VALUES ($1, 'ride_started', $2)
+                    """,
                     b["passenger_id"],
                     {
                         "ride_id": str(ride_id),
@@ -573,7 +587,10 @@ async def complete_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideRespons
                 raise RideServiceError("ride_not_editable", "Only in-progress rides can be completed.", 409)
 
             row = await conn.fetchrow(
-                f"UPDATE rides SET status = 'completed', completed_at = now(), updated_at = now() WHERE id = $1 RETURNING {_RIDE_COLS}",
+                f"""
+                UPDATE rides SET status = 'completed', completed_at = now(), updated_at = now()
+                WHERE id = $1 RETURNING {_RIDE_COLS}
+                """,
                 ride_id,
             )
             await conn.execute(
@@ -596,7 +613,10 @@ async def complete_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideRespons
 
             for b in confirmed_bookings:
                 await conn.execute(
-                    "INSERT INTO notification_events (recipient_user_id, event_type, payload) VALUES ($1, 'ride_completed', $2)",
+                    """
+                    INSERT INTO notification_events (recipient_user_id, event_type, payload)
+                    VALUES ($1, 'ride_completed', $2)
+                    """,
                     b["passenger_id"],
                     {
                         "ride_id": str(ride_id),

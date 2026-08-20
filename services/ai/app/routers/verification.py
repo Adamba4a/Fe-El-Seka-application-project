@@ -1,5 +1,6 @@
 import logging
 from datetime import UTC, datetime
+from typing import Any
 
 import cv2
 import numpy as np
@@ -30,7 +31,7 @@ async def verify_identity(
     submission_type: str = Form(...),
     selfie: UploadFile | None = None,
 ) -> VerificationReadout:
-    face_models: dict | None = getattr(request.app.state, "face_models", None)
+    face_models: dict[str, Any] | None = getattr(request.app.state, "face_models", None)
     if face_models is None:
         raise HTTPException(status_code=503, detail="Face-match models are not available.")
     detector = face_models["detector"]

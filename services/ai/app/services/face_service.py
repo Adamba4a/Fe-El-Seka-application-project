@@ -53,7 +53,7 @@ def face_match(
     selfie_aligned = detect_and_align_face(selfie_img_bgr, detector, recognizer)
     id_detected = id_aligned is not None
     selfie_detected = selfie_aligned is not None
-    if not id_detected or not selfie_detected:
+    if id_aligned is None or selfie_aligned is None:
         return None, id_detected, selfie_detected
 
     emb_a = compute_embedding(id_aligned, recognizer)

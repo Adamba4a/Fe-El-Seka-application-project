@@ -4,7 +4,6 @@ import asyncio
 import logging
 import math
 import time
-from datetime import datetime
 
 from app.core.database import get_pool
 from app.models.route import (

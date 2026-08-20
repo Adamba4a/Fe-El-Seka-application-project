@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from app.services import fcm_service as svc
 
-
 # ── _NOTIFICATION_TEMPLATES: data-completeness contract ─────────────────────
 # per contracts/notification-localization.md: every event_type must have both
 # "en" and "ar" entries, and the unknown-event fallback must too.

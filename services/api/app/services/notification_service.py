@@ -4,7 +4,7 @@ import asyncio
 import logging
 import smtplib
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -178,7 +178,11 @@ async def _process_pending_emails() -> None:
                     new_retry = retry + 1
                     new_status = "failed_permanent" if new_retry >= len(_RETRY_DELAYS_MINUTES) else "pending"
                     await conn.execute(
-                        "UPDATE email_notifications SET retry_count = $2, status = $3, last_attempted_at = now() WHERE id = $1",
+                        """
+                        UPDATE email_notifications
+                        SET retry_count = $2, status = $3, last_attempted_at = now()
+                        WHERE id = $1
+                        """,
                         row["id"], new_retry, new_status,
                     )
 

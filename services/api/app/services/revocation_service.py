@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import uuid
 import logging
+import uuid
 
 from app.core.database import get_pool
 

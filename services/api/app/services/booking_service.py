@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-import uuid
 import logging
+import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Optional
@@ -87,29 +87,45 @@ async def create_booking(
     async with conn.transaction():
         # 1. Lock the ride row to prevent concurrent seat races
         ride = await conn.fetchrow(
-            "SELECT id, status, departure_datetime, price_per_seat, booked_seats, total_seats, driver_id FROM rides WHERE id = $1 FOR UPDATE",
+            """
+            SELECT id, status, departure_datetime, price_per_seat, booked_seats, total_seats, driver_id
+            FROM rides WHERE id = $1 FOR UPDATE
+            """,
             ride_id,
         )
         if ride is None:
             raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Ride not found"})
 
         if ride["status"] != "scheduled":
-            raise HTTPException(status_code=422, detail={"error": "ride_not_schedulable", "message": "Ride is not accepting bookings"})
+            raise HTTPException(
+                status_code=422,
+                detail={"error": "ride_not_schedulable", "message": "Ride is not accepting bookings"},
+            )
 
         dep = ride["departure_datetime"]
         if dep.tzinfo is None:
             dep = dep.replace(tzinfo=timezone.utc)
         if dep <= datetime.now(timezone.utc):
-            raise HTTPException(status_code=422, detail={"error": "ride_departed", "message": "Ride has already departed"})
+            raise HTTPException(
+                status_code=422,
+                detail={"error": "ride_departed", "message": "Ride has already departed"},
+            )
 
         # 2. Atomic seat claim — zero rows means not enough seats remain
         claimed = await conn.fetchrow(
-            "UPDATE rides SET booked_seats = booked_seats + $2 WHERE id = $1 AND booked_seats + $2 <= total_seats RETURNING id",
+            """
+            UPDATE rides SET booked_seats = booked_seats + $2
+            WHERE id = $1 AND booked_seats + $2 <= total_seats
+            RETURNING id
+            """,
             ride_id,
             seats,
         )
         if claimed is None:
-            raise HTTPException(status_code=409, detail={"error": "no_seats_available", "message": "No seats available on this ride"})
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "no_seats_available", "message": "No seats available on this ride"},
+            )
 
         # 3. Compute pricing
         per_seat = Decimal(str(ride["price_per_seat"]))
@@ -143,7 +159,13 @@ async def create_booking(
                 do_fee if premium_dropoff else None,
             )
         except asyncpg.UniqueViolationError:
-            raise HTTPException(status_code=409, detail={"error": "duplicate_booking", "message": "You already have an active booking for this ride"})
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "duplicate_booking",
+                    "message": "You already have an active booking for this ride",
+                },
+            )
 
         booking = dict(row)
         booking_id = booking["id"]
@@ -201,10 +223,16 @@ async def confirm_booking(
         if row is None or row["ride_id"] != ride_id:
             raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Booking not found"})
         if row["status"] != "pending":
-            raise HTTPException(status_code=409, detail={"error": "booking_not_pending", "message": "Booking is not in pending status"})
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "booking_not_pending", "message": "Booking is not in pending status"},
+            )
 
         updated = await conn.fetchrow(
-            "UPDATE bookings SET status = 'confirmed', confirmed_at = now() WHERE id = $1 RETURNING id, status, confirmed_at",
+            """
+            UPDATE bookings SET status = 'confirmed', confirmed_at = now()
+            WHERE id = $1 RETURNING id, status, confirmed_at
+            """,
             booking_id,
         )
 
@@ -270,9 +298,10 @@ async def reject_booking(
         if row is None or row["ride_id"] != ride_id:
             raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Booking not found"})
         if row["status"] != "pending":
-            raise HTTPException(status_code=409, detail={"error": "booking_not_pending", "message": "Booking is not in pending status"})
-
-        fallback_applied = False
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "booking_not_pending", "message": "Booking is not in pending status"},
+            )
 
         if row["premium_pickup_requested"]:
             walk_m = await conn.fetchval(
@@ -318,11 +347,12 @@ async def reject_booking(
                     {
                         "ride_id": str(ride_id),
                         "booking_id": str(booking_id),
-                        "departure_datetime": row["departure_datetime"].isoformat() if row["departure_datetime"] else "",
+                        "departure_datetime": (
+                            row["departure_datetime"].isoformat() if row["departure_datetime"] else ""
+                        ),
                         "deep_link": f"/(passenger)/bookings/{booking_id}",
                     },
                 )
-                fallback_applied = True
                 await match_logging_service.record_outcome(
                     conn, ride_id, row["passenger_id"], "accepted",
                     {"booking_id": str(booking_id), "fallback_applied": True},
@@ -349,7 +379,9 @@ async def reject_booking(
             reason,
         )
 
-        await _insert_audit_log(conn, booking_id, "rejected", driver_id, "driver", "pending", "cancelled", {"reason": reason})
+        await _insert_audit_log(
+            conn, booking_id, "rejected", driver_id, "driver", "pending", "cancelled", {"reason": reason}
+        )
         await match_logging_service.record_outcome(
             conn, ride_id, row["passenger_id"], "rejected",
             {"booking_id": str(booking_id), "reason": reason},
@@ -419,12 +451,18 @@ async def cancel_booking(
         if caller_role == "passenger" and time_until_dep < timedelta(hours=2):
             raise HTTPException(
                 status_code=409,
-                detail={"error": "cancellation_window_closed", "message": "Bookings cannot be cancelled within 2 hours of departure."},
+                detail={
+                    "error": "cancellation_window_closed",
+                    "message": "Bookings cannot be cancelled within 2 hours of departure.",
+                },
             )
         if caller_role == "driver" and time_until_dep < timedelta(hours=2):
             raise HTTPException(
                 status_code=409,
-                detail={"error": "cancellation_window_closed", "message": "Passenger bookings cannot be cancelled within 2 hours of departure."},
+                detail={
+                    "error": "cancellation_window_closed",
+                    "message": "Passenger bookings cannot be cancelled within 2 hours of departure.",
+                },
             )
         late_cancellation = time_until_dep < timedelta(hours=2)
 
@@ -535,21 +573,34 @@ async def add_booking_seats(
         if row["passenger_id"] != passenger_id:
             raise HTTPException(status_code=403, detail={"error": "forbidden", "message": "Access denied"})
         if row["status"] not in ("pending", "confirmed"):
-            raise HTTPException(status_code=409, detail={"error": "booking_terminal", "message": "Booking is not active"})
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "booking_terminal", "message": "Booking is not active"},
+            )
 
         dep = row["departure_datetime"]
         if dep.tzinfo is None:
             dep = dep.replace(tzinfo=timezone.utc)
         if dep <= datetime.now(timezone.utc):
-            raise HTTPException(status_code=422, detail={"error": "ride_departed", "message": "Ride has already departed"})
+            raise HTTPException(
+                status_code=422,
+                detail={"error": "ride_departed", "message": "Ride has already departed"},
+            )
 
         claimed = await conn.fetchrow(
-            "UPDATE rides SET booked_seats = booked_seats + $2 WHERE id = $1 AND booked_seats + $2 <= total_seats RETURNING id",
+            """
+            UPDATE rides SET booked_seats = booked_seats + $2
+            WHERE id = $1 AND booked_seats + $2 <= total_seats
+            RETURNING id
+            """,
             row["ride_id"],
             additional_seats,
         )
         if claimed is None:
-            raise HTTPException(status_code=409, detail={"error": "no_seats_available", "message": "No seats available on this ride"})
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "no_seats_available", "message": "No seats available on this ride"},
+            )
 
         per_seat = Decimal(str(row["per_seat_price"]))
         extra_cost = per_seat * additional_seats
@@ -677,7 +728,9 @@ async def _expire_pending_bookings(pool) -> None:
                     {
                         "ride_id": str(locked["ride_id"]),
                         "booking_id": str(locked["id"]),
-                        "departure_datetime": locked["departure_datetime"].isoformat() if locked["departure_datetime"] else "",
+                        "departure_datetime": (
+                            locked["departure_datetime"].isoformat() if locked["departure_datetime"] else ""
+                        ),
                         "deep_link": "/(passenger)/rides",
                     },
                 )

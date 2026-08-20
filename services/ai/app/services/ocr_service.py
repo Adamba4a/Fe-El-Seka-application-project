@@ -53,7 +53,7 @@ def extract_text(img_bgr: np.ndarray) -> str:
     thresholded = _thresholded(enhanced)
 
     best_variant = max([gray, enhanced, thresholded], key=_ocr_confidence)
-    return pytesseract.image_to_string(best_variant, lang=TESSERACT_LANG).strip()
+    return str(pytesseract.image_to_string(best_variant, lang=TESSERACT_LANG)).strip()
 
 
 def name_match_score(display_name: str, ocr_text: str) -> float | None:

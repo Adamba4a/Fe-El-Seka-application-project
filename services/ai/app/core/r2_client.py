@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Any
 
 import boto3
 from botocore.config import Config
@@ -7,7 +8,7 @@ from app.config import get_settings
 
 
 @lru_cache(maxsize=1)
-def get_r2_client():
+def get_r2_client() -> Any:
     s = get_settings()
     return boto3.client(
         "s3",

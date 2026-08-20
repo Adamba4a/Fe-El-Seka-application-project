@@ -1,10 +1,14 @@
+from typing import Any
+
 import numpy as np
 
 from app.models.prediction import MatchScoreBatchRequest, MatchScoreItem, MatchScoreResponse
 from app.services.feature_engineering import build_feature_vector_from_coords
 
 
-def predict_scores(request: MatchScoreBatchRequest, model_state: dict) -> MatchScoreResponse:
+def predict_scores(
+    request: MatchScoreBatchRequest, model_state: dict[str, Any]
+) -> MatchScoreResponse:
     model = model_state["model"]
     version = model_state["version"]
     candidate_slot = model_state.get("candidate")

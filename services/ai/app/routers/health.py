@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter, Request
 
 from app.config import get_settings
@@ -9,7 +11,7 @@ router = APIRouter(tags=["health"])
 @router.get("/health", response_model=HealthResponse)
 def get_health(request: Request) -> HealthResponse:
     settings = get_settings()
-    model_state: dict = getattr(request.app.state, "models", {})
+    model_state: dict[str, Any] = getattr(request.app.state, "models", {})
 
     def version_of(key: str) -> str | None:
         # A shadow-only slot (no champion promoted yet) has "candidate" but

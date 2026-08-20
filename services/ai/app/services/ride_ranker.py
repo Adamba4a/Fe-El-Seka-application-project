@@ -1,10 +1,14 @@
+from typing import Any
+
 import numpy as np
 
 from app.models.prediction import RankedRide, RideRankingBatchRequest, RideRankingResponse
 from app.services.feature_engineering import build_feature_vector_from_coords
 
 
-def rank_candidates(request: RideRankingBatchRequest, model_state: dict) -> RideRankingResponse:
+def rank_candidates(
+    request: RideRankingBatchRequest, model_state: dict[str, Any]
+) -> RideRankingResponse:
     model = model_state["model"]
     version = model_state["version"]
 

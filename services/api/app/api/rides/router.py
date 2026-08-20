@@ -8,8 +8,6 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-logger = logging.getLogger(__name__)
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 
@@ -42,6 +40,8 @@ from app.services.location_service import LocationServiceError
 from app.services.pricing_service import calculate_fare, get_pricing_config
 from app.services.ride_service import RideServiceError
 from app.services.route_service import RouteServiceUnavailableError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -112,7 +112,10 @@ async def create_ride(
             status_code=422,
             detail={
                 "error": "unroutable",
-                "message": "No road-network route found between the provided points. Ride creation is blocked until a valid route exists.",
+                "message": (
+                    "No road-network route found between the provided points. "
+                    "Ride creation is blocked until a valid route exists."
+                ),
             },
         )
 
@@ -299,7 +302,10 @@ async def cancel_ride(
 ):
     driver_id = uuid.UUID(str(profile["id"]))
     if not payload.reason or not payload.reason.strip():
-        raise HTTPException(status_code=400, detail={"error": "reason_required", "message": "Cancellation reason is required."})
+        raise HTTPException(
+            status_code=400,
+            detail={"error": "reason_required", "message": "Cancellation reason is required."},
+        )
     try:
         ride = await ride_service.cancel_ride(
             ride_id=ride_id,
@@ -366,7 +372,10 @@ async def get_ride_preview(
             ride_id,
         )
         existing = await conn.fetchrow(
-            "SELECT id, status, seats FROM bookings WHERE ride_id = $1 AND passenger_id = $2 AND status IN ('pending', 'confirmed')",
+            """
+            SELECT id, status, seats FROM bookings
+            WHERE ride_id = $1 AND passenger_id = $2 AND status IN ('pending', 'confirmed')
+            """,
             ride_id, caller_id,
         )
 
@@ -463,7 +472,10 @@ async def get_ride_passenger_detail(
             ride_id,
         )
         existing = await conn.fetchrow(
-            "SELECT id, status, seats FROM bookings WHERE ride_id = $1 AND passenger_id = $2 AND status IN ('pending', 'confirmed')",
+            """
+            SELECT id, status, seats FROM bookings
+            WHERE ride_id = $1 AND passenger_id = $2 AND status IN ('pending', 'confirmed')
+            """,
             ride_id, caller_id,
         )
 
@@ -683,9 +695,13 @@ async def list_ride_bookings(
             boarding_point={"lat": r["boarding_lat"], "lng": r["boarding_lng"]},
             alighting_point={"lat": r["alighting_lat"], "lng": r["alighting_lng"]},
             premium_pickup_requested=r["premium_pickup_requested"],
-            premium_pickup_fee=f"{float(r['premium_pickup_fee']):.2f}" if r["premium_pickup_fee"] is not None else None,
+            premium_pickup_fee=(
+                f"{float(r['premium_pickup_fee']):.2f}" if r["premium_pickup_fee"] is not None else None
+            ),
             premium_dropoff_requested=r["premium_dropoff_requested"],
-            premium_dropoff_fee=f"{float(r['premium_dropoff_fee']):.2f}" if r["premium_dropoff_fee"] is not None else None,
+            premium_dropoff_fee=(
+                f"{float(r['premium_dropoff_fee']):.2f}" if r["premium_dropoff_fee"] is not None else None
+            ),
             created_at=r["created_at"],
         )
         for r in rows

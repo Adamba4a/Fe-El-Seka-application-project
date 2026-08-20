@@ -7,7 +7,6 @@ import pytest
 
 from app.services import model_lifecycle_service as svc
 
-
 # ── _decide_promotion: pure promotion-margin gating logic ───────────────────
 
 

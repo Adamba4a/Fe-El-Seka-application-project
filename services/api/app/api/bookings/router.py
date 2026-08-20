@@ -61,8 +61,12 @@ async def book_ride(
             "seats": booking["seats"],
             "premium_pickup_requested": booking["premium_pickup_requested"],
             "premium_dropoff_requested": booking["premium_dropoff_requested"],
-            "premium_pickup_fee": str(booking["premium_pickup_fee"]) if booking["premium_pickup_fee"] is not None else None,
-            "premium_dropoff_fee": str(booking["premium_dropoff_fee"]) if booking["premium_dropoff_fee"] is not None else None,
+            "premium_pickup_fee": (
+                str(booking["premium_pickup_fee"]) if booking["premium_pickup_fee"] is not None else None
+            ),
+            "premium_dropoff_fee": (
+                str(booking["premium_dropoff_fee"]) if booking["premium_dropoff_fee"] is not None else None
+            ),
             "created_at": booking["created_at"].isoformat(),
         },
     )
@@ -133,8 +137,12 @@ async def list_bookings(
             seats=r["seats"],
             premium_pickup_requested=r["premium_pickup_requested"],
             premium_dropoff_requested=r["premium_dropoff_requested"],
-            premium_pickup_fee=f"{float(r['premium_pickup_fee']):.2f}" if r["premium_pickup_fee"] is not None else None,
-            premium_dropoff_fee=f"{float(r['premium_dropoff_fee']):.2f}" if r["premium_dropoff_fee"] is not None else None,
+            premium_pickup_fee=(
+                f"{float(r['premium_pickup_fee']):.2f}" if r["premium_pickup_fee"] is not None else None
+            ),
+            premium_dropoff_fee=(
+                f"{float(r['premium_dropoff_fee']):.2f}" if r["premium_dropoff_fee"] is not None else None
+            ),
             created_at=r["created_at"],
             confirmed_at=r["confirmed_at"],
             cancelled_at=r["cancelled_at"],
@@ -228,8 +236,12 @@ async def get_booking(
         "available_seats": max(b["total_seats"] - b["booked_seats"], 0),
         "premium_pickup_requested": b["premium_pickup_requested"],
         "premium_dropoff_requested": b["premium_dropoff_requested"],
-        "premium_pickup_fee": f"{float(b['premium_pickup_fee']):.2f}" if b["premium_pickup_fee"] is not None else None,
-        "premium_dropoff_fee": f"{float(b['premium_dropoff_fee']):.2f}" if b["premium_dropoff_fee"] is not None else None,
+        "premium_pickup_fee": (
+            f"{float(b['premium_pickup_fee']):.2f}" if b["premium_pickup_fee"] is not None else None
+        ),
+        "premium_dropoff_fee": (
+            f"{float(b['premium_dropoff_fee']):.2f}" if b["premium_dropoff_fee"] is not None else None
+        ),
         "boarding_point": {"lat": b["boarding_lat"], "lng": b["boarding_lng"]},
         "alighting_point": {"lat": b["alighting_lat"], "lng": b["alighting_lng"]},
         "route_geometry": (

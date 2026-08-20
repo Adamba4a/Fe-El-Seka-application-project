@@ -9,7 +9,6 @@ from pydantic import ValidationError
 from app.models.profile import ProfileUpdate
 from app.services import profile_service as svc
 
-
 # ── ProfileUpdate.phone_number: format validation (Spec 020, FR-002/FR-011) ──
 
 

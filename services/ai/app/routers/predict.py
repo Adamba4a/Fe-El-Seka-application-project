@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
@@ -14,9 +15,9 @@ router = APIRouter(tags=["predict"])
 logger = logging.getLogger(__name__)
 
 
-def _get_model(request: Request, model_type: str) -> dict:
-    model_state: dict = getattr(request.app.state, "models", {})
-    slot = model_state.get(model_type)
+def _get_model(request: Request, model_type: str) -> dict[str, Any]:
+    model_state: dict[str, Any] = getattr(request.app.state, "models", {})
+    slot: dict[str, Any] | None = model_state.get(model_type)
     if slot is None:
         raise HTTPException(
             status_code=503,

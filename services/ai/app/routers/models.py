@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import joblib
 from fastapi import APIRouter, Request
@@ -34,7 +35,7 @@ def activate_shadow(body: ShadowRequest, request: Request) -> ShadowResponse:
     local_path = registry.download_model(body.model_type, body.storage_version)
     obj = joblib.load(local_path)
 
-    model_state: dict = getattr(request.app.state, "models", {})
+    model_state: dict[str, Any] = getattr(request.app.state, "models", {})
     # model_state[model_type] is None (not absent) whenever no champion has
     # ever loaded yet — the very first candidate's shadow activation — so
     # .setdefault() alone would return that None instead of a fresh dict.
@@ -61,7 +62,7 @@ def promote_model(body: PromoteRequest, request: Request) -> PromoteResponse:
     local_path = registry.download_model(body.model_type, body.storage_version)
     obj = joblib.load(local_path)
 
-    model_state: dict = getattr(request.app.state, "models", {})
+    model_state: dict[str, Any] = getattr(request.app.state, "models", {})
     # Same None-vs-absent-key pitfall as activate_shadow() above — the very
     # first model_type to be promoted has never had its slot populated.
     slot = model_state.get(body.model_type) or {}
@@ -85,7 +86,7 @@ def discard_candidate(body: DiscardCandidateRequest, request: Request) -> Discar
     registry = ModelRegistry()
     registry.clear_candidate(body.model_type)
 
-    model_state: dict = getattr(request.app.state, "models", {})
+    model_state: dict[str, Any] = getattr(request.app.state, "models", {})
     slot = model_state.get(body.model_type)
     if slot is not None:
         slot.pop("candidate", None)
@@ -104,7 +105,7 @@ def reload_models(body: ReloadRequest, request: Request) -> ReloadResponse:
     skipped: list[str] = []
     errors: dict[str, str] = {}
 
-    model_state: dict = getattr(request.app.state, "models", {})
+    model_state: dict[str, Any] = getattr(request.app.state, "models", {})
 
     for model_type in targets:
         if model_type not in _ALL_MODEL_TYPES:

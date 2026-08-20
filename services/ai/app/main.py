@@ -1,6 +1,8 @@
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI
 
@@ -17,7 +19,7 @@ def _load_models(app: FastAPI) -> None:
 
     registry = ModelRegistry()
 
-    model_state: dict[str, dict | None] = {
+    model_state: dict[str, dict[str, Any] | None] = {
         "match_score": None,
         "ride_ranker": None,
     }
@@ -52,7 +54,7 @@ def _load_face_models(app: FastAPI) -> None:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("AI service starting — loading models...")
     _load_models(app)
     _load_face_models(app)

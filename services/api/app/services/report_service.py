@@ -43,7 +43,10 @@ async def submit_report(
     if row["ride_status"] not in ("in_progress", "completed"):
         raise HTTPException(
             status_code=409,
-            detail={"error": "ride_not_reportable", "message": "Reports can only be filed for in-progress or completed rides"},
+            detail={
+                "error": "ride_not_reportable",
+                "message": "Reports can only be filed for in-progress or completed rides",
+            },
         )
 
     report_row = await conn.fetchrow(

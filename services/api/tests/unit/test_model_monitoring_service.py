@@ -7,7 +7,6 @@ import pytest
 
 from app.services import model_monitoring_service as svc
 
-
 # ── _aggregate_by_zone: pure per-search-row -> per-zone metric grouping ─────
 
 
@@ -16,10 +15,22 @@ class TestAggregateByZone:
         # Exact Maadi / Nasr City centroids, per app/utils/zone_lookup.py CAIRO_ZONES
         maadi_rows = [
             {"origin_lat": 30.0131, "origin_lng": 31.2089, "predicted_score": 0.8, "accepted": True, "completed": True},
-            {"origin_lat": 30.0131, "origin_lng": 31.2089, "predicted_score": 0.6, "accepted": False, "completed": False},
+            {
+                "origin_lat": 30.0131,
+                "origin_lng": 31.2089,
+                "predicted_score": 0.6,
+                "accepted": False,
+                "completed": False,
+            },
         ]
         nasr_city_rows = [
-            {"origin_lat": 30.0626, "origin_lng": 31.3462, "predicted_score": 0.9, "accepted": True, "completed": False},
+            {
+                "origin_lat": 30.0626,
+                "origin_lng": 31.3462,
+                "predicted_score": 0.9,
+                "accepted": True,
+                "completed": False,
+            },
         ]
 
         result = svc._aggregate_by_zone(maadi_rows + nasr_city_rows)
@@ -166,7 +177,13 @@ class TestRunHourlyAggregation:
         champion_id = uuid.uuid4()
         champion_row = {"id": champion_id, "storage_version": "v3"}
         raw_rows = [
-            {"origin_lat": 29.9602, "origin_lng": 31.2569, "predicted_score": 0.2, "accepted": False, "completed": False},
+            {
+                "origin_lat": 29.9602,
+                "origin_lng": 31.2569,
+                "predicted_score": 0.2,
+                "accepted": False,
+                "completed": False,
+            },
         ]
 
         conn = _FakeConnMulti(

@@ -49,7 +49,13 @@ class TestAttemptRetrain:
         snapshot_id = uuid.uuid4()
         monkeypatch.setattr(
             svc.dataset_pipeline_service, "generate_dataset_snapshot",
-            _async_return({"snapshot_id": snapshot_id, "storage_path": "match_score/x/dataset.parquet", "row_count": 600}),
+            _async_return(
+                {
+                    "snapshot_id": snapshot_id,
+                    "storage_path": "match_score/x/dataset.parquet",
+                    "row_count": 600,
+                }
+            ),
         )
         monkeypatch.setattr(
             svc.ai_client, "retrain_model",

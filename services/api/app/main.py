@@ -9,12 +9,6 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-logging.basicConfig(
-    level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO),
-    format="%(asctime)s %(name)s %(levelname)s %(message)s",
-)
-
-from app.api.users.router import router as users_router
 from app.api.admin.car_maintenance_router import router as admin_car_maintenance_router
 from app.api.admin.dashboard_router import router as admin_dashboard_router
 from app.api.admin.financial_router import router as admin_financial_router
@@ -24,39 +18,45 @@ from app.api.admin.vehicle_updates_router import router as admin_vehicle_updates
 from app.api.admin.verification_router import router as admin_verification_router
 from app.api.admin.wallet_router import router as admin_wallet_router
 from app.api.admin.wallet_topup_router import router as admin_wallet_topup_router
-from app.api.wallet.router import router as wallet_router
-from app.api.wallet_topup.router import router as wallet_topup_router
 from app.api.auth.router import router as auth_router
+from app.api.bookings.router import router as bookings_router
 from app.api.health import router as health_router
 from app.api.internal.revocation_router import router as internal_router
 from app.api.internal.route_intelligence_router import router as route_intelligence_router
 from app.api.profiles.router import router as profiles_router
 from app.api.ratings.router import router as ratings_router
 from app.api.reports.router import router as reports_router
-from app.api.routes.router import router as routes_router
-from app.api.bookings.router import router as bookings_router
 from app.api.rides.router import router as rides_router
+from app.api.routes.router import router as routes_router
 from app.api.search.router import router as search_router
+from app.api.users.router import router as users_router
 from app.api.vehicles.router import router as vehicles_router
 from app.api.verification.router import router as verification_router
+from app.api.wallet.router import router as wallet_router
+from app.api.wallet_topup.router import router as wallet_topup_router
 from app.core.config import settings
 from app.core.database import close_pool, create_pool
+from app.services import ai_client as ai_client_module
 from app.services.booking_service import booking_expiry_loop
+from app.services.continuous_learning_config_service import (
+    continuous_learning_config_refresh_loop,
+    init_continuous_learning_config,
+)
 from app.services.driver_reminder_service import driver_reminder_loop
 from app.services.fcm_service import initialize_fcm
-from app.services.notification_dispatcher import notification_dispatcher_loop
-from app.services.notification_service import email_retry_loop
-from app.services import ai_client as ai_client_module
-from app.services.continuous_learning_config_service import (
-    init_continuous_learning_config,
-    continuous_learning_config_refresh_loop,
-)
 from app.services.model_lifecycle_service import init_rollout_cache, rollout_cache_refresh_loop
 from app.services.model_monitoring_service import model_monitoring_loop
 from app.services.moderation_service import init_moderation_config, moderation_config_refresh_loop
+from app.services.notification_dispatcher import notification_dispatcher_loop
+from app.services.notification_service import email_retry_loop
 from app.services.pricing_service import init_pricing_config, pricing_config_refresh_loop
 from app.services.ranking_config_service import init_ranking_config, ranking_config_refresh_loop
 from app.services.retraining_scheduler_service import retraining_scheduler_loop
+
+logging.basicConfig(
+    level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO),
+    format="%(asctime)s %(name)s %(levelname)s %(message)s",
+)
 
 
 @asynccontextmanager

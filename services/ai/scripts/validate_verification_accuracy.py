@@ -30,7 +30,7 @@ import itertools
 import re
 import statistics
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
@@ -65,7 +65,11 @@ def discover_images(data_dir: Path) -> list[ImageRecord]:
     records: list[ImageRecord] = []
     for folder in sorted(p for p in data_dir.iterdir() if p.is_dir()):
         m = _VARIANT_SUFFIX_RE.match(folder.name)
-        identity, variant = (m.group("base"), "blured" if "blured" in folder.name else "light_reflection") if m else (folder.name, "base")
+        identity, variant = (
+            (m.group("base"), "blured" if "blured" in folder.name else "light_reflection")
+            if m
+            else (folder.name, "base")
+        )
         for f in sorted(folder.iterdir()):
             if f.suffix.lower() in _IMAGE_EXTS:
                 records.append(ImageRecord(identity=identity, variant=variant, path=f))

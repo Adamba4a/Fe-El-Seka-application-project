@@ -2,6 +2,7 @@ import json
 import logging
 import tempfile
 from pathlib import Path
+from typing import Any
 
 from app.config import get_settings
 from app.core.r2_client import get_r2_client
@@ -28,7 +29,7 @@ class ModelRegistry:
         path = f"{model_type}/latest.json"
         try:
             data = self._client.get_object(Bucket=self._bucket, Key=path)["Body"].read()
-            return json.loads(data)["version"]
+            return str(json.loads(data)["version"])
         except Exception as exc:
             raise RegistryError(f"Failed to fetch latest version for {model_type}: {exc}") from exc
 
@@ -59,7 +60,7 @@ class ModelRegistry:
         except Exception as exc:
             raise RegistryError(f"Failed to upload {model_type} v{version}: {exc}") from exc
 
-    def upload_metadata(self, model_type: str, version: str, metadata: dict) -> None:
+    def upload_metadata(self, model_type: str, version: str, metadata: dict[str, Any]) -> None:
         version_path = _version_to_path(version)
         remote = f"{model_type}/{version_path}/metadata.json"
         try:
@@ -89,7 +90,7 @@ class ModelRegistry:
         path = f"{model_type}/candidate.json"
         try:
             data = self._client.get_object(Bucket=self._bucket, Key=path)["Body"].read()
-            return json.loads(data)["version"]
+            return str(json.loads(data)["version"])
         except Exception:
             return None
 

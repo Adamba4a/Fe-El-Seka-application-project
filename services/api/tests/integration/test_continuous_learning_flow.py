@@ -6,9 +6,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from app.services import ai_client as ai_client_module
-from app.services import dataset_pipeline_service
-from app.services import model_lifecycle_service
-from app.services import retraining_scheduler_service
+from app.services import dataset_pipeline_service, model_lifecycle_service, retraining_scheduler_service
 from app.services import storage_service as storage_service_module
 
 

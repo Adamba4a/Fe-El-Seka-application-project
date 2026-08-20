@@ -43,7 +43,9 @@ class ProfileUpdate(BaseModel):
             return v
         v = v.strip()
         if not _PHONE_RE.match(v):
-            raise ValueError("Phone number must be an Egyptian number in the format +2 followed by 11 digits, e.g. +201234567890")
+            raise ValueError(
+                "Phone number must be an Egyptian number in the format +2 followed by 11 digits, e.g. +201234567890"
+            )
         return v
 
     @field_validator("date_of_birth", mode="before")

@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.models.wallet import PaginationMeta
 
-
 # ── Driver-facing schemas ─────────────────────────────────────────────────────
 
 class TopupSettingsResponse(BaseModel):

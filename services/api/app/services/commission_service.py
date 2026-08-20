@@ -3,10 +3,7 @@ from __future__ import annotations
 import logging
 import time
 import uuid
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Optional
-
-from fastapi import HTTPException
+from decimal import ROUND_HALF_UP, Decimal
 
 from app.services import car_maintenance_service, wallet_service
 
