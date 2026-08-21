@@ -1,5 +1,6 @@
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
 from supabase import create_client
 
 from app.core.config import settings
@@ -16,11 +17,19 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
 ) -> dict:
     token = credentials.credentials
-    sb = _supabase()
 
+    # Verify the JWT signature locally instead of calling Supabase Auth's
+    # /auth/v1/user endpoint — that network round trip on every authenticated
+    # request was a major latency contributor, especially over mobile
+    # networks. Supabase signs these tokens HS256 against SUPABASE_JWT_SECRET.
     try:
-        user_resp = sb.auth.get_user(token)
-    except Exception:
+        payload = jwt.decode(
+            token,
+            settings.supabase_jwt_secret,
+            algorithms=["HS256"],
+            audience="authenticated",
+        )
+    except JWTError:
         raise HTTPException(
             status_code=401,
             detail={
@@ -29,7 +38,8 @@ async def get_current_user(
             },
         )
 
-    if not user_resp or not user_resp.user:
+    user_id = payload.get("sub")
+    if not user_id:
         raise HTTPException(
             status_code=401,
             detail={
@@ -38,8 +48,7 @@ async def get_current_user(
             },
         )
 
-    user_id = user_resp.user.id
-
+    sb = _supabase()
     profile_resp = (
         sb.table("profiles").select("*").eq("id", user_id).single().execute()
     )
