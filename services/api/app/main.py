@@ -20,6 +20,7 @@ from app.api.admin.wallet_router import router as admin_wallet_router
 from app.api.admin.wallet_topup_router import router as admin_wallet_topup_router
 from app.api.auth.router import router as auth_router
 from app.api.bookings.router import router as bookings_router
+from app.api.geocode.router import router as geocode_router
 from app.api.health import router as health_router
 from app.api.internal.revocation_router import router as internal_router
 from app.api.internal.route_intelligence_router import router as route_intelligence_router
@@ -213,4 +214,5 @@ app.include_router(wallet_router, prefix="/api/v1/drivers/me", tags=["wallet"])
 app.include_router(wallet_topup_router, prefix="/api/wallet/topup", tags=["wallet-topup"])
 app.include_router(internal_router, prefix="/api/v1/internal", tags=["internal"])
 app.include_router(routes_router, prefix="/api/routes", tags=["routes"])
+app.include_router(geocode_router, prefix="/api/geocode", tags=["geocode"])
 app.include_router(route_intelligence_router, prefix="/internal/route-intelligence", tags=["internal"])

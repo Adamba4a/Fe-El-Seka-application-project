@@ -1,3 +1,6 @@
+import { env } from "./env";
+import { createClient } from "./supabase/client";
+
 export interface SearchBbox {
   south: number;
   north: number;
@@ -12,26 +15,36 @@ export interface SearchLocation {
   bbox?: SearchBbox | null;
 }
 
-// The public Nominatim instance has no SLA and can occasionally stall for a
-// long time with no response — without a timeout, a slow request just hangs
-// the pin-drop flow indefinitely with no feedback. Bound every call so it
-// always resolves (falling back to raw coordinates / no bbox) within a few
-// seconds.
+// Calls go through our own backend (/api/geocode/*), not directly to
+// Nominatim. Nominatim's usage policy requires an identifying User-Agent and
+// throttles requests without one — calling it straight from the browser (and
+// especially from mobile carriers, which share a handful of NAT'd IPs across
+// many users) tripped that throttling constantly, which is what made pin
+// drops stall for the full timeout and fall back to raw coordinates. The
+// backend proxy sends a proper User-Agent and caches repeat lookups.
 const GEOCODE_TIMEOUT_MS = 6000;
 
-function fetchWithTimeout(url: string, timeoutMs = GEOCODE_TIMEOUT_MS): Promise<Response> {
+function fetchWithTimeout(url: string, headers: HeadersInit, timeoutMs = GEOCODE_TIMEOUT_MS): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  return fetch(url, { headers: { "Accept-Language": "en" }, signal: controller.signal }).finally(() =>
-    clearTimeout(timer)
-  );
+  return fetch(url, { headers, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
-interface NominatimResult {
+async function authHeaders(): Promise<HeadersInit> {
+  const { data: { session } } = await createClient().auth.getSession();
+  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
+
+interface ReverseGeocodeResult {
+  address: string | null;
+  boundingbox?: [string, string, string, string]; // [south, north, west, east]
+}
+
+interface SearchResult {
   lat: string;
   lon: string;
   display_name: string;
-  boundingbox?: [string, string, string, string]; // [south, north, west, east]
+  boundingbox?: [string, string, string, string];
 }
 
 function toBbox(boundingbox?: [string, string, string, string]): SearchBbox | null {
@@ -44,11 +57,17 @@ function toBbox(boundingbox?: [string, string, string, string]): SearchBbox | nu
   };
 }
 
-// Greater Cairo bounding box (west, north, east, south)
-const CAIRO_VIEWBOX = "30.7,30.5,32.2,29.7";
-
-function toSearchLocation(r: NominatimResult): SearchLocation {
-  return { lat: parseFloat(r.lat), lng: parseFloat(r.lon), address: r.display_name, bbox: toBbox(r.boundingbox) };
+// Reverse-geocodes a map pin to its human-readable address.
+export async function reverseGeocodeAddress(lat: number, lng: number): Promise<string | null> {
+  try {
+    const params = new URLSearchParams({ lat: String(lat), lng: String(lng) });
+    const res = await fetchWithTimeout(`${env.apiUrl}/api/geocode/reverse?${params}`, await authHeaders());
+    if (!res.ok) return null;
+    const result: ReverseGeocodeResult = await res.json();
+    return result.address ?? null;
+  } catch {
+    return null;
+  }
 }
 
 // Reverse-geocodes a map pin to the bounding box of its enclosing city/district
@@ -59,16 +78,11 @@ function toSearchLocation(r: NominatimResult): SearchLocation {
 // if the exact drop point is a few km from the pin (see route_service's
 // driver_dest_in_bbox check).
 export async function reverseGeocodeAreaBbox(lat: number, lng: number): Promise<SearchBbox | null> {
-  const params = new URLSearchParams({
-    lat: String(lat),
-    lon: String(lng),
-    format: "json",
-    zoom: "10",
-  });
   try {
-    const res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/reverse?${params}`);
+    const params = new URLSearchParams({ lat: String(lat), lng: String(lng) });
+    const res = await fetchWithTimeout(`${env.apiUrl}/api/geocode/reverse?${params}`, await authHeaders());
     if (!res.ok) return null;
-    const result: NominatimResult = await res.json();
+    const result: ReverseGeocodeResult = await res.json();
     return toBbox(result.boundingbox);
   } catch {
     return null;
@@ -76,28 +90,17 @@ export async function reverseGeocodeAreaBbox(lat: number, lng: number): Promise<
 }
 
 export async function geocodeAddress(query: string): Promise<SearchLocation | null> {
-  const params = new URLSearchParams({
-    format: "json",
-    q: query,
-    limit: "1",
-    countrycodes: "eg",
-    viewbox: CAIRO_VIEWBOX,
-    bounded: "1",
-  });
   try {
-    const res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?${params}`);
+    const params = new URLSearchParams({ q: query });
+    const res = await fetchWithTimeout(`${env.apiUrl}/api/geocode/search?${params}`, await authHeaders());
     if (!res.ok) return null;
-    const results: NominatimResult[] = await res.json();
-    // If bounded search found nothing, retry without the viewbox constraint
-    if (!results.length) {
-      const fallback = new URLSearchParams({ format: "json", q: query, limit: "1", countrycodes: "eg" });
-      const res2 = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?${fallback}`);
-      if (!res2.ok) return null;
-      const results2: NominatimResult[] = await res2.json();
-      if (!results2.length) return null;
-      return toSearchLocation(results2[0]);
-    }
-    return toSearchLocation(results[0]);
+    const result: SearchResult = await res.json();
+    return {
+      lat: parseFloat(result.lat),
+      lng: parseFloat(result.lon),
+      address: result.display_name,
+      bbox: toBbox(result.boundingbox),
+    };
   } catch {
     return null;
   }

@@ -178,7 +178,11 @@ export function DriverDashboard() {
                   destinationAddress={ride.destination.address}
                   isFull={ride.available_seats === 0}
                   waitingCount={ride.available_seats}
-                  price={formatCurrency(parseFloat(ride.price_per_seat) * ride.booked_seats, locale)}
+                  // Potential payout for the whole ride (not just seats already
+                  // booked) — a freshly-posted ride with zero bookings still has
+                  // a meaningful "estimate" tied to the price the driver set,
+                  // rather than reading as EGP 0.00 until someone books.
+                  price={formatCurrency(parseFloat(ride.price_per_seat) * ride.total_seats, locale)}
                   passengers={passengers}
                 />
               ))}

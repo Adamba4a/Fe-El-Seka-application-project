@@ -83,18 +83,26 @@ function formatDateTime(iso: string | null | undefined, locale: Locale) {
 }
 
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
+  const supabase = createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token ?? "";
+  const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`,
-      { headers: { "Accept-Language": "en" } },
+      `${base}/api/geocode/reverse?lat=${lat}&lng=${lng}`,
+      { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal },
     );
     if (!res.ok) return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
     const data = await res.json();
-    const a = data.address ?? {};
+    const a = data.address_parts ?? {};
     const parts = [a.road, a.suburb ?? a.city_district, a.city ?? a.town].filter(Boolean);
-    return parts.length ? parts.join(", ") : (data.display_name ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+    return parts.length ? parts.join(", ") : (data.address ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
   } catch {
     return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

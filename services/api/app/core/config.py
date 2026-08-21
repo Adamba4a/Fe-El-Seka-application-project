@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     smtp_host: str = "127.0.0.1"
     smtp_port: int = 54325
     osrm_url: str = "http://osrm:5000"
+    nominatim_url: str = "https://nominatim.openstreetmap.org"
+    # Nominatim's usage policy requires a way to identify the calling
+    # application (User-Agent) — requests without one are liable to be
+    # throttled or dropped, which is what caused the reverse-geocode calls
+    # from mobile clients to time out and fall back to raw coordinates.
+    nominatim_user_agent: str = "TriplyyApp/1.0 (+https://triplyy.net)"
     internal_secret: str = ""
     firebase_service_account_secret_name: str = "firebase_service_account"
     ai_service_url: str = "http://localhost:8001"

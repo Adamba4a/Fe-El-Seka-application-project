@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { Coordinates } from "@fe-el-seka/shared";
 import { TILE_URL, TILE_ATTRIBUTION, TILE_MAX_ZOOM } from "../../lib/map-tiles";
+import { reverseGeocodeAddress } from "../../lib/geocode";
 
 interface RideMapProps {
   label?: string;
@@ -11,11 +12,6 @@ interface RideMapProps {
   onPinDrop: (coords: Coordinates, address: string) => void;
   fullScreen?: boolean;
 }
-
-const NOMINATIM_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_NOMINATIM_URL ?? "https://nominatim.openstreetmap.org")
-    : "https://nominatim.openstreetmap.org";
 
 const CAIRO_CENTER: [number, number] = [30.0444, 31.2357];
 
@@ -34,29 +30,10 @@ export function RideMap({ label, initialCoordinates, onPinDrop, fullScreen = fal
   const reverseGeocode = useCallback(
     async (lat: number, lng: number) => {
       setLoading(true);
-      // The public Nominatim instance has no SLA and can stall for a long time
-      // with no response — without a timeout, dropping a pin can look
-      // completely frozen. Bound the wait so it always falls back promptly.
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 6000);
-      try {
-        const res = await fetch(
-          `${NOMINATIM_URL}/reverse?lat=${lat}&lon=${lng}&format=json`,
-          { headers: { "Accept-Language": "en" }, signal: controller.signal }
-        );
-        if (!res.ok) throw new Error("Nominatim error");
-        const data = await res.json();
-        const addr = data.display_name ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        setAddress(addr);
-        onPinDropRef.current({ lat, lng }, addr);
-      } catch {
-        const fallback = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        setAddress(fallback);
-        onPinDropRef.current({ lat, lng }, fallback);
-      } finally {
-        clearTimeout(timer);
-        setLoading(false);
-      }
+      const addr = (await reverseGeocodeAddress(lat, lng)) ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      setAddress(addr);
+      onPinDropRef.current({ lat, lng }, addr);
+      setLoading(false);
     },
     [] // stable — reads onPinDrop via ref
   );
