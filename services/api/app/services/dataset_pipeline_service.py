@@ -65,6 +65,8 @@ _JOIN_QUERY = """
         ST_X(r.destination_coordinates::geometry)   AS driver_dest_lng,
         p_pass.verification_status  AS passenger_verification_status,
         p_drv.verification_status   AS driver_verification_status,
+        p_pass.training_data_valid_from AS passenger_training_valid_from,
+        p_drv.training_data_valid_from  AS driver_training_valid_from,
         EXISTS (
             SELECT 1 FROM public.reports rp
             WHERE rp.reported_user_id = me.passenger_id AND rp.resolution_action = 'suspend'
@@ -164,6 +166,19 @@ def _within_retention_window(row: dict[str, Any], now: datetime) -> bool:
     return created_at >= now - timedelta(days=_DATA_RETENTION_DAYS)
 
 
+def _is_test_data(row: dict[str, Any]) -> bool:
+    """Excludes match_events predating a profile's training_data_valid_from
+    cutoff (set on profiles known to have test/QA activity — see migration
+    20260822000001). A cutoff of 'infinity' excludes the account permanently;
+    a real timestamp excludes only that account's history before it, so an
+    account can carry early test rides and later real activity."""
+    created_at = row["match_event_created_at"]
+    for cutoff in (row["passenger_training_valid_from"], row["driver_training_valid_from"]):
+        if cutoff is not None and created_at < cutoff:
+            return True
+    return False
+
+
 def _signal_strength_tier(transitions: list[str], rating_stars: int | None) -> str:
     """FR-002 labeling hierarchy. 'cancelled' is folded into booked_not_completed
     — a cancellation is never treated as an automatic negative signal, since the
@@ -183,7 +198,7 @@ def _process_rows(
     """Applies FR-003/FR-004 exclusions and FR-002 labeling to raw joined rows.
     Returns (labeled rows ready for anonymization, excluded_count, exclusion_summary)."""
     included: list[dict[str, Any]] = []
-    exclusion_summary = {"fraud_or_suspension": 0, "retention_window": 0}
+    exclusion_summary = {"fraud_or_suspension": 0, "retention_window": 0, "test_data": 0}
 
     for row in raw_rows:
         if _is_excluded(row):
@@ -191,6 +206,9 @@ def _process_rows(
             continue
         if not _within_retention_window(row, now):
             exclusion_summary["retention_window"] += 1
+            continue
+        if _is_test_data(row):
+            exclusion_summary["test_data"] += 1
             continue
 
         feature_vector = row["feature_vector"] or {}
@@ -225,7 +243,7 @@ def _process_rows(
             }
         )
 
-    excluded_count = exclusion_summary["fraud_or_suspension"] + exclusion_summary["retention_window"]
+    excluded_count = sum(exclusion_summary.values())
     return included, excluded_count, exclusion_summary
 
 

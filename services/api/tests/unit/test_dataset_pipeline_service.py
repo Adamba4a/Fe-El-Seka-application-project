@@ -36,6 +36,8 @@ def _row(**overrides):
         "driver_suspended_by_report": False,
         "transitions": [],
         "rating_stars": None,
+        "passenger_training_valid_from": None,
+        "driver_training_valid_from": None,
     }
     base.update(overrides)
     return base
@@ -120,6 +122,46 @@ class TestRetentionWindow:
         assert svc._within_retention_window(row, now) is True
 
 
+# ── training_data_valid_from test-account exclusion ──────────────────────────
+
+
+class TestIsTestData:
+    def test_no_cutoff_is_not_test_data(self):
+        assert svc._is_test_data(_row()) is False
+
+    def test_event_before_passenger_cutoff_is_test_data(self):
+        now = datetime(2026, 6, 1, tzinfo=timezone.utc)
+        row = _row(
+            match_event_created_at=now - timedelta(days=1),
+            passenger_training_valid_from=now,
+        )
+        assert svc._is_test_data(row) is True
+
+    def test_event_before_driver_cutoff_is_test_data(self):
+        now = datetime(2026, 6, 1, tzinfo=timezone.utc)
+        row = _row(
+            match_event_created_at=now - timedelta(days=1),
+            driver_training_valid_from=now,
+        )
+        assert svc._is_test_data(row) is True
+
+    def test_event_at_or_after_cutoff_is_not_test_data(self):
+        now = datetime(2026, 6, 1, tzinfo=timezone.utc)
+        row = _row(
+            match_event_created_at=now,
+            passenger_training_valid_from=now,
+        )
+        assert svc._is_test_data(row) is False
+
+    def test_infinity_cutoff_always_excludes(self):
+        now = datetime(2026, 6, 1, tzinfo=timezone.utc)
+        row = _row(
+            match_event_created_at=now + timedelta(days=365),
+            passenger_training_valid_from=datetime.max.replace(tzinfo=timezone.utc),
+        )
+        assert svc._is_test_data(row) is True
+
+
 # ── _process_rows integration of exclusion + labeling ────────────────────────
 
 
@@ -131,13 +173,17 @@ class TestProcessRows:
             _row(passenger_verification_status="suspended"),  # excluded: fraud/suspension
             _row(match_event_created_at=now - timedelta(days=svc._DATA_RETENTION_DAYS + 10)),  # excluded: retention
             _row(transitions=["requested", "cancelled"]),  # included, booked_not_completed
+            _row(
+                match_event_created_at=now - timedelta(days=1),
+                passenger_training_valid_from=now,
+            ),  # excluded: test_data (event predates cutoff)
         ]
 
         included, excluded_count, summary = svc._process_rows(rows, now)
 
         assert len(included) == 2
-        assert excluded_count == 2
-        assert summary == {"fraud_or_suspension": 1, "retention_window": 1}
+        assert excluded_count == 3
+        assert summary == {"fraud_or_suspension": 1, "retention_window": 1, "test_data": 1}
         tiers = {r["signal_strength_tier"] for r in included}
         assert tiers == {"completed_highly_rated", "booked_not_completed"}
 

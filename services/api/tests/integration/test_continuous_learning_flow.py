@@ -94,6 +94,8 @@ def _seeded_join_rows(now: datetime) -> list[dict]:
             "driver_suspended_by_report": False,
             "transitions": ["requested", "accepted", "completed"],
             "rating_stars": 5,
+            "passenger_training_valid_from": None,
+            "driver_training_valid_from": None,
         })
     return rows
 
