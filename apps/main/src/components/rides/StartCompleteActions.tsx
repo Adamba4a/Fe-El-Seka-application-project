@@ -39,7 +39,10 @@ export function StartCompleteActions({
     try {
       await onStart();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t("startFailed"));
+      // startRide/completeRide throw the API's { error, message } object
+      // directly, not an Error instance — read .message off it, not off
+      // `err instanceof Error`, which is always false here.
+      setError((err as { message?: string })?.message ?? t("startFailed"));
     } finally {
       setStartLoading(false);
     }
@@ -51,7 +54,7 @@ export function StartCompleteActions({
     try {
       await onComplete();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t("completeFailed"));
+      setError((err as { message?: string })?.message ?? t("completeFailed"));
     } finally {
       setCompleteLoading(false);
     }
