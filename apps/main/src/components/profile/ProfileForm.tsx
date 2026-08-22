@@ -8,7 +8,9 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/Spinner";
 
-const PHONE_RE = /^\+2\d{11}$/;
+// All users are in Egypt, so the +2 country code is a fixed prefix shown
+// next to the input rather than something the user has to type themselves.
+const LOCAL_PHONE_RE = /^\d{11}$/;
 
 type FormValues = { display_name: string; phone_number?: string };
 
@@ -40,7 +42,7 @@ export function ProfileForm({
       phone_number: z.string().trim().optional(),
     })
     .superRefine((data, ctx) => {
-      if (showPhone && !PHONE_RE.test(data.phone_number ?? "")) {
+      if (showPhone && !LOCAL_PHONE_RE.test(data.phone_number ?? "")) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["phone_number"], message: t("errors.phoneInvalid") });
       }
     });
@@ -49,7 +51,7 @@ export function ProfileForm({
     resolver: zodResolver(schema),
     defaultValues: {
       display_name: defaultValues?.display_name ?? "",
-      phone_number: defaultValues?.phone_number ?? "",
+      phone_number: (defaultValues?.phone_number ?? "").replace(/^\+2/, ""),
     },
   });
 
@@ -57,7 +59,10 @@ export function ProfileForm({
     setLoading(true);
     setError("");
     try {
-      await onSubmit(data, photo);
+      const payload = showPhone && data.phone_number
+        ? { ...data, phone_number: `+2${data.phone_number}` }
+        : data;
+      await onSubmit(payload, photo);
     } catch (err: unknown) {
       setError((err as { message?: string })?.message ?? t("errors.generic"));
     } finally {
@@ -82,13 +87,19 @@ export function ProfileForm({
       {showPhone && (
         <div className="flex flex-col gap-1">
           <label className="text-label text-dash-text-muted">{t("phoneLabel")}</label>
-          <input
-            type="tel"
-            {...register("phone_number")}
-            placeholder={t("phonePlaceholder")}
-            maxLength={16}
-            className="px-3 py-2.5 bg-dash-surface shadow-sm border border-dash-border rounded-xl text-body-sm text-dash-navy outline-none focus:border-dash-primary transition-colors"
-          />
+          <div className="relative" dir="ltr">
+            <span className="absolute inset-y-0 start-0 flex items-center ps-3 text-body-sm text-dash-text-muted pointer-events-none">
+              +2
+            </span>
+            <input
+              type="tel"
+              inputMode="numeric"
+              {...register("phone_number")}
+              placeholder={t("phonePlaceholder")}
+              maxLength={11}
+              className="w-full ps-9 pe-3 py-2.5 bg-dash-surface shadow-sm border border-dash-border rounded-xl text-body-sm text-dash-navy outline-none focus:border-dash-primary transition-colors"
+            />
+          </div>
           {errors.phone_number && <p className="text-caption text-content-destructive">{errors.phone_number.message}</p>}
         </div>
       )}

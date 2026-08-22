@@ -57,7 +57,11 @@ export function OtpInput({ length = 6, onComplete, disabled, error, expiresAt, o
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-2 justify-center" onPaste={handlePaste}>
+      {/* Force LTR: a verification code is read as a left-to-right numeral
+          sequence (matching how it's shown in the email/SMS) even when the
+          rest of the page is RTL for Arabic — flipping box order would make
+          the on-screen code not match what the user was sent. */}
+      <div className="flex gap-2 justify-center" dir="ltr" onPaste={handlePaste}>
         {digits.map((d, i) => (
           <input
             key={i}

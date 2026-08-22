@@ -8,7 +8,9 @@ import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
 import type { Role } from "@fe-el-seka/shared";
 
-const PHONE_RE = /^\+2\d{11}$/;
+// All users are in Egypt, so the +2 country code is a fixed prefix shown
+// next to the input rather than something the user has to type themselves.
+const LOCAL_PHONE_RE = /^\d{11}$/;
 
 export default function ProfileOnboardingPage() {
   const router = useRouter();
@@ -46,7 +48,7 @@ export default function ProfileOnboardingPage() {
       setRole(profile.role as Role);
       const savedName = profile.display_name === "New User" ? "" : (profile.display_name ?? "");
       setDisplayName(savedName);
-      setPhoneNumber(profile.phone_number ?? "");
+      setPhoneNumber((profile.phone_number ?? "").replace(/^\+2/, ""));
       setDateOfBirth(profile.date_of_birth ?? "");
       setInitializing(false);
     }
@@ -54,7 +56,7 @@ export default function ProfileOnboardingPage() {
   }, [router]);
 
   const nameValid = displayName.trim().length >= 2;
-  const phoneValid = PHONE_RE.test(phoneNumber.trim());
+  const phoneValid = LOCAL_PHONE_RE.test(phoneNumber.trim());
   const dobValid = dateOfBirth.trim().length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,7 +65,7 @@ export default function ProfileOnboardingPage() {
       setError(t("errors.nameTooShort"));
       return;
     }
-    if (!PHONE_RE.test(phoneNumber.trim())) {
+    if (!LOCAL_PHONE_RE.test(phoneNumber.trim())) {
       setError(t("errors.phoneInvalid"));
       return;
     }
@@ -82,7 +84,7 @@ export default function ProfileOnboardingPage() {
     try {
       await updateMe(session.access_token, {
         display_name: displayName.trim(),
-        phone_number: phoneNumber.trim(),
+        phone_number: `+2${phoneNumber.trim()}`,
         date_of_birth: dateOfBirth,
       });
       router.push(role === "driver" ? "/" : "/dashboard");
@@ -133,14 +135,20 @@ export default function ProfileOnboardingPage() {
             <label className="text-label text-content-secondary">
               {t("phoneLabel")} {phoneValid && <span className="text-status-completed">✓</span>}
             </label>
-            <input
-              type="tel"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder={t("phonePlaceholder")}
-              className="px-3 py-2 border border-border-default rounded-md text-body-sm outline-none focus:border-border-focus transition-colors"
-              maxLength={16}
-            />
+            <div className="relative" dir="ltr">
+              <span className="absolute inset-y-0 start-0 flex items-center ps-3 text-body-sm text-content-muted pointer-events-none">
+                +2
+              </span>
+              <input
+                type="tel"
+                inputMode="numeric"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder={t("phonePlaceholder")}
+                className="w-full ps-9 pe-3 py-2 border border-border-default rounded-md text-body-sm outline-none focus:border-border-focus transition-colors"
+                maxLength={11}
+              />
+            </div>
           </div>
 
           <div className="flex flex-col gap-1">

@@ -111,14 +111,14 @@
       "displayNameLabel": "الاسم الكامل (الأول والأخير) *",
       "displayNamePlaceholder": "أدخل اسمك الأول والأخير، كما يظهر في بطاقتك",
       "phoneLabel": "رقم الهاتف *",
-      "phonePlaceholder": "+201234567890",
+      "phonePlaceholder": "01234567890",
       "dateOfBirthLabel": "تاريخ الميلاد *",
       "submit": "إرسال",
       "submitting": "جارٍ الإرسال…",
       "loading": "جارٍ التحميل…",
       "errors": {
         "nameTooShort": "يرجى إدخال اسمك (حرفان على الأقل)",
-        "phoneInvalid": "يرجى إدخال رقم هاتف صحيح، مثل ‎+201234567890",
+        "phoneInvalid": "يرجى إدخال رقم هاتف صحيح مكوّن من 11 رقمًا، مثل 01234567890",
         "dobRequired": "يرجى إدخال تاريخ ميلادك",
         "underage": "يجب أن يكون عمرك 18 عامًا على الأقل لاستخدام Triplyy.",
         "submissionFailed": "فشل الإرسال. يرجى المحاولة مرة أخرى."
@@ -657,7 +657,7 @@
     "displayNameLabel": "الاسم الكامل (الأول والأخير)",
     "displayNamePlaceholder": "أدخل اسمك الأول والأخير، كما يظهر في بطاقتك",
     "phoneLabel": "رقم الهاتف",
-    "phonePlaceholder": "+201234567890",
+    "phonePlaceholder": "01234567890",
     "save": "حفظ",
     "saving": "جارٍ الحفظ…",
     "uploadPhoto": "تحميل صورة",
@@ -667,7 +667,7 @@
       "generic": "حدث خطأ ما",
       "minChars": "حرفان على الأقل",
       "maxChars": "50 حرفًا كحد أقصى",
-      "phoneInvalid": "يرجى إدخال رقم هاتف صحيح، مثل ‎+201234567890",
+      "phoneInvalid": "يرجى إدخال رقم هاتف صحيح مكوّن من 11 رقمًا، مثل 01234567890",
       "invalidPhotoType": "يُقبل فقط ملفات JPEG وPNG",
       "photoTooLarge": "يجب أن تكون الصورة أقل من 5 ميغابايت"
     }

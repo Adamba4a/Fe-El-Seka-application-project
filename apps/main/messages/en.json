@@ -111,14 +111,14 @@
       "displayNameLabel": "Full name (first & last) *",
       "displayNamePlaceholder": "Enter first and last name, as on your ID",
       "phoneLabel": "Phone number *",
-      "phonePlaceholder": "+201234567890",
+      "phonePlaceholder": "01234567890",
       "dateOfBirthLabel": "Date of birth *",
       "submit": "Submit",
       "submitting": "Submitting…",
       "loading": "Loading…",
       "errors": {
         "nameTooShort": "Please enter your name (min 2 characters)",
-        "phoneInvalid": "Please enter a valid phone number, e.g. +201234567890",
+        "phoneInvalid": "Please enter a valid 11-digit phone number, e.g. 01234567890",
         "dobRequired": "Please enter your date of birth",
         "underage": "You must be at least 18 years old to use Triplyy.",
         "submissionFailed": "Submission failed. Please try again."
@@ -657,7 +657,7 @@
     "displayNameLabel": "Full name (first & last)",
     "displayNamePlaceholder": "Enter first and last name, as on your ID",
     "phoneLabel": "Phone number",
-    "phonePlaceholder": "+201234567890",
+    "phonePlaceholder": "01234567890",
     "save": "Save",
     "saving": "Saving…",
     "uploadPhoto": "Upload photo",
@@ -667,7 +667,7 @@
       "generic": "Something went wrong",
       "minChars": "Min 2 characters",
       "maxChars": "Max 50 characters",
-      "phoneInvalid": "Please enter a valid phone number, e.g. +201234567890",
+      "phoneInvalid": "Please enter a valid 11-digit phone number, e.g. 01234567890",
       "invalidPhotoType": "Only JPEG and PNG files are accepted",
       "photoTooLarge": "Photo must be under 5 MB"
     }
