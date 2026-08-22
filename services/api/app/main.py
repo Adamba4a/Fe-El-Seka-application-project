@@ -4,7 +4,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -123,10 +123,36 @@ app.add_middleware(
 
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc: Exception) -> JSONResponse:
+    # A status-code handler intercepts every HTTPException(404, ...) before the
+    # HTTPException handler below runs, so it must forward a dict detail (e.g.
+    # {"error": "not_found", "message": "Ride not found"}) itself, or every
+    # explicit 404 raise across the app would surface as this generic message
+    # instead of the specific one the route set. Only genuinely-unrouted
+    # requests (Starlette's own 404, whose detail is the plain string "Not
+    # Found") fall through to the generic message.
+    detail = getattr(exc, "detail", None)
+    if isinstance(detail, dict):
+        return JSONResponse(status_code=404, content=detail)
     return JSONResponse(
         status_code=404,
         content={"error": "not_found", "message": "Resource not found"},
     )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    # FastAPI's default HTTPException handler wraps whatever `detail` a route
+    # raised inside {"detail": ...}. Every raise site in this app passes a
+    # dict detail (e.g. {"error": "duplicate_payment_reference", "message":
+    # "..."}) expecting it to reach the client as-is — several frontend call
+    # sites even have their own `.detail` unwrap workarounds for this. Flatten
+    # it here instead so the wire shape matches what every raise site (and
+    # the 404/validation handlers above/below) already produces, and callers
+    # reading `err.error` / `err.message` directly get the real message
+    # instead of always falling back to a generic one.
+    detail = exc.detail
+    content = detail if isinstance(detail, dict) else {"error": "http_error", "message": str(detail)}
+    return JSONResponse(status_code=exc.status_code, content=content, headers=exc.headers)
 
 
 @app.exception_handler(RequestValidationError)
