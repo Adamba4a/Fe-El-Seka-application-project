@@ -61,7 +61,6 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:54322/postgres
       SUPABASE_URL: https://ci-placeholder.supabase.co
       SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
-      SUPABASE_JWT_SECRET: ci-placeholder-jwt-secret
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4

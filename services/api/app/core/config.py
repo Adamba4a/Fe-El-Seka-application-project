@@ -9,12 +9,6 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_anon_key: str = ""
     supabase_service_role_key: str
-    # Required (no default): get_current_user verifies every request's JWT
-    # locally against this. An empty/wrong value doesn't fail loudly — it
-    # just makes every signature check fail, so every login looks like an
-    # "Invalid or expired token" 401. Must match Supabase Dashboard →
-    # Project Settings → API → JWT Settings → JWT Secret.
-    supabase_jwt_secret: str
     api_version: str = "0.1.0"
     cors_origins: Annotated[list[str], NoDecode] = [
         "http://localhost:3000",
