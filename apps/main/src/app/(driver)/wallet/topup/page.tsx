@@ -133,6 +133,7 @@ export default function WalletTopupPage() {
           {t("vodafoneCashNumberLabel")}
         </p>
         <p className="text-h3 text-content-primary" dir="ltr">{settings.vodafone_cash_number}</p>
+        <p className="text-caption text-content-destructive mt-2">{t("walletNotBankNote")}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
