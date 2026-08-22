@@ -135,7 +135,14 @@ export default function LoginPage() {
       const supabase = createClient();
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          // Signing out of the app doesn't sign the browser out of Google
+          // itself, so without this Google silently re-authenticates with
+          // whichever Google account still has an active session cookie
+          // instead of letting the user pick.
+          queryParams: { prompt: "select_account" },
+        },
       });
       if (oauthError) {
         setError(oauthError.message ?? t("errors.googleSignInFailed"));
