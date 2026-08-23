@@ -27,6 +27,7 @@ const STATUS_STYLES: Record<RideStatus, string> = {
 export default function RidesPage() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<RideStatus | "">("");
+  const [date, setDate] = useState("");
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<RideListItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -44,6 +45,7 @@ export default function RidesPage() {
         const res = await list(token, {
           q: q.trim() || undefined,
           status: status || undefined,
+          date: date || undefined,
           page,
         });
         if (!cancelled) {
@@ -60,7 +62,7 @@ export default function RidesPage() {
       cancelled = true;
       clearTimeout(timeout);
     };
-  }, [q, status, page]);
+  }, [q, status, date, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -93,6 +95,27 @@ export default function RidesPage() {
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
         </select>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => {
+            setPage(1);
+            setDate(e.target.value);
+          }}
+          className="border rounded px-3 py-1.5 text-sm"
+        />
+        {date && (
+          <button
+            type="button"
+            onClick={() => {
+              setPage(1);
+              setDate("");
+            }}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            Clear date
+          </button>
+        )}
       </div>
 
       {error && <p className="text-red-600 text-sm">{error}</p>}

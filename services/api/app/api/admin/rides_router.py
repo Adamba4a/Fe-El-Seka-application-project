@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import date as date_type, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -16,6 +17,7 @@ _VALID_STATUSES = ("scheduled", "in_progress", "completed", "cancelled")
 async def list_rides(
     status: str | None = Query(None),
     q: str | None = Query(None),
+    date: str | None = Query(None, description="Filter to a single day, YYYY-MM-DD (UTC)"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     _admin: dict = Depends(get_current_admin),
@@ -25,6 +27,19 @@ async def list_rides(
             status_code=400,
             detail={"error": "validation_error", "message": f"status must be one of {', '.join(_VALID_STATUSES)}"},
         )
+
+    day_start: datetime | None = None
+    day_end: datetime | None = None
+    if date is not None:
+        try:
+            day = date_type.fromisoformat(date)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail={"error": "validation_error", "message": "date must be in YYYY-MM-DD format"},
+            )
+        day_start = datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
+        day_end = day_start + timedelta(days=1)
 
     offset = (page - 1) * limit
     pool = get_pool()
@@ -41,6 +56,11 @@ async def list_rides(
                 f"(p.display_name ILIKE ${len(params)} OR r.origin_address ILIKE ${len(params)}"
                 f" OR r.destination_address ILIKE ${len(params)})"
             )
+        if day_start is not None:
+            params.append(day_start)
+            conditions.append(f"r.departure_datetime >= ${len(params)}")
+            params.append(day_end)
+            conditions.append(f"r.departure_datetime < ${len(params)}")
 
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
@@ -53,6 +73,7 @@ async def list_rides(
             *params,
         )
 
+        order_clause = "ASC" if day_start is not None else "DESC"
         rows = await conn.fetch(
             f"""
             SELECT
@@ -64,7 +85,7 @@ async def list_rides(
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
             {where_clause}
-            ORDER BY r.departure_datetime DESC
+            ORDER BY r.departure_datetime {order_clause}
             LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
             """,
             *params, limit, offset,

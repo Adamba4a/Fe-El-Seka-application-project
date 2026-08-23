@@ -27,6 +27,7 @@ export interface RideListResponse {
 export interface RideListParams {
   status?: RideStatus;
   q?: string;
+  date?: string;
   page?: number;
 }
 
@@ -79,6 +80,7 @@ export async function list(token: string, params: RideListParams = {}): Promise<
   const search = new URLSearchParams({ page: String(params.page ?? 1), limit: "20" });
   if (params.status) search.set("status", params.status);
   if (params.q) search.set("q", params.q);
+  if (params.date) search.set("date", params.date);
   const res = await fetch(`${base}/api/admin/rides/?${search}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
