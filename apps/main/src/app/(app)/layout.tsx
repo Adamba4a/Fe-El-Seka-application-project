@@ -9,13 +9,19 @@ export default async function AppGroupLayout({ children }: { children: React.Rea
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile, error } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, display_name")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  const isDriver = !error && profile?.role === "driver";
+  // Mirrors app/page.tsx's gating — settings/ratings/users are reachable
+  // directly (back/forward nav, a bookmark) before signup is finished, and
+  // must not grant app access to an incomplete profile.
+  if (!profile) redirect("/role-select");
+  if (profile.display_name === "New User") redirect("/profile");
+
+  const isDriver = profile.role === "driver";
 
   return <AppShell variant={isDriver ? "driver" : "passenger"}>{children}</AppShell>;
 }
