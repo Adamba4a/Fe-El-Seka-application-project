@@ -13,6 +13,7 @@ from app.api.admin.car_maintenance_router import router as admin_car_maintenance
 from app.api.admin.dashboard_router import router as admin_dashboard_router
 from app.api.admin.financial_router import router as admin_financial_router
 from app.api.admin.moderation_router import router as admin_moderation_router
+from app.api.admin.rides_router import router as admin_rides_router
 from app.api.admin.users_router import router as admin_users_router
 from app.api.admin.vehicle_updates_router import router as admin_vehicle_updates_router
 from app.api.admin.verification_router import router as admin_verification_router
@@ -198,6 +199,11 @@ app.include_router(
 app.include_router(
     admin_users_router,
     prefix="/api/admin/users",
+    tags=["admin"],
+)
+app.include_router(
+    admin_rides_router,
+    prefix="/api/admin/rides",
     tags=["admin"],
 )
 app.include_router(

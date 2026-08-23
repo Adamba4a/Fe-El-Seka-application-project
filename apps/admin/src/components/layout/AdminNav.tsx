@@ -6,6 +6,7 @@ import { createAdminBrowserClient } from "@/lib/supabase/browser-client";
 
 const LINKS = [
   { href: "/", label: "Dashboard" },
+  { href: "/rides", label: "Rides" },
   { href: "/users", label: "Users" },
   { href: "/verification", label: "Verification" },
   { href: "/moderation", label: "Moderation" },
