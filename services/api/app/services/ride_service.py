@@ -570,6 +570,16 @@ async def start_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideResponse:
                     },
                 )
 
+            # Requests the driver never acted on can't be confirmed once the ride
+            # is underway — expire them now instead of leaving them stuck "pending".
+            from app.services.booking_service import expire_one_pending_booking
+            still_pending = await conn.fetch(
+                "SELECT id FROM bookings WHERE ride_id = $1 AND status = 'pending'",
+                ride_id,
+            )
+            for b in still_pending:
+                await expire_one_pending_booking(conn, b["id"])
+
     return _to_response(dict(row))
 
 

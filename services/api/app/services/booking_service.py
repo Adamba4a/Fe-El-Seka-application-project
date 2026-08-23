@@ -660,15 +660,90 @@ async def cancel_all_bookings_for_ride(conn, ride_id: uuid.UUID) -> int:
     return len(rows)
 
 
+async def expire_one_pending_booking(conn, booking_id: uuid.UUID) -> bool:
+    """Cancel one still-pending booking: release its seat, mark it cancelled,
+    and notify the passenger. No-ops if the booking is no longer pending
+    (already handled concurrently, or the driver acted on it first).
+
+    Shared by the periodic staleness sweep and by ride-status transitions
+    (start/complete) that must not leave a request pending once the driver
+    can no longer act on it.
+    """
+    locked = await conn.fetchrow(
+        """
+        SELECT b.id, b.passenger_id, b.ride_id, b.seats, r.departure_datetime
+        FROM bookings b
+        JOIN rides r ON r.id = b.ride_id
+        WHERE b.id = $1 AND b.status = 'pending'
+        FOR UPDATE OF b SKIP LOCKED
+        """,
+        booking_id,
+    )
+    if locked is None:
+        return False  # Concurrently processed or already non-pending
+
+    await conn.execute(
+        """
+        UPDATE bookings
+        SET status = 'cancelled',
+            cancelled_by = 'system',
+            cancellation_reason = 'booking_expired',
+            cancelled_at = now()
+        WHERE id = $1
+        """,
+        locked["id"],
+    )
+
+    await conn.execute(
+        "UPDATE rides SET booked_seats = GREATEST(booked_seats - $2, 0) WHERE id = $1",
+        locked["ride_id"],
+        locked["seats"],
+    )
+
+    await _insert_audit_log(
+        conn, locked["id"], "expired", None, "system", "pending", "cancelled"
+    )
+    await match_logging_service.record_outcome(
+        conn, locked["ride_id"], locked["passenger_id"], "cancelled",
+        {"booking_id": str(locked["id"]), "cancelled_by": "system", "reason": "booking_expired"},
+    )
+
+    await enqueue_booking_notification(
+        conn,
+        "booking_expired",
+        locked["passenger_id"],
+        {"ride_id": str(locked["ride_id"]), "booking_id": str(locked["id"])},
+    )
+    await _enqueue_fcm_notification(
+        conn,
+        "booking_expired",
+        locked["passenger_id"],
+        {
+            "ride_id": str(locked["ride_id"]),
+            "booking_id": str(locked["id"]),
+            "departure_datetime": (
+                locked["departure_datetime"].isoformat() if locked["departure_datetime"] else ""
+            ),
+            "deep_link": "/(passenger)/rides",
+        },
+    )
+    return True
+
+
 async def _expire_pending_bookings(pool) -> None:
-    """Sweep pending bookings older than 24 hours and cancel them (max 500 per run)."""
+    """Sweep stale pending bookings and cancel them (max 500 per run): either
+    older than 24 hours, or whose ride already moved past 'scheduled' (started,
+    completed, or cancelled) while the driver never responded — which would
+    otherwise leave the booking stuck showing "pending" forever.
+    """
     async with pool.acquire() as conn:
         candidates = await conn.fetch(
             """
-            SELECT id, passenger_id, ride_id
-            FROM bookings
-            WHERE status = 'pending'
-              AND created_at < NOW() - INTERVAL '24 hours'
+            SELECT b.id
+            FROM bookings b
+            JOIN rides r ON r.id = b.ride_id
+            WHERE b.status = 'pending'
+              AND (b.created_at < NOW() - INTERVAL '24 hours' OR r.status != 'scheduled')
             LIMIT 500
             """
         )
@@ -676,64 +751,7 @@ async def _expire_pending_bookings(pool) -> None:
     for row in candidates:
         async with pool.acquire() as conn:
             async with conn.transaction():
-                locked = await conn.fetchrow(
-                    """
-                    SELECT b.id, b.passenger_id, b.ride_id, b.seats, r.departure_datetime
-                    FROM bookings b
-                    JOIN rides r ON r.id = b.ride_id
-                    WHERE b.id = $1 AND b.status = 'pending'
-                    FOR UPDATE OF b SKIP LOCKED
-                    """,
-                    row["id"],
-                )
-                if locked is None:
-                    continue  # Concurrently processed or already non-pending
-
-                await conn.execute(
-                    """
-                    UPDATE bookings
-                    SET status = 'cancelled',
-                        cancelled_by = 'system',
-                        cancellation_reason = 'booking_expired',
-                        cancelled_at = now()
-                    WHERE id = $1
-                    """,
-                    locked["id"],
-                )
-
-                await conn.execute(
-                    "UPDATE rides SET booked_seats = GREATEST(booked_seats - $2, 0) WHERE id = $1",
-                    locked["ride_id"],
-                    locked["seats"],
-                )
-
-                await _insert_audit_log(
-                    conn, locked["id"], "expired", None, "system", "pending", "cancelled"
-                )
-                await match_logging_service.record_outcome(
-                    conn, locked["ride_id"], locked["passenger_id"], "cancelled",
-                    {"booking_id": str(locked["id"]), "cancelled_by": "system", "reason": "booking_expired"},
-                )
-
-                await enqueue_booking_notification(
-                    conn,
-                    "booking_expired",
-                    locked["passenger_id"],
-                    {"ride_id": str(locked["ride_id"]), "booking_id": str(locked["id"])},
-                )
-                await _enqueue_fcm_notification(
-                    conn,
-                    "booking_expired",
-                    locked["passenger_id"],
-                    {
-                        "ride_id": str(locked["ride_id"]),
-                        "booking_id": str(locked["id"]),
-                        "departure_datetime": (
-                            locked["departure_datetime"].isoformat() if locked["departure_datetime"] else ""
-                        ),
-                        "deep_link": "/(passenger)/rides",
-                    },
-                )
+                await expire_one_pending_booking(conn, row["id"])
 
 
 async def booking_expiry_loop() -> None:
