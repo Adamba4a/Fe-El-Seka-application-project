@@ -109,7 +109,7 @@ Create a new scheduled ride. Caller must be a verified driver with an approved v
 ```
 - `400` — departure too far ahead
 ```json
-{ "error": "ride_departure_too_far", "message": "Rides can only be scheduled up to 48 hours in advance." }
+{ "error": "ride_departure_too_far", "message": "Rides can only be scheduled up to 7 days in advance." }
 ```
 - `400` — seat count invalid
 ```json

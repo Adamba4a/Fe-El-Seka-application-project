@@ -70,9 +70,9 @@ curl -s -X POST "$BASE/api/v1/rides" \
 
 ---
 
-## Scenario 3 — Rejection: Departure Beyond 48 Hours (SC-008, FR-004)
+## Scenario 3 — Rejection: Departure Beyond 7 Days (SC-008, FR-004)
 
-**Goal**: Ride creation is rejected if departure is more than 2 days away.
+**Goal**: Ride creation is rejected if departure is more than 7 days away.
 
 ```bash
 curl -s -X POST "$BASE/api/v1/rides" \
@@ -81,7 +81,7 @@ curl -s -X POST "$BASE/api/v1/rides" \
   -d '{
     "origin": { "coordinates": { "lat": 30.0444, "lng": 31.2357 }, "address": "Tahrir Square" },
     "destination": { "coordinates": { "lat": 29.9792, "lng": 31.1342 }, "address": "Giza" },
-    "departure_datetime": "'"$(date -u -d '+3 days' '+%Y-%m-%dT08:00:00Z')"'",
+    "departure_datetime": "'"$(date -u -d '+8 days' '+%Y-%m-%dT08:00:00Z')"'",
     "total_seats": 2,
     "price_per_seat": "40.00"
   }' | jq .error

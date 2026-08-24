@@ -804,7 +804,7 @@
       "sameLocation": "Origin and destination must be different locations.",
       "departureRequired": "Please enter a departure date and time.",
       "departureInPast": "Departure time must be in the future.",
-      "departureTooFar": "Rides can only be scheduled up to 48 hours in advance.",
+      "departureTooFar": "Rides can only be scheduled up to 7 days in advance.",
       "seatsRange": "Seat count must be between 1 and {maxSeats}."
     }
   },

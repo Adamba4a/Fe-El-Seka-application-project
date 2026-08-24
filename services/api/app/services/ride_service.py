@@ -151,8 +151,8 @@ async def create_ride(
 
     if dep <= now:
         raise RideServiceError("ride_departure_past", "Departure time must be in the future.")
-    if dep > now + timedelta(hours=48):
-        raise RideServiceError("ride_departure_too_far", "Rides can only be scheduled up to 48 hours in advance.")
+    if dep > now + timedelta(days=7):
+        raise RideServiceError("ride_departure_too_far", "Rides can only be scheduled up to 7 days in advance.")
     if payload.total_seats < 1 or payload.total_seats > vehicle_seat_count:
         raise RideServiceError(
             "seat_count_invalid",
@@ -359,9 +359,9 @@ async def edit_ride(
                     dep = dep.replace(tzinfo=timezone.utc)
                 if dep <= now:
                     raise RideServiceError("ride_departure_past", "Departure time must be in the future.")
-                if dep > now + timedelta(hours=48):
+                if dep > now + timedelta(days=7):
                     raise RideServiceError(
-                        "ride_departure_too_far", "Rides can only be scheduled up to 48 hours in advance."
+                        "ride_departure_too_far", "Rides can only be scheduled up to 7 days in advance."
                     )
                 if dep != ride["departure_datetime"]:
                     changed_fields["departure_datetime"] = {

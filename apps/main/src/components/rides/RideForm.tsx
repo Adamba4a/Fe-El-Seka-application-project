@@ -84,7 +84,7 @@ export function RideForm({
     const dep = new Date(departureRaw);
     const now = new Date();
     if (dep <= now) return t("errors.departureInPast");
-    if (dep > new Date(now.getTime() + 48 * 60 * 60 * 1000))
+    if (dep > new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000))
       return t("errors.departureTooFar");
     if (totalSeats < 1 || totalSeats > maxSeats)
       return t("errors.seatsRange", { maxSeats });

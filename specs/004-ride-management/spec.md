@@ -44,7 +44,7 @@ A verified driver with a registered vehicle plans a trip they are already taking
 2. **Given** a driver who has not completed identity or vehicle verification, **When** they attempt to create a ride, **Then** the system blocks the request at the backend with a "Complete verification first" error.
 3. **Given** a driver entering identical origin and destination, **When** they submit, **Then** the system rejects the ride with a clear validation error.
 4. **Given** a driver entering a departure time in the past, **When** they submit, **Then** the system rejects the ride with an error indicating departure must be in the future.
-5. **Given** a driver entering a departure time more than 2 days from the current time, **When** they submit, **Then** the system rejects the ride with an error indicating rides can only be scheduled up to 2 days in advance.
+5. **Given** a driver entering a departure time more than 7 days from the current time, **When** they submit, **Then** the system rejects the ride with an error indicating rides can only be scheduled up to 7 days in advance.
 6. **Given** a driver entering a seat count greater than their registered vehicle's passenger capacity, **When** they submit, **Then** the system rejects the request with a clear capacity error.
 7. **Given** a driver who already has a `scheduled` or `in_progress` ride departing within 2 hours of the new ride's departure time, **When** they attempt to create the new ride, **Then** the system rejects it with a "conflicts with another ride" error.
 
@@ -145,7 +145,7 @@ A driver who was previously verified has their identity verification or vehicle 
 - What if a driver tries to mark a ride `in_progress` exactly when the departure time arrives, without taking any action? The transition does not happen automatically; the ride remains `scheduled` until the driver explicitly confirms the start.
 - What if a driver tries to mark a `scheduled` ride as `completed` directly, skipping `in_progress`? The system rejects the transition; status changes must follow `scheduled` → `in_progress` → `completed`.
 - What if two simultaneous edit requests are made for the same ride? The first write wins; the second request is re-validated against the now-current ride state and may fail if it conflicts (e.g., seat count check).
-- What if a driver tries to create a ride with a departure time more than 2 days in the future? The system rejects it with a clear error; rides may only be scheduled up to 2 days ahead for MVP.
+- What if a driver tries to create a ride with a departure time more than 7 days in the future? The system rejects it with a clear error; rides may only be scheduled up to 7 days ahead for MVP.
 - What happens to a `scheduled` ride if its departure time passes and the driver never marks it `in_progress`? It remains `scheduled` and visible to the driver as overdue; automatic status transitions based on time alone are out of scope for this phase.
 
 ---
