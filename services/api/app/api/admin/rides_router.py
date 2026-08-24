@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date as date_type, datetime, timedelta, timezone
+from datetime import date as date_type
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
