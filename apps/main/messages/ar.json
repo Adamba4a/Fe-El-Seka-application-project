@@ -683,7 +683,7 @@
   },
   "vehicleForm": {
     "plateNumberLabel": "رقم اللوحة",
-    "plateNumberPlaceholder": "مثال: أ ب ج 1234 أو ABC 1234",
+    "plateNumberPlaceholder": "مثال: أ ب ج 1234",
     "makeLabel": "الشركة المصنعة",
     "makePlaceholder": "مثال: Toyota",
     "modelLabel": "الطراز",

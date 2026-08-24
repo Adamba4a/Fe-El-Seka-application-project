@@ -683,7 +683,7 @@
   },
   "vehicleForm": {
     "plateNumberLabel": "Plate Number",
-    "plateNumberPlaceholder": "e.g. أ ب ج 1234 or ABC 1234",
+    "plateNumberPlaceholder": "e.g. أ ب ج 1234",
     "makeLabel": "Make (Brand)",
     "makePlaceholder": "e.g. Toyota",
     "modelLabel": "Model",

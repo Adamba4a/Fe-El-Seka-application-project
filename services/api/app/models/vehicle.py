@@ -3,10 +3,10 @@ from datetime import datetime
 
 from pydantic import BaseModel, field_validator
 
-# Accept Arabic Unicode block + Latin letters. The letter group allows
-# optional spaces between individual letters (e.g. "أ ب ج 1234"), matching
-# the app's own placeholder example and real Egyptian plate convention.
-_LETTERS = r"[؀-ۿa-zA-Z](?:\s?[؀-ۿa-zA-Z]){0,2}"
+# Egyptian plates use Arabic letters only. The letter group allows optional
+# spaces between individual letters (e.g. "أ ب ج 1234"), matching the app's
+# own placeholder example and real Egyptian plate convention.
+_LETTERS = r"[؀-ۿ](?:\s?[؀-ۿ]){0,2}"
 _PLATE_RE = re.compile(
     rf"^{_LETTERS}\s?\d{{1,4}}$"
     rf"|^\d{{1,4}}\s?{_LETTERS}$"
