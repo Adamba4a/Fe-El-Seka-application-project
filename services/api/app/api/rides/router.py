@@ -163,6 +163,29 @@ async def list_rides(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# GET /api/v1/rides/pending-bookings-count
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/pending-bookings-count")
+async def get_pending_bookings_count(
+    profile: dict = Depends(get_current_driver),
+):
+    driver_id = uuid.UUID(str(profile["id"]))
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        count = await conn.fetchval(
+            """
+            SELECT COUNT(*)
+            FROM bookings b
+            JOIN rides r ON r.id = b.ride_id
+            WHERE r.driver_id = $1 AND b.status = 'pending'
+            """,
+            driver_id,
+        )
+    return {"count": count}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # GET /api/v1/rides/{ride_id}
 # ─────────────────────────────────────────────────────────────────────────────
 

@@ -60,6 +60,18 @@ export interface LedgerEntrySummary {
   created_at: string;
 }
 
+export interface VehicleSummary {
+  vehicle_id: string;
+  plate_number: string;
+  make: string;
+  model: string;
+  year: number;
+  color: string;
+  seat_count: number;
+  is_active: boolean;
+  registered_at: string;
+}
+
 export interface UserDetail {
   profile: {
     user_id: string;
@@ -88,6 +100,7 @@ export interface UserDetail {
     available_egp: string;
     recent_ledger: LedgerEntrySummary[];
   };
+  vehicle?: VehicleSummary | null;
 }
 
 export async function list(token: string, params: UserListParams = {}): Promise<UserListResponse> {

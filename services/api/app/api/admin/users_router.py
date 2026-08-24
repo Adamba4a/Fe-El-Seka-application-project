@@ -143,6 +143,30 @@ def get_user_detail(
             for r in (rides_resp.data or [])
         ]
 
+        vehicle_resp = (
+            sb.table("vehicles")
+            .select("id, plate_number, make, model, year, color, seat_count, is_active, registered_at")
+            .eq("driver_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+        vehicle_row = vehicle_resp.data if vehicle_resp else None
+        result["vehicle"] = (
+            {
+                "vehicle_id": vehicle_row["id"],
+                "plate_number": vehicle_row["plate_number"],
+                "make": vehicle_row["make"],
+                "model": vehicle_row["model"],
+                "year": vehicle_row["year"],
+                "color": vehicle_row["color"],
+                "seat_count": vehicle_row["seat_count"],
+                "is_active": vehicle_row["is_active"],
+                "registered_at": str(vehicle_row["registered_at"]),
+            }
+            if vehicle_row
+            else None
+        )
+
     if role == "passenger":
         bookings_resp = (
             sb.table("bookings")

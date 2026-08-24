@@ -123,6 +123,15 @@ export async function startRide(token: string, id: string): Promise<Ride> {
   return json.ride;
 }
 
+export async function getPendingBookingsCount(token: string): Promise<number> {
+  const res = await fetch(`${base}/api/v1/rides/pending-bookings-count`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  if (!res.ok) throw unwrapError(json);
+  return json.count;
+}
+
 export async function completeRide(token: string, id: string): Promise<Ride> {
   const res = await fetch(`${base}/api/v1/rides/${id}/complete`, {
     method: "POST",

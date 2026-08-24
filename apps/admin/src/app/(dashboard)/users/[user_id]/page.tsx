@@ -46,7 +46,7 @@ export default function UserDetailPage({ params }: { params: { user_id: string }
   if (error) return <main className="p-8 text-red-600">{error}</main>;
   if (!detail) return <main className="p-8 text-gray-400">Loading…</main>;
 
-  const { profile, rides, bookings, ratings_received, reports, wallet } = detail;
+  const { profile, rides, bookings, ratings_received, reports, wallet, vehicle } = detail;
 
   return (
     <main className="p-8 space-y-8 max-w-3xl">
@@ -113,6 +113,32 @@ export default function UserDetailPage({ params }: { params: { user_id: string }
           />
         )}
       </section>
+
+      {profile.role === "driver" && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold">Vehicle</h2>
+          {!vehicle ? (
+            <p className="text-sm text-gray-400">No vehicle registered.</p>
+          ) : (
+            <dl className="grid grid-cols-2 gap-2 text-sm border rounded p-3">
+              <dt className="text-gray-500">Plate</dt><dd className="font-medium">{vehicle.plate_number}</dd>
+              <dt className="text-gray-500">Make / Model</dt><dd>{vehicle.make} {vehicle.model}</dd>
+              <dt className="text-gray-500">Year</dt><dd>{vehicle.year}</dd>
+              <dt className="text-gray-500">Color</dt><dd>{vehicle.color}</dd>
+              <dt className="text-gray-500">Seats</dt><dd>{vehicle.seat_count}</dd>
+              <dt className="text-gray-500">Status</dt>
+              <dd>
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                  vehicle.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                }`}>
+                  {vehicle.is_active ? "Active" : "Inactive"}
+                </span>
+              </dd>
+              <dt className="text-gray-500">Registered</dt><dd>{new Date(vehicle.registered_at).toLocaleString()}</dd>
+            </dl>
+          )}
+        </section>
+      )}
 
       {profile.role === "driver" && (
         <section className="space-y-2">

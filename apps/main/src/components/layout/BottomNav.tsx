@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useSession } from "@/lib/auth/hooks";
+import { getPendingBookingsCount } from "@/lib/api/rides";
+
+// Matches the notification_dispatcher_loop poll interval, so the badge is
+// never staler than the push notification it duplicates.
+const PENDING_BOOKINGS_POLL_MS = 30_000;
 
 function DashboardIcon() {
   return (
@@ -77,13 +83,37 @@ const PASSENGER_ITEMS: NavItem[] = [
 export function BottomNav({ variant }: { variant: "driver" | "passenger" }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
+  const session = useSession();
   const items = variant === "driver" ? DRIVER_ITEMS : PASSENGER_ITEMS;
+  const [pendingBookings, setPendingBookings] = useState(0);
+
+  useEffect(() => {
+    if (variant !== "driver" || !session?.access_token) return;
+    const token = session.access_token;
+    let cancelled = false;
+
+    const poll = () => {
+      getPendingBookingsCount(token)
+        .then((count) => {
+          if (!cancelled) setPendingBookings(count);
+        })
+        .catch(() => {});
+    };
+
+    poll();
+    const interval = setInterval(poll, PENDING_BOOKINGS_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [variant, session?.access_token, pathname]);
 
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-dash-surface border-t border-dash-border z-10">
       <div className="max-w-2xl mx-auto flex">
         {items.map((item) => {
           const active = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+          const showBadge = variant === "driver" && item.labelKey === "myRides" && pendingBookings > 0;
           return (
             <Link
               key={item.href}
@@ -93,11 +123,16 @@ export function BottomNav({ variant }: { variant: "driver" | "passenger" }) {
               }`}
             >
               <span
-                className={`flex items-center justify-center w-9 h-9 rounded-full transition-colors ${
+                className={`relative flex items-center justify-center w-9 h-9 rounded-full transition-colors ${
                   active ? "bg-dash-badge-bg" : ""
                 }`}
               >
                 {item.icon}
+                {showBadge && (
+                  <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] leading-none font-semibold">
+                    {pendingBookings > 9 ? "9+" : pendingBookings}
+                  </span>
+                )}
               </span>
               {t(item.labelKey)}
             </Link>

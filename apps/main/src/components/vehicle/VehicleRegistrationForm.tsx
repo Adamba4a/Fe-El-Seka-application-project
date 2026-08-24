@@ -29,7 +29,7 @@ export function VehicleRegistrationForm({ onSubmit }: VehicleRegistrationFormPro
       .string()
       .min(1, t("errors.required"))
       .regex(
-        /^[؀-ۿa-zA-Z]{1,3}\s?\d{1,4}$|^\d{1,4}\s?[؀-ۿa-zA-Z]{1,3}$|^\d{1,5}$/,
+        /^[؀-ۿa-zA-Z](\s?[؀-ۿa-zA-Z]){0,2}\s?\d{1,4}$|^\d{1,4}\s?[؀-ۿa-zA-Z](\s?[؀-ۿa-zA-Z]){0,2}$|^\d{1,5}$/,
         t("errors.invalidPlate")
       ),
     make: z.string().min(1, t("errors.required")),
