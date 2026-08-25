@@ -161,9 +161,9 @@ async def create_ride(
             f"Seat count must be between 1 and your vehicle's capacity ({vehicle_seat_count}).",
         )
 
-    fair_price_per_seat = Decimal(str(fair_price_per_seat))
+    fair_price_dec = Decimal(str(fair_price_per_seat))
     price_per_seat = (
-        Decimal(str(final_price_per_seat)) if final_price_per_seat is not None else fair_price_per_seat
+        Decimal(str(final_price_per_seat)) if final_price_per_seat is not None else fair_price_dec
     )
 
     pool = get_pool()
@@ -243,7 +243,7 @@ async def create_ride(
                 driver_id, vehicle_id,
                 f"POINT({olng} {olat})", payload.origin.address,
                 f"POINT({dlng} {dlat})", payload.destination.address,
-                dep, payload.total_seats, price_per_seat, fair_price_per_seat, payload.notes,
+                dep, payload.total_seats, price_per_seat, fair_price_dec, payload.notes,
                 json.dumps(route_geometry_geojson),
                 route_distance_km, route_duration_minutes,
                 fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp,
