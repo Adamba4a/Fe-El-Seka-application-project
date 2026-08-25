@@ -86,6 +86,7 @@ class FareEstimateResponse(BaseModel):
     safety_margin_egp: float
     seat_count: int
     per_seat_price_egp: float
+    max_price_per_seat_egp: float
     total_collected_egp: float
 
 

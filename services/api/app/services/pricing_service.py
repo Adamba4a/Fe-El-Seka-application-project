@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 FUEL_EFFICIENCY_KM_PER_L: float = 13.0
 PLATFORM_COMMISSION_RATE: float = 0.20
 FARE_SPLIT_SEATS: int = 2
+MAX_MARKUP_RATE: float = 0.30
 
 _DEFAULTS: dict[str, Any] = {
     "fuel_price_per_litre": 22.25,
@@ -106,20 +107,27 @@ def _calc_fee_from_distance(
     }
 
 
+def calculate_max_price(fair_price_per_seat: float) -> float:
+    return float(round(fair_price_per_seat * (1 + MAX_MARKUP_RATE)))
+
+
 def calculate_fare(distance_km: float, seat_count: int) -> FareEstimateResponse:
     config = get_pricing_config()
     fees = _calc_fee_from_distance(distance_km, seat_count, split_by=FARE_SPLIT_SEATS)
+    max_price = calculate_max_price(fees["per_seat_price_egp"])
     logger.info(
-        "calculate_fare distance_km=%.3f fuel_price=%.2f seat_count=%d per_seat=%.2f",
+        "calculate_fare distance_km=%.3f fuel_price=%.2f seat_count=%d per_seat=%.2f max_price=%.2f",
         distance_km,
         float(config["fuel_price_per_litre"]),
         seat_count,
         fees["per_seat_price_egp"],
+        max_price,
     )
     return FareEstimateResponse(
         distance_km=round(distance_km, 2),
         fuel_price_per_litre_egp=float(config["fuel_price_per_litre"]),
         seat_count=seat_count,
+        max_price_per_seat_egp=max_price,
         **fees,
     )
 

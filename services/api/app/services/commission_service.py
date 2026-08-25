@@ -29,10 +29,14 @@ async def deduct_commission(
     more than one seat (see the multi-seat booking feature), and each of those seats
     must be charged its share:
         per_seat = (fuel_cost_egp * 0.20 + distance_fee_egp + safety_margin_egp) / total_seats
+                   + (price_per_seat - fair_price_per_seat) * 0.20
         commission for a booking = ROUND(per_seat * booking.seats, 2)
 
     The platform keeps the 20% fuel-cost commission plus the flat safety margin and the
-    per-km distance fee in full — both are platform revenue, not a driver buffer.
+    per-km distance fee in full — both are platform revenue, not a driver buffer. When the
+    driver has set a final price above the system fair price (Spec 023), the platform also
+    takes 20% of that per-seat markup, so commission revenue scales with what the driver
+    actually charges (FR-011).
 
     Does NOT release the CommissionReservation — the caller (complete_ride) must call
     release_reservation() separately after this function returns.
@@ -59,12 +63,20 @@ async def deduct_commission(
         else Decimal("0")
     )
     total_seats = int(ride["total_seats"])
+    price_per_seat = Decimal(str(ride["price_per_seat"]))
+    fair_price_per_seat = (
+        Decimal(str(ride["fair_price_per_seat"])) if ride.get("fair_price_per_seat") is not None else price_per_seat
+    )
+    markup_commission_per_seat = max(Decimal("0.00"), price_per_seat - fair_price_per_seat) * COMMISSION_RATE
 
     wallet = await wallet_service.get_wallet_with_lock(conn, driver_id)
     wallet_id = wallet["id"]
 
     if not confirmed_bookings or total_seats == 0 or (
-        fuel_cost == Decimal("0") and distance_fee == Decimal("0") and safety_margin == Decimal("0")
+        fuel_cost == Decimal("0")
+        and distance_fee == Decimal("0")
+        and safety_margin == Decimal("0")
+        and markup_commission_per_seat == Decimal("0")
     ):
         logger.info(
             "wallet_write operation=COMMISSION_DEBIT driver_id=%s ride_id=%s "
@@ -74,7 +86,9 @@ async def deduct_commission(
         )
         return
 
-    per_seat_commission = (fuel_cost * COMMISSION_RATE + distance_fee + safety_margin) / total_seats
+    per_seat_commission = (
+        fuel_cost * COMMISSION_RATE + distance_fee + safety_margin
+    ) / total_seats + markup_commission_per_seat
     per_seat_distance_fee = distance_fee / total_seats
 
     total_deducted = Decimal("0.00")
@@ -168,6 +182,42 @@ def check_available_balance(wallet: dict, max_commission: Decimal) -> bool:
     balance = Decimal(str(wallet["balance_egp"]))
     reserved = Decimal(str(wallet["reserved_egp"]))
     return (balance - reserved) >= max_commission
+
+
+async def update_reservation(
+    conn,
+    wallet_id: uuid.UUID,
+    driver_id: uuid.UUID,
+    ride_id: uuid.UUID,
+    new_amount: Decimal,
+    delta: Decimal,
+) -> None:
+    """Adjust an existing CommissionReservation's amount and apply the same delta to
+    wallet.reserved_egp.
+
+    Used when a driver edits a scheduled ride's price or seat count after creation (Spec 023),
+    which changes the expected commission. The caller must compute `delta` (new_amount minus the
+    reservation's current amount) and — for a positive delta — have already verified sufficient
+    available balance via check_available_balance() before calling this.
+
+    MUST be called inside the edit_ride() transaction, after the wallet row has been locked via
+    get_wallet_with_lock(). No-ops (still updates the row, but the wallet call is skipped) when
+    delta is exactly zero.
+    """
+    await conn.execute(
+        "UPDATE commission_reservations SET reserved_amount_egp = $2 WHERE ride_id = $1",
+        ride_id,
+        new_amount,
+    )
+    if delta > Decimal("0.00"):
+        await wallet_service.increment_reserved(conn, wallet_id, delta)
+    elif delta < Decimal("0.00"):
+        await wallet_service.decrement_reserved(conn, wallet_id, -delta)
+    logger.info(
+        "event=wallet_write operation=RESERVATION_UPDATE driver_id=%s amount_delta_egp=%s "
+        "new_amount_egp=%s ride_id=%s",
+        driver_id, delta, new_amount, ride_id,
+    )
 
 
 async def create_reservation(

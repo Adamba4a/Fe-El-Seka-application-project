@@ -19,7 +19,7 @@ from app.models.ride import (
     RideListResponse,
     RideResponse,
 )
-from app.services.pricing_service import calculate_fare
+from app.services.pricing_service import calculate_fare, calculate_max_price
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Custom exceptions
@@ -45,7 +45,7 @@ _RIDE_COLS = """
     ST_Y(destination_coordinates::geometry) AS dest_lat,
     ST_X(destination_coordinates::geometry) AS dest_lng,
     departure_datetime, total_seats, booked_seats, available_seats,
-    price_per_seat, status, cancellation_reason, cancellation_source,
+    price_per_seat, fair_price_per_seat, status, cancellation_reason, cancellation_source,
     notes, created_at, updated_at,
     route_distance_km, route_duration_minutes,
     fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp, price_source,
@@ -72,6 +72,7 @@ def _to_response(row: dict) -> RideResponse:
         booked_seats=row["booked_seats"],
         available_seats=row["available_seats"],
         price_per_seat=str(row["price_per_seat"]),
+        fair_price_per_seat=str(row["fair_price_per_seat"]),
         status=row["status"],
         cancellation_reason=row["cancellation_reason"],
         cancellation_source=row["cancellation_source"],
@@ -136,7 +137,8 @@ async def create_ride(
     platform_commission_egp: float,
     distance_fee_egp: float,
     safety_margin_egp: float,
-    price_per_seat: float,
+    fair_price_per_seat: float,
+    final_price_per_seat: Optional[float] = None,
 ) -> RideResponse:
     olat = payload.origin.coordinates.lat
     olng = payload.origin.coordinates.lng
@@ -161,7 +163,16 @@ async def create_ride(
             f"Seat count must be between 1 and your vehicle's capacity ({vehicle_seat_count}).",
         )
 
-    price_per_seat = Decimal(str(price_per_seat))
+    fair_price_dec = Decimal(str(fair_price_per_seat))
+    price_per_seat = (
+        Decimal(str(final_price_per_seat)) if final_price_per_seat is not None else fair_price_dec
+    )
+    max_price_dec = Decimal(str(calculate_max_price(fair_price_per_seat)))
+    if price_per_seat < fair_price_dec or price_per_seat > max_price_dec:
+        raise RideServiceError(
+            "price_out_of_band",
+            f"Price must be between {fair_price_dec:.2f} and {max_price_dec:.2f} EGP per seat.",
+        )
 
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -194,12 +205,18 @@ async def create_ride(
             from fastapi import HTTPException as _HTTPException
 
             from app.services import wallet_service as _ws
-            from app.services.commission_service import check_available_balance, create_reservation
+            from app.services.commission_service import (
+                COMMISSION_RATE,
+                check_available_balance,
+                create_reservation,
+            )
 
+            markup_commission = (price_per_seat - fair_price_dec) * payload.total_seats * COMMISSION_RATE
             max_commission = (
-                Decimal(str(fuel_cost_egp)) * Decimal("0.20")
+                Decimal(str(fuel_cost_egp)) * COMMISSION_RATE
                 + Decimal(str(distance_fee_egp))
                 + Decimal(str(safety_margin_egp))
+                + markup_commission
             ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             wallet = await _ws.get_wallet_with_lock(conn, driver_id)
 
@@ -224,22 +241,23 @@ async def create_ride(
                     driver_id, vehicle_id,
                     origin_coordinates, origin_address,
                     destination_coordinates, destination_address,
-                    departure_datetime, total_seats, booked_seats, price_per_seat, notes, status,
+                    departure_datetime, total_seats, booked_seats, price_per_seat, fair_price_per_seat,
+                    notes, status,
                     route_geometry, route_distance_km, route_duration_minutes,
                     fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp, price_source
                 ) VALUES (
                     $1, $2,
                     ST_GeomFromText($3, 4326)::geography, $4,
                     ST_GeomFromText($5, 4326)::geography, $6,
-                    $7, $8, 0, $9, $10, 'scheduled',
-                    ST_SetSRID(ST_GeomFromGeoJSON($11), 4326), $12, $13, $14, $15, $16, $17, 'system'
+                    $7, $8, 0, $9, $10, $11, 'scheduled',
+                    ST_SetSRID(ST_GeomFromGeoJSON($12), 4326), $13, $14, $15, $16, $17, $18, 'system'
                 )
                 RETURNING {_RIDE_COLS}
                 """,
                 driver_id, vehicle_id,
                 f"POINT({olng} {olat})", payload.origin.address,
                 f"POINT({dlng} {dlat})", payload.destination.address,
-                dep, payload.total_seats, price_per_seat, payload.notes,
+                dep, payload.total_seats, price_per_seat, fair_price_dec, payload.notes,
                 json.dumps(route_geometry_geojson),
                 route_distance_km, route_duration_minutes,
                 fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp,
@@ -427,28 +445,146 @@ async def edit_ride(
                 )
                 sets.append(f"destination_address = {add_param(payload.destination.address)}")
 
+            seats_changed = False
             if payload.total_seats is not None:
                 if payload.total_seats < ride["booked_seats"]:
                     raise RideServiceError(
                         "seat_count_invalid",
                         f"Cannot reduce seats below booked count ({ride['booked_seats']}).",
                     )
-                if payload.total_seats != ride["total_seats"]:
+                seats_changed = payload.total_seats != ride["total_seats"]
+                if seats_changed:
                     changed_fields["total_seats"] = {"before": ride["total_seats"], "after": payload.total_seats}
                     sets.append(f"total_seats = {add_param(payload.total_seats)}")
-                    if ride.get("price_source") == "system" and ride["route_distance_km"] is not None:
-                        new_fare = calculate_fare(float(ride["route_distance_km"]), payload.total_seats)
-                        new_price = Decimal(str(new_fare.per_seat_price_egp))
-                        if new_price != ride["price_per_seat"]:
-                            changed_fields["price_per_seat"] = {
-                                "before": str(ride["price_per_seat"]),
-                                "after": str(new_price),
-                            }
-                        sets.append(f"price_per_seat = {add_param(new_price)}")
-                        sets.append(f"fuel_cost_egp = {add_param(new_fare.fuel_cost_egp)}")
-                        sets.append(f"platform_commission_egp = {add_param(new_fare.platform_commission_egp)}")
-                        sets.append(f"distance_fee_egp = {add_param(new_fare.distance_fee_egp)}")
-                        sets.append(f"safety_margin_egp = {add_param(new_fare.safety_margin_egp)}")
+
+            # Price band: recompute the fair price (and derived max) only when total_seats
+            # actually changed and this ride uses system pricing (research.md §4) — otherwise
+            # the band is just the ride's existing fair price / cap.
+            cost_basis_recomputed = (
+                seats_changed and ride.get("price_source") == "system" and ride["route_distance_km"] is not None
+            )
+            if cost_basis_recomputed:
+                new_fare = calculate_fare(float(ride["route_distance_km"]), payload.total_seats)
+                fair_price = Decimal(str(new_fare.per_seat_price_egp))
+                max_price = Decimal(str(new_fare.max_price_per_seat_egp))
+                if fair_price != Decimal(str(ride["fair_price_per_seat"])):
+                    changed_fields["fair_price_per_seat"] = {
+                        "before": str(ride["fair_price_per_seat"]),
+                        "after": str(fair_price),
+                    }
+                sets.append(f"fair_price_per_seat = {add_param(fair_price)}")
+                sets.append(f"fuel_cost_egp = {add_param(new_fare.fuel_cost_egp)}")
+                sets.append(f"platform_commission_egp = {add_param(new_fare.platform_commission_egp)}")
+                sets.append(f"distance_fee_egp = {add_param(new_fare.distance_fee_egp)}")
+                sets.append(f"safety_margin_egp = {add_param(new_fare.safety_margin_egp)}")
+            else:
+                fair_price = Decimal(str(ride["fair_price_per_seat"]))
+                max_price = Decimal(str(calculate_max_price(float(ride["fair_price_per_seat"]))))
+
+            if payload.final_price_per_seat is not None:
+                new_price = Decimal(str(payload.final_price_per_seat))
+                if new_price < fair_price or new_price > max_price:
+                    raise RideServiceError(
+                        "price_out_of_band",
+                        f"Price must be between {fair_price:.2f} and {max_price:.2f} EGP per seat.",
+                    )
+                if new_price != Decimal(str(ride["price_per_seat"])):
+                    changed_fields["price_per_seat"] = {
+                        "before": str(ride["price_per_seat"]),
+                        "after": str(new_price),
+                    }
+                sets.append(f"price_per_seat = {add_param(new_price)}")
+                final_price_per_seat = new_price
+            elif seats_changed:
+                # No new price supplied — the existing final price must still fit the
+                # (possibly recomputed) band, or the edit is rejected outright (FR-008):
+                # never silently reprice a ride passengers may have already viewed/booked.
+                current_price = Decimal(str(ride["price_per_seat"]))
+                if current_price < fair_price or current_price > max_price:
+                    raise RideServiceError(
+                        "price_out_of_band",
+                        f"Price must be between {fair_price:.2f} and {max_price:.2f} EGP per seat.",
+                    )
+                final_price_per_seat = current_price
+            else:
+                final_price_per_seat = Decimal(str(ride["price_per_seat"]))
+
+            # Commission reservation sync: a price or seat-count edit changes the expected
+            # commission (cost-basis and/or markup terms), so the CommissionReservation and
+            # wallet.reserved_egp must move with it — otherwise a driver could create a ride at
+            # a low price to pass the balance check, then edit up to the max price and bypass
+            # that check entirely (the reservation would silently stay stale until completion).
+            if seats_changed or payload.final_price_per_seat is not None:
+                from fastapi import HTTPException as _HTTPException
+
+                from app.services import wallet_service as _ws
+                from app.services.commission_service import (
+                    COMMISSION_RATE,
+                    check_available_balance,
+                    create_reservation,
+                    update_reservation,
+                )
+
+                final_total_seats = payload.total_seats if payload.total_seats is not None else ride["total_seats"]
+                if cost_basis_recomputed:
+                    fuel_cost = Decimal(str(new_fare.fuel_cost_egp))
+                    distance_fee = Decimal(str(new_fare.distance_fee_egp))
+                    safety_margin = Decimal(str(new_fare.safety_margin_egp))
+                else:
+                    fuel_cost = (
+                        Decimal(str(ride["fuel_cost_egp"]))
+                        if ride.get("fuel_cost_egp") is not None
+                        else Decimal("0")
+                    )
+                    distance_fee = (
+                        Decimal(str(ride["distance_fee_egp"]))
+                        if ride.get("distance_fee_egp") is not None
+                        else Decimal("0")
+                    )
+                    safety_margin = (
+                        Decimal(str(ride["safety_margin_egp"]))
+                        if ride.get("safety_margin_egp") is not None
+                        else Decimal("0")
+                    )
+
+                markup_commission = (final_price_per_seat - fair_price) * final_total_seats * COMMISSION_RATE
+                new_max_commission = (
+                    fuel_cost * COMMISSION_RATE + distance_fee + safety_margin + markup_commission
+                ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+                existing_reservation = await conn.fetchrow(
+                    "SELECT reserved_amount_egp FROM commission_reservations WHERE ride_id = $1",
+                    ride_id,
+                )
+                old_amount = (
+                    Decimal(str(existing_reservation["reserved_amount_egp"]))
+                    if existing_reservation is not None
+                    else Decimal("0.00")
+                )
+                delta = new_max_commission - old_amount
+
+                if delta != Decimal("0.00"):
+                    wallet = await _ws.get_wallet_with_lock(conn, driver_id)
+                    if delta > Decimal("0.00") and not check_available_balance(wallet, delta):
+                        _balance = Decimal(str(wallet["balance_egp"]))
+                        _reserved = Decimal(str(wallet["reserved_egp"]))
+                        raise _HTTPException(
+                            status_code=422,
+                            detail={
+                                "error": "INSUFFICIENT_WALLET_BALANCE",
+                                "message": "Insufficient wallet balance to cover this ride's updated commission.",
+                                "available_egp": str(_balance - _reserved),
+                                "required_additional_commission_egp": str(delta),
+                                "balance_egp": str(_balance),
+                                "reserved_egp": str(_reserved),
+                            },
+                        )
+                    if existing_reservation is not None:
+                        await update_reservation(
+                            conn, wallet["id"], driver_id, ride_id, new_max_commission, delta
+                        )
+                    else:
+                        await create_reservation(conn, wallet["id"], driver_id, ride_id, new_max_commission)
 
             if payload.notes is not None and payload.notes != ride["notes"]:
                 changed_fields["notes"] = {"before": ride["notes"], "after": payload.notes}

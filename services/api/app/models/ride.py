@@ -23,6 +23,7 @@ class CreateRideRequest(BaseModel):
     departure_datetime: datetime
     total_seats: int
     notes: Optional[str] = None
+    final_price_per_seat: Optional[float] = None
 
 
 class EditRideRequest(BaseModel):
@@ -30,6 +31,7 @@ class EditRideRequest(BaseModel):
     departure_datetime: Optional[datetime] = None
     total_seats: Optional[int] = None
     notes: Optional[str] = None
+    final_price_per_seat: Optional[float] = None
 
 
 class CancelRideRequest(BaseModel):
@@ -61,6 +63,7 @@ class RideResponse(BaseModel):
     booked_seats: int
     available_seats: int
     price_per_seat: str
+    fair_price_per_seat: str
     status: str
     cancellation_reason: Optional[str]
     cancellation_source: Optional[str]
