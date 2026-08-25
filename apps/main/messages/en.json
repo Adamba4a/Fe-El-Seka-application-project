@@ -802,7 +802,12 @@
     "change": "Change",
     "originLockedNote": "Origin cannot be changed after posting.",
     "routeLockedNote": "Route cannot be changed after posting. Cancel and create a new ride to change origin or destination.",
-    "priceAutoNote": "Price per seat is calculated automatically by the system based on the route.",
+    "priceAutoNote": "You can set any price between the fair price and the maximum shown above.",
+    "priceLabel": "Price per Seat",
+    "priceEstimating": "Calculating fair price…",
+    "fairPriceLabel": "Fair price",
+    "selectedPriceLabel": "Your price",
+    "maxPriceLabel": "Maximum",
     "postingRide": "Posting ride…",
     "savingChanges": "Saving changes…",
     "postRide": "Post Ride",
@@ -814,7 +819,9 @@
       "departureRequired": "Please enter a departure date and time.",
       "departureInPast": "Departure time must be in the future.",
       "departureTooFar": "Rides can only be scheduled up to 7 days in advance.",
-      "seatsRange": "Seat count must be between 1 and {maxSeats}."
+      "seatsRange": "Seat count must be between 1 and {maxSeats}.",
+      "fareEstimateFailed": "Could not calculate the fare for this route. Please try again.",
+      "fareEstimatePending": "Please wait for the price to finish calculating."
     }
   },
   "driverDashboard": {

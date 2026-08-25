@@ -2,9 +2,16 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/Spinner";
+import { formatCurrency } from "@fe-el-seka/shared";
 import type { CreateRidePayload, EditRidePayload, Location, Coordinates } from "@fe-el-seka/shared";
+import { getFareEstimate } from "@/lib/api/pricing";
+
+const MAX_MARKUP_RATE = 0.3;
+function calculateMaxPrice(fairPrice: number): number {
+  return Math.round(fairPrice * (1 + MAX_MARKUP_RATE));
+}
 
 const RideMap = dynamic(
   () => import("./RideMap").then((m) => ({ default: m.RideMap })),
@@ -19,6 +26,8 @@ interface RideFormProps {
     departure_datetime?: string;
     total_seats?: number;
     notes?: string;
+    price_per_seat?: string;
+    fair_price_per_seat?: string;
   };
   maxSeats?: number;
   loading?: boolean;
@@ -42,6 +51,7 @@ export function RideForm({
   externalOrigin, externalDestination, onRequestOriginMap, onRequestDestinationMap,
 }: RideFormProps) {
   const t = useTranslations("rideForm");
+  const locale = useLocale() as "en" | "ar";
   const [origin, setOrigin] = useState<Location | undefined>(initialValues?.origin);
   const [destination, setDestination] = useState<Location | undefined>(initialValues?.destination);
   const [departureRaw, setDepartureRaw] = useState(toDatetimeLocal(initialValues?.departure_datetime));
@@ -49,9 +59,45 @@ export function RideForm({
   const [notes, setNotes] = useState(initialValues?.notes ?? "");
   const [validationError, setValidationError] = useState<string | null>(null);
 
+  const initialFairPrice = initialValues?.fair_price_per_seat
+    ? Number(initialValues.fair_price_per_seat)
+    : null;
+  const [fairPrice, setFairPrice] = useState<number | null>(initialFairPrice);
+  const [maxPrice, setMaxPrice] = useState<number | null>(
+    initialFairPrice !== null ? calculateMaxPrice(initialFairPrice) : null
+  );
+  const [selectedPrice, setSelectedPrice] = useState<number | null>(
+    initialValues?.price_per_seat ? Number(initialValues.price_per_seat) : null
+  );
+  const [fareLoading, setFareLoading] = useState(false);
+  const [fareError, setFareError] = useState<string | null>(null);
+
   // Sync external coordinates (from page-level full-screen map) into internal state
   useEffect(() => { if (externalOrigin) setOrigin(externalOrigin); }, [externalOrigin]);
   useEffect(() => { if (externalDestination) setDestination(externalDestination); }, [externalDestination]);
+
+  // Fetch fare estimate (create mode only — edit mode's route is locked, so the
+  // fair price never changes and comes straight from initialValues instead).
+  useEffect(() => {
+    if (mode !== "create" || !origin || !destination) return;
+    let cancelled = false;
+    setFareLoading(true);
+    setFareError(null);
+    getFareEstimate(origin.coordinates, destination.coordinates, totalSeats)
+      .then((estimate) => {
+        if (cancelled) return;
+        setFairPrice(estimate.per_seat_price_egp);
+        setMaxPrice(estimate.max_price_per_seat_egp);
+        setSelectedPrice(estimate.per_seat_price_egp);
+      })
+      .catch(() => {
+        if (!cancelled) setFareError(t("errors.fareEstimateFailed"));
+      })
+      .finally(() => {
+        if (!cancelled) setFareLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [mode, origin, destination]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Dirty-field detection for edit mode
   useEffect(() => {
@@ -59,9 +105,10 @@ export function RideForm({
     const isDirty =
       departureRaw !== toDatetimeLocal(initialValues?.departure_datetime) ||
       totalSeats !== (initialValues?.total_seats ?? 1) ||
-      notes.trim() !== (initialValues?.notes ?? "").trim();
+      notes.trim() !== (initialValues?.notes ?? "").trim() ||
+      selectedPrice !== (initialValues?.price_per_seat ? Number(initialValues.price_per_seat) : null);
     onDirtyChange(isDirty);
-  }, [mode, destination, departureRaw, totalSeats, notes]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mode, destination, departureRaw, totalSeats, notes, selectedPrice]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleOriginPin = (coords: Coordinates, address: string) => {
     setOrigin({ coordinates: coords, address });
@@ -88,6 +135,8 @@ export function RideForm({
       return t("errors.departureTooFar");
     if (totalSeats < 1 || totalSeats > maxSeats)
       return t("errors.seatsRange", { maxSeats });
+    if (mode === "create" && (fairPrice === null || selectedPrice === null))
+      return t("errors.fareEstimatePending");
     return null;
   };
 
@@ -109,6 +158,7 @@ export function RideForm({
         departure_datetime: dep,
         total_seats: totalSeats,
         notes: notes.trim() || undefined,
+        final_price_per_seat: selectedPrice!,
       } as CreateRidePayload);
     } else {
       const payload: EditRidePayload = {};
@@ -116,6 +166,9 @@ export function RideForm({
         payload.departure_datetime = dep;
       if (totalSeats !== initialValues?.total_seats) payload.total_seats = totalSeats;
       if (notes.trim() !== (initialValues?.notes ?? "")) payload.notes = notes.trim();
+      const initialPrice = initialValues?.price_per_seat ? Number(initialValues.price_per_seat) : null;
+      if (selectedPrice !== null && selectedPrice !== initialPrice)
+        payload.final_price_per_seat = selectedPrice;
       onSubmit(payload);
     }
   };
@@ -229,9 +282,47 @@ export function RideForm({
         />
       </div>
 
-      <p className="text-caption text-content-muted">
-        {t("priceAutoNote")}
-      </p>
+      <div className="space-y-2">
+        <label className="block text-label text-content-secondary">{t("priceLabel")}</label>
+        {mode === "create" && fareLoading && (
+          <p className="text-body-sm text-content-muted flex items-center gap-2">
+            <Spinner /> {t("priceEstimating")}
+          </p>
+        )}
+        {mode === "create" && fareError && (
+          <p className="text-body-sm text-content-destructive">{fareError}</p>
+        )}
+        {fairPrice !== null && maxPrice !== null && selectedPrice !== null && (
+          <div className="bg-surface-bg rounded-xl px-3 py-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-caption text-content-muted">{t("fairPriceLabel")}</span>
+              <span className="text-caption text-content-muted">{formatCurrency(fairPrice, locale)}</span>
+            </div>
+            {fairPrice < maxPrice ? (
+              <input
+                type="range"
+                min={fairPrice}
+                max={maxPrice}
+                step={1}
+                value={selectedPrice}
+                onChange={(e) => setSelectedPrice(Number(e.target.value))}
+                className="w-full accent-dash-primary"
+              />
+            ) : null}
+            <div className="flex items-center justify-between">
+              <span className="text-label text-content-primary">{t("selectedPriceLabel")}</span>
+              <span className="text-heading-sm text-content-primary font-medium">
+                {formatCurrency(selectedPrice, locale)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-caption text-content-muted">{t("maxPriceLabel")}</span>
+              <span className="text-caption text-content-muted">{formatCurrency(maxPrice, locale)}</span>
+            </div>
+          </div>
+        )}
+        <p className="text-caption text-content-muted">{t("priceAutoNote")}</p>
+      </div>
 
       <div className="space-y-1">
         <label className="block text-label text-content-secondary">{t("notesLabel")}</label>

@@ -106,6 +106,8 @@ export default function EditRidePage() {
           departure_datetime: ride.departure_datetime,
           total_seats: ride.total_seats,
           notes: ride.notes ?? "",
+          price_per_seat: ride.price_per_seat,
+          fair_price_per_seat: ride.fair_price_per_seat,
         }}
         loading={loading}
         error={submitError}

@@ -22,6 +22,7 @@ export interface Ride {
   booked_seats: number;
   available_seats: number;
   price_per_seat: string;
+  fair_price_per_seat: string;
   status: RideStatus;
   cancellation_reason: string | null;
   cancellation_source: "driver" | "system" | null;
@@ -46,6 +47,7 @@ export interface CreateRidePayload {
   departure_datetime: string;
   total_seats: number;
   notes?: string;
+  final_price_per_seat?: number;
 }
 
 export interface EditRidePayload {
@@ -53,6 +55,7 @@ export interface EditRidePayload {
   departure_datetime?: string;
   total_seats?: number;
   notes?: string;
+  final_price_per_seat?: number;
 }
 
 export interface CancelRidePayload {
