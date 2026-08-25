@@ -205,10 +205,12 @@ async def create_ride(
             from app.services import wallet_service as _ws
             from app.services.commission_service import check_available_balance, create_reservation
 
+            markup_commission = (price_per_seat - fair_price_dec) * payload.total_seats * Decimal("0.20")
             max_commission = (
                 Decimal(str(fuel_cost_egp)) * Decimal("0.20")
                 + Decimal(str(distance_fee_egp))
                 + Decimal(str(safety_margin_egp))
+                + markup_commission
             ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             wallet = await _ws.get_wallet_with_lock(conn, driver_id)
 

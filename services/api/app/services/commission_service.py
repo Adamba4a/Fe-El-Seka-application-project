@@ -29,10 +29,14 @@ async def deduct_commission(
     more than one seat (see the multi-seat booking feature), and each of those seats
     must be charged its share:
         per_seat = (fuel_cost_egp * 0.20 + distance_fee_egp + safety_margin_egp) / total_seats
+                   + (price_per_seat - fair_price_per_seat) * 0.20
         commission for a booking = ROUND(per_seat * booking.seats, 2)
 
     The platform keeps the 20% fuel-cost commission plus the flat safety margin and the
-    per-km distance fee in full — both are platform revenue, not a driver buffer.
+    per-km distance fee in full — both are platform revenue, not a driver buffer. When the
+    driver has set a final price above the system fair price (Spec 023), the platform also
+    takes 20% of that per-seat markup, so commission revenue scales with what the driver
+    actually charges (FR-011).
 
     Does NOT release the CommissionReservation — the caller (complete_ride) must call
     release_reservation() separately after this function returns.
@@ -59,12 +63,20 @@ async def deduct_commission(
         else Decimal("0")
     )
     total_seats = int(ride["total_seats"])
+    price_per_seat = Decimal(str(ride["price_per_seat"]))
+    fair_price_per_seat = (
+        Decimal(str(ride["fair_price_per_seat"])) if ride.get("fair_price_per_seat") is not None else price_per_seat
+    )
+    markup_commission_per_seat = (price_per_seat - fair_price_per_seat) * COMMISSION_RATE
 
     wallet = await wallet_service.get_wallet_with_lock(conn, driver_id)
     wallet_id = wallet["id"]
 
     if not confirmed_bookings or total_seats == 0 or (
-        fuel_cost == Decimal("0") and distance_fee == Decimal("0") and safety_margin == Decimal("0")
+        fuel_cost == Decimal("0")
+        and distance_fee == Decimal("0")
+        and safety_margin == Decimal("0")
+        and markup_commission_per_seat == Decimal("0")
     ):
         logger.info(
             "wallet_write operation=COMMISSION_DEBIT driver_id=%s ride_id=%s "
@@ -74,7 +86,9 @@ async def deduct_commission(
         )
         return
 
-    per_seat_commission = (fuel_cost * COMMISSION_RATE + distance_fee + safety_margin) / total_seats
+    per_seat_commission = (
+        fuel_cost * COMMISSION_RATE + distance_fee + safety_margin
+    ) / total_seats + markup_commission_per_seat
     per_seat_distance_fee = distance_fee / total_seats
 
     total_deducted = Decimal("0.00")

@@ -193,17 +193,17 @@ without consulting any other system.
 *any* story above results in a ride with a markup. Must ship alongside the user-facing stories for FR-011
 compliance, but is independently testable via the wallet ledger rather than any UI/API response.
 
-- [ ] T018 Update the `max_commission` reservation calculation in `ride_service.create_ride`
+- [X] T018 Update the `max_commission` reservation calculation in `ride_service.create_ride`
       (`services/api/app/services/ride_service.py`, near the `check_available_balance`/`create_reservation`
       calls) to add the markup term `(final_price_per_seat - fair_price_per_seat) * total_seats * 0.20`
       on top of the existing `fuel_cost*0.20 + distance_fee + safety_margin` (research.md §3) — depends on
       T008/T011 (final price and fair price both resolved by then)
-- [ ] T019 Update `commission_service.deduct_commission` in
+- [X] T019 Update `commission_service.deduct_commission` in
       `services/api/app/services/commission_service.py` to add `markup_commission_per_seat =
       (price_per_seat - fair_price_per_seat) * COMMISSION_RATE` to `per_seat_commission` before computing
       each booking's `commission_amount` (research.md §3) — requires `ride` dict passed into this
       function to include `fair_price_per_seat` and `price_per_seat` (already true once T005 lands)
-- [ ] T020 [P] Integration test: complete a ride created with a markup through to `completed` with a
+- [X] T020 [P] Integration test: complete a ride created with a markup through to `completed` with a
       confirmed booking; assert the `COMMISSION_DEBIT` ledger amount equals the cost-basis commission
       plus the markup commission term (quickstart.md scenario 9), in
       `services/api/tests/integration/test_commission_fare_override.py`
@@ -216,13 +216,23 @@ compliance, but is independently testable via the wallet ledger rather than any 
 
 **Purpose**: Final validation across all stories.
 
-- [ ] T021 Run `services/api` pytest suite in full to confirm no regressions in existing pricing/ride/
+- [X] T021 Run `services/api` pytest suite in full to confirm no regressions in existing pricing/ride/
       commission tests
-- [ ] T022 Run all 10 `quickstart.md` scenarios end-to-end against the local `docker compose up --build`
-      stack
-- [ ] T023 [P] Update `services/api` OpenAPI-visible docstrings/response examples for the changed
+- [X] T022 Run all 10 `quickstart.md` scenarios end-to-end against the local `docker compose up --build`
+      stack — no verified test driver/vehicle/funded-wallet account was available for true live HTTP
+      end-to-end validation (see `RUNNING.md`, no seed credentials documented), so instead traced all 10
+      scenarios against source code and the automated test suite: 1-9 map directly to passing tests
+      (`test_rides_fare_override.py`, `test_rides_fare_override_edit.py`,
+      `test_admin_rides_fare_override.py`, `test_commission_fare_override.py`); scenario 10
+      (no fair price/band/markup ever shown on a passenger-facing surface) confirmed by reading
+      `search/router.py`, `booking_service.py`, and the `/rides/{id}/passenger-detail` handler — none
+      select or return `fair_price_per_seat`/markup fields; only the driver-scoped `create_ride`/`get_ride`/
+      `edit_ride` responses and the admin router include them
+- [X] T023 [P] Update `services/api` OpenAPI-visible docstrings/response examples for the changed
       endpoints if the project generates API docs from them (check `services/api/app/api/rides/router.py`
-      and `admin/rides_router.py` for existing docstring conventions before adding new ones)
+      and `admin/rides_router.py` for existing docstring conventions before adding new ones) — checked both
+      files: no route handler in either has a docstring or FastAPI `response_model`/`summary`/`description`
+      decoration, so there is no existing convention to extend; no changes made
 
 ---
 

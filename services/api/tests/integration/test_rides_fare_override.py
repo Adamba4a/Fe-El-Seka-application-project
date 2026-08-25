@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import uuid
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 import pytest
 
@@ -247,3 +248,74 @@ class TestCreateRideBandEnforcement:
             final_price_per_seat=65.0,
         )
         assert ride.price_per_seat == "65.00"
+
+
+# ── create_ride: commission reservation scales with markup (Spec 023, Phase 7) ──
+
+
+class TestCreateRideCommissionReservation:
+    async def test_reservation_includes_markup_commission(self, monkeypatch):
+        row = _ride_row(price_per_seat="60.00", fair_price_per_seat="50.00", total_seats=2)
+        conn = _FakeConn(row)
+        monkeypatch.setattr(ride_service, "get_pool", lambda: _FakePool(conn))
+
+        reserved_amounts = []
+
+        async def _fake_create_reservation(conn, wallet_id, driver_id, ride_id, amount):
+            reserved_amounts.append(amount)
+
+        monkeypatch.setattr(commission_service, "check_available_balance", lambda wallet, amount: True)
+        monkeypatch.setattr(commission_service, "create_reservation", _fake_create_reservation)
+
+        payload = _payload(total_seats=2, final_price_per_seat=60.0)
+        await ride_service.create_ride(
+            driver_id=uuid.uuid4(),
+            vehicle_id=uuid.uuid4(),
+            vehicle_seat_count=4,
+            payload=payload,
+            route_geometry_geojson={"type": "LineString", "coordinates": []},
+            route_distance_km=10.0,
+            route_duration_minutes=20,
+            fuel_cost_egp=17.0,
+            platform_commission_egp=3.4,
+            distance_fee_egp=3.0,
+            safety_margin_egp=5.0,
+            fair_price_per_seat=50.0,
+            final_price_per_seat=60.0,
+        )
+
+        # cost-basis: 17.0*0.20 + 3.0 + 5.0 = 11.40
+        # markup: (60.00 - 50.00) * 2 seats * 0.20 = 4.00
+        assert len(reserved_amounts) == 1
+        assert reserved_amounts[0] == Decimal("15.40")
+
+    async def test_reservation_matches_cost_basis_when_no_markup(self, monkeypatch):
+        row = _ride_row(price_per_seat="50.00", fair_price_per_seat="50.00", total_seats=2)
+        conn = _FakeConn(row)
+        monkeypatch.setattr(ride_service, "get_pool", lambda: _FakePool(conn))
+
+        reserved_amounts = []
+
+        async def _fake_create_reservation(conn, wallet_id, driver_id, ride_id, amount):
+            reserved_amounts.append(amount)
+
+        monkeypatch.setattr(commission_service, "check_available_balance", lambda wallet, amount: True)
+        monkeypatch.setattr(commission_service, "create_reservation", _fake_create_reservation)
+
+        payload = _payload(total_seats=2)
+        await ride_service.create_ride(
+            driver_id=uuid.uuid4(),
+            vehicle_id=uuid.uuid4(),
+            vehicle_seat_count=4,
+            payload=payload,
+            route_geometry_geojson={"type": "LineString", "coordinates": []},
+            route_distance_km=10.0,
+            route_duration_minutes=20,
+            fuel_cost_egp=17.0,
+            platform_commission_egp=3.4,
+            distance_fee_egp=3.0,
+            safety_margin_egp=5.0,
+            fair_price_per_seat=50.0,
+        )
+
+        assert reserved_amounts[0] == Decimal("11.40")
