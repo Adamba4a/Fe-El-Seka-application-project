@@ -199,6 +199,7 @@
       "heading": "Find a Ride",
       "subheading": "Tap the map to set your route.",
       "landingSubheading": "Rides recommended for you",
+      "findARide": "Find a Ride",
       "tapMapToSetOrigin": "📍 Tap map to set origin",
       "tapMapToSetDestination": "📍 Tap map to set destination",
       "originPrefix": "Origin:",

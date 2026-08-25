@@ -89,8 +89,8 @@
 
 ### Implementation
 
-- [ ] T018 [US3] Add a "Find a Ride" primary-action button to the landing page built in T010 (`apps/main/src/app/(passenger)/search/page.tsx`) that mounts the existing `RideSearchForm` + map + bottom-sheet combination unchanged (no logic changes to `apps/main/src/components/bookings/RideSearchForm.tsx`). Depends on T010.
-- [ ] T019 [US3] Manual verification (quickstart.md step 4): confirm the pin-drop map search flow behaves identically to its pre-feature behavior after being relocated behind the "Find a Ride" button. Depends on T018.
+- [X] T018 [US3] Add a "Find a Ride" primary-action button to the landing page built in T010 (`apps/main/src/app/(passenger)/search/page.tsx`) that mounts the existing `RideSearchForm` + map + bottom-sheet combination unchanged (no logic changes to `apps/main/src/components/bookings/RideSearchForm.tsx`). Depends on T010. — Button added (calls `setMode("search")`, no other logic touched); `tsc --noEmit` and `eslint` clean on the changed file.
+- [ ] T019 [US3] Manual verification (quickstart.md step 4): confirm the pin-drop map search flow behaves identically to its pre-feature behavior after being relocated behind the "Find a Ride" button. Depends on T018. — Dev servers (`apps/main` :3000, `services/api` :8000) left running locally; user to click through and confirm.
 
 **Checkpoint**: All three user stories are independently functional. Full feature complete.
 
@@ -98,9 +98,9 @@
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T020 [P] Run the full `quickstart.md` validation end-to-end (all 6 scenarios), including the auto-drop edge case (FR-004) and empty state (FR-011).
-- [ ] T021 [P] Add any new UI strings introduced (Featured section heading, empty state copy, admin toggle labels/rejection messages) to `apps/main` and `apps/admin` message catalogs (`en.json`/`ar.json`) and republish per `services/api/scripts/publish_message_catalog.py`, consistent with this repo's existing localization convention.
-- [ ] T022 Run `pnpm lint` and `pnpm typecheck` for `apps/main` and `apps/admin`, and `ruff`/`mypy`/`pytest` for `services/api`.
+- [ ] T020 [P] Run the full `quickstart.md` validation end-to-end (all 6 scenarios), including the auto-drop edge case (FR-004) and empty state (FR-011). — Dev servers (`apps/main` :3000, `services/api` :8000) left running locally; no test-passenger credentials available to this session, user to click through and confirm.
+- [X] T021 [P] Add any new UI strings introduced (Featured section heading, empty state copy, admin toggle labels/rejection messages) to `apps/main` and `apps/admin` message catalogs (`en.json`/`ar.json`) and republish per `services/api/scripts/publish_message_catalog.py`, consistent with this repo's existing localization convention. — `featuredRides.*` strings already cataloged (Phase 3); added `passenger.search.findARide` (en+ar) for T018's button. `apps/admin` has no i18n setup anywhere in the app (verified — no `next-intl`/`useTranslations` usage), so admin toggle labels/rejection messages are correctly left as plain English, consistent with the rest of that app. Republished via `publish_message_catalog.py` (local R2).
+- [X] T022 Run `pnpm lint` and `pnpm typecheck` for `apps/main` and `apps/admin`, and `ruff`/`mypy`/`pytest` for `services/api`. — All clean/passing: `apps/main`/`apps/admin` `tsc --noEmit` 0 errors; `eslint` 0 errors (pre-existing warnings only, none in Featured Rides files); `ruff check` all passed; `mypy` pre-existing baseline errors only (491 repo-wide, same `dict`/`list` missing-type-args + untyped-function style as Phase 4, not a regression); `pytest` 122/122 passed.
 
 ---
 

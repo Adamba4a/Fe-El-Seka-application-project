@@ -213,6 +213,14 @@ export default function SearchPage() {
           <p className="text-sm text-dash-text-muted mt-1">{t("landingSubheading")}</p>
         </div>
 
+        <button
+          type="button"
+          onClick={() => setMode("search")}
+          className="w-full py-3 rounded-xl bg-dash-primary text-white font-semibold"
+        >
+          {t("findARide")}
+        </button>
+
         <FeaturedRidesSection rides={featuredRides} loading={featuredLoading} error={featuredError} />
       </div>
     );
