@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 import pytest
 
@@ -42,25 +43,50 @@ class _FakeConn:
     """Routes fetchrow by matching a distinctive substring of the query text, same
     convention as test_rides_fare_override.py / test_continuous_learning_flow.py."""
 
-    def __init__(self, ride_row: dict, updated_row: dict | None = None):
+    def __init__(
+        self,
+        ride_row: dict,
+        updated_row: dict | None = None,
+        wallet_row: dict | None = None,
+        reservation_row: dict | None = None,
+    ):
         self._ride_row = ride_row
         self._updated_row = updated_row or ride_row
+        # Default wallet/reservation reflect the no-markup cost-basis reservation create_ride
+        # would have made for this fixture's default fuel/distance/safety values
+        # (17.0*0.20 + 3.0 + 5.0 = 11.40) — override per-test to exercise other cases.
+        self._wallet_row = wallet_row or {
+            "id": uuid.uuid4(),
+            "driver_id": ride_row["driver_id"],
+            "balance_egp": "1000.00",
+            "reserved_egp": "11.40",
+        }
+        self._reservation_row = (
+            reservation_row if reservation_row is not None else {"reserved_amount_egp": "11.40"}
+        )
         self.update_args: tuple | None = None
         self.update_query: str | None = None
+        self.execute_calls: list[tuple[str, tuple]] = []
 
     async def execute(self, query, *args):
+        self.execute_calls.append((query.strip(), args))
         return None
 
     async def fetch(self, query, *args):
         return []
 
     async def fetchrow(self, query, *args):
-        if query.strip().startswith("SELECT") and "FROM rides WHERE id = $1" in query:
+        q = query.strip()
+        if q.startswith("SELECT") and "FROM rides WHERE id = $1" in q:
             return self._ride_row
-        if query.strip().startswith("UPDATE rides"):
-            self.update_query = query
+        if q.startswith("UPDATE rides"):
+            self.update_query = q
             self.update_args = args
             return self._updated_row
+        if "FROM driver_wallets" in q:
+            return self._wallet_row
+        if "FROM commission_reservations" in q:
+            return self._reservation_row
         raise AssertionError(f"Unmatched fetchrow query: {query}")
 
     def transaction(self):
@@ -105,8 +131,17 @@ def _ride_row(**overrides) -> dict:
     return row
 
 
-async def _edit(monkeypatch, ride_row, updated_row=None, **payload_overrides):
-    conn = _FakeConn(ride_row, updated_row=updated_row)
+async def _edit(
+    monkeypatch,
+    ride_row,
+    updated_row=None,
+    wallet_row=None,
+    reservation_row=None,
+    **payload_overrides,
+):
+    conn = _FakeConn(
+        ride_row, updated_row=updated_row, wallet_row=wallet_row, reservation_row=reservation_row
+    )
     monkeypatch.setattr(ride_service, "get_pool", lambda: _FakePool(conn))
     payload = EditRideRequest(**payload_overrides)
     ride = await ride_service.edit_ride(
@@ -174,3 +209,99 @@ class TestSeatCountRebanding:
             final_price_per_seat=12.0,
         )
         assert ride.price_per_seat == "12.00"
+
+
+# ── edit_ride: commission reservation must move with price/seat edits (bug fix) ──
+# Without this, a driver could create a ride at the fair price (small reservation,
+# passes the balance check), then edit up to the max price — deduct_commission would
+# later charge the higher markup-inclusive commission without it ever having been
+# validated against, or held out of, the driver's wallet balance.
+
+
+class TestReservationSync:
+    async def test_price_increase_grows_reservation_and_wallet_hold(self, monkeypatch):
+        row = _ride_row(price_per_seat="50.00", fair_price_per_seat="50.00", total_seats=2)
+        ride, conn = await _edit(
+            monkeypatch,
+            row,
+            updated_row={**row, "price_per_seat": "60.00"},
+            reservation_row={"reserved_amount_egp": "11.40"},
+            wallet_row={"id": uuid.uuid4(), "balance_egp": "1000.00", "reserved_egp": "11.40"},
+            final_price_per_seat=60.0,
+        )
+        assert ride.price_per_seat == "60.00"
+
+        # cost-basis 11.40 + markup (60.00-50.00)*2*0.20 = 4.00 -> new reservation 15.40
+        reservation_updates = [
+            (q, a) for q, a in conn.execute_calls if "UPDATE commission_reservations" in q
+        ]
+        assert len(reservation_updates) == 1
+        assert reservation_updates[0][1][1] == Decimal("15.40")
+
+        reserved_increments = [
+            (q, a) for q, a in conn.execute_calls if "reserved_egp = reserved_egp +" in q
+        ]
+        assert len(reserved_increments) == 1
+        assert reserved_increments[0][1][1] == Decimal("4.00")
+
+    async def test_price_decrease_shrinks_reservation_and_wallet_hold(self, monkeypatch):
+        row = _ride_row(price_per_seat="65.00", fair_price_per_seat="50.00", total_seats=2)
+        ride, conn = await _edit(
+            monkeypatch,
+            row,
+            updated_row={**row, "price_per_seat": "50.00"},
+            reservation_row={"reserved_amount_egp": "17.40"},
+            wallet_row={"id": uuid.uuid4(), "balance_egp": "1000.00", "reserved_egp": "17.40"},
+            final_price_per_seat=50.0,
+        )
+        assert ride.price_per_seat == "50.00"
+
+        # markup drops to 0 -> new reservation 11.40, delta = -6.00
+        reservation_updates = [
+            (q, a) for q, a in conn.execute_calls if "UPDATE commission_reservations" in q
+        ]
+        assert len(reservation_updates) == 1
+        assert reservation_updates[0][1][1] == Decimal("11.40")
+
+        reserved_decrements = [
+            (q, a) for q, a in conn.execute_calls if "reserved_egp = GREATEST" in q
+        ]
+        assert len(reserved_decrements) == 1
+        assert reserved_decrements[0][1][1] == Decimal("6.00")
+
+    async def test_price_increase_blocked_by_insufficient_balance(self, monkeypatch):
+        from fastapi import HTTPException
+
+        row = _ride_row(price_per_seat="50.00", fair_price_per_seat="50.00", total_seats=2)
+        with pytest.raises(HTTPException) as exc_info:
+            await _edit(
+                monkeypatch,
+                row,
+                updated_row={**row, "price_per_seat": "60.00"},
+                reservation_row={"reserved_amount_egp": "11.40"},
+                # available = 15.00 - 11.40 = 3.60, but the price bump needs +4.00
+                wallet_row={"id": uuid.uuid4(), "balance_egp": "15.00", "reserved_egp": "11.40"},
+                final_price_per_seat=60.0,
+            )
+        assert exc_info.value.status_code == 422
+        assert exc_info.value.detail["error"] == "INSUFFICIENT_WALLET_BALANCE"
+
+    async def test_seat_increase_alone_grows_reservation(self, monkeypatch):
+        # No price override supplied — total_seats alone changes the markup term's
+        # multiplier (price stays at the recomputed fair price, so markup is still 0,
+        # but the cost-basis fuel/distance/safety total is recomputed too).
+        row = _ride_row(price_per_seat="10.00", fair_price_per_seat="10.00", total_seats=2)
+        ride, conn = await _edit(
+            monkeypatch,
+            row,
+            updated_row={**row, "total_seats": 3},
+            reservation_row={"reserved_amount_egp": "11.40"},
+            wallet_row={"id": uuid.uuid4(), "balance_egp": "1000.00", "reserved_egp": "11.40"},
+            total_seats=3,
+        )
+        assert ride.total_seats == 3
+
+        reservation_updates = [
+            (q, a) for q, a in conn.execute_calls if "UPDATE commission_reservations" in q
+        ]
+        assert len(reservation_updates) == 1

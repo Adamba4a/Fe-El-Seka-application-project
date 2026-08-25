@@ -67,7 +67,7 @@ async def deduct_commission(
     fair_price_per_seat = (
         Decimal(str(ride["fair_price_per_seat"])) if ride.get("fair_price_per_seat") is not None else price_per_seat
     )
-    markup_commission_per_seat = (price_per_seat - fair_price_per_seat) * COMMISSION_RATE
+    markup_commission_per_seat = max(Decimal("0.00"), price_per_seat - fair_price_per_seat) * COMMISSION_RATE
 
     wallet = await wallet_service.get_wallet_with_lock(conn, driver_id)
     wallet_id = wallet["id"]
@@ -182,6 +182,42 @@ def check_available_balance(wallet: dict, max_commission: Decimal) -> bool:
     balance = Decimal(str(wallet["balance_egp"]))
     reserved = Decimal(str(wallet["reserved_egp"]))
     return (balance - reserved) >= max_commission
+
+
+async def update_reservation(
+    conn,
+    wallet_id: uuid.UUID,
+    driver_id: uuid.UUID,
+    ride_id: uuid.UUID,
+    new_amount: Decimal,
+    delta: Decimal,
+) -> None:
+    """Adjust an existing CommissionReservation's amount and apply the same delta to
+    wallet.reserved_egp.
+
+    Used when a driver edits a scheduled ride's price or seat count after creation (Spec 023),
+    which changes the expected commission. The caller must compute `delta` (new_amount minus the
+    reservation's current amount) and — for a positive delta — have already verified sufficient
+    available balance via check_available_balance() before calling this.
+
+    MUST be called inside the edit_ride() transaction, after the wallet row has been locked via
+    get_wallet_with_lock(). No-ops (still updates the row, but the wallet call is skipped) when
+    delta is exactly zero.
+    """
+    await conn.execute(
+        "UPDATE commission_reservations SET reserved_amount_egp = $2 WHERE ride_id = $1",
+        ride_id,
+        new_amount,
+    )
+    if delta > Decimal("0.00"):
+        await wallet_service.increment_reserved(conn, wallet_id, delta)
+    elif delta < Decimal("0.00"):
+        await wallet_service.decrement_reserved(conn, wallet_id, -delta)
+    logger.info(
+        "event=wallet_write operation=RESERVATION_UPDATE driver_id=%s amount_delta_egp=%s "
+        "new_amount_egp=%s ride_id=%s",
+        driver_id, delta, new_amount, ride_id,
+    )
 
 
 async def create_reservation(
