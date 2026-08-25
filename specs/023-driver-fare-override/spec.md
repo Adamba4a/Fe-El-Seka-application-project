@@ -18,6 +18,14 @@ Give drivers limited pricing flexibility — up to 30% above the platform's comp
 
 ---
 
+## Clarifications
+
+### Session 2026-08-25
+
+- Q: How should the existing `price_source` column (currently hardcoded to `'system'` on every ride, which also gates the pre-existing destination-edit-lock rule in `ride_service.py`) interact with this feature's new fair-price/final-price fields? → A: Leave `price_source` completely untouched by this feature — it remains `'system'` always; this feature does not read, write, or otherwise interact with it or the destination-edit-lock rule it gates.
+
+---
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Driver sets a price when creating a ride (Priority: P1)
@@ -142,6 +150,7 @@ An admin reviewing a ride in the admin panel can see the system's fair price alo
 - Passenger-side price negotiation, counter-offers, or bidding.
 - Retroactively re-banding or repricing rides published before this feature ships.
 - Driver-facing UI treatment (slider vs. numeric input vs. presets) — left to the implementation plan.
+- The existing `price_source` column and the destination-edit-lock rule it gates — untouched by this feature (see Clarifications).
 
 ---
 
@@ -150,6 +159,7 @@ An admin reviewing a ride in the admin panel can see the system's fair price alo
 - `pricing_service.calculate_fare` already returns the fair `per_seat_price_egp`; a new helper deriving `max_price = round(fair_price * 1.30)` should live alongside it so both creation and edit flows use one source of truth.
 - `CreateRideRequest` / `EditRideRequest` need an optional final-price field; validation against `[fair_price, max_price]` must happen in `ride_service`, not only in the router or the client, per NFR-001.
 - The `rides` table needs a migration adding a `fair_price_per_seat` column (naming TBD in planning) distinct from the existing `price_per_seat` column, which continues to represent the final/effective price.
+- The new fair-price column and band validation are independent of the existing `price_source` column — that column stays hardcoded to `'system'` in the ride-creation INSERT exactly as it is today; this feature does not add, change, or branch on any `price_source` value.
 - Commission calculation changes from today's `fuel_cost * 20%` (independent of final price) to a formula based on the driver's final price, since FR-011 requires commission to scale with what the driver actually charges — this needs to be worked out precisely in planning (e.g., commission = final_price-equivalent cost basis * 20%, or an added markup-commission term), not just a copy of the existing fair-price commission math.
 
 ---
