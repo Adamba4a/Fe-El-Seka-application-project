@@ -34,7 +34,7 @@ migration under `supabase/migrations/`.
 **Purpose**: The one piece of shared infrastructure every story needs before any code change: the new
 column.
 
-- [ ] T001 Create migration `supabase/migrations/<timestamp>_add_fair_price_per_seat.sql` adding
+- [X] T001 Create migration `supabase/migrations/<timestamp>_add_fair_price_per_seat.sql` adding
       `rides.fair_price_per_seat NUMERIC(10,2)`, backfilling it from `price_per_seat` for existing rows,
       then setting it `NOT NULL` (data-model.md §Migration — three-step pattern for a safe NOT NULL add)
 
@@ -49,16 +49,16 @@ request/response fields, and the column being live in the local DB.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 Apply migration T001 to the local Supabase stack (`supabase db reset` or equivalent per
+- [X] T002 Apply migration T001 to the local Supabase stack (`supabase db reset` or equivalent per
       project convention) and confirm `rides.fair_price_per_seat` exists and is backfilled
-- [ ] T003 [P] Add `MAX_MARKUP_RATE = 0.30` and `calculate_max_price(fair_price_per_seat)` helper to
+- [X] T003 [P] Add `MAX_MARKUP_RATE = 0.30` and `calculate_max_price(fair_price_per_seat)` helper to
       `services/api/app/services/pricing_service.py`; add `max_price_per_seat_egp` field to
       `FareEstimateResponse` in `services/api/app/models/route.py`, populated in `calculate_fare`
       (research.md §1)
-- [ ] T004 [P] Add `final_price_per_seat: Optional[float] = None` to `CreateRideRequest` and
+- [X] T004 [P] Add `final_price_per_seat: Optional[float] = None` to `CreateRideRequest` and
       `EditRideRequest` in `services/api/app/models/ride.py`; add `fair_price_per_seat: str` to
       `RideResponse` (contracts/rides-api.md)
-- [ ] T005 Add `fair_price_per_seat` to `_RIDE_COLS` and `_to_response` in
+- [X] T005 Add `fair_price_per_seat` to `_RIDE_COLS` and `_to_response` in
       `services/api/app/services/ride_service.py` so every ride read (list/detail/create/edit response)
       includes it
 
@@ -77,19 +77,19 @@ created with that exact price, `fair_price_per_seat` also present and correct.
 
 ### Tests for User Story 1
 
-- [ ] T006 [P] [US1] Unit test `calculate_max_price` (rounding matches fair-price convention, several
+- [X] T006 [P] [US1] Unit test `calculate_max_price` (rounding matches fair-price convention, several
       fair-price values) in `services/api/tests/unit/test_pricing_service.py`
-- [ ] T007 [P] [US1] Integration test: create ride with no price → defaults to fair price; create ride
+- [X] T007 [P] [US1] Integration test: create ride with no price → defaults to fair price; create ride
       with mid-band price → persisted exactly; response includes both `fair_price_per_seat` and
       `price_per_seat` in `services/api/tests/integration/test_rides_fare_override.py`
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Update `ride_service.create_ride` in `services/api/app/services/ride_service.py` to
+- [X] T008 [US1] Update `ride_service.create_ride` in `services/api/app/services/ride_service.py` to
       accept a driver-chosen final price, default it to the fair price when omitted (FR-007), and
       persist both `fair_price_per_seat` and `price_per_seat` in the `INSERT` (extends the existing
       `_RIDE_COLS`/`INSERT` from T005)
-- [ ] T009 [US1] Update `POST /api/v1/rides` in `services/api/app/api/rides/router.py` to pass
+- [X] T009 [US1] Update `POST /api/v1/rides` in `services/api/app/api/rides/router.py` to pass
       `payload.final_price_per_seat` through to `ride_service.create_ride` alongside the existing
       `fare.per_seat_price_egp` (fair price) and `fare.max_price_per_seat_egp` (from T003)
 

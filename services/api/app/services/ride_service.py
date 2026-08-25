@@ -43,7 +43,7 @@ _RIDE_COLS = """
     ST_Y(destination_coordinates::geometry) AS dest_lat,
     ST_X(destination_coordinates::geometry) AS dest_lng,
     departure_datetime, total_seats, booked_seats, available_seats,
-    price_per_seat, status, cancellation_reason, cancellation_source,
+    price_per_seat, fair_price_per_seat, status, cancellation_reason, cancellation_source,
     notes, created_at, updated_at,
     route_distance_km, route_duration_minutes,
     fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp, price_source,
@@ -70,6 +70,7 @@ def _to_response(row: dict) -> RideResponse:
         booked_seats=row["booked_seats"],
         available_seats=row["available_seats"],
         price_per_seat=str(row["price_per_seat"]),
+        fair_price_per_seat=str(row["fair_price_per_seat"]),
         status=row["status"],
         cancellation_reason=row["cancellation_reason"],
         cancellation_source=row["cancellation_source"],
@@ -134,7 +135,8 @@ async def create_ride(
     platform_commission_egp: float,
     distance_fee_egp: float,
     safety_margin_egp: float,
-    price_per_seat: float,
+    fair_price_per_seat: float,
+    final_price_per_seat: Optional[float] = None,
 ) -> RideResponse:
     olat = payload.origin.coordinates.lat
     olng = payload.origin.coordinates.lng
@@ -159,7 +161,10 @@ async def create_ride(
             f"Seat count must be between 1 and your vehicle's capacity ({vehicle_seat_count}).",
         )
 
-    price_per_seat = Decimal(str(price_per_seat))
+    fair_price_per_seat = Decimal(str(fair_price_per_seat))
+    price_per_seat = (
+        Decimal(str(final_price_per_seat)) if final_price_per_seat is not None else fair_price_per_seat
+    )
 
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -222,22 +227,23 @@ async def create_ride(
                     driver_id, vehicle_id,
                     origin_coordinates, origin_address,
                     destination_coordinates, destination_address,
-                    departure_datetime, total_seats, booked_seats, price_per_seat, notes, status,
+                    departure_datetime, total_seats, booked_seats, price_per_seat, fair_price_per_seat,
+                    notes, status,
                     route_geometry, route_distance_km, route_duration_minutes,
                     fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp, price_source
                 ) VALUES (
                     $1, $2,
                     ST_GeomFromText($3, 4326)::geography, $4,
                     ST_GeomFromText($5, 4326)::geography, $6,
-                    $7, $8, 0, $9, $10, 'scheduled',
-                    ST_SetSRID(ST_GeomFromGeoJSON($11), 4326), $12, $13, $14, $15, $16, $17, 'system'
+                    $7, $8, 0, $9, $10, $11, 'scheduled',
+                    ST_SetSRID(ST_GeomFromGeoJSON($12), 4326), $13, $14, $15, $16, $17, $18, 'system'
                 )
                 RETURNING {_RIDE_COLS}
                 """,
                 driver_id, vehicle_id,
                 f"POINT({olng} {olat})", payload.origin.address,
                 f"POINT({dlng} {dlat})", payload.destination.address,
-                dep, payload.total_seats, price_per_seat, payload.notes,
+                dep, payload.total_seats, price_per_seat, fair_price_per_seat, payload.notes,
                 json.dumps(route_geometry_geojson),
                 route_distance_km, route_duration_minutes,
                 fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp,
