@@ -311,6 +311,7 @@ async def list_featured_rides() -> FeaturedRidesResponse:
               AND departure_datetime > now()
               AND available_seats > 0
             ORDER BY departure_datetime ASC
+            LIMIT 20
             """
         )
 

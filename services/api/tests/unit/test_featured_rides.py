@@ -93,3 +93,4 @@ class TestListFeaturedRides:
         assert "departure_datetime > now()" in query
         assert "available_seats > 0" in query
         assert "ORDER BY departure_datetime ASC" in query
+        assert "LIMIT 20" in query
