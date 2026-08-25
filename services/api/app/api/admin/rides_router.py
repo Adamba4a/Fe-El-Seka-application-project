@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import date as date_type
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -12,6 +13,17 @@ from app.dependencies.roles import get_current_admin
 router = APIRouter()
 
 _VALID_STATUSES = ("scheduled", "in_progress", "completed", "cancelled")
+
+
+def _markup_fields(price_per_seat, fair_price_per_seat) -> dict:
+    price = Decimal(str(price_per_seat))
+    fair = Decimal(str(fair_price_per_seat))
+    markup = price - fair
+    return {
+        "fair_price_per_seat": str(fair),
+        "markup_egp": str(markup),
+        "markup_percentage": round(float(markup) / float(fair) * 100) if fair > 0 else 0,
+    }
 
 
 @router.get("/")
@@ -81,7 +93,7 @@ async def list_rides(
                 r.id, r.status, r.departure_datetime,
                 r.origin_address, r.destination_address,
                 r.total_seats, r.booked_seats, r.available_seats,
-                r.price_per_seat, r.created_at,
+                r.price_per_seat, r.fair_price_per_seat, r.created_at,
                 r.driver_id, p.display_name AS driver_display_name
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
@@ -103,6 +115,7 @@ async def list_rides(
             "booked_seats": r["booked_seats"],
             "available_seats": r["available_seats"],
             "price_per_seat": str(r["price_per_seat"]),
+            **_markup_fields(r["price_per_seat"], r["fair_price_per_seat"]),
             "created_at": r["created_at"].isoformat(),
             "driver_id": str(r["driver_id"]),
             "driver_display_name": r["driver_display_name"] or "",
@@ -125,7 +138,7 @@ async def get_ride_detail(
                 r.id, r.status, r.departure_datetime,
                 r.origin_address, r.destination_address,
                 r.total_seats, r.booked_seats, r.available_seats,
-                r.price_per_seat, r.notes,
+                r.price_per_seat, r.fair_price_per_seat, r.notes,
                 r.cancellation_reason, r.cancellation_source,
                 r.created_at, r.updated_at,
                 r.driver_id, p.display_name AS driver_display_name, p.email AS driver_email,
@@ -167,6 +180,7 @@ async def get_ride_detail(
             "booked_seats": ride["booked_seats"],
             "available_seats": ride["available_seats"],
             "price_per_seat": str(ride["price_per_seat"]),
+            **_markup_fields(ride["price_per_seat"], ride["fair_price_per_seat"]),
             "notes": ride["notes"],
             "cancellation_reason": ride["cancellation_reason"],
             "cancellation_source": ride["cancellation_source"],

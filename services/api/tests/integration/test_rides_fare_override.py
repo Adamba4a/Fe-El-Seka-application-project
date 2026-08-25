@@ -181,3 +181,69 @@ class TestCreateRideWithDriverChosenPrice:
         assert conn.insert_ride_args[9] == 50.0
         assert ride.price_per_seat == "60.00"
         assert ride.fair_price_per_seat == "50.00"
+
+
+# ── create_ride: server-side band enforcement (Spec 023, US2) ───────────────
+
+
+class TestCreateRideBandEnforcement:
+    async def _attempt(self, monkeypatch, final_price_per_seat):
+        row = _ride_row(price_per_seat="50.00", fair_price_per_seat="50.00")
+        conn = _FakeConn(row)
+        monkeypatch.setattr(ride_service, "get_pool", lambda: _FakePool(conn))
+
+        payload = _payload(final_price_per_seat=final_price_per_seat)
+        return await ride_service.create_ride(
+            driver_id=uuid.uuid4(),
+            vehicle_id=uuid.uuid4(),
+            vehicle_seat_count=4,
+            payload=payload,
+            route_geometry_geojson={"type": "LineString", "coordinates": []},
+            route_distance_km=10.0,
+            route_duration_minutes=20,
+            fuel_cost_egp=17.0,
+            platform_commission_egp=3.4,
+            distance_fee_egp=3.0,
+            safety_margin_egp=5.0,
+            fair_price_per_seat=50.0,
+            final_price_per_seat=final_price_per_seat,
+        ), conn
+
+    async def test_below_fair_price_rejected(self, monkeypatch):
+        with pytest.raises(ride_service.RideServiceError) as exc_info:
+            await self._attempt(monkeypatch, 49.0)
+        assert exc_info.value.code == "price_out_of_band"
+        assert "50.00" in exc_info.value.message
+        assert "65.00" in exc_info.value.message
+
+    async def test_above_max_price_rejected(self, monkeypatch):
+        with pytest.raises(ride_service.RideServiceError) as exc_info:
+            await self._attempt(monkeypatch, 66.0)
+        assert exc_info.value.code == "price_out_of_band"
+
+    async def test_fair_price_boundary_accepted(self, monkeypatch):
+        ride, conn = await self._attempt(monkeypatch, 50.0)
+        assert ride.price_per_seat == "50.00"
+
+    async def test_max_price_boundary_accepted(self, monkeypatch):
+        row = _ride_row(price_per_seat="65.00", fair_price_per_seat="50.00")
+        conn = _FakeConn(row)
+        monkeypatch.setattr(ride_service, "get_pool", lambda: _FakePool(conn))
+
+        payload = _payload(final_price_per_seat=65.0)
+        ride = await ride_service.create_ride(
+            driver_id=uuid.uuid4(),
+            vehicle_id=uuid.uuid4(),
+            vehicle_seat_count=4,
+            payload=payload,
+            route_geometry_geojson={"type": "LineString", "coordinates": []},
+            route_distance_km=10.0,
+            route_duration_minutes=20,
+            fuel_cost_egp=17.0,
+            platform_commission_egp=3.4,
+            distance_fee_egp=3.0,
+            safety_margin_egp=5.0,
+            fair_price_per_seat=50.0,
+            final_price_per_seat=65.0,
+        )
+        assert ride.price_per_seat == "65.00"

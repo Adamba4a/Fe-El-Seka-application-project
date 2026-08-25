@@ -109,12 +109,12 @@ and `max_price`) are accepted.
 
 ### Tests for User Story 2
 
-- [ ] T010 [P] [US2] Integration tests: below-fair rejected, above-max rejected, exact-boundary values
+- [X] T010 [P] [US2] Integration tests: below-fair rejected, above-max rejected, exact-boundary values
       (fair and max) accepted, in `services/api/tests/integration/test_rides_fare_override.py`
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] Add band validation to `ride_service.create_ride` (after T008): raise
+- [X] T011 [US2] Add band validation to `ride_service.create_ride` (after T008): raise
       `RideServiceError("price_out_of_band", ...)` with the fair/max range in the message when the
       resolved final price falls outside `[fair_price, max_price]` (FR-005, NFR-001, research.md §2) —
       depends on T008 (same function)
@@ -136,24 +136,24 @@ longer fits → rejected without a new price, succeeds with one.
 
 ### Tests for User Story 3
 
-- [ ] T012 [P] [US3] Integration tests: direct price edit within band succeeds; direct price edit
+- [X] T012 [P] [US3] Integration tests: direct price edit within band succeeds; direct price edit
       out-of-band rejected; `total_seats` edit that keeps old price in-band leaves `price_per_seat`
       unchanged; `total_seats` edit that pushes old price out-of-band is rejected without a new price and
       succeeds with one, in `services/api/tests/integration/test_rides_fare_override_edit.py`
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] In `ride_service.edit_ride` (`services/api/app/services/ride_service.py`), handle a
+- [X] T013 [US3] In `ride_service.edit_ride` (`services/api/app/services/ride_service.py`), handle a
       supplied `final_price_per_seat` on its own: validate it against the ride's current
       `fair_price_per_seat`/max band before adding it to `sets` (mirrors T011's validation)
-- [ ] T014 [US3] Replace the existing `total_seats`-triggered silent price overwrite (the block reading
+- [X] T014 [US3] Replace the existing `total_seats`-triggered silent price overwrite (the block reading
       `if ride.get("price_source") == "system" and ride["route_distance_km"] is not None: ...` around
       line ~401) with the re-banding logic from research.md §4: recompute `fair_price_per_seat` and the
       new band; if the ride's current final price still fits, update only
       `fair_price_per_seat`/cost-breakdown columns; if it doesn't, require the request's
       `final_price_per_seat` to be supplied and in-band, else raise `price_out_of_band` (FR-008) — depends
       on T013 (same function, overlapping `sets`/validation logic)
-- [ ] T015 [US3] Update `PATCH /api/v1/rides/{ride_id}` in `services/api/app/api/rides/router.py` to pass
+- [X] T015 [US3] Update `PATCH /api/v1/rides/{ride_id}` in `services/api/app/api/rides/router.py` to pass
       `payload.final_price_per_seat` through to `ride_service.edit_ride`
 
 **Checkpoint**: Edit-time pricing is fully functional and independently testable, satisfying FR-008 and
@@ -171,12 +171,12 @@ without consulting any other system.
 
 ### Tests for User Story 4
 
-- [ ] T016 [P] [US4] Integration test: admin list + detail responses include the four price fields with
+- [X] T016 [P] [US4] Integration test: admin list + detail responses include the four price fields with
       correct values, in `services/api/tests/integration/test_admin_rides_fare_override.py`
 
 ### Implementation for User Story 4
 
-- [ ] T017 [US4] Extend the list and detail response dicts in
+- [X] T017 [US4] Extend the list and detail response dicts in
       `services/api/app/api/admin/rides_router.py` (same hand-built-dict pattern already used there, see
       the existing `"price_per_seat": str(r["price_per_seat"])` lines) to add `fair_price_per_seat`,
       `markup_egp` (`price_per_seat - fair_price_per_seat`), and `markup_percentage`

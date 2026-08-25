@@ -17,7 +17,7 @@ from app.models.ride import (
     RideListResponse,
     RideResponse,
 )
-from app.services.pricing_service import calculate_fare
+from app.services.pricing_service import calculate_fare, calculate_max_price
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Custom exceptions
@@ -165,6 +165,12 @@ async def create_ride(
     price_per_seat = (
         Decimal(str(final_price_per_seat)) if final_price_per_seat is not None else fair_price_dec
     )
+    max_price_dec = Decimal(str(calculate_max_price(fair_price_per_seat)))
+    if price_per_seat < fair_price_dec or price_per_seat > max_price_dec:
+        raise RideServiceError(
+            "price_out_of_band",
+            f"Price must be between {fair_price_dec:.2f} and {max_price_dec:.2f} EGP per seat.",
+        )
 
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -395,28 +401,62 @@ async def edit_ride(
                 )
                 sets.append(f"destination_address = {add_param(payload.destination.address)}")
 
+            seats_changed = False
             if payload.total_seats is not None:
                 if payload.total_seats < ride["booked_seats"]:
                     raise RideServiceError(
                         "seat_count_invalid",
                         f"Cannot reduce seats below booked count ({ride['booked_seats']}).",
                     )
-                if payload.total_seats != ride["total_seats"]:
+                seats_changed = payload.total_seats != ride["total_seats"]
+                if seats_changed:
                     changed_fields["total_seats"] = {"before": ride["total_seats"], "after": payload.total_seats}
                     sets.append(f"total_seats = {add_param(payload.total_seats)}")
-                    if ride.get("price_source") == "system" and ride["route_distance_km"] is not None:
-                        new_fare = calculate_fare(float(ride["route_distance_km"]), payload.total_seats)
-                        new_price = Decimal(str(new_fare.per_seat_price_egp))
-                        if new_price != ride["price_per_seat"]:
-                            changed_fields["price_per_seat"] = {
-                                "before": str(ride["price_per_seat"]),
-                                "after": str(new_price),
-                            }
-                        sets.append(f"price_per_seat = {add_param(new_price)}")
-                        sets.append(f"fuel_cost_egp = {add_param(new_fare.fuel_cost_egp)}")
-                        sets.append(f"platform_commission_egp = {add_param(new_fare.platform_commission_egp)}")
-                        sets.append(f"distance_fee_egp = {add_param(new_fare.distance_fee_egp)}")
-                        sets.append(f"safety_margin_egp = {add_param(new_fare.safety_margin_egp)}")
+
+            # Price band: recompute the fair price (and derived max) only when total_seats
+            # actually changed and this ride uses system pricing (research.md §4) — otherwise
+            # the band is just the ride's existing fair price / cap.
+            if seats_changed and ride.get("price_source") == "system" and ride["route_distance_km"] is not None:
+                new_fare = calculate_fare(float(ride["route_distance_km"]), payload.total_seats)
+                fair_price = Decimal(str(new_fare.per_seat_price_egp))
+                max_price = Decimal(str(new_fare.max_price_per_seat_egp))
+                if fair_price != Decimal(str(ride["fair_price_per_seat"])):
+                    changed_fields["fair_price_per_seat"] = {
+                        "before": str(ride["fair_price_per_seat"]),
+                        "after": str(fair_price),
+                    }
+                sets.append(f"fair_price_per_seat = {add_param(fair_price)}")
+                sets.append(f"fuel_cost_egp = {add_param(new_fare.fuel_cost_egp)}")
+                sets.append(f"platform_commission_egp = {add_param(new_fare.platform_commission_egp)}")
+                sets.append(f"distance_fee_egp = {add_param(new_fare.distance_fee_egp)}")
+                sets.append(f"safety_margin_egp = {add_param(new_fare.safety_margin_egp)}")
+            else:
+                fair_price = Decimal(str(ride["fair_price_per_seat"]))
+                max_price = Decimal(str(calculate_max_price(float(ride["fair_price_per_seat"]))))
+
+            if payload.final_price_per_seat is not None:
+                new_price = Decimal(str(payload.final_price_per_seat))
+                if new_price < fair_price or new_price > max_price:
+                    raise RideServiceError(
+                        "price_out_of_band",
+                        f"Price must be between {fair_price:.2f} and {max_price:.2f} EGP per seat.",
+                    )
+                if new_price != Decimal(str(ride["price_per_seat"])):
+                    changed_fields["price_per_seat"] = {
+                        "before": str(ride["price_per_seat"]),
+                        "after": str(new_price),
+                    }
+                sets.append(f"price_per_seat = {add_param(new_price)}")
+            elif seats_changed:
+                # No new price supplied — the existing final price must still fit the
+                # (possibly recomputed) band, or the edit is rejected outright (FR-008):
+                # never silently reprice a ride passengers may have already viewed/booked.
+                current_price = Decimal(str(ride["price_per_seat"]))
+                if current_price < fair_price or current_price > max_price:
+                    raise RideServiceError(
+                        "price_out_of_band",
+                        f"Price must be between {fair_price:.2f} and {max_price:.2f} EGP per seat.",
+                    )
 
             if payload.notes is not None and payload.notes != ride["notes"]:
                 changed_fields["notes"] = {"before": ride["notes"], "after": payload.notes}
