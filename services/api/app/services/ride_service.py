@@ -11,6 +11,8 @@ from app.models.ride import (
     CoordinatesSchema,
     CreateRideRequest,
     EditRideRequest,
+    FeaturedRideItem,
+    FeaturedRidesResponse,
     HistoryEntryResponse,
     LocationSchema,
     RideDetailResponse,
@@ -289,6 +291,41 @@ async def list_rides(
         total=total,
         page=page,
         page_size=page_size,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# List featured rides (passenger-facing, spec 022)
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def list_featured_rides() -> FeaturedRidesResponse:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT id, origin_address, destination_address,
+                   departure_datetime, price_per_seat, available_seats
+            FROM rides
+            WHERE is_featured = true
+              AND status = 'scheduled'
+              AND departure_datetime > now()
+              AND available_seats > 0
+            ORDER BY departure_datetime ASC
+            """
+        )
+
+    return FeaturedRidesResponse(
+        rides=[
+            FeaturedRideItem(
+                ride_id=row["id"],
+                origin_address=row["origin_address"],
+                destination_address=row["destination_address"],
+                departure_datetime=row["departure_datetime"],
+                price_per_seat=str(row["price_per_seat"]),
+                available_seats=row["available_seats"],
+            )
+            for row in rows
+        ]
     )
 
 

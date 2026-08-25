@@ -76,6 +76,24 @@ export async function getNearbyRides(
   return json.rides;
 }
 
+export interface FeaturedRide {
+  ride_id: string;
+  origin_address: string;
+  destination_address: string;
+  departure_datetime: string;
+  price_per_seat: string;
+  available_seats: number;
+}
+
+export async function fetchFeaturedRides(token: string): Promise<FeaturedRide[]> {
+  const res = await fetch(`${env.apiUrl}/api/v1/rides/featured`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json.rides;
+}
+
 export async function searchRides(
   token: string,
   params: {

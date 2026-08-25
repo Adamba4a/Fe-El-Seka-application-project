@@ -186,6 +186,20 @@ async def get_pending_bookings_count(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# GET /api/v1/rides/featured
+# ─────────────────────────────────────────────────────────────────────────────
+# Declared before /{ride_id} so FastAPI doesn't match "featured" as a ride_id
+# path param (same reason /pending-bookings-count is declared first).
+
+@router.get("/featured")
+async def get_featured_rides(
+    _user: dict = Depends(get_current_user),
+):
+    result = await ride_service.list_featured_rides()
+    return result.model_dump(mode="json")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # GET /api/v1/rides/{ride_id}
 # ─────────────────────────────────────────────────────────────────────────────
 

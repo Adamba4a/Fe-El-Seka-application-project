@@ -89,3 +89,16 @@ class RideListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class FeaturedRideItem(BaseModel):
+    ride_id: UUID
+    origin_address: str
+    destination_address: str
+    departure_datetime: datetime
+    price_per_seat: str
+    available_seats: int
+
+
+class FeaturedRidesResponse(BaseModel):
+    rides: list[FeaturedRideItem]
