@@ -198,6 +198,8 @@
     "search": {
       "heading": "ابحث عن رحلة",
       "subheading": "اضغط على الخريطة لتحديد مسارك.",
+      "landingSubheading": "رحلات موصى بها لك",
+      "findARide": "ابحث عن رحلة",
       "tapMapToSetOrigin": "📍 اضغط على الخريطة لتحديد نقطة الانطلاق",
       "tapMapToSetDestination": "📍 اضغط على الخريطة لتحديد الوجهة",
       "originPrefix": "نقطة الانطلاق:",
@@ -731,6 +733,13 @@
     "defaultDriverName": "سائق",
     "defaultPassengerName": "راكب",
     "viewProfile": "عرض الملف الشخصي"
+  },
+  "featuredRides": {
+    "heading": "رحلات مميزة",
+    "featuredBadge": "مميزة",
+    "emptyTitle": "لا توجد رحلات مميزة حاليًا",
+    "emptyBody": "تحقق مرة أخرى قريبًا — يتم تمييز رحلات جديدة بانتظام.",
+    "loadFailed": "تعذّر تحميل الرحلات المميزة."
   },
   "rideCard": {
     "premium": "مميز",

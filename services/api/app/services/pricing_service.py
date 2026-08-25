@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 FUEL_EFFICIENCY_KM_PER_L: float = 13.0
 PLATFORM_COMMISSION_RATE: float = 0.20
-FARE_SPLIT_SEATS: int = 3
+FARE_SPLIT_SEATS: int = 2
 
 _DEFAULTS: dict[str, Any] = {
     "fuel_price_per_litre": 22.25,

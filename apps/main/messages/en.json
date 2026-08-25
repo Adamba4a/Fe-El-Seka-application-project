@@ -198,6 +198,8 @@
     "search": {
       "heading": "Find a Ride",
       "subheading": "Tap the map to set your route.",
+      "landingSubheading": "Rides recommended for you",
+      "findARide": "Find a Ride",
       "tapMapToSetOrigin": "📍 Tap map to set origin",
       "tapMapToSetDestination": "📍 Tap map to set destination",
       "originPrefix": "Origin:",
@@ -731,6 +733,13 @@
     "defaultDriverName": "Driver",
     "defaultPassengerName": "Passenger",
     "viewProfile": "View Profile"
+  },
+  "featuredRides": {
+    "heading": "Featured Rides",
+    "featuredBadge": "Featured",
+    "emptyTitle": "No featured rides right now",
+    "emptyBody": "Check back soon — new rides are featured regularly.",
+    "loadFailed": "Couldn't load featured rides."
   },
   "rideCard": {
     "premium": "PREMIUM",

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createAdminBrowserClient } from "@/lib/supabase/browser-client";
-import { getDetail, type RideDetailResponse, type RideStatus } from "@/lib/api/admin-rides";
+import { getDetail, featureRide, unfeatureRide, type RideDetailResponse, type RideStatus } from "@/lib/api/admin-rides";
 
 const sb = createAdminBrowserClient();
 
@@ -17,6 +17,8 @@ const STATUS_STYLES: Record<RideStatus, string> = {
 export default function RideDetailPage({ params }: { params: { ride_id: string } }) {
   const [detail, setDetail] = useState<RideDetailResponse | null>(null);
   const [error, setError] = useState("");
+  const [toggling, setToggling] = useState(false);
+  const [toggleError, setToggleError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +41,32 @@ export default function RideDetailPage({ params }: { params: { ride_id: string }
   if (!detail) return <main className="p-8 text-gray-400">Loading…</main>;
 
   const { ride, bookings } = detail;
+
+  async function toggleFeatured() {
+    setToggling(true);
+    setToggleError("");
+    try {
+      const { data: session } = await sb.auth.getSession();
+      const token = session.session?.access_token ?? "";
+      const result = ride.is_featured
+        ? await unfeatureRide(token, ride.ride_id)
+        : await featureRide(token, ride.ride_id);
+      setDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              ride: { ...prev.ride, is_featured: result.is_featured, featured_at: result.featured_at },
+            }
+          : prev
+      );
+    } catch (e) {
+      const message =
+        e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "Failed to update Featured status.";
+      setToggleError(message);
+    } finally {
+      setToggling(false);
+    }
+  }
 
   return (
     <main className="p-8 space-y-8 max-w-3xl">
@@ -81,6 +109,28 @@ export default function RideDetailPage({ params }: { params: { ride_id: string }
           )}
           <dt className="text-gray-500">Created</dt>
           <dd>{new Date(ride.created_at).toLocaleString()}</dd>
+          <dt className="text-gray-500">Featured</dt>
+          <dd className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={toggling}
+              onClick={toggleFeatured}
+              className={`px-2 py-0.5 rounded text-xs font-medium disabled:opacity-50 ${
+                ride.is_featured ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600"
+              }`}
+            >
+              {toggling ? "…" : ride.is_featured ? "★ Featured — click to unfeature" : "Feature this ride"}
+            </button>
+            {ride.is_featured && ride.featured_by_display_name && (
+              <span className="text-xs text-gray-500">by {ride.featured_by_display_name}</span>
+            )}
+          </dd>
+          {toggleError && (
+            <>
+              <dt />
+              <dd className="text-xs text-red-600">{toggleError}</dd>
+            </>
+          )}
         </dl>
       </section>
 

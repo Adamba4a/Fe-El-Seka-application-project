@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.database import get_pool
 from app.dependencies.roles import get_current_admin
+from app.services import audit_service
 
 router = APIRouter()
 
@@ -82,9 +83,11 @@ async def list_rides(
                 r.origin_address, r.destination_address,
                 r.total_seats, r.booked_seats, r.available_seats,
                 r.price_per_seat, r.created_at,
-                r.driver_id, p.display_name AS driver_display_name
+                r.driver_id, p.display_name AS driver_display_name,
+                r.is_featured, r.featured_at, fb.display_name AS featured_by_display_name
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
+            LEFT JOIN profiles fb ON fb.id = r.featured_by
             {where_clause}
             ORDER BY r.departure_datetime {order_clause}
             LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}
@@ -106,6 +109,9 @@ async def list_rides(
             "created_at": r["created_at"].isoformat(),
             "driver_id": str(r["driver_id"]),
             "driver_display_name": r["driver_display_name"] or "",
+            "is_featured": r["is_featured"],
+            "featured_at": r["featured_at"].isoformat() if r["featured_at"] else None,
+            "featured_by_display_name": r["featured_by_display_name"],
         }
         for r in rows
     ]
@@ -130,10 +136,12 @@ async def get_ride_detail(
                 r.created_at, r.updated_at,
                 r.driver_id, p.display_name AS driver_display_name, p.email AS driver_email,
                 p.rating_avg AS driver_rating_avg, p.rating_count AS driver_rating_count,
-                v.plate_number, v.make, v.model, v.color
+                v.plate_number, v.make, v.model, v.color,
+                r.is_featured, r.featured_at, fb.display_name AS featured_by_display_name
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
             JOIN vehicles v ON v.id = r.vehicle_id
+            LEFT JOIN profiles fb ON fb.id = r.featured_by
             WHERE r.id = $1
             """,
             ride_id,
@@ -172,6 +180,9 @@ async def get_ride_detail(
             "cancellation_source": ride["cancellation_source"],
             "created_at": ride["created_at"].isoformat(),
             "updated_at": ride["updated_at"].isoformat(),
+            "is_featured": ride["is_featured"],
+            "featured_at": ride["featured_at"].isoformat() if ride["featured_at"] else None,
+            "featured_by_display_name": ride["featured_by_display_name"],
             "driver": {
                 "driver_id": str(ride["driver_id"]),
                 "display_name": ride["driver_display_name"] or "",
@@ -198,4 +209,91 @@ async def get_ride_detail(
             }
             for b in booking_rows
         ],
+    }
+
+
+@router.post("/{ride_id}/feature")
+async def feature_ride(
+    ride_id: uuid.UUID,
+    admin: dict = Depends(get_current_admin),
+) -> dict:
+    admin_id = uuid.UUID(str(admin["id"]))
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT status, departure_datetime, available_seats, driver_id FROM rides WHERE id = $1",
+            ride_id,
+        )
+        if row is None:
+            raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Ride not found"})
+
+        if row["status"] != "scheduled":
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "not_eligible", "message": "Ride is not eligible: status must be scheduled"},
+            )
+        if row["departure_datetime"] <= datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "not_eligible", "message": "Ride is not eligible: departure has already passed"},
+            )
+        if row["available_seats"] <= 0:
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "not_eligible", "message": "Ride is not eligible: no seats available"},
+            )
+
+        updated = await conn.fetchrow(
+            """
+            UPDATE rides
+            SET is_featured = true, featured_at = now(), featured_by = $2
+            WHERE id = $1
+            RETURNING featured_at, featured_by
+            """,
+            ride_id, admin_id,
+        )
+        driver_id = row["driver_id"]
+
+    audit_service.append_log(
+        str(admin_id), "ride_featured", str(driver_id), ride_id=str(ride_id),
+    )
+    return {
+        "ride_id": str(ride_id),
+        "is_featured": True,
+        "featured_at": updated["featured_at"].isoformat(),
+        "featured_by": str(updated["featured_by"]),
+    }
+
+
+@router.post("/{ride_id}/unfeature")
+async def unfeature_ride(
+    ride_id: uuid.UUID,
+    admin: dict = Depends(get_current_admin),
+) -> dict:
+    admin_id = uuid.UUID(str(admin["id"]))
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT driver_id FROM rides WHERE id = $1", ride_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Ride not found"})
+
+        updated = await conn.fetchrow(
+            """
+            UPDATE rides
+            SET is_featured = false, featured_at = now(), featured_by = $2
+            WHERE id = $1
+            RETURNING featured_at, featured_by
+            """,
+            ride_id, admin_id,
+        )
+        driver_id = row["driver_id"]
+
+    audit_service.append_log(
+        str(admin_id), "ride_unfeatured", str(driver_id), ride_id=str(ride_id),
+    )
+    return {
+        "ride_id": str(ride_id),
+        "is_featured": False,
+        "featured_at": updated["featured_at"].isoformat(),
+        "featured_by": str(updated["featured_by"]),
     }
