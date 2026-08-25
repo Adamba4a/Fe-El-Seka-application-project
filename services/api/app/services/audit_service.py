@@ -16,6 +16,7 @@ def append_log(
     report_id: str | None = None,
     topup_request_id: str | None = None,
     car_maintenance_reward_id: str | None = None,
+    ride_id: str | None = None,
 ) -> str:
     sb = _supabase()
     row = {
@@ -33,6 +34,8 @@ def append_log(
         row["topup_request_id"] = topup_request_id
     if car_maintenance_reward_id:
         row["car_maintenance_reward_id"] = car_maintenance_reward_id
+    if ride_id:
+        row["ride_id"] = ride_id
 
     resp = sb.table("admin_audit_logs").insert(row).execute()
     return resp.data[0]["id"]

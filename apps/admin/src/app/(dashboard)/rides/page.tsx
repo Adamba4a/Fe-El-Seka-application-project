@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createAdminBrowserClient } from "@/lib/supabase/browser-client";
-import { list, type RideListItem, type RideStatus } from "@/lib/api/admin-rides";
+import { list, featureRide, unfeatureRide, type RideListItem, type RideStatus } from "@/lib/api/admin-rides";
 
 const sb = createAdminBrowserClient();
 
@@ -33,6 +33,8 @@ export default function RidesPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [toggleError, setToggleError] = useState<{ rideId: string; message: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,6 +67,31 @@ export default function RidesPage() {
   }, [q, status, date, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  async function toggleFeatured(ride: RideListItem) {
+    setTogglingId(ride.ride_id);
+    setToggleError(null);
+    try {
+      const { data: session } = await sb.auth.getSession();
+      const token = session.session?.access_token ?? "";
+      const result = ride.is_featured
+        ? await unfeatureRide(token, ride.ride_id)
+        : await featureRide(token, ride.ride_id);
+      setItems((prev) =>
+        prev.map((r) =>
+          r.ride_id === ride.ride_id
+            ? { ...r, is_featured: result.is_featured, featured_at: result.featured_at }
+            : r
+        )
+      );
+    } catch (e) {
+      const message =
+        e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "Failed to update Featured status.";
+      setToggleError({ rideId: ride.ride_id, message });
+    } finally {
+      setTogglingId(null);
+    }
+  }
 
   return (
     <main className="p-8 space-y-6 max-w-5xl">
@@ -129,6 +156,7 @@ export default function RidesPage() {
             <th className="py-2 pr-4 font-medium">Seats</th>
             <th className="py-2 pr-4 font-medium">Price</th>
             <th className="py-2 pr-4 font-medium">Status</th>
+            <th className="py-2 pr-4 font-medium">Featured</th>
             <th className="py-2 font-medium"></th>
           </tr>
         </thead>
@@ -149,6 +177,23 @@ export default function RidesPage() {
                   {r.status.replace(/_/g, " ")}
                 </span>
               </td>
+              <td className="py-2 pr-4">
+                <div className="flex flex-col gap-1">
+                  <button
+                    type="button"
+                    disabled={togglingId === r.ride_id}
+                    onClick={() => toggleFeatured(r)}
+                    className={`px-2 py-0.5 rounded text-xs font-medium disabled:opacity-50 ${
+                      r.is_featured ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {togglingId === r.ride_id ? "…" : r.is_featured ? "★ Featured" : "Feature"}
+                  </button>
+                  {toggleError?.rideId === r.ride_id && (
+                    <span className="text-xs text-red-600">{toggleError.message}</span>
+                  )}
+                </div>
+              </td>
               <td className="py-2">
                 <Link href={`/rides/${r.ride_id}`} className="text-blue-600 hover:underline">
                   Detail
@@ -158,7 +203,7 @@ export default function RidesPage() {
           ))}
           {!loading && items.length === 0 && (
             <tr>
-              <td colSpan={7} className="py-8 text-center text-gray-400">No rides found</td>
+              <td colSpan={8} className="py-8 text-center text-gray-400">No rides found</td>
             </tr>
           )}
         </tbody>

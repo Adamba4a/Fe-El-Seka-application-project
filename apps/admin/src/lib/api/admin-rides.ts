@@ -15,6 +15,9 @@ export interface RideListItem {
   created_at: string;
   driver_id: string;
   driver_display_name: string;
+  is_featured: boolean;
+  featured_at: string | null;
+  featured_by_display_name: string | null;
 }
 
 export interface RideListResponse {
@@ -46,6 +49,9 @@ export interface RideDetail {
   cancellation_source: string | null;
   created_at: string;
   updated_at: string;
+  is_featured: boolean;
+  featured_at: string | null;
+  featured_by_display_name: string | null;
   driver: {
     driver_id: string;
     display_name: string;
@@ -90,6 +96,31 @@ export async function list(token: string, params: RideListParams = {}): Promise<
 
 export async function getDetail(token: string, rideId: string): Promise<RideDetailResponse> {
   const res = await fetch(`${base}/api/admin/rides/${rideId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await res.json();
+  return res.json();
+}
+
+export interface FeaturedToggleResponse {
+  ride_id: string;
+  is_featured: boolean;
+  featured_at: string;
+  featured_by: string;
+}
+
+export async function featureRide(token: string, rideId: string): Promise<FeaturedToggleResponse> {
+  const res = await fetch(`${base}/api/admin/rides/${rideId}/feature`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await res.json();
+  return res.json();
+}
+
+export async function unfeatureRide(token: string, rideId: string): Promise<FeaturedToggleResponse> {
+  const res = await fetch(`${base}/api/admin/rides/${rideId}/unfeature`, {
+    method: "POST",
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw await res.json();
