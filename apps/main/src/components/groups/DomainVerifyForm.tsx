@@ -45,6 +45,8 @@ export function DomainVerifyForm({ token, requestedGroupType, onSuccess }: Domai
         return t("errors.invalidCode");
       case "otp_expired":
         return t("errors.expired");
+      case "otp_already_used":
+        return t("errors.alreadyUsed");
       case "domain_group_archived":
         return t("errors.domainArchived");
       case "domain_registration_rate_limited":

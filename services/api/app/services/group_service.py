@@ -315,8 +315,7 @@ async def generate_invite_link(group_id: uuid.UUID, user_id: uuid.UUID) -> Invit
         row = await conn.fetchrow(
             """
             UPDATE groups
-            SET invite_token = replace(gen_random_uuid()::text, '-', ''),
-                invite_token_revoked_at = now()
+            SET invite_token = replace(gen_random_uuid()::text, '-', '')
             WHERE id = $1
             RETURNING invite_token
             """,
@@ -508,25 +507,35 @@ async def confirm_domain_verification(
                     detail={"error": "otp_invalid", "message": "Incorrect code."},
                 )
 
-            if verification["verified_at"] is None:
-                if verification["otp_expires_at"] < datetime.now(timezone.utc):
-                    raise HTTPException(
-                        status_code=410,
-                        detail={
-                            "error": "otp_expired",
-                            "message": "Code has expired. Request a new one.",
-                        },
-                    )
-                salt, _, expected_hash = verification["otp_code_hash"].partition("$")
-                if _hash_otp(payload.code.strip(), salt) != expected_hash:
-                    raise HTTPException(
-                        status_code=400,
-                        detail={"error": "otp_invalid", "message": "Incorrect code."},
-                    )
-                await conn.execute(
-                    "UPDATE domain_verifications SET verified_at = now() WHERE id = $1",
-                    verification_id,
+            if verification["verified_at"] is not None:
+                # A verification_id is single-use: once confirmed, it must not be
+                # replayable to re-grant membership without a fresh OTP challenge.
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "error": "otp_already_used",
+                        "message": "This code has already been used. Request a new one.",
+                    },
                 )
+
+            if verification["otp_expires_at"] < datetime.now(timezone.utc):
+                raise HTTPException(
+                    status_code=410,
+                    detail={
+                        "error": "otp_expired",
+                        "message": "Code has expired. Request a new one.",
+                    },
+                )
+            salt, _, expected_hash = verification["otp_code_hash"].partition("$")
+            if _hash_otp(payload.code.strip(), salt) != expected_hash:
+                raise HTTPException(
+                    status_code=400,
+                    detail={"error": "otp_invalid", "message": "Incorrect code."},
+                )
+            await conn.execute(
+                "UPDATE domain_verifications SET verified_at = now() WHERE id = $1",
+                verification_id,
+            )
 
             domain = verification["domain"]
 
@@ -632,6 +641,16 @@ async def confirm_domain_verification(
                         """,
                         group_row["id"], user_id, verification_id,
                     )
+
+            # Re-fetch: the membership INSERT above fires trg_group_memberships_count,
+            # so group_row's member_count (captured before/around that insert) is stale.
+            group_row = await conn.fetchrow(
+                """
+                SELECT id, name, type, description, route_tags, owner_id, member_count
+                FROM groups WHERE id = $1
+                """,
+                group_row["id"],
+            )
 
     return DomainVerificationConfirmResponse(
         membership=_to_membership(membership),

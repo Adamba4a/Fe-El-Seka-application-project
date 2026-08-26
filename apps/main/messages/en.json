@@ -699,6 +699,7 @@
         "sendFailed": "Failed to send code. Please try again.",
         "invalidCode": "Incorrect code. Please try again.",
         "expired": "Code has expired. Please request a new one.",
+        "alreadyUsed": "This code has already been used. Please request a new one.",
         "domainArchived": "This domain's group is no longer available.",
         "registrationRateLimited": "Too many new domains registered recently. Please try again later."
       }
