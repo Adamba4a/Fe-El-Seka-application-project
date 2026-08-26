@@ -213,7 +213,7 @@ async def list_group_rides(group_id: uuid.UUID, user_id: uuid.UUID) -> RideListR
         rows = await conn.fetch(
             f"""
             SELECT {_RIDE_COLS} FROM rides
-            WHERE group_id = $1 AND status = 'scheduled'
+            WHERE group_id = $1 AND status = 'scheduled' AND departure_datetime > now()
             ORDER BY departure_datetime ASC
             """,
             group_id,

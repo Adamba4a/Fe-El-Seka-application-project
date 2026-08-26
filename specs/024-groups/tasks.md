@@ -163,6 +163,8 @@ Extends the existing monorepo — no new top-level directories:
 
 ### Implementation for User Story 5
 
+**Design note (flagged by Gemini review of Phase 3+4, 2026-08-26)**: neither `leave_group()` nor `remove_member()` exists yet, so this isn't exploitable today — but once T047/T049 land, a driver's active `scheduled` rides with that `group_id` must be handled (e.g. reject the leave/removal with `409` while the driver has active group-scoped rides, or null out `group_id` on those rides), otherwise a non-member ends up managing a private group ride that still shows up in `list_group_rides()` for remaining members. Decide and implement this as part of T047/T049, not deferred further.
+
 - [ ] T047 [US5] Implement `leave_group()` in `group_service.py` (owner-with-remaining-members returns `409 ownership_transfer_required`) — FR-017, FR-019
 - [ ] T048 [US5] Implement `POST /api/groups/{group_id}/leave` in `api/groups/router.py`
 - [ ] T049 [US5] Implement `remove_member()` in `group_service.py` (owner-only) and `DELETE /api/groups/{group_id}/members/{user_id}` in `api/groups/router.py` — FR-018
