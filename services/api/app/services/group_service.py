@@ -561,13 +561,18 @@ async def confirm_domain_verification(
             if group_row is None:
                 if verification["is_first_for_domain"]:
                     limit, window_minutes = await _get_new_domain_rate_limit(conn)
+                    # Exclude the verification row we just marked verified_at on above —
+                    # otherwise this confirmation counts itself, tightening the effective
+                    # quota to limit - 1.
                     recent_count = await conn.fetchval(
                         """
                         SELECT COUNT(*) FROM domain_verifications
                         WHERE is_first_for_domain = true
                           AND verified_at IS NOT NULL
-                          AND created_at > now() - ($1 || ' minutes')::interval
+                          AND id != $1
+                          AND created_at > now() - ($2 || ' minutes')::interval
                         """,
+                        verification_id,
                         str(window_minutes),
                     )
                     if recent_count >= limit:
