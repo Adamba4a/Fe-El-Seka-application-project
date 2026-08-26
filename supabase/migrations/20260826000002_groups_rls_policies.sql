@@ -33,14 +33,13 @@ CREATE POLICY "read_own_or_owned_group_memberships" ON public.group_memberships
 
 -- ── DOMAIN VERIFICATIONS ─────────────────────────────────────────────────────
 -- Contains a hashed OTP and a real email address — least-privilege: a user may
--- only read or create their own verification attempts, never another user's.
+-- only read their own verification attempts, never another user's. No client
+-- INSERT policy: a direct-client insert would let a malicious user write
+-- verified_at/is_first_for_domain themselves and bypass the OTP flow entirely,
+-- so this table is written only via the backend's service-role connection
+-- (which bypasses RLS), same as groups/group_memberships.
 
 CREATE POLICY "read_own_domain_verifications" ON public.domain_verifications
     FOR SELECT
     TO authenticated
     USING (user_id = auth.uid());
-
-CREATE POLICY "insert_own_domain_verifications" ON public.domain_verifications
-    FOR INSERT
-    TO authenticated
-    WITH CHECK (user_id = auth.uid());

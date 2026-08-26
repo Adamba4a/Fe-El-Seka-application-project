@@ -55,6 +55,16 @@ Extends the existing monorepo — no new top-level directories:
 
 **Checkpoint**: Foundation ready — schema exists, config is readable, shared guards are in place. User story implementation can now begin.
 
+**Gemini review (Phase 1+2) — findings addressed 2026-08-26**:
+- Removed the client-facing `insert_own_domain_verifications` RLS policy: it let any authenticated client write `verified_at`/`is_first_for_domain` directly, bypassing the OTP flow entirely. Writes to `domain_verifications` are now service-role only, matching `groups`/`group_memberships`.
+- `group_service._get_platform_setting` used `.single().execute()`, which raises (HTTP 406) on zero rows instead of returning `None` — would 500 if a setting key were ever missing instead of falling back to its default. Switched to `.maybe_single()`.
+- `rides.group_id`'s FK was `ON DELETE SET NULL`; since `group_id IS NULL` means "public general-feed ride," a hard-deleted group would have silently made all its private rides public. Groups are soft-delete only (`archived_at`) so a hard delete should never happen — changed to `ON DELETE RESTRICT` to enforce that at the DB level.
+- Added `chk_groups_type_domain` CHECK constraint tying `type`/`domain` together (general ⇒ domain NULL; company/university ⇒ domain NOT NULL) — nothing previously stopped these from drifting apart.
+- `apps/main/src/lib/api/groups.ts`'s `parseErrorResponse` called `res.json()` with no `try/catch`; a non-JSON error body (proxy 502, empty 204, HTML 500 page) would throw and crash the caller. Wrapped in `try/catch` with a status-text fallback.
+- `groups_update_member_count` trigger only handled INSERT/DELETE; added UPDATE handling (decrement old group, increment new group when `group_id` changes) for completeness, even though the service layer never reassigns `group_id` on an existing membership row today.
+- (Noted, not changed) Gemini flagged that T008 said "extend the existing policy" while the implementation adds a new additive `group_members_read_group_rides` policy — this is correct Postgres practice (multiple permissive `SELECT` policies OR together) and matches `data-model.md`'s own RLS Summary wording; no code change needed.
+- All four migrations re-verified end-to-end on the local Supabase stack after the fixes (`\d groups`, `\d domain_verifications`, FK `confdeltype`, and trigger definition all confirmed).
+
 ---
 
 ## Phase 3: User Story 1 - Create and Discover a General Group (Priority: P1) 🎯 MVP

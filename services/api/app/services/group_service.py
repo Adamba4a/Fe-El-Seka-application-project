@@ -17,7 +17,7 @@ def _get_platform_setting(sb, key: str, default: str) -> str:
         sb.table("platform_settings")
         .select("value")
         .eq("key", key)
-        .single()
+        .maybe_single()
         .execute()
     )
     return resp.data["value"] if resp.data else default

@@ -10,8 +10,8 @@
 | `description` | `text NULL` | Free text; required for general groups, optional/auto-filled for domain groups |
 | `route_tags` | `text[] NOT NULL DEFAULT '{}'` | Free-form; GIN-indexed for directory search |
 | `owner_id` | `uuid NOT NULL REFERENCES profiles(id)` | FR-002; transferable (FR-019) |
-| `domain` | `text NULL UNIQUE` | Set only for `company`/`university`; enforces one-group-per-domain (FR-013) |
-| `invite_token` | `text NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(16),'hex')` | Regeneratable (FR-004) |
+| `domain` | `text NULL UNIQUE` | Set only for `company`/`university`; enforces one-group-per-domain (FR-013). `CHECK` constraint ties this to `type`: NULL iff `general`, NOT NULL iff `company`/`university`. |
+| `invite_token` | `text NOT NULL UNIQUE DEFAULT replace(gen_random_uuid()::text,'-','')` | Regeneratable (FR-004). Uses `gen_random_uuid()` rather than `pgcrypto`'s `gen_random_bytes()` since this project doesn't enable `pgcrypto` (native `gen_random_uuid()` is Postgres 13+ built-in). |
 | `invite_token_revoked_at` | `timestamptz NULL` | Non-null token segments are invalid once regenerated — old token row is simply overwritten, so this tracks last-rotation time for audit only |
 | `member_count` | `integer NOT NULL DEFAULT 0` | Denormalized counter, maintained entirely by a trigger on `group_memberships` insert/delete (including the owner's own initial membership row), for directory display (FR-003) without a COUNT(*) on every search hit. Default is `0`, not `1`, so the trigger is the single source of truth and the owner's insert isn't double-counted. |
 | `created_at` | `timestamptz NOT NULL DEFAULT now()` | |
@@ -55,7 +55,7 @@
 
 | Column | Type | Notes |
 |---|---|---|
-| `group_id` | `uuid NULL REFERENCES groups(id) ON DELETE SET NULL` | NULL = general feed (today's behavior, unchanged); non-null = visible only to that group's members (FR-007, FR-008). `ON DELETE SET NULL` rather than `CASCADE` so an archived/deleted group never deletes real ride history (FR-021). |
+| `group_id` | `uuid NULL REFERENCES groups(id) ON DELETE RESTRICT` | NULL = general feed (today's behavior, unchanged); non-null = visible only to that group's members (FR-007, FR-008). `ON DELETE RESTRICT`, not `SET NULL`/`CASCADE`: groups are soft-deleted only (`archived_at`, FR-021), so a hard delete should never happen — `RESTRICT` blocks it at the DB level rather than risking `SET NULL` silently exposing a group's private rides to the public feed (`group_id IS NULL` is the public-feed flag) or `CASCADE` destroying real ride history. |
 
 No other existing tables change.
 
@@ -73,5 +73,5 @@ groups 1───1 profiles (owner_id)
 
 - `groups`: `SELECT` open to any authenticated user (directory browsing, FR-003); `INSERT`/`UPDATE` restricted to service-role or owner (via API, not direct client writes — matches existing pattern where the FastAPI service role performs writes).
 - `group_memberships`: `SELECT` restricted to the row's own `user_id` or the group's `owner_id`; writes via service role only.
-- `domain_verifications`: `SELECT`/`INSERT` restricted to the row's own `user_id`; no client ever reads another user's verification attempts (contains a hashed OTP and a real email address — least-privilege per constitution Security & Privacy).
+- `domain_verifications`: `SELECT` restricted to the row's own `user_id`; no client `INSERT`/`UPDATE` policy at all — writes are service-role only, since a client-writable row would let a user set `verified_at`/`is_first_for_domain` themselves and bypass the OTP flow. No client ever reads another user's verification attempts either (contains a hashed OTP and a real email address — least-privilege per constitution Security & Privacy).
 - `rides`: existing `SELECT` policy extended with `OR (group_id IS NOT NULL AND EXISTS (SELECT 1 FROM group_memberships WHERE group_id = rides.group_id AND user_id = auth.uid()))`, replacing the current unconditional-if-not-cancelled visibility for the group-scoped case.

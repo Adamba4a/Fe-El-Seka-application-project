@@ -30,7 +30,13 @@ CREATE TABLE public.groups (
     CONSTRAINT chk_groups_type          CHECK (type IN ('general', 'company', 'university')),
     CONSTRAINT chk_groups_name_length   CHECK (length(trim(name)) BETWEEN 3 AND 80),
     CONSTRAINT chk_groups_route_tags    CHECK (array_length(route_tags, 1) IS NULL OR array_length(route_tags, 1) <= 10),
-    CONSTRAINT chk_groups_member_count  CHECK (member_count >= 0)
+    CONSTRAINT chk_groups_member_count  CHECK (member_count >= 0),
+    -- general groups never carry a domain; company/university groups always
+    -- do (it's their join gate) — keep the two columns from drifting apart.
+    CONSTRAINT chk_groups_type_domain   CHECK (
+        (type = 'general' AND domain IS NULL)
+        OR (type IN ('company', 'university') AND domain IS NOT NULL)
+    )
 );
 
 ALTER TABLE public.groups ENABLE ROW LEVEL SECURITY;
@@ -96,11 +102,20 @@ BEGIN
     ELSIF TG_OP = 'DELETE' THEN
         UPDATE public.groups SET member_count = member_count - 1 WHERE id = OLD.group_id;
         RETURN OLD;
+    ELSIF TG_OP = 'UPDATE' THEN
+        -- group_id is never reassigned by the service layer (a re-join creates a
+        -- fresh row, per data-model.md), but handle it for completeness so any
+        -- direct/admin UPDATE can't silently desync the counter.
+        IF OLD.group_id IS DISTINCT FROM NEW.group_id THEN
+            UPDATE public.groups SET member_count = member_count - 1 WHERE id = OLD.group_id;
+            UPDATE public.groups SET member_count = member_count + 1 WHERE id = NEW.group_id;
+        END IF;
+        RETURN NEW;
     END IF;
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_group_memberships_count
-    AFTER INSERT OR DELETE ON public.group_memberships
+    AFTER INSERT OR UPDATE OR DELETE ON public.group_memberships
     FOR EACH ROW EXECUTE FUNCTION public.groups_update_member_count();
