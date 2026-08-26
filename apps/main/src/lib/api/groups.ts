@@ -1,8 +1,14 @@
 import type {
   CreateGroupPayload,
+  DomainVerificationConfirmPayload,
+  DomainVerificationConfirmResponse,
+  DomainVerificationRequestPayload,
+  DomainVerificationRequestResponse,
   Group,
   GroupDetail,
   GroupListResponse,
+  InviteLinkResponse,
+  Membership,
   RideListResponse,
 } from "@fe-el-seka/shared";
 
@@ -85,6 +91,58 @@ export async function getMyGroups(token: string): Promise<Group[]> {
 export async function getGroupRides(token: string, groupId: string): Promise<RideListResponse> {
   const res = await fetch(`${base}/api/groups/${groupId}/rides`, {
     headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.json();
+}
+
+export async function getInviteLink(token: string, groupId: string): Promise<InviteLinkResponse> {
+  const res = await fetch(`${base}/api/groups/${groupId}/invite-link`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.json();
+}
+
+export async function resolveInviteToken(token: string, inviteToken: string): Promise<GroupDetail> {
+  const res = await fetch(`${base}/api/groups/join/${inviteToken}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.json();
+}
+
+export async function joinGroup(token: string, groupId: string): Promise<Membership> {
+  const res = await fetch(`${base}/api/groups/${groupId}/join`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.json();
+}
+
+export async function requestDomainVerification(
+  token: string,
+  payload: DomainVerificationRequestPayload
+): Promise<DomainVerificationRequestResponse> {
+  const res = await fetch(`${base}/api/groups/domain-verification/request`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.json();
+}
+
+export async function confirmDomainVerification(
+  token: string,
+  payload: DomainVerificationConfirmPayload
+): Promise<DomainVerificationConfirmResponse> {
+  const res = await fetch(`${base}/api/groups/domain-verification/confirm`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) throw await parseErrorResponse(res);
   return res.json();

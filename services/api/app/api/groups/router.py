@@ -8,9 +8,15 @@ from fastapi import APIRouter, Depends, Query, status
 from app.dependencies.auth import get_current_user
 from app.models.group import (
     CreateGroupRequest,
+    DomainVerificationConfirm,
+    DomainVerificationConfirmResponse,
+    DomainVerificationRequest,
+    DomainVerificationRequestResponse,
     GroupDetailResponse,
     GroupListResponse,
     GroupSummary,
+    InviteLinkResponse,
+    MembershipResponse,
 )
 from app.models.ride import RideListResponse
 from app.services import group_service
@@ -65,3 +71,45 @@ async def list_group_rides(
 ):
     user_id = uuid.UUID(str(profile["id"]))
     return await group_service.list_group_rides(group_id, user_id)
+
+
+@router.post("/{group_id}/invite-link", response_model=InviteLinkResponse)
+async def generate_invite_link(
+    group_id: uuid.UUID,
+    profile: dict = Depends(get_current_user),
+):
+    user_id = uuid.UUID(str(profile["id"]))
+    return await group_service.generate_invite_link(group_id, user_id)
+
+
+@router.get("/join/{invite_token}", response_model=GroupDetailResponse)
+async def resolve_invite_token(
+    invite_token: str,
+    profile: dict = Depends(get_current_user),
+):
+    user_id = uuid.UUID(str(profile["id"]))
+    return await group_service.resolve_invite_token(invite_token, user_id)
+
+
+@router.post("/{group_id}/join", response_model=MembershipResponse)
+async def join_group(
+    group_id: uuid.UUID,
+    profile: dict = Depends(get_current_user),
+):
+    return await group_service.join_group(profile, group_id)
+
+
+@router.post("/domain-verification/request", response_model=DomainVerificationRequestResponse)
+async def request_domain_verification(
+    payload: DomainVerificationRequest,
+    profile: dict = Depends(get_current_user),
+):
+    return await group_service.request_domain_verification(profile, payload)
+
+
+@router.post("/domain-verification/confirm", response_model=DomainVerificationConfirmResponse)
+async def confirm_domain_verification(
+    payload: DomainVerificationConfirm,
+    profile: dict = Depends(get_current_user),
+):
+    return await group_service.confirm_domain_verification(profile, payload)

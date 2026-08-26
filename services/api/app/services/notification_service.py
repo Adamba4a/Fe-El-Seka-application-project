@@ -122,6 +122,20 @@ async def send_verification_decision_email(
         )
 
 
+async def send_domain_verification_email(recipient_email: str, code: str) -> None:
+    """Sends the group domain-verification OTP. Unlike the fire-and-forget
+    verification-decision email above, a send failure here must propagate —
+    the caller (group_service.request_domain_verification) has nothing
+    useful to tell the user if the code never went out.
+    """
+    subject = "Your Triplyy domain verification code"
+    html = (
+        f"<p>Your domain verification code is <strong>{code}</strong>.</p>"
+        "<p>This code expires in 5 minutes. If you didn't request this, you can ignore this email.</p>"
+    )
+    await _send_email(recipient_email, subject, html)
+
+
 async def _process_pending_emails() -> None:
     pool = get_pool()
     now = datetime.now(timezone.utc)

@@ -7,6 +7,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/Spinner";
 import { createClient } from "@/lib/supabase/client";
 import { getGroup, getGroupRides } from "@/lib/api/groups";
+import { JoinGroupAction } from "@/components/groups/JoinGroupAction";
+import { InviteLinkShare } from "@/components/groups/InviteLinkShare";
 import { formatCurrency, formatDate } from "@fe-el-seka/shared";
 import type { GroupDetail, Ride, Locale } from "@fe-el-seka/shared";
 
@@ -17,6 +19,7 @@ export default function GroupDetailPage() {
   const params = useParams<{ groupId: string }>();
   const groupId = params.groupId;
 
+  const [token, setToken] = useState<string | null>(null);
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [rides, setRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +34,7 @@ export default function GroupDetailPage() {
         const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { router.push("/login"); return; }
+        setToken(session.access_token);
         const detail = await getGroup(session.access_token, groupId);
         setGroup(detail);
 
@@ -106,6 +110,8 @@ export default function GroupDetailPage() {
         )}
       </div>
 
+      {group.is_owner && token && <InviteLinkShare token={token} groupId={group.id} />}
+
       {group.is_member ? (
         <div className="space-y-3">
           <h2 className="text-label text-content-secondary">{t("activeRidesHeading")}</h2>
@@ -143,7 +149,22 @@ export default function GroupDetailPage() {
           )}
         </div>
       ) : (
-        <p className="text-body-sm text-content-muted text-center py-4">{t("joinToSeeRides")}</p>
+        <div className="space-y-3">
+          <p className="text-body-sm text-content-muted text-center py-2">{t("joinToSeeRides")}</p>
+          {token && (
+            <JoinGroupAction
+              token={token}
+              group={group}
+              onJoined={(joinedGroupId) => {
+                if (joinedGroupId === group.id) {
+                  window.location.reload();
+                } else {
+                  router.push(`/groups/${joinedGroupId}`);
+                }
+              }}
+            />
+          )}
+        </div>
       )}
     </div>
   );

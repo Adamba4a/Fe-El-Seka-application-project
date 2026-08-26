@@ -70,4 +70,11 @@ export type {
   GroupDetail,
   GroupListResponse,
   CreateGroupPayload,
+  InviteLinkResponse,
+  Membership,
+  DomainGroupType,
+  DomainVerificationRequestPayload,
+  DomainVerificationRequestResponse,
+  DomainVerificationConfirmPayload,
+  DomainVerificationConfirmResponse,
 } from "./types/groups";

@@ -120,14 +120,14 @@ Extends the existing monorepo — no new top-level directories:
 
 ### Implementation for User Story 3
 
-- [ ] T030 [US3] Implement `generate_invite_link()` / `regenerate_invite_link()` in `group_service.py` (owner-only, invalidates the previous token) — FR-004
-- [ ] T031 [US3] Implement `POST /api/groups/{group_id}/invite-link` in `api/groups/router.py`
-- [ ] T032 [US3] Implement `resolve_invite_token()` in `group_service.py` and `GET /api/groups/join/{invite_token}` in `api/groups/router.py` (404 for unknown/revoked/regenerated tokens) — FR-005, Edge Case: revoked link
-- [ ] T033 [US3] Implement `join_group()` in `group_service.py` for the general-group path: idempotent (returns existing membership if already a member), `409 domain_verification_required` for company/university groups — FR-005, FR-009
-- [ ] T034 [US3] Implement `POST /api/groups/{group_id}/join` in `api/groups/router.py`, wired to T033
-- [ ] T035 [US3] Add `getInviteLink`, `resolveInviteToken`, `joinGroup` to `apps/main/src/lib/api/groups.ts`
-- [ ] T036 [P] [US3] Build join screen UI: `apps/main/src/app/(app)/groups/join/[inviteToken]/page.tsx`
-- [ ] T037 [P] [US3] Add `InviteLinkShare` component (copy link, regenerate button) to the group detail page, owner-only
+- [X] T030 [US3] Implement `generate_invite_link()` / `regenerate_invite_link()` in `group_service.py` (owner-only, invalidates the previous token) — FR-004
+- [X] T031 [US3] Implement `POST /api/groups/{group_id}/invite-link` in `api/groups/router.py`
+- [X] T032 [US3] Implement `resolve_invite_token()` in `group_service.py` and `GET /api/groups/join/{invite_token}` in `api/groups/router.py` (404 for unknown/revoked/regenerated tokens) — FR-005, Edge Case: revoked link
+- [X] T033 [US3] Implement `join_group()` in `group_service.py` for the general-group path: idempotent (returns existing membership if already a member), `409 domain_verification_required` for company/university groups — FR-005, FR-009
+- [X] T034 [US3] Implement `POST /api/groups/{group_id}/join` in `api/groups/router.py`, wired to T033
+- [X] T035 [US3] Add `getInviteLink`, `resolveInviteToken`, `joinGroup` to `apps/main/src/lib/api/groups.ts`
+- [X] T036 [P] [US3] Build join screen UI: `apps/main/src/app/(app)/groups/join/[inviteToken]/page.tsx`
+- [X] T037 [P] [US3] Add `InviteLinkShare` component (copy link, regenerate button) to the group detail page, owner-only
 
 **Checkpoint**: US1–US3 all functional and independently testable per `quickstart.md` §1–3.
 
@@ -141,15 +141,15 @@ Extends the existing monorepo — no new top-level directories:
 
 ### Implementation for User Story 4
 
-- [ ] T038 [US4] Implement `request_domain_verification()` in `group_service.py`: normalize domain, blocklist check (reject before sending anything) — FR-010, FR-011, SC-004
-- [ ] T039 [US4] Generate/hash/store the OTP code and send it via the existing transactional-email sender pattern (`notification_service`'s Resend/Mailpit path), reusing `auth_service`'s resend-rate-limit shape — FR-010, FR-020
-- [ ] T040 [US4] Implement `POST /api/groups/domain-verification/request` in `api/groups/router.py`, wired to T038/T039
-- [ ] T041 [US4] Implement `confirm_domain_verification()` in `group_service.py`: hash + expiry check; on success, auto-derive the group name and create the group when `is_first_for_domain` (enforcing the DB-backed new-domain rate limit from `research.md` §3), otherwise attach to the existing group; create the caller's membership either way — FR-012, FR-013, FR-014
-- [ ] T042 [US4] Implement `POST /api/groups/domain-verification/confirm` in `api/groups/router.py`, wired to T041
-- [ ] T043 [US4] Add `requestDomainVerification`, `confirmDomainVerification` to `apps/main/src/lib/api/groups.ts`
-- [ ] T044 [P] [US4] Build `DomainVerifyForm` component (email entry → OTP confirm, mirrors the platform's existing login-OTP UX) in `apps/main/src/components/groups/`
-- [ ] T045 [US4] Wire `DomainVerifyForm` into the join screen (T036) for company/university groups, triggered by the `409 domain_verification_required` response from T034
-- [ ] T046 [US4] Audit all new UI copy and API error/response messages to confirm they say "domain-verified," never "employer-verified" or "verified employee" — FR-015
+- [X] T038 [US4] Implement `request_domain_verification()` in `group_service.py`: normalize domain, blocklist check (reject before sending anything) — FR-010, FR-011, SC-004
+- [X] T039 [US4] Generate/hash/store the OTP code and send it via the existing transactional-email sender pattern (`notification_service`'s Resend/Mailpit path), reusing `auth_service`'s resend-rate-limit shape — FR-010, FR-020
+- [X] T040 [US4] Implement `POST /api/groups/domain-verification/request` in `api/groups/router.py`, wired to T038/T039
+- [X] T041 [US4] Implement `confirm_domain_verification()` in `group_service.py`: hash + expiry check; on success, auto-derive the group name and create the group when `is_first_for_domain` (enforcing the DB-backed new-domain rate limit from `research.md` §3), otherwise attach to the existing group; create the caller's membership either way — FR-012, FR-013, FR-014
+- [X] T042 [US4] Implement `POST /api/groups/domain-verification/confirm` in `api/groups/router.py`, wired to T041
+- [X] T043 [US4] Add `requestDomainVerification`, `confirmDomainVerification` to `apps/main/src/lib/api/groups.ts`
+- [X] T044 [P] [US4] Build `DomainVerifyForm` component (email entry → OTP confirm, mirrors the platform's existing login-OTP UX) in `apps/main/src/components/groups/`
+- [X] T045 [US4] Wire `DomainVerifyForm` into the join screen (T036) for company/university groups, triggered by the `409 domain_verification_required` response from T034
+- [X] T046 [US4] Audit all new UI copy and API error/response messages to confirm they say "domain-verified," never "employer-verified" or "verified employee" — FR-015
 
 **Checkpoint**: US1–US4 all functional and independently testable per `quickstart.md` §1–4, §6.
 

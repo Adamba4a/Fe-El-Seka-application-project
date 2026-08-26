@@ -661,7 +661,48 @@
     "activeRidesHeading": "Active rides in this group",
     "noActiveRides": "No active rides in this group yet.",
     "joinToSeeRides": "Join this group to see its rides.",
-    "seatsAvailable": "{count, plural, one {# seat left} other {# seats left}}"
+    "seatsAvailable": "{count, plural, one {# seat left} other {# seats left}}",
+    "join": {
+      "title": "Join group",
+      "inviteLinkInvalid": "This invite link is no longer valid.",
+      "loadFailed": "Failed to load group",
+      "alreadyMember": "You're already a member of this group.",
+      "viewGroup": "View group",
+      "domainVerifiedRequired": "This is a domain-verified group. Confirm your work or school email to join.",
+      "joinButton": "Join group",
+      "joining": "Joining…",
+      "joinFailed": "Failed to join group"
+    },
+    "inviteLink": {
+      "heading": "Invite people",
+      "getLink": "Get invite link",
+      "generating": "Generating…",
+      "copyLink": "Copy link",
+      "copied": "Copied!",
+      "regenerate": "Regenerate",
+      "regenerating": "Regenerating…",
+      "regenerateHint": "Regenerating creates a new link and invalidates the old one.",
+      "loadFailed": "Failed to generate invite link"
+    },
+    "domainVerify": {
+      "emailLabel": "Work or school email",
+      "emailPlaceholder": "you@company.com",
+      "domainVerifiedHint": "We'll email a one-time code to confirm you control this address. This confirms domain ownership, not employment or enrollment.",
+      "sendCode": "Send code",
+      "sending": "Sending…",
+      "otpTitle": "Check your email",
+      "otpSubtitle": "We sent a 6-digit code to <strong>{email}</strong>",
+      "errors": {
+        "invalidEmail": "Enter a valid email address",
+        "blocklistedDomain": "Please use your work or school email, not a personal email address.",
+        "otpRateLimited": "Too many requests. Please wait 15 minutes before trying again.",
+        "sendFailed": "Failed to send code. Please try again.",
+        "invalidCode": "Incorrect code. Please try again.",
+        "expired": "Code has expired. Please request a new one.",
+        "domainArchived": "This domain's group is no longer available.",
+        "registrationRateLimited": "Too many new domains registered recently. Please try again later."
+      }
+    }
   },
   "languagePrompt": {
     "heading": "Choose your language",
