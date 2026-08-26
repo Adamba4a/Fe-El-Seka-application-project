@@ -18,7 +18,7 @@ CREATE TABLE public.groups (
     route_tags               TEXT[]          NOT NULL DEFAULT '{}',
     owner_id                 UUID            NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
     domain                   TEXT            UNIQUE,
-    invite_token             TEXT            NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(16), 'hex'),
+    invite_token             TEXT            NOT NULL UNIQUE DEFAULT replace(gen_random_uuid()::text, '-', ''),
     invite_token_revoked_at  TIMESTAMPTZ,
     -- Denormalized member count, maintained entirely by the trigger below
     -- (including the owner's own initial membership row) — default 0, never
