@@ -215,6 +215,7 @@ async def nearby_rides(
             WHERE r.status = 'scheduled'
               AND r.available_seats > 0
               AND r.departure_datetime > now()
+              AND r.group_id IS NULL
               AND ST_DWithin(r.origin_coordinates, ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography, $4)
             ORDER BY r.origin_coordinates <-> ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography
             LIMIT $3

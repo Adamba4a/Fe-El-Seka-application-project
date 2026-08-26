@@ -634,6 +634,35 @@
   "dashboard": {
     "title": "لوحة التحكم"
   },
+  "groups": {
+    "directoryHeading": "المجموعات",
+    "createLink": "+ إنشاء",
+    "searchPlaceholder": "ابحث عن مجموعات بالاسم…",
+    "routeTagPlaceholder": "وسم المسار (مثال: بدر–الشيخ زايد)",
+    "searchButton": "بحث",
+    "noGroupsFound": "لم يتم العثور على مجموعات.",
+    "loadFailed": "فشل تحميل المجموعات",
+    "memberCount": "{count, plural, one {# عضو} other {# أعضاء}}",
+    "type": {
+      "all": "كل الأنواع",
+      "general": "عامة",
+      "company": "شركة",
+      "university": "جامعة"
+    },
+    "createHeading": "إنشاء مجموعة",
+    "nameLabel": "اسم المجموعة",
+    "descriptionLabel": "الوصف (اختياري)",
+    "routeTagsLabel": "وسوم المسار (اختياري)",
+    "routeTagsPlaceholder": "مثال: الشروق، بدر، الشيخ زايد",
+    "routeTagsHint": "افصل بينها بفاصلة. تساعد الآخرين على إيجاد هذه المجموعة حسب المسار.",
+    "createButton": "إنشاء المجموعة",
+    "creating": "جارٍ الإنشاء…",
+    "createFailed": "فشل إنشاء المجموعة",
+    "activeRidesHeading": "الرحلات النشطة في هذه المجموعة",
+    "noActiveRides": "لا توجد رحلات نشطة في هذه المجموعة بعد.",
+    "joinToSeeRides": "انضم إلى هذه المجموعة لرؤية رحلاتها.",
+    "seatsAvailable": "{count, plural, one {مقعد # متبقٍ} other {# مقاعد متبقية}}"
+  },
   "languagePrompt": {
     "heading": "اختر لغتك",
     "subheading": "Choose your language"
@@ -793,6 +822,9 @@
     "destinationLabel": "الوجهة",
     "departureLabel": "تاريخ ووقت الانطلاق",
     "seatsLabel": "المقاعد (الحد الأقصى {maxSeats})",
+    "groupLabel": "النشر إلى مجموعة (اختياري)",
+    "groupNone": "بدون مجموعة — البث العام",
+    "groupHint": "سيظهر هذه الرحلة فقط لأعضاء هذه المجموعة.",
     "notesLabel": "ملاحظات (اختياري)",
     "notesPlaceholder": "مثال: ممنوع التدخين، للسيدات فقط…",
     "originMapLabel": "نقطة الانطلاق (اضغط لتحديد الموقع)",

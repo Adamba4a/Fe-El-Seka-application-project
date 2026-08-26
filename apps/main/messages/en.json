@@ -634,6 +634,35 @@
   "dashboard": {
     "title": "Dashboard"
   },
+  "groups": {
+    "directoryHeading": "Groups",
+    "createLink": "+ Create",
+    "searchPlaceholder": "Search groups by name…",
+    "routeTagPlaceholder": "Route tag (e.g. Badr–Zayed)",
+    "searchButton": "Search",
+    "noGroupsFound": "No groups found.",
+    "loadFailed": "Failed to load groups",
+    "memberCount": "{count, plural, one {# member} other {# members}}",
+    "type": {
+      "all": "All types",
+      "general": "General",
+      "company": "Company",
+      "university": "University"
+    },
+    "createHeading": "Create a group",
+    "nameLabel": "Group name",
+    "descriptionLabel": "Description (optional)",
+    "routeTagsLabel": "Route tags (optional)",
+    "routeTagsPlaceholder": "e.g. El Shorouk, Badr, Sheikh Zayed",
+    "routeTagsHint": "Comma-separated. Helps others find this group by route.",
+    "createButton": "Create group",
+    "creating": "Creating…",
+    "createFailed": "Failed to create group",
+    "activeRidesHeading": "Active rides in this group",
+    "noActiveRides": "No active rides in this group yet.",
+    "joinToSeeRides": "Join this group to see its rides.",
+    "seatsAvailable": "{count, plural, one {# seat left} other {# seats left}}"
+  },
   "languagePrompt": {
     "heading": "Choose your language",
     "subheading": "اختر لغتك"
@@ -793,6 +822,9 @@
     "destinationLabel": "Destination",
     "departureLabel": "Departure Date & Time",
     "seatsLabel": "Seats (max {maxSeats})",
+    "groupLabel": "Post to group (optional)",
+    "groupNone": "No group — public feed",
+    "groupHint": "Only members of this group will see this ride.",
     "notesLabel": "Notes (optional)",
     "notesPlaceholder": "e.g. No smoking, women only…",
     "originMapLabel": "Origin (tap to drop pin)",

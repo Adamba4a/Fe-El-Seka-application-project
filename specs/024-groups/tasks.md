@@ -75,15 +75,15 @@ Extends the existing monorepo — no new top-level directories:
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Implement `create_group()` in `group_service.py` (general type only: name/description/route_tags validation, owner+first-member row) — FR-001, FR-002
-- [ ] T014 [US1] Implement `POST /api/groups` in `api/groups/router.py`, wired to T013
-- [ ] T015 [US1] Implement `search_groups()` in `group_service.py` (name via trigram, `type` and `route_tag` filters, paginated) — FR-003
-- [ ] T016 [US1] Implement `GET /api/groups` in `api/groups/router.py`, wired to T015
-- [ ] T017 [US1] Implement `get_group_detail()` in `group_service.py` and `GET /api/groups/{group_id}` in `api/groups/router.py` (includes `is_member`/`is_owner` for the caller)
-- [ ] T018 [US1] Add `createGroup`, `searchGroups`, `getGroup` functions to `apps/main/src/lib/api/groups.ts`
-- [ ] T019 [P] [US1] Build group directory UI: `apps/main/src/app/(app)/groups/page.tsx` + `apps/main/src/components/groups/GroupDirectorySearch.tsx` + `apps/main/src/components/groups/GroupCard.tsx`
-- [ ] T020 [P] [US1] Build create-group UI: `apps/main/src/app/(app)/groups/create/page.tsx`
-- [ ] T021 [US1] Build group detail page skeleton: `apps/main/src/app/(app)/groups/[groupId]/page.tsx` (public metadata view; membership-gated content added in later stories)
+- [X] T013 [US1] Implement `create_group()` in `group_service.py` (general type only: name/description/route_tags validation, owner+first-member row) — FR-001, FR-002
+- [X] T014 [US1] Implement `POST /api/groups` in `api/groups/router.py`, wired to T013
+- [X] T015 [US1] Implement `search_groups()` in `group_service.py` (name via trigram, `type` and `route_tag` filters, paginated) — FR-003
+- [X] T016 [US1] Implement `GET /api/groups` in `api/groups/router.py`, wired to T015
+- [X] T017 [US1] Implement `get_group_detail()` in `group_service.py` and `GET /api/groups/{group_id}` in `api/groups/router.py` (includes `is_member`/`is_owner` for the caller)
+- [X] T018 [US1] Add `createGroup`, `searchGroups`, `getGroup` functions to `apps/main/src/lib/api/groups.ts`
+- [X] T019 [P] [US1] Build group directory UI: `apps/main/src/app/(app)/groups/page.tsx` + `apps/main/src/components/groups/GroupDirectorySearch.tsx` + `apps/main/src/components/groups/GroupCard.tsx`
+- [X] T020 [P] [US1] Build create-group UI: `apps/main/src/app/(app)/groups/create/page.tsx`
+- [X] T021 [US1] Build group detail page skeleton: `apps/main/src/app/(app)/groups/[groupId]/page.tsx` (public metadata view; membership-gated content added in later stories)
 
 **Checkpoint**: US1 fully functional and independently testable per `quickstart.md` §1.
 
@@ -97,16 +97,18 @@ Extends the existing monorepo — no new top-level directories:
 
 ### Implementation for User Story 2
 
-- [ ] T022 [US2] Extend `CreateRideRequest` in `services/api/app/models/ride.py` with optional `group_id: Optional[UUID]`
-- [ ] T023 [US2] Extend `ride_service.py`'s ride-creation path to validate caller membership in `group_id` (when provided) before persisting — FR-006, FR-008
-- [ ] T024 [US2] Add `AND group_id IS NULL` to the base queries in `candidate_service.py`, `search/router.py`, and the general-feed queries in `rides/router.py` so group-scoped rides never appear in the city-wide feed — FR-007, SC-005
-- [ ] T025 [US2] Implement `list_group_rides()` in `group_service.py` (membership-gated, reuses the existing ride-listing query shape filtered to `group_id = :group_id`) — FR-007, FR-009
-- [ ] T026 [US2] Implement `GET /api/groups/{group_id}/rides` in `api/groups/router.py`, wired to T025 (403 for non-members)
-- [ ] T027 [US2] Add `getGroupRides` to `apps/main/src/lib/api/groups.ts`
-- [ ] T028 [P] [US2] Add an optional group picker to the driver ride-creation flow in `apps/main/src/app/(driver)/rides/...` (lists groups the driver belongs to, defaults to unscoped)
-- [ ] T029 [P] [US2] Extend `apps/main/src/app/(app)/groups/[groupId]/page.tsx` with the group's active ride listing (member-only), booking through the existing booking flow with zero new steps — SC-006
+- [X] T022 [US2] Extend `CreateRideRequest` in `services/api/app/models/ride.py` with optional `group_id: Optional[UUID]`
+- [X] T023 [US2] Extend `ride_service.py`'s ride-creation path to validate caller membership in `group_id` (when provided) before persisting — FR-006, FR-008
+- [X] T024 [US2] Add `AND group_id IS NULL` to the base queries in `candidate_service.py`, `search/router.py`, and the general-feed queries in `rides/router.py` so group-scoped rides never appear in the city-wide feed — FR-007, SC-005
+- [X] T025 [US2] Implement `list_group_rides()` in `group_service.py` (membership-gated, reuses the existing ride-listing query shape filtered to `group_id = :group_id`) — FR-007, FR-009
+- [X] T026 [US2] Implement `GET /api/groups/{group_id}/rides` in `api/groups/router.py`, wired to T025 (403 for non-members)
+- [X] T027 [US2] Add `getGroupRides` to `apps/main/src/lib/api/groups.ts`
+- [X] T028 [P] [US2] Add an optional group picker to the driver ride-creation flow in `apps/main/src/app/(driver)/rides/...` (lists groups the driver belongs to, defaults to unscoped)
+- [X] T029 [P] [US2] Extend `apps/main/src/app/(app)/groups/[groupId]/page.tsx` with the group's active ride listing (member-only), booking through the existing booking flow with zero new steps — SC-006
 
 **Checkpoint**: US1 + US2 both fully functional and independently testable per `quickstart.md` §1–2.
+
+**Implementation note**: T028 ("lists groups the driver belongs to") needed a "my groups" lookup that no task or contract defines. Added `list_my_groups()` in `group_service.py` and `GET /api/groups/mine` in `api/groups/router.py` (registered before `/{group_id}` to avoid the fixed segment being parsed as a UUID — same ordering convention already used in `rides/router.py`), plus `getMyGroups()` in `apps/main/src/lib/api/groups.ts`.
 
 ---
 

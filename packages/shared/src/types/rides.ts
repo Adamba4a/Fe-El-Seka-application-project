@@ -30,6 +30,7 @@ export interface Ride {
   created_at: string;
   updated_at: string;
   route_geometry: object | null;
+  group_id: string | null;
 }
 
 export interface RideHistoryEntry {
@@ -48,6 +49,7 @@ export interface CreateRidePayload {
   total_seats: number;
   notes?: string;
   final_price_per_seat?: number;
+  group_id?: string;
 }
 
 export interface EditRidePayload {

@@ -24,6 +24,7 @@ class CreateRideRequest(BaseModel):
     total_seats: int
     notes: Optional[str] = None
     final_price_per_seat: Optional[float] = None
+    group_id: Optional[UUID] = None
 
 
 class EditRideRequest(BaseModel):
@@ -80,6 +81,7 @@ class RideResponse(BaseModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     route_geometry: Optional[dict] = None
+    group_id: Optional[UUID] = None
 
 
 class RideDetailResponse(BaseModel):

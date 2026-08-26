@@ -1,3 +1,11 @@
+import type {
+  CreateGroupPayload,
+  Group,
+  GroupDetail,
+  GroupListResponse,
+  RideListResponse,
+} from "@fe-el-seka/shared";
+
 import { env } from "../env";
 
 const base = env.apiUrl;
@@ -16,4 +24,68 @@ async function parseErrorResponse(res: Response): Promise<{ error?: string; mess
     return body.detail as { error?: string; message?: string };
   }
   return body as { error?: string; message?: string };
+}
+
+function authHeaders(token: string): HeadersInit {
+  return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+}
+
+export interface SearchGroupsParams {
+  q?: string;
+  type?: string;
+  route_tag?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function createGroup(token: string, payload: CreateGroupPayload): Promise<Group> {
+  const res = await fetch(`${base}/api/groups`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.json();
+}
+
+export async function searchGroups(
+  token: string,
+  params: SearchGroupsParams = {}
+): Promise<GroupListResponse> {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.type) query.set("type", params.type);
+  if (params.route_tag) query.set("route_tag", params.route_tag);
+  if (params.limit) query.set("limit", String(params.limit));
+  if (params.offset) query.set("offset", String(params.offset));
+
+  const res = await fetch(`${base}/api/groups?${query.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.json();
+}
+
+export async function getGroup(token: string, groupId: string): Promise<GroupDetail> {
+  const res = await fetch(`${base}/api/groups/${groupId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.json();
+}
+
+export async function getMyGroups(token: string): Promise<Group[]> {
+  const res = await fetch(`${base}/api/groups/mine`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.json();
+}
+
+export async function getGroupRides(token: string, groupId: string): Promise<RideListResponse> {
+  const res = await fetch(`${base}/api/groups/${groupId}/rides`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.json();
 }
