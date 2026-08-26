@@ -15,11 +15,11 @@ function formatDate(iso: string, locale: Locale) {
   }).format(new Date(iso));
 }
 
-export function RideCard({ ride }: { ride: Ride }) {
+export function RideCard({ ride, href }: { ride: Ride; href?: string }) {
   const t = useTranslations("driver.rides");
   const locale = useLocale() as Locale;
   return (
-    <Link href={`/rides/${ride.id}/manage`} className="block">
+    <Link href={href ?? `/rides/${ride.id}/manage`} className="block">
       <div className="border border-border-default rounded-xl p-4 space-y-3 hover:border-brand-primary transition-colors bg-surface-card">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">

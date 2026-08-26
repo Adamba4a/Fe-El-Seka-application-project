@@ -2,20 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/Spinner";
 import { createClient } from "@/lib/supabase/client";
 import { getGroup, getGroupRides } from "@/lib/api/groups";
 import { JoinGroupAction } from "@/components/groups/JoinGroupAction";
 import { InviteLinkShare } from "@/components/groups/InviteLinkShare";
 import { MemberList } from "@/components/groups/MemberList";
-import { formatCurrency, formatDate } from "@fe-el-seka/shared";
-import type { GroupDetail, Ride, Locale } from "@fe-el-seka/shared";
+import { RideCard } from "@/components/rides/RideCard";
+import type { GroupDetail, Ride } from "@fe-el-seka/shared";
 
 export default function GroupDetailPage() {
   const t = useTranslations("groups");
-  const locale = useLocale() as Locale;
   const router = useRouter();
   const params = useParams<{ groupId: string }>();
   const groupId = params.groupId;
@@ -138,26 +136,7 @@ export default function GroupDetailPage() {
           ) : (
             <div className="space-y-3">
               {rides.map((ride) => (
-                <Link
-                  key={ride.id}
-                  href={`/rides/${ride.id}`}
-                  className="block bg-surface-card rounded-xl p-4 border border-border-default hover:border-border-focus transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-caption font-semibold text-dash-primary">
-                      {formatDate(ride.departure_datetime, locale)}
-                    </span>
-                    <span className="text-caption text-content-muted">
-                      {t("seatsAvailable", { count: ride.available_seats })}
-                    </span>
-                  </div>
-                  <p className="text-body font-semibold text-content-primary mt-1 truncate">
-                    {ride.origin.address} <span className="text-content-muted">→</span> {ride.destination.address}
-                  </p>
-                  <p className="text-body-sm text-content-secondary mt-1">
-                    {formatCurrency(Number(ride.price_per_seat), locale)}
-                  </p>
-                </Link>
+                <RideCard key={ride.id} ride={ride} href={`/rides/${ride.id}`} />
               ))}
             </div>
           )}
