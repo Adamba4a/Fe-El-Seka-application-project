@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from fastapi import BackgroundTasks, HTTPException, UploadFile
@@ -58,19 +59,24 @@ async def submit_documents(
     license: UploadFile | None,
     background_tasks: BackgroundTasks,
 ) -> dict:
-    sb = _supabase()
+    # Every Supabase/R2 call below is a synchronous network call. Running it
+    # directly inside this async handler would block the whole event loop for
+    # its duration, stalling every other request the API is serving — offload
+    # each one to a thread instead.
+    sb = await asyncio.to_thread(_supabase)
 
     # Check lock
     profile = (
-        sb.table("profiles")
-        .select("is_submission_locked, display_name")
-        .eq("id", user_id)
-        .single()
-        .execute()
-        .data
-    )
+        await asyncio.to_thread(
+            lambda: sb.table("profiles")
+            .select("is_submission_locked, display_name")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+    ).data
     if profile and profile["is_submission_locked"]:
-        support_email = _get_support_email()
+        support_email = await asyncio.to_thread(_get_support_email)
         raise HTTPException(
             status_code=403,
             detail={
@@ -84,8 +90,8 @@ async def submit_documents(
         )
 
     # Check for existing pending submission
-    pending = (
-        sb.table("verification_submissions")
+    pending = await asyncio.to_thread(
+        lambda: sb.table("verification_submissions")
         .select("id")
         .eq("user_id", user_id)
         .eq("status", "pending_review")
@@ -118,8 +124,8 @@ async def submit_documents(
     # The SELECT is non-locking but runs after the above validation; under concurrent
     # submits the DB UNIQUE constraint on (user_id, attempt_number) will reject
     # the duplicate insert, so at most one row wins.
-    previous = (
-        sb.table("verification_submissions")
+    previous = await asyncio.to_thread(
+        lambda: sb.table("verification_submissions")
         .select("attempt_number")
         .eq("user_id", user_id)
         .order("attempt_number", desc=True)
@@ -150,7 +156,9 @@ async def submit_documents(
     # Insert the DB row first — if this fails (duplicate attempt_number, lock, etc.)
     # we have not uploaded anything and can return a clean error.
     try:
-        sb.table("verification_submissions").insert(row).execute()
+        await asyncio.to_thread(
+            lambda: sb.table("verification_submissions").insert(row).execute()
+        )
     except Exception as exc:
         raise HTTPException(
             status_code=409,
@@ -164,40 +172,53 @@ async def submit_documents(
     # the row exists so the admin queue will surface the submission; missing
     # files will appear as broken signed URLs, prompting an admin to request
     # a resubmission rather than silently losing data.
-    storage_service.upload_file(
-        "identity-documents",
-        row["front_id_path"],
-        front_data,
-        front_id.content_type,
-    )
-    storage_service.upload_file(
-        "identity-documents",
-        row["back_id_path"],
-        back_data,
-        back_id.content_type,
-    )
-    if license_data:
-        storage_service.upload_file(
-            "identity-documents",
-            row["license_path"],
-            license_data,
-            license.content_type,
-        )
-
+    #
     # The selfie doubles as the user's public profile photo: it becomes their
     # avatar throughout the app (not just a verification artifact), so it is
     # stored in the profile-photos bucket and set on profiles.profile_photo_path
     # exactly as the Settings photo upload does.
     profile_photo_path = f"{user_id}/profile.{selfie_ext}"
-    storage_service.upload_file(
-        "profile-photos",
-        profile_photo_path,
-        selfie_data,
-        selfie.content_type,
-    )
 
-    (
-        sb.table("profiles")
+    # These uploads are independent, so run them concurrently instead of
+    # waiting on each one in turn — total time drops from the sum of all
+    # uploads to roughly the slowest one.
+    upload_tasks = [
+        asyncio.to_thread(
+            storage_service.upload_file,
+            "identity-documents",
+            row["front_id_path"],
+            front_data,
+            front_id.content_type,
+        ),
+        asyncio.to_thread(
+            storage_service.upload_file,
+            "identity-documents",
+            row["back_id_path"],
+            back_data,
+            back_id.content_type,
+        ),
+        asyncio.to_thread(
+            storage_service.upload_file,
+            "profile-photos",
+            profile_photo_path,
+            selfie_data,
+            selfie.content_type,
+        ),
+    ]
+    if license_data:
+        upload_tasks.append(
+            asyncio.to_thread(
+                storage_service.upload_file,
+                "identity-documents",
+                row["license_path"],
+                license_data,
+                license.content_type,
+            )
+        )
+    await asyncio.gather(*upload_tasks)
+
+    await asyncio.to_thread(
+        lambda: sb.table("profiles")
         .update({
             "verification_status": "pending_review",
             "profile_photo_path": profile_photo_path,
