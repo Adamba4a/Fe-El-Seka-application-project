@@ -96,6 +96,12 @@ async def create_booking(
         if ride is None:
             raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Ride not found"})
 
+        if ride["driver_id"] == passenger_id:
+            raise HTTPException(
+                status_code=403,
+                detail={"error": "cannot_book_own_ride", "message": "You cannot book a seat on your own ride"},
+            )
+
         if ride["status"] != "scheduled":
             raise HTTPException(
                 status_code=422,
