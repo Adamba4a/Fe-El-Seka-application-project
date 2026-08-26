@@ -7,11 +7,12 @@ import { useLocale, useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { createRide } from "@/lib/api/rides";
 import { getMyVehicle } from "@/lib/api/vehicles";
+import { getMyGroups } from "@/lib/api/groups";
 import { RideForm } from "@/components/rides/RideForm";
 import { BottomSheet } from "@/components";
 import { VerificationRequiredModal } from "@/components/verification/VerificationRequiredModal";
 import { formatCurrency } from "@fe-el-seka/shared";
-import type { Ride, CreateRidePayload, Location, Coordinates, Locale } from "@fe-el-seka/shared";
+import type { Ride, CreateRidePayload, Location, Coordinates, Locale, Group } from "@fe-el-seka/shared";
 
 const RideMap = dynamic(
   () => import("@/components/rides/RideMap").then((m) => ({ default: m.RideMap })),
@@ -27,6 +28,7 @@ export default function NewRidePage() {
   const [createdRide, setCreatedRide] = useState<Ride | null>(null);
   const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [vehicleChecked, setVehicleChecked] = useState(false);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [sheetOpen, setSheetOpen] = useState(true);
   const [origin, setOrigin] = useState<Location | undefined>();
   const [destination, setDestination] = useState<Location | undefined>();
@@ -42,6 +44,12 @@ export default function NewRidePage() {
         setVehicleChecked(true);
       } catch {
         router.replace("/driver/register-vehicle");
+        return;
+      }
+      try {
+        setGroups(await getMyGroups(session.access_token));
+      } catch {
+        // Non-critical — the group picker just stays hidden if this fails.
       }
     };
     checkVehicle();
@@ -181,6 +189,7 @@ export default function NewRidePage() {
             mode="create"
             loading={loading}
             error={error}
+            groups={groups}
             onSubmit={handleSubmit as any}
             externalOrigin={origin}
             externalDestination={destination}

@@ -50,7 +50,8 @@ _RIDE_COLS = """
     route_distance_km, route_duration_minutes,
     fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp, price_source,
     started_at, completed_at,
-    ST_AsGeoJSON(route_geometry) AS route_geometry_geojson
+    ST_AsGeoJSON(route_geometry) AS route_geometry_geojson,
+    group_id
 """
 
 
@@ -103,6 +104,7 @@ def _to_response(row: dict) -> RideResponse:
         route_geometry=(
             json.loads(row["route_geometry_geojson"]) if row["route_geometry_geojson"] else None
         ),
+        group_id=row["group_id"],
     )
 
 
@@ -199,6 +201,29 @@ async def create_ride(
                     409,
                 )
 
+            if payload.group_id is not None:
+                group_row = await conn.fetchrow(
+                    """
+                    SELECT g.archived_at
+                    FROM group_memberships gm
+                    JOIN groups g ON g.id = gm.group_id
+                    WHERE gm.group_id = $1 AND gm.user_id = $2
+                    """,
+                    payload.group_id, driver_id,
+                )
+                if group_row is None:
+                    raise RideServiceError(
+                        "group_membership_required",
+                        "You must be a member of this group to post a ride to it.",
+                        403,
+                    )
+                if group_row["archived_at"] is not None:
+                    raise RideServiceError(
+                        "group_archived",
+                        "This group has been archived and no longer accepts new rides.",
+                        403,
+                    )
+
             # Phase 8 (FR-014): balance enforcement — lock wallet before ride INSERT so
             # the check and the ride creation are atomic; concurrent rides by the same
             # driver are serialized by the advisory lock already held above.
@@ -244,13 +269,15 @@ async def create_ride(
                     departure_datetime, total_seats, booked_seats, price_per_seat, fair_price_per_seat,
                     notes, status,
                     route_geometry, route_distance_km, route_duration_minutes,
-                    fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp, price_source
+                    fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp, price_source,
+                    group_id
                 ) VALUES (
                     $1, $2,
                     ST_GeomFromText($3, 4326)::geography, $4,
                     ST_GeomFromText($5, 4326)::geography, $6,
                     $7, $8, 0, $9, $10, $11, 'scheduled',
-                    ST_SetSRID(ST_GeomFromGeoJSON($12), 4326), $13, $14, $15, $16, $17, $18, 'system'
+                    ST_SetSRID(ST_GeomFromGeoJSON($12), 4326), $13, $14, $15, $16, $17, $18, 'system',
+                    $19
                 )
                 RETURNING {_RIDE_COLS}
                 """,
@@ -261,6 +288,7 @@ async def create_ride(
                 json.dumps(route_geometry_geojson),
                 route_distance_km, route_duration_minutes,
                 fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp,
+                payload.group_id,
             )
 
             await conn.execute(
@@ -328,6 +356,7 @@ async def list_featured_rides() -> FeaturedRidesResponse:
               AND status = 'scheduled'
               AND departure_datetime > now()
               AND available_seats > 0
+              AND group_id IS NULL
             ORDER BY departure_datetime ASC
             LIMIT 20
             """

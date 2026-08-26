@@ -63,3 +63,20 @@ export type {
   VehicleUpdateRequestStatus,
   Vehicle,
 } from "./types/vehicle";
+
+export type {
+  GroupType,
+  Group,
+  GroupDetail,
+  GroupListResponse,
+  CreateGroupPayload,
+  InviteLinkResponse,
+  Membership,
+  DomainGroupType,
+  DomainVerificationRequestPayload,
+  DomainVerificationRequestResponse,
+  DomainVerificationConfirmPayload,
+  DomainVerificationConfirmResponse,
+  GroupMember,
+  TransferOwnershipPayload,
+} from "./types/groups";

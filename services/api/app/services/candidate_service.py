@@ -74,6 +74,7 @@ async def _stage1_query(
                 AND available_seats > 0
                 AND route_geometry IS NOT NULL
                 AND departure_datetime > NOW()
+                AND group_id IS NULL
                 AND route_geometry && ST_MakeEnvelope($1, $2, $3, $4, 4326)
             ORDER BY departure_datetime
             LIMIT $5

@@ -98,6 +98,7 @@ def _ride_row(**overrides) -> dict:
         "started_at": None,
         "completed_at": None,
         "route_geometry_geojson": json.dumps({"type": "LineString", "coordinates": []}),
+        "group_id": None,
     }
     row.update(overrides)
     return row

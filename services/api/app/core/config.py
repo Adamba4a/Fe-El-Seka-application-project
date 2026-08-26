@@ -23,6 +23,9 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
+    # Used to build user-facing links (e.g. group invite links) from the API,
+    # which has no other notion of the frontend's own origin.
+    frontend_base_url: str = "http://localhost:3000"
     resend_api_key: str = ""
     webhook_secret: str = ""
     smtp_host: str = "127.0.0.1"

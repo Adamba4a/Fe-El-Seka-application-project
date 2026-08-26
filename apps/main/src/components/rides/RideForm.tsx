@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatCurrency } from "@fe-el-seka/shared";
-import type { CreateRidePayload, EditRidePayload, Location, Coordinates } from "@fe-el-seka/shared";
+import type { CreateRidePayload, EditRidePayload, Location, Coordinates, Group } from "@fe-el-seka/shared";
 import { getFareEstimate } from "@/lib/api/pricing";
 
 const MAX_MARKUP_RATE = 0.3;
@@ -32,6 +32,8 @@ interface RideFormProps {
   maxSeats?: number;
   loading?: boolean;
   error?: string | null;
+  // Create mode only — groups the driver belongs to, for the optional group picker (T028).
+  groups?: Group[];
   onSubmit: (payload: CreateRidePayload | EditRidePayload) => void;
   onDirtyChange?: (isDirty: boolean) => void;
   // External coordinate props — when provided, the page owns pin-drop via a full-screen map
@@ -47,7 +49,7 @@ function toDatetimeLocal(iso?: string): string {
 }
 
 export function RideForm({
-  mode, initialValues, maxSeats = 7, loading, error, onSubmit, onDirtyChange,
+  mode, initialValues, maxSeats = 7, loading, error, groups, onSubmit, onDirtyChange,
   externalOrigin, externalDestination, onRequestOriginMap, onRequestDestinationMap,
 }: RideFormProps) {
   const t = useTranslations("rideForm");
@@ -57,6 +59,7 @@ export function RideForm({
   const [departureRaw, setDepartureRaw] = useState(toDatetimeLocal(initialValues?.departure_datetime));
   const [totalSeats, setTotalSeats] = useState(initialValues?.total_seats ?? 1);
   const [notes, setNotes] = useState(initialValues?.notes ?? "");
+  const [groupId, setGroupId] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const initialFairPrice = initialValues?.fair_price_per_seat
@@ -159,6 +162,7 @@ export function RideForm({
         total_seats: totalSeats,
         notes: notes.trim() || undefined,
         final_price_per_seat: selectedPrice!,
+        group_id: groupId || undefined,
       } as CreateRidePayload);
     } else {
       const payload: EditRidePayload = {};
@@ -323,6 +327,23 @@ export function RideForm({
         )}
         <p className="text-caption text-content-muted">{t("priceAutoNote")}</p>
       </div>
+
+      {mode === "create" && groups && groups.length > 0 && (
+        <div className="space-y-1">
+          <label className="block text-label text-content-secondary">{t("groupLabel")}</label>
+          <select
+            value={groupId}
+            onChange={(e) => setGroupId(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">{t("groupNone")}</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
+          <p className="text-caption text-content-muted">{t("groupHint")}</p>
+        </div>
+      )}
 
       <div className="space-y-1">
         <label className="block text-label text-content-secondary">{t("notesLabel")}</label>

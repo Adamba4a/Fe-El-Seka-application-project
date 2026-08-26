@@ -88,7 +88,7 @@ async def create_booking(
         # 1. Lock the ride row to prevent concurrent seat races
         ride = await conn.fetchrow(
             """
-            SELECT id, status, departure_datetime, price_per_seat, booked_seats, total_seats, driver_id
+            SELECT id, status, departure_datetime, price_per_seat, booked_seats, total_seats, driver_id, group_id
             FROM rides WHERE id = $1 FOR UPDATE
             """,
             ride_id,
@@ -101,6 +101,20 @@ async def create_booking(
                 status_code=422,
                 detail={"error": "ride_not_schedulable", "message": "Ride is not accepting bookings"},
             )
+
+        if ride["group_id"] is not None:
+            is_group_member = await conn.fetchval(
+                "SELECT 1 FROM group_memberships WHERE group_id = $1 AND user_id = $2",
+                ride["group_id"], passenger_id,
+            )
+            if not is_group_member:
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "error": "group_membership_required",
+                        "message": "You must be a member of this group to book this ride.",
+                    },
+                )
 
         dep = ride["departure_datetime"]
         if dep.tzinfo is None:
