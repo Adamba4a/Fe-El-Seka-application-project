@@ -743,6 +743,8 @@
     "notificationsAriaLabel": "Notifications",
     "settingsAriaLabel": "Settings",
     "profileAriaLabel": "Profile",
+    "groups": "Groups",
+    "groupsAriaLabel": "Groups",
     "defaultDriverName": "Driver",
     "defaultPassengerName": "Passenger",
     "dashboard": "Dashboard",

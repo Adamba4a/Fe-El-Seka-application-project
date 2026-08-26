@@ -48,6 +48,19 @@ function Avatar({
   );
 }
 
+function GroupsIcon() {
+  return (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M17 20h5v-1a4 4 0 0 0-3-3.87M9 20H4v-1a4 4 0 0 1 3-3.87m5-2.13a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM5 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+      />
+    </svg>
+  );
+}
+
 function GearIcon() {
   return (
     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -119,6 +132,9 @@ export function TopBar({ variant, userName, avatarUrl, verificationStatus }: Top
         )}
 
         <div className="flex items-center gap-4">
+          <Link href="/groups" aria-label={t("groupsAriaLabel")} className="text-dash-navy">
+            <GroupsIcon />
+          </Link>
           <LanguageToggle />
           {variant === "driver" ? (
             <Link href="/settings/profile" aria-label={t("settingsAriaLabel")} className="text-dash-navy">

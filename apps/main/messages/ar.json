@@ -743,6 +743,8 @@
     "notificationsAriaLabel": "الإشعارات",
     "settingsAriaLabel": "الإعدادات",
     "profileAriaLabel": "الملف الشخصي",
+    "groups": "المجموعات",
+    "groupsAriaLabel": "المجموعات",
     "defaultDriverName": "سائق",
     "defaultPassengerName": "راكب",
     "dashboard": "لوحة التحكم",
