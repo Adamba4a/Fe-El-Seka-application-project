@@ -165,13 +165,17 @@ Extends the existing monorepo — no new top-level directories:
 
 **Design note (flagged by Gemini review of Phase 3+4, 2026-08-26)**: neither `leave_group()` nor `remove_member()` exists yet, so this isn't exploitable today — but once T047/T049 land, a driver's active `scheduled` rides with that `group_id` must be handled (e.g. reject the leave/removal with `409` while the driver has active group-scoped rides, or null out `group_id` on those rides), otherwise a non-member ends up managing a private group ride that still shows up in `list_group_rides()` for remaining members. Decide and implement this as part of T047/T049, not deferred further.
 
-- [ ] T047 [US5] Implement `leave_group()` in `group_service.py` (owner-with-remaining-members returns `409 ownership_transfer_required`) — FR-017, FR-019
-- [ ] T048 [US5] Implement `POST /api/groups/{group_id}/leave` in `api/groups/router.py`
-- [ ] T049 [US5] Implement `remove_member()` in `group_service.py` (owner-only) and `DELETE /api/groups/{group_id}/members/{user_id}` in `api/groups/router.py` — FR-018
-- [ ] T050 [US5] Implement `transfer_ownership()` in `group_service.py` (single transaction: flip both roles) and `POST /api/groups/{group_id}/transfer-ownership` in `api/groups/router.py` — FR-019
-- [ ] T051 [US5] Implement `archive_group()` in `group_service.py` (owner-only, sets `archived_at`, blocks new joins/invite-link resolution/new group-scoped ride creation; existing rides untouched) and `DELETE /api/groups/{group_id}` in `api/groups/router.py` — FR-021
-- [ ] T052 [US5] Add `leaveGroup`, `removeMember`, `transferOwnership`, `archiveGroup` to `apps/main/src/lib/api/groups.ts`
-- [ ] T053 [P] [US5] Build `MemberList` component (leave button; owner-only remove/transfer/archive controls) in `apps/main/src/components/groups/`, wired into the group detail page
+**Resolution (2026-08-26)**: `spec.md`'s Edge Cases section resolves this — a driver's active rides are left untouched on leave/removal/archive; the group-scoping only affects future ride creation and listing visibility, not existing rides. `leave_group()`/`remove_member()`/`archive_group()` deliberately contain no ride-state mutation logic. Separately, `ride_service.create_ride()`'s group-scoping check was found to be missing the FR-021 "archived groups block new ride postings" enforcement — fixed by adding an `archived_at` check to the membership-lookup query in `create_ride()`.
+
+- [X] T047 [US5] Implement `leave_group()` in `group_service.py` (owner-with-remaining-members returns `409 ownership_transfer_required`) — FR-017, FR-019
+- [X] T048 [US5] Implement `POST /api/groups/{group_id}/leave` in `api/groups/router.py`
+- [X] T049 [US5] Implement `remove_member()` in `group_service.py` (owner-only) and `DELETE /api/groups/{group_id}/members/{user_id}` in `api/groups/router.py` — FR-018
+- [X] T050 [US5] Implement `transfer_ownership()` in `group_service.py` (single transaction: flip both roles) and `POST /api/groups/{group_id}/transfer-ownership` in `api/groups/router.py` — FR-019
+- [X] T051 [US5] Implement `archive_group()` in `group_service.py` (owner-only, sets `archived_at`, blocks new joins/invite-link resolution/new group-scoped ride creation; existing rides untouched) and `DELETE /api/groups/{group_id}` in `api/groups/router.py` — FR-021
+- [X] T052 [US5] Add `leaveGroup`, `removeMember`, `transferOwnership`, `archiveGroup` to `apps/main/src/lib/api/groups.ts`
+- [X] T053 [P] [US5] Build `MemberList` component (leave button; owner-only remove/transfer/archive controls) in `apps/main/src/components/groups/`, wired into the group detail page
+
+**Implementation note**: `GET /api/groups/{group_id}/members` + `group_service.list_group_members()` were added ad hoc (not in the original task list/contract) — `MemberList.tsx` needs a member roster to render, and no prior task covered listing members. Follows the same gap-fill precedent as T028's `list_my_groups`.
 
 **Checkpoint**: All five user stories independently functional per `quickstart.md` §1–6.
 
@@ -179,11 +183,11 @@ Extends the existing monorepo — no new top-level directories:
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T054 [P] Add unit tests for `group_service.py` in `services/api/tests/unit/test_group_service.py` (blocklist rejection, rate-limit threshold, ownership-transfer edge case, at minimum)
-- [ ] T055 [P] Add integration tests for the end-to-end groups flows in `services/api/tests/integration/test_groups_flow.py` (create → search → join → post ride → book; invite-link revoke; domain-verification happy/blocklist paths)
+- [X] T054 [P] Add unit tests for `group_service.py` in `services/api/tests/unit/test_group_service.py` (blocklist rejection, rate-limit threshold, ownership-transfer edge case, at minimum) — 25 tests, all passing
+- [X] T055 [P] Add integration tests for the end-to-end groups flows in `services/api/tests/integration/test_groups_flow.py` (create → search → join → post ride → book; invite-link revoke; domain-verification happy/blocklist paths) — 13 tests at the router/HTTP layer (TestClient + dependency overrides), all passing; also covers the `ride_service.create_ride()` archived-group fix at the service layer
 - [ ] T056 Run `quickstart.md` end-to-end manually against the local stack and confirm every numbered scenario passes
-- [ ] T057 Add all new Groups UI strings to `apps/main`'s message catalog (`en.json`/`ar.json`) and republish via `services/api/scripts/publish_message_catalog.py` (repo-text-edits are invisible until republished)
-- [ ] T058 Run `ruff check` and the full `pytest` suite in `services/api`; confirm CI stays green
+- [X] T057 Add all new Groups UI strings to `apps/main`'s message catalog (`en.json`/`ar.json`) and republish via `services/api/scripts/publish_message_catalog.py` (repo-text-edits are invisible until republished) — published to local dev R2, 2026-08-26
+- [X] T058 Run `ruff check` and the full `pytest` suite in `services/api`; confirm CI stays green — 190 passed, ruff clean (also fixed 2 pre-existing missing-`group_id` fixture gaps in `test_rides_fare_override.py`/`test_rides_fare_override_edit.py` surfaced by the full-suite run, and 2 pre-existing E501 line-length violations in `group_service.py`)
 
 ---
 

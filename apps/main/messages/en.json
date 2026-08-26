@@ -703,6 +703,33 @@
         "domainArchived": "This domain's group is no longer available.",
         "registrationRateLimited": "Too many new domains registered recently. Please try again later."
       }
+    },
+    "members": {
+      "heading": "Members",
+      "loadFailed": "Failed to load members",
+      "you": "(You)",
+      "ownerBadge": "Owner",
+      "transferButton": "Make owner",
+      "removeButton": "Remove",
+      "leaveButton": "Leave group",
+      "archiveButton": "Archive group",
+      "leaveConfirm": "Are you sure you want to leave this group?",
+      "removeConfirm": "Remove this member from the group?",
+      "transferConfirm": "Transfer ownership of this group to this member?",
+      "archiveConfirm": "Archive this group? It will stop accepting new members and new ride postings. Existing rides keep running.",
+      "confirmButton": "Confirm",
+      "cancelButton": "Cancel",
+      "actionFailed": "Something went wrong. Please try again.",
+      "errors": {
+        "ownership_transfer_required": "Transfer ownership to another member before leaving this group.",
+        "not_group_owner": "Only the group owner can do this.",
+        "cannot_remove_owner": "The owner can't remove themselves. Transfer ownership or leave instead.",
+        "already_owner": "That member is already the owner.",
+        "not_a_group_member": "That user is not a member of this group.",
+        "group_archived": "This group has been archived.",
+        "group_not_found": "Group not found.",
+        "invalid_user_id": "Something went wrong. Please try again."
+      }
     }
   },
   "languagePrompt": {

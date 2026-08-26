@@ -77,3 +77,11 @@ class DomainVerificationConfirmResponse(BaseModel):
 
 class TransferOwnershipRequest(BaseModel):
     new_owner_user_id: str
+
+
+class GroupMemberResponse(BaseModel):
+    id: str
+    user_id: str
+    display_name: str
+    role: Literal["owner", "member"]
+    joined_at: str

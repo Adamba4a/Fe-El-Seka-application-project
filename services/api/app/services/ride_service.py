@@ -202,14 +202,25 @@ async def create_ride(
                 )
 
             if payload.group_id is not None:
-                is_group_member = await conn.fetchval(
-                    "SELECT 1 FROM group_memberships WHERE group_id = $1 AND user_id = $2",
+                group_row = await conn.fetchrow(
+                    """
+                    SELECT g.archived_at
+                    FROM group_memberships gm
+                    JOIN groups g ON g.id = gm.group_id
+                    WHERE gm.group_id = $1 AND gm.user_id = $2
+                    """,
                     payload.group_id, driver_id,
                 )
-                if not is_group_member:
+                if group_row is None:
                     raise RideServiceError(
                         "group_membership_required",
                         "You must be a member of this group to post a ride to it.",
+                        403,
+                    )
+                if group_row["archived_at"] is not None:
+                    raise RideServiceError(
+                        "group_archived",
+                        "This group has been archived and no longer accepts new rides.",
                         403,
                     )
 

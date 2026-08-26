@@ -77,4 +77,6 @@ export type {
   DomainVerificationRequestResponse,
   DomainVerificationConfirmPayload,
   DomainVerificationConfirmResponse,
+  GroupMember,
+  TransferOwnershipPayload,
 } from "./types/groups";

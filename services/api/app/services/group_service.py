@@ -22,6 +22,7 @@ from app.models.group import (
     DomainVerificationRequestResponse,
     GroupDetailResponse,
     GroupListResponse,
+    GroupMemberResponse,
     GroupSummary,
     InviteLinkResponse,
     MembershipResponse,
@@ -574,7 +575,10 @@ async def confirm_domain_verification(
                             status_code=429,
                             detail={
                                 "error": "domain_registration_rate_limited",
-                                "message": "Too many new company/university domains registered recently. Try again later.",
+                                "message": (
+                                    "Too many new company/university domains registered "
+                                    "recently. Try again later."
+                                ),
                             },
                         )
 
@@ -605,7 +609,10 @@ async def confirm_domain_verification(
                             status_code=409,
                             detail={
                                 "error": "domain_group_archived",
-                                "message": "The group for this domain has been archived and is no longer accepting members.",
+                                "message": (
+                                    "The group for this domain has been archived and is "
+                                    "no longer accepting members."
+                                ),
                             },
                         )
 
@@ -656,3 +663,218 @@ async def confirm_domain_verification(
         membership=_to_membership(membership),
         group=_to_summary(group_row),
     )
+
+
+# ── T053 support: list a group's members (for the MemberList UI) ───────────
+
+async def list_group_members(group_id: uuid.UUID, user_id: uuid.UUID) -> list[GroupMemberResponse]:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        group_exists = await conn.fetchval(
+            "SELECT 1 FROM groups WHERE id = $1 AND archived_at IS NULL", group_id
+        )
+        if not group_exists:
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "group_not_found", "message": "Group not found."},
+            )
+        is_member = await conn.fetchval(
+            "SELECT 1 FROM group_memberships WHERE group_id = $1 AND user_id = $2",
+            group_id, user_id,
+        )
+        if not is_member:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "not_a_group_member",
+                    "message": "You must be a member of this group to view its members.",
+                },
+            )
+        rows = await conn.fetch(
+            """
+            SELECT m.id, m.user_id, p.display_name, m.role, m.joined_at
+            FROM group_memberships m
+            JOIN profiles p ON p.id = m.user_id
+            WHERE m.group_id = $1
+            ORDER BY (m.role = 'owner') DESC, m.joined_at ASC
+            """,
+            group_id,
+        )
+
+    return [
+        GroupMemberResponse(
+            id=str(r["id"]),
+            user_id=str(r["user_id"]),
+            display_name=r["display_name"],
+            role=r["role"],
+            joined_at=r["joined_at"].isoformat(),
+        )
+        for r in rows
+    ]
+
+
+# ── T047: a member leaves a group ───────────────────────────────────────────
+
+async def leave_group(group_id: uuid.UUID, user_id: uuid.UUID) -> None:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            membership = await conn.fetchrow(
+                "SELECT role FROM group_memberships WHERE group_id = $1 AND user_id = $2 FOR UPDATE",
+                group_id, user_id,
+            )
+            if membership is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail={"error": "not_a_group_member", "message": "You are not a member of this group."},
+                )
+
+            if membership["role"] == "owner":
+                other_members = await conn.fetchval(
+                    "SELECT 1 FROM group_memberships WHERE group_id = $1 AND user_id != $2",
+                    group_id, user_id,
+                )
+                if other_members:
+                    raise HTTPException(
+                        status_code=409,
+                        detail={
+                            "error": "ownership_transfer_required",
+                            "message": "Transfer ownership to another member before leaving this group.",
+                        },
+                    )
+
+            await conn.execute(
+                "DELETE FROM group_memberships WHERE group_id = $1 AND user_id = $2",
+                group_id, user_id,
+            )
+
+
+# ── T049: owner removes another member ──────────────────────────────────────
+
+async def remove_member(group_id: uuid.UUID, owner_id: uuid.UUID, target_user_id: uuid.UUID) -> None:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        group_row = await conn.fetchrow(
+            "SELECT owner_id FROM groups WHERE id = $1 AND archived_at IS NULL", group_id
+        )
+        if group_row is None:
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "group_not_found", "message": "Group not found."},
+            )
+        if group_row["owner_id"] != owner_id:
+            raise HTTPException(
+                status_code=403,
+                detail={"error": "not_group_owner", "message": "Only the group owner can remove members."},
+            )
+        if target_user_id == owner_id:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "cannot_remove_owner",
+                    "message": "The owner can't remove themselves. Transfer ownership or leave instead.",
+                },
+            )
+
+        result = await conn.execute(
+            "DELETE FROM group_memberships WHERE group_id = $1 AND user_id = $2",
+            group_id, target_user_id,
+        )
+        if result == "DELETE 0":
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "not_a_group_member", "message": "That user is not a member of this group."},
+            )
+
+
+# ── T050: transfer group ownership to another member ────────────────────────
+
+async def transfer_ownership(
+    group_id: uuid.UUID, owner_id: uuid.UUID, new_owner_user_id: str
+) -> GroupSummary:
+    try:
+        new_owner_id = uuid.UUID(new_owner_user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail={"error": "invalid_user_id", "message": "new_owner_user_id must be a valid UUID."},
+        )
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            group_row = await conn.fetchrow(
+                "SELECT owner_id FROM groups WHERE id = $1 AND archived_at IS NULL FOR UPDATE",
+                group_id,
+            )
+            if group_row is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail={"error": "group_not_found", "message": "Group not found."},
+                )
+            if group_row["owner_id"] != owner_id:
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "error": "not_group_owner",
+                        "message": "Only the group owner can transfer ownership.",
+                    },
+                )
+            if new_owner_id == owner_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail={"error": "already_owner", "message": "That user is already the owner."},
+                )
+
+            target_is_member = await conn.fetchval(
+                "SELECT 1 FROM group_memberships WHERE group_id = $1 AND user_id = $2",
+                group_id, new_owner_id,
+            )
+            if not target_is_member:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": "not_a_group_member",
+                        "message": "The new owner must already be a member of this group.",
+                    },
+                )
+
+            await conn.execute(
+                "UPDATE group_memberships SET role = 'member' WHERE group_id = $1 AND user_id = $2",
+                group_id, owner_id,
+            )
+            await conn.execute(
+                "UPDATE group_memberships SET role = 'owner' WHERE group_id = $1 AND user_id = $2",
+                group_id, new_owner_id,
+            )
+            row = await conn.fetchrow(
+                """
+                UPDATE groups SET owner_id = $2 WHERE id = $1
+                RETURNING id, name, type, description, route_tags, member_count
+                """,
+                group_id, new_owner_id,
+            )
+
+    return _to_summary(row)
+
+
+# ── T051: archive (soft-delete) a group ─────────────────────────────────────
+
+async def archive_group(group_id: uuid.UUID, owner_id: uuid.UUID) -> None:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        group_row = await conn.fetchrow(
+            "SELECT owner_id FROM groups WHERE id = $1 AND archived_at IS NULL", group_id
+        )
+        if group_row is None:
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "group_not_found", "message": "Group not found."},
+            )
+        if group_row["owner_id"] != owner_id:
+            raise HTTPException(
+                status_code=403,
+                detail={"error": "not_group_owner", "message": "Only the group owner can archive this group."},
+            )
+
+        await conn.execute("UPDATE groups SET archived_at = now() WHERE id = $1", group_id)

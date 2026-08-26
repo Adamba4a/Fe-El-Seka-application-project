@@ -59,3 +59,15 @@ export interface DomainVerificationConfirmResponse {
   membership: Membership;
   group: Group;
 }
+
+export interface GroupMember {
+  id: string;
+  user_id: string;
+  display_name: string;
+  role: "owner" | "member";
+  joined_at: string;
+}
+
+export interface TransferOwnershipPayload {
+  new_owner_user_id: string;
+}

@@ -14,9 +14,11 @@ from app.models.group import (
     DomainVerificationRequestResponse,
     GroupDetailResponse,
     GroupListResponse,
+    GroupMemberResponse,
     GroupSummary,
     InviteLinkResponse,
     MembershipResponse,
+    TransferOwnershipRequest,
 )
 from app.models.ride import RideListResponse
 from app.services import group_service
@@ -113,3 +115,50 @@ async def confirm_domain_verification(
     profile: dict = Depends(get_current_user),
 ):
     return await group_service.confirm_domain_verification(profile, payload)
+
+
+@router.get("/{group_id}/members", response_model=list[GroupMemberResponse])
+async def list_group_members(
+    group_id: uuid.UUID,
+    profile: dict = Depends(get_current_user),
+):
+    user_id = uuid.UUID(str(profile["id"]))
+    return await group_service.list_group_members(group_id, user_id)
+
+
+@router.post("/{group_id}/leave", status_code=status.HTTP_204_NO_CONTENT)
+async def leave_group(
+    group_id: uuid.UUID,
+    profile: dict = Depends(get_current_user),
+):
+    user_id = uuid.UUID(str(profile["id"]))
+    await group_service.leave_group(group_id, user_id)
+
+
+@router.delete("/{group_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_member(
+    group_id: uuid.UUID,
+    user_id: uuid.UUID,
+    profile: dict = Depends(get_current_user),
+):
+    owner_id = uuid.UUID(str(profile["id"]))
+    await group_service.remove_member(group_id, owner_id, user_id)
+
+
+@router.post("/{group_id}/transfer-ownership", response_model=GroupSummary)
+async def transfer_ownership(
+    group_id: uuid.UUID,
+    payload: TransferOwnershipRequest,
+    profile: dict = Depends(get_current_user),
+):
+    owner_id = uuid.UUID(str(profile["id"]))
+    return await group_service.transfer_ownership(group_id, owner_id, payload.new_owner_user_id)
+
+
+@router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def archive_group(
+    group_id: uuid.UUID,
+    profile: dict = Depends(get_current_user),
+):
+    owner_id = uuid.UUID(str(profile["id"]))
+    await group_service.archive_group(group_id, owner_id)

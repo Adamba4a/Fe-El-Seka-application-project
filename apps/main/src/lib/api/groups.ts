@@ -7,9 +7,11 @@ import type {
   Group,
   GroupDetail,
   GroupListResponse,
+  GroupMember,
   InviteLinkResponse,
   Membership,
   RideListResponse,
+  TransferOwnershipPayload,
 } from "@fe-el-seka/shared";
 
 import { env } from "../env";
@@ -146,4 +148,50 @@ export async function confirmDomainVerification(
   });
   if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
+}
+
+export async function getGroupMembers(token: string, groupId: string): Promise<GroupMember[]> {
+  const res = await fetch(`${base}/api/groups/${groupId}/members`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.json();
+}
+
+export async function leaveGroup(token: string, groupId: string): Promise<void> {
+  const res = await fetch(`${base}/api/groups/${groupId}/leave`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+}
+
+export async function removeMember(token: string, groupId: string, userId: string): Promise<void> {
+  const res = await fetch(`${base}/api/groups/${groupId}/members/${userId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+}
+
+export async function transferOwnership(
+  token: string,
+  groupId: string,
+  payload: TransferOwnershipPayload
+): Promise<Group> {
+  const res = await fetch(`${base}/api/groups/${groupId}/transfer-ownership`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.json();
+}
+
+export async function archiveGroup(token: string, groupId: string): Promise<void> {
+  const res = await fetch(`${base}/api/groups/${groupId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
 }
