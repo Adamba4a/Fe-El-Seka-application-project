@@ -3,6 +3,10 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
+  if (process.env.MAINTENANCE_MODE === "true") {
+    return NextResponse.json({ error: "maintenance" }, { status: 503, headers: { "retry-after": "3600" } });
+  }
+
   const { access_token, refresh_token } = await request.json();
 
   if (!access_token || !refresh_token) {

@@ -13,7 +13,36 @@ const PUBLIC_PATHS = ["/login", "/otp", "/signout", "/auth"];
 // Do NOT redirect authenticated users away from it.
 const ALLOW_AUTHENTICATED = ["/signout"];
 
+const MAINTENANCE_HTML = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Triplyy — Temporarily Offline</title>
+<style>
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:#0f172a; color:#f8fafc; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  main { max-width:28rem; padding:2rem; text-align:center; }
+  h1 { font-size:1.5rem; margin-bottom:0.75rem; }
+  p { color:#cbd5e1; line-height:1.5; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Triplyy is temporarily offline</h1>
+  <p>We're performing required maintenance and will be back shortly. Thanks for your patience.</p>
+</main>
+</body>
+</html>`;
+
 export async function middleware(request: NextRequest) {
+  if (process.env.MAINTENANCE_MODE === "true") {
+    return new NextResponse(MAINTENANCE_HTML, {
+      status: 503,
+      headers: { "content-type": "text/html; charset=utf-8", "retry-after": "3600" },
+    });
+  }
+
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
   const origin = resolveOrigin(request);

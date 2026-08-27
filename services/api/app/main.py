@@ -123,6 +123,19 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def maintenance_gate(request: Request, call_next):
+    # /health stays reachable even during maintenance so Bunny's health
+    # probe doesn't treat the container as unhealthy and restart it.
+    if settings.maintenance_mode and request.url.path not in ("/health", "/api/health"):
+        return JSONResponse(
+            status_code=503,
+            content={"error": "maintenance", "message": "Triplyy is temporarily offline for maintenance."},
+            headers={"Retry-After": "3600"},
+        )
+    return await call_next(request)
+
+
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc: Exception) -> JSONResponse:
     # A status-code handler intercepts every HTTPException(404, ...) before the
