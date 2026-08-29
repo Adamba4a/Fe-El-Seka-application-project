@@ -99,7 +99,7 @@ def get_user_detail(
         sb.table("profiles")
         .select(
             "id, display_name, email, role, verification_status, created_at,"
-            " phone_number, profile_photo_path"
+            " phone_number, profile_photo_path, org_verified_at, org_verified_domain"
         )
         .eq("id", user_id)
         .maybe_single()
@@ -124,6 +124,10 @@ def get_user_detail(
             "profile_photo_signed_url": storage_service.generate_signed_url(
                 "profile-photos", row.get("profile_photo_path")
             ),
+            "org_verified_at": (
+                str(row["org_verified_at"]) if row.get("org_verified_at") else None
+            ),
+            "org_verified_domain": row.get("org_verified_domain"),
         },
         "rides": [],
         "bookings": [],

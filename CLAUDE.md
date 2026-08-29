@@ -1,5 +1,5 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/024-groups/plan.md`
+`specs/025-org-only-access/plan.md`
 <!-- SPECKIT END -->

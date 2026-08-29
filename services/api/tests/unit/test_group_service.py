@@ -425,7 +425,10 @@ class TestDomainVerificationGuards:
                 ("COUNT(*)", 5),
                 ("platform_settings", None),
             ],
-            execute_rules=[("UPDATE domain_verifications SET verified_at", "UPDATE 1")],
+            execute_rules=[
+                ("UPDATE domain_verifications SET verified_at", "UPDATE 1"),
+                ("UPDATE profiles", "UPDATE 1"),
+            ],
         )
         monkeypatch.setattr(group_service, "get_pool", lambda: _FakePool(conn))
 
@@ -437,6 +440,60 @@ class TestDomainVerificationGuards:
 
         assert exc_info.value.status_code == 429
         assert exc_info.value.detail["error"] == "domain_registration_rate_limited"
+
+    async def test_confirm_sets_org_verified_at_when_not_already_set(self, monkeypatch):
+        verification_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        group_id = uuid.uuid4()
+        salt = "s" * 16
+        code = "123456"
+        otp_hash = f"{salt}${group_service._hash_otp(code, salt)}"
+
+        verification_row = {
+            "id": verification_id,
+            "domain": "newco.com",
+            "requested_group_type": "company",
+            "otp_code_hash": otp_hash,
+            "otp_expires_at": datetime.now(timezone.utc) + timedelta(minutes=5),
+            "verified_at": None,
+            "is_first_for_domain": False,
+        }
+        new_group_row = _group_summary_row(id=group_id, name="Newco", owner_id=user_id, member_count=0)
+        membership_row = {
+            "id": uuid.uuid4(),
+            "group_id": group_id,
+            "user_id": user_id,
+            "role": "owner",
+            "joined_at": datetime.now(timezone.utc),
+        }
+        final_group_row = _group_summary_row(id=group_id, name="Newco", owner_id=user_id, member_count=1)
+
+        conn = _RoutedFakeConn(
+            fetchrow_rules=[
+                ("FOR UPDATE", verification_row),
+                ("FROM groups WHERE domain", None),
+                ("INSERT INTO groups", new_group_row),
+                ("FROM group_memberships WHERE group_id = $1 AND user_id = $2", membership_row),
+                ("FROM groups WHERE id = $1", final_group_row),
+            ],
+            execute_rules=[
+                ("UPDATE domain_verifications SET verified_at", "UPDATE 1"),
+                ("UPDATE profiles", "UPDATE 1"),
+                ("INSERT INTO group_memberships", "INSERT 1"),
+            ],
+        )
+        monkeypatch.setattr(group_service, "get_pool", lambda: _FakePool(conn))
+
+        payload = DomainVerificationConfirm(verification_id=str(verification_id), code=code)
+        profile = {"id": str(user_id), "verification_status": "verified"}
+
+        await group_service.confirm_domain_verification(profile, payload)
+
+        org_verified_updates = [
+            q for q in conn.executed_queries if "UPDATE profiles" in q and "org_verified_at" in q
+        ]
+        assert len(org_verified_updates) == 1
+        assert "org_verified_at IS NULL" in org_verified_updates[0]
 
     async def test_already_used_verification_id_rejected(self, monkeypatch):
         verification_id = uuid.uuid4()

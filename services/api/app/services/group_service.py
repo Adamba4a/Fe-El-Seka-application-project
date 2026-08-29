@@ -1,13 +1,9 @@
 from __future__ import annotations
 
-import hashlib
 import re
 import secrets
-import time
 import uuid
-from collections import defaultdict
 from datetime import datetime, timezone
-from threading import Lock
 from typing import Optional
 
 from fastapi import HTTPException
@@ -29,62 +25,19 @@ from app.models.group import (
 )
 from app.models.ride import RideListResponse
 from app.services import notification_service
-
-# In-memory rate limiter keyed by email, mirroring auth_service's
-# resend-rate-limit shape (own tracker/keyspace since this gates a
-# different email flow — domain verification, not login).
-_domain_otp_resend_tracker: dict[str, list[float]] = defaultdict(list)
-_domain_otp_resend_lock = Lock()
-_RESEND_WINDOW_SECONDS = 900  # 15 minutes
-_RESEND_MAX = 3
-
-
-def _check_domain_otp_resend_rate(email: str) -> None:
-    now = time.time()
-    with _domain_otp_resend_lock:
-        timestamps = [
-            t for t in _domain_otp_resend_tracker[email]
-            if now - t < _RESEND_WINDOW_SECONDS
-        ]
-        if len(timestamps) >= _RESEND_MAX:
-            raise HTTPException(
-                status_code=429,
-                detail={
-                    "error": "otp_rate_limited",
-                    "message": "Too many verification requests. Try again in 15 minutes.",
-                    "retry_after_seconds": _RESEND_WINDOW_SECONDS,
-                },
-            )
-        timestamps.append(now)
-        _domain_otp_resend_tracker[email] = timestamps
-
-
-def _generate_otp() -> str:
-    return f"{secrets.randbelow(1_000_000):06d}"
-
-
-def _hash_otp(code: str, salt: str) -> str:
-    return hashlib.sha256(f"{salt}:{code}".encode()).hexdigest()
+from app.services.domain_verification_service import (
+    _check_domain_otp_resend_rate,
+    _generate_otp,
+    _get_domain_blocklist,
+    _get_platform_setting,
+    _hash_otp,
+)
 
 
 def _derive_group_name(domain: str) -> str:
     label = domain.split(".")[0]
     words = [w for w in re.split(r"[-_]+", label) if w]
     return " ".join(w.capitalize() for w in words) or domain
-
-
-async def _get_platform_setting(conn, key: str, default: str) -> str:
-    value = await conn.fetchval("SELECT value FROM platform_settings WHERE key = $1", key)
-    return value if value is not None else default
-
-
-async def _get_domain_blocklist(conn) -> set[str]:
-    raw = await _get_platform_setting(
-        conn,
-        "group_domain_blocklist",
-        "gmail.com,yahoo.com,outlook.com,hotmail.com,icloud.com,protonmail.com",
-    )
-    return {d.strip().lower() for d in raw.split(",") if d.strip()}
 
 
 async def _get_new_domain_rate_limit(conn) -> tuple[int, int]:
@@ -539,6 +492,20 @@ async def confirm_domain_verification(
             )
 
             domain = verification["domain"]
+
+            # Spec 025 (org-only access gate): a successful Groups domain
+            # verification also satisfies the org-email gate, but only credits
+            # it once — a later verification of a second domain (e.g. to join
+            # another group) must not overwrite the account's original grant.
+            await conn.execute(
+                """
+                UPDATE profiles
+                SET org_verified_at = now(),
+                    org_verified_domain = $2
+                WHERE id = $1 AND org_verified_at IS NULL
+                """,
+                user_id, domain,
+            )
 
             group_row = await conn.fetchrow(
                 """

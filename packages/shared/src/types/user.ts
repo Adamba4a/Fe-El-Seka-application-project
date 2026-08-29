@@ -23,6 +23,8 @@ export interface Profile {
   created_at: string;
   language_preference: Locale | null;
   date_of_birth: string | null;
+  org_verified_at: string | null;
+  org_verified_domain: string | null;
 }
 
 export interface PublicRideSummary {

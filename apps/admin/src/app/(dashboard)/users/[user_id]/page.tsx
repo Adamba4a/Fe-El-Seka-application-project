@@ -91,6 +91,26 @@ export default function UserDetailPage({ params }: { params: { user_id: string }
                 {profile.verification_status.replace(/_/g, " ")}
               </span>
             </dd>
+            <dt className="text-gray-500">Org access</dt>
+            <dd>
+              {profile.org_verified_at ? (
+                <>
+                  <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                    Verified
+                  </span>
+                  {profile.org_verified_domain && (
+                    <span className="text-gray-500 ml-2">{profile.org_verified_domain}</span>
+                  )}
+                  <span className="text-gray-400 ml-2">
+                    ({new Date(profile.org_verified_at).toLocaleString()})
+                  </span>
+                </>
+              ) : (
+                <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                  Not verified
+                </span>
+              )}
+            </dd>
             <dt className="text-gray-500">Joined</dt><dd>{new Date(profile.created_at).toLocaleString()}</dd>
           </dl>
         </div>

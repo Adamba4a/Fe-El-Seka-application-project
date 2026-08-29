@@ -51,6 +51,14 @@ export async function GET(request: NextRequest) {
     });
     if (meRes.status === 404) {
       redirectPath = "/role-select";
+    } else if (meRes.ok) {
+      const profile = await meRes.json();
+      // Org-email access gate (Spec 025): checked after suspension (FR-012) —
+      // a suspended account is left on the default "/" redirect so page.tsx's
+      // existing suspension screen takes precedence over the gate.
+      if (profile.verification_status !== "suspended" && !profile.org_verified_at) {
+        redirectPath = "/verify-org-email";
+      }
     }
   } catch {
     return NextResponse.redirect(new URL("/login?error=oauth_failed", origin));

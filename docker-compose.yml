@@ -11,6 +11,18 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@supabase_db_fe-el-seka:5432/postgres
       SUPABASE_URL: http://supabase_kong_fe-el-seka:8000
       AI_SERVICE_URL: http://ai:8000
+      # Local dev only: notification_service's smtp_host default (127.0.0.1) assumes
+      # a host-machine Mailpit, but this container reaches Supabase's Inbucket over
+      # the docker network instead — its internal SMTP port is 1025, not the
+      # host-mapped 54325.
+      SMTP_HOST: supabase_inbucket_fe-el-seka
+      SMTP_PORT: "1025"
+      # services/api/.env carries a real (prod) Resend key, which sends from the
+      # pre-rebrand noreply@fe-el-seka.app address and fails locally since that
+      # domain is unverified in Resend. Override to empty here only, so
+      # notification_service._use_mailpit() routes local sends to Inbucket instead
+      # — .env itself (and prod) is untouched.
+      RESEND_API_KEY: ""
     volumes:
       - ./services/api/app:/app/app
     networks:

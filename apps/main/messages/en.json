@@ -734,6 +734,29 @@
       }
     }
   },
+  "orgAccess": {
+    "verify": {
+      "heading": "Verify your work or school email",
+      "subheading": "Triplyy is available to members of a verified company or university. Confirm your work or school email to continue.",
+      "emailLabel": "Work or school email",
+      "emailPlaceholder": "you@company.com",
+      "emailHint": "We'll email a one-time code to confirm you control this address. This confirms domain ownership, not employment or enrollment.",
+      "sendCode": "Send code",
+      "sending": "Sending…",
+      "otpTitle": "Check your email",
+      "otpSubtitle": "We sent a 6-digit code to <strong>{email}</strong>",
+      "errors": {
+        "invalidEmail": "Enter a valid email address",
+        "blocklistedDomain": "Please use your work or school email, not a personal email address.",
+        "otpRateLimited": "Too many requests. Please wait 15 minutes before trying again.",
+        "sendFailed": "Failed to send code. Please try again.",
+        "invalidCode": "Incorrect code. Please try again.",
+        "expired": "Code has expired. Please request a new one.",
+        "alreadyUsed": "This code has already been used. Please request a new one.",
+        "emailAlreadyVerifiedElsewhere": "This email is already verified on a different account."
+      }
+    }
+  },
   "languagePrompt": {
     "heading": "Choose your language",
     "subheading": "اختر لغتك"

@@ -12,7 +12,7 @@ export default async function Home() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, display_name, verification_status")
+    .select("role, display_name, verification_status, org_verified_at")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -29,6 +29,11 @@ export default async function Home() {
   if (profile.verification_status === "suspended") {
     return <SuspendedScreen />;
   }
+
+  // Org-email access gate (Spec 025): every account, new or pre-existing,
+  // must verify a company/university email before reaching the main app —
+  // checked after suspension (FR-012) but before role-based routing.
+  if (!profile.org_verified_at) redirect("/verify-org-email");
 
   // unverified, pending_review, and verified all get full app access —
   // verification is enforced at gated actions (booking/posting rides), not here.

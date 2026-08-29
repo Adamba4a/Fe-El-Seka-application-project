@@ -83,6 +83,8 @@ export interface UserDetail {
     created_at: string;
     is_admin_role: boolean;
     profile_photo_signed_url: string | null;
+    org_verified_at: string | null;
+    org_verified_domain: string | null;
   };
   rides: RideSummary[];
   bookings: BookingSummary[];

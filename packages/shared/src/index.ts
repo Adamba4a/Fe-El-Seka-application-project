@@ -80,3 +80,10 @@ export type {
   GroupMember,
   TransferOwnershipPayload,
 } from "./types/groups";
+
+export type {
+  OrgAccessRequestBody,
+  OrgAccessRequestResponse,
+  OrgAccessConfirmBody,
+  OrgAccessConfirmResponse,
+} from "./types/org-access";

@@ -248,4 +248,6 @@ def _format_profile(row: dict) -> dict:
         "created_at": str(row["created_at"]),
         "language_preference": row.get("language_preference"),
         "date_of_birth": str(row["date_of_birth"]) if row.get("date_of_birth") else None,
+        "org_verified_at": str(row["org_verified_at"]) if row.get("org_verified_at") else None,
+        "org_verified_domain": row.get("org_verified_domain"),
     }

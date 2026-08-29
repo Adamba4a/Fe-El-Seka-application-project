@@ -11,7 +11,7 @@ export default async function AppGroupLayout({ children }: { children: React.Rea
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, display_name")
+    .select("role, display_name, org_verified_at")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -20,6 +20,10 @@ export default async function AppGroupLayout({ children }: { children: React.Rea
   // must not grant app access to an incomplete profile.
   if (!profile) redirect("/role-select");
   if (profile.display_name === "New User") redirect("/profile");
+
+  // Org-email access gate (Spec 025): catches direct navigation to any
+  // already-mounted app-shell route, not just the initial landing route.
+  if (!profile.org_verified_at) redirect("/verify-org-email");
 
   const isDriver = profile.role === "driver";
 

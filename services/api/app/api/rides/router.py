@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.database import get_pool
 from app.dependencies.auth import get_current_user
+from app.dependencies.org_access import require_org_verified
 from app.dependencies.roles import get_current_driver
 from app.dependencies.verification import get_current_verified_driver
 from app.models.booking import (
@@ -83,6 +84,7 @@ def _service_error_response(exc: RideServiceError) -> JSONResponse:
 async def create_ride(
     payload: CreateRideRequest,
     profile: dict = Depends(get_current_verified_driver),
+    _org_verified: dict = Depends(require_org_verified),
 ):
     driver_id = uuid.UUID(str(profile["id"]))
     vehicle = await _get_active_vehicle(driver_id)
