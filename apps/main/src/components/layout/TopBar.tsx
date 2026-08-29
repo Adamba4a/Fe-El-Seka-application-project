@@ -82,6 +82,10 @@ interface TopBarProps {
   verificationStatus?: VerificationStatus;
 }
 
+// ID verification nudge disabled for now (kept implemented for a possible
+// future return) — flip to true to re-show the badge in the TopBar.
+const SHOW_VERIFY_BADGE = false;
+
 function VerifyBadge({ variant, status }: { variant: "driver" | "passenger"; status: VerificationStatus }) {
   const t = useTranslations("nav");
   const href = variant === "driver" ? "/driver/verify-documents" : "/verify-id";
@@ -119,13 +123,15 @@ export function TopBar({ variant, userName, avatarUrl, verificationStatus }: Top
             <Avatar url={avatarUrl} name={userName} />
             <div>
               <p className="text-dash-navy font-semibold leading-tight">{userName}</p>
-              {verificationStatus && <VerifyBadge variant={variant} status={verificationStatus} />}
+              {SHOW_VERIFY_BADGE && verificationStatus && (
+                <VerifyBadge variant={variant} status={verificationStatus} />
+              )}
             </div>
           </div>
         ) : (
           <div>
             <span className="text-2xl font-bold text-dash-navy">{tc("appName")}</span>
-            {verificationStatus && verificationStatus !== "verified" && (
+            {SHOW_VERIFY_BADGE && verificationStatus && verificationStatus !== "verified" && (
               <VerifyBadge variant={variant} status={verificationStatus} />
             )}
           </div>
