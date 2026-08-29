@@ -17,9 +17,9 @@ services:
       # host-mapped 54325.
       SMTP_HOST: supabase_inbucket_fe-el-seka
       SMTP_PORT: "1025"
-      # services/api/.env carries a real (prod) Resend key, which sends from the
-      # pre-rebrand noreply@fe-el-seka.app address and fails locally since that
-      # domain is unverified in Resend. Override to empty here only, so
+      # services/api/.env carries a real (prod) Resend key, which sends from
+      # noreply@triplyy.net and fails locally since that domain isn't set up
+      # to receive test mail. Override to empty here only, so
       # notification_service._use_mailpit() routes local sends to Inbucket instead
       # — .env itself (and prod) is untouched.
       RESEND_API_KEY: ""

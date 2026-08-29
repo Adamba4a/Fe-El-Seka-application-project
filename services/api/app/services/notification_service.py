@@ -16,7 +16,7 @@ from app.core.database import get_pool
 logger = logging.getLogger(__name__)
 
 _RETRY_DELAYS_MINUTES = [0, 5, 30, 120, 1440]
-_FROM_ADDRESS = "noreply@fe-el-seka.app"
+_FROM_ADDRESS = "noreply@triplyy.net"
 
 
 def _use_mailpit() -> bool:
