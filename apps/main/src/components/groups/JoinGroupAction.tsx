@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { DomainVerifyForm } from "@/components/groups/DomainVerifyForm";
 import { joinGroup } from "@/lib/api/groups";
-import type { DomainGroupType, DomainVerificationConfirmResponse, GroupDetail } from "@fe-el-seka/shared";
+import type { GroupDetail } from "@fe-el-seka/shared";
 
 interface JoinGroupActionProps {
   token: string;
@@ -16,19 +15,6 @@ export function JoinGroupAction({ token, group, onJoined }: JoinGroupActionProps
   const t = useTranslations("groups.join");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  if (group.type !== "general") {
-    return (
-      <div className="space-y-3">
-        <p className="text-body-sm text-content-secondary">{t("domainVerifiedRequired")}</p>
-        <DomainVerifyForm
-          token={token}
-          requestedGroupType={group.type as DomainGroupType}
-          onSuccess={(result: DomainVerificationConfirmResponse) => onJoined(result.group.id)}
-        />
-      </div>
-    );
-  }
 
   const handleJoin = async () => {
     if (loading) return;

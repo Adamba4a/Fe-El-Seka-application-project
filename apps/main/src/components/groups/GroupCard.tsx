@@ -17,9 +17,11 @@ export function GroupCard({ group }: { group: Group }) {
             <p className="text-body-sm text-content-muted line-clamp-2 mt-0.5">{group.description}</p>
           )}
         </div>
-        <span className="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-dash-badge-bg text-dash-primary">
-          {t(`type.${group.type}`)}
-        </span>
+        {group.is_sponsored && (
+          <span className="shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-dash-badge-bg text-dash-primary">
+            {t("sponsoredBadge")}
+          </span>
+        )}
       </div>
 
       {group.route_tags.length > 0 && (

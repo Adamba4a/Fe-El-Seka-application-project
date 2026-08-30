@@ -4,11 +4,26 @@
 
 | Column | Type | Notes |
 |---|---|---|
-| `is_sponsored` | `boolean NOT NULL DEFAULT false` | Set true on admin creation-or-auto-upgrade (FR-003). `CHECK (NOT is_sponsored OR type IN ('company','university'))` — a `general` group can never be sponsored (no domain, no organization to fund it). |
+| `is_sponsored` | `boolean NOT NULL DEFAULT false` | Set true on admin creation or in-place upgrade of an existing group. The original `CHECK (NOT is_sponsored OR type IN ('company','university'))` constraint was dropped along with `groups.type`/`groups.domain` by the Groups (024) open-membership redesign (`supabase/migrations/20260830000004_open_groups_multi_domain_sponsorship.sql`) — any group, regardless of type (which no longer exists), can be flagged sponsored. |
 | `funded_balance_egp` | `numeric(12,2) NOT NULL DEFAULT 0.00` | Company's remaining sponsorship budget. `CHECK (funded_balance_egp >= 0.00)`. Debited per sponsored booking (research.md §4), credited back on cancellation reversal (§11), incremented by an admin's add-funds action. |
 | `dashboard_contact_user_id` | `uuid NULL REFERENCES profiles(id)` | The domain-verified member who can view the read-only company dashboard (FR-020). Must already be a member of this group at both initial designation and reassignment — enforced at the service layer (research.md §12), not a DB constraint. |
 
 **Validation**: `funded_balance_egp` is only ever mutated inside a transaction that holds `SELECT ... FOR UPDATE` on the group row (booking creation, cancellation reversal, admin add-funds) — same locking discipline as `driver_wallets.balance_egp`.
+
+## `group_sponsor_domains` (new table, added 2026-08-30)
+
+Added by `supabase/migrations/20260830000004_open_groups_multi_domain_sponsorship.sql` to fix a fragmentation bug in the original one-domain-per-group design: a university's several per-faculty email domains (e.g., `eng-st.cu.edu.eg`, `med-st.cu.edu.eg`) previously each spawned a separate Groups (024) company/university group even though those students ride the same routes. This table lets one sponsored group list many eligible domains instead.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `uuid PK default gen_random_uuid()` | |
+| `group_id` | `uuid NOT NULL REFERENCES groups(id) ON DELETE CASCADE` | The sponsored group this domain grants sponsorship eligibility for. |
+| `domain` | `text NOT NULL UNIQUE` | Lowercased email domain. Globally unique across all sponsored groups — one domain can only ever grant eligibility on a single group (FR-003, `domain_already_sponsored` on conflict). |
+| `created_at` | `timestamptz NOT NULL DEFAULT now()` | |
+
+Backfilled at migration time from every pre-existing `groups.domain` value (the column dropped in the same migration), so no eligible domain was lost during the redesign. Admin-managed via `add_sponsor_domain`/`remove_sponsor_domain` in `sponsored_group_service.py`.
+
+**Validation**: `domain` normalized lowercase, checked against the platform's public-provider blocklist (same list as Groups' FR-011) before insert, at the service layer.
 
 ## `bookings` (existing table, extended)
 
@@ -55,6 +70,7 @@ Every new entry carries `ride_id`/`booking_id` (for the two sponsored types) exa
 
 ```text
 groups 1───1 profiles          (dashboard_contact_user_id, nullable)
+groups 1───* group_sponsor_domains   (a sponsored group's eligible email domains, domain globally unique)
 groups 1───* bookings          (via rides.group_id → bookings.ride_id; payment_source distinguishes sponsored)
 groups.funded_balance_egp ──── debited/credited by bookings whose ride.group_id = this group
 profiles(driver) 1───* withdrawal_requests
@@ -65,5 +81,6 @@ bookings(payment_source='SPONSORED') 1───1 driver_ledger_entries   (SPONSO
 ## RLS Summary (detail in `contracts/api.md` and the migration itself)
 
 - `groups`: existing `SELECT` policy unchanged (directory browsing already open to authenticated users); `is_sponsored`/`funded_balance_egp`/`dashboard_contact_user_id` are only ever written via the backend's service-role connection (admin sponsorship endpoints) — no new client-writable columns.
+- `group_sponsor_domains`: `SELECT` open to any authenticated user (mirrors `groups`); `INSERT`/`DELETE` service-role only (admin add/remove-domain endpoints).
 - `bookings`: existing RLS unchanged; `payment_source` is set by the service-role connection at insert time, never client-supplied.
 - `withdrawal_requests`: mirrors `wallet_topup_requests` exactly — `driver_read_own_withdrawal_request` (SELECT own), `driver_insert_own_withdrawal_request` (INSERT own). No client UPDATE policy at all (no self-cancel, unlike top-up) — status transitions are admin/service-role only. No DELETE policy — requests are never deleted.

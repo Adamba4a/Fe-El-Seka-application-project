@@ -55,8 +55,8 @@ async def request_verification(profile: dict, payload: OrgAccessRequest) -> OrgA
         row = await conn.fetchrow(
             """
             INSERT INTO domain_verifications
-                (user_id, email, domain, requested_group_type, otp_code_hash, otp_expires_at, is_first_for_domain)
-            VALUES ($1, $2, $3, NULL, $4, now() + interval '5 minutes', false)
+                (user_id, email, domain, otp_code_hash, otp_expires_at)
+            VALUES ($1, $2, $3, $4, now() + interval '5 minutes')
             RETURNING id
             """,
             user_id, email, domain, otp_hash,

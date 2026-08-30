@@ -109,12 +109,13 @@ async def create_booking(
                 detail={"error": "ride_not_schedulable", "message": "Ride is not accepting bookings"},
             )
 
+        membership_row = None
         if ride["group_id"] is not None:
-            is_group_member = await conn.fetchval(
-                "SELECT 1 FROM group_memberships WHERE group_id = $1 AND user_id = $2",
+            membership_row = await conn.fetchrow(
+                "SELECT domain_verification_id FROM group_memberships WHERE group_id = $1 AND user_id = $2",
                 ride["group_id"], passenger_id,
             )
-            if not is_group_member:
+            if membership_row is None:
                 raise HTTPException(
                     status_code=403,
                     detail={
@@ -135,11 +136,15 @@ async def create_booking(
         # Spec 026 (research.md §4): a sponsored-group ride settles per-seat out of
         # the group's funded balance at booking time instead of cash, so the funds
         # check/debit must happen before seats are claimed (FR-008 — no seats
-        # claimed if the balance can't cover it).
+        # claimed if the balance can't cover it). Redesign: since group membership
+        # is now open to everyone (no domain gate at join time), only a member who
+        # has separately domain-verified their eligibility for THIS sponsored group
+        # (group_memberships.domain_verification_id) draws on its funded balance —
+        # any other member of the same group still rides, just pays cash.
         payment_source = "CASH"
         total_seat_price = None
         group_row = None
-        if ride["group_id"] is not None:
+        if ride["group_id"] is not None and membership_row["domain_verification_id"] is not None:
             is_sponsored_group = await conn.fetchval(
                 "SELECT is_sponsored FROM groups WHERE id = $1", ride["group_id"],
             )

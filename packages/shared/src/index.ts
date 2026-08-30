@@ -65,14 +65,12 @@ export type {
 } from "./types/vehicle";
 
 export type {
-  GroupType,
   Group,
   GroupDetail,
   GroupListResponse,
   CreateGroupPayload,
   InviteLinkResponse,
   Membership,
-  DomainGroupType,
   DomainVerificationRequestPayload,
   DomainVerificationRequestResponse,
   DomainVerificationConfirmPayload,

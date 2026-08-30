@@ -8,10 +8,12 @@ from app.dependencies.roles import get_current_admin
 from app.models.group import (
     AddFundsRequest,
     AddFundsResponse,
+    AddSponsorDomainRequest,
     DashboardContactRequest,
     DashboardContactResponse,
     GroupMemberResponse,
     GroupSummary,
+    SponsorDomainsResponse,
     SponsoredGroupCreateRequest,
 )
 from app.services import group_service, sponsored_group_service
@@ -53,3 +55,21 @@ async def set_dashboard_contact(
 ) -> DashboardContactResponse:
     admin_id = uuid.UUID(str(admin["id"]))
     return await group_service.set_dashboard_contact(group_id, admin_id, body.user_id)
+
+
+@router.post("/{group_id}/domains", response_model=SponsorDomainsResponse)
+async def add_sponsor_domain(
+    group_id: uuid.UUID,
+    body: AddSponsorDomainRequest,
+    _admin: dict = Depends(get_current_admin),
+) -> SponsorDomainsResponse:
+    return await sponsored_group_service.add_sponsor_domain(group_id, body.domain)
+
+
+@router.delete("/{group_id}/domains/{domain}", response_model=SponsorDomainsResponse)
+async def remove_sponsor_domain(
+    group_id: uuid.UUID,
+    domain: str,
+    _admin: dict = Depends(get_current_admin),
+) -> SponsorDomainsResponse:
+    return await sponsored_group_service.remove_sponsor_domain(group_id, domain)

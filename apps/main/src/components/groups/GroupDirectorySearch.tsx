@@ -12,14 +12,12 @@ const inputClass =
 export function GroupDirectorySearch({ onSearch }: GroupDirectorySearchProps) {
   const t = useTranslations("groups");
   const [q, setQ] = useState("");
-  const [type, setType] = useState("");
   const [routeTag, setRouteTag] = useState("");
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch({
       q: q.trim() || undefined,
-      type: type || undefined,
       route_tag: routeTag.trim() || undefined,
     });
   };
@@ -34,12 +32,6 @@ export function GroupDirectorySearch({ onSearch }: GroupDirectorySearchProps) {
         className={inputClass}
       />
       <div className="flex gap-2">
-        <select value={type} onChange={(e) => setType(e.target.value)} className={inputClass}>
-          <option value="">{t("type.all")}</option>
-          <option value="general">{t("type.general")}</option>
-          <option value="company">{t("type.company")}</option>
-          <option value="university">{t("type.university")}</option>
-        </select>
         <input
           type="text"
           value={routeTag}

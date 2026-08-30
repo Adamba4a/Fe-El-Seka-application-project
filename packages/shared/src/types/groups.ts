@@ -1,12 +1,13 @@
-export type GroupType = "general" | "company" | "university";
-
 export interface Group {
   id: string;
   name: string;
-  type: GroupType;
   description: string | null;
   route_tags: string[];
   member_count: number;
+  is_sponsored: boolean;
+  funded_balance_egp: string;
+  dashboard_contact_user_id: string | null;
+  sponsor_domains: string[];
 }
 
 export interface GroupDetail extends Group {
@@ -38,11 +39,8 @@ export interface Membership {
   joined_at: string;
 }
 
-export type DomainGroupType = "company" | "university";
-
 export interface DomainVerificationRequestPayload {
   email: string;
-  requested_group_type: DomainGroupType;
 }
 
 export interface DomainVerificationRequestResponse {

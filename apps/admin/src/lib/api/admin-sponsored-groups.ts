@@ -7,13 +7,18 @@ function authHeaders(token: string) {
 export interface SponsoredGroupSummary {
   id: string;
   name: string;
-  type: string;
   description: string;
   route_tags: string[];
   member_count: number;
   is_sponsored: boolean;
   funded_balance_egp: string;
   dashboard_contact_user_id: string | null;
+  sponsor_domains: string[];
+}
+
+export interface SponsorDomainsResponse {
+  group_id: string;
+  domains: string[];
 }
 
 export interface AddFundsResponse {
@@ -36,20 +41,45 @@ export interface DashboardContactResponse {
 
 export async function createOrUpgrade(
   token: string,
-  domain: string,
+  domains: string[],
   fundedBalanceEgp: string,
-  requestedGroupType: "company" | "university",
   name?: string,
 ): Promise<SponsoredGroupSummary> {
   const res = await fetch(`${base}/api/admin/sponsored-groups`, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify({
-      domain,
+      domains,
       funded_balance_egp: fundedBalanceEgp,
-      requested_group_type: requestedGroupType,
       name: name || undefined,
     }),
+  });
+  if (!res.ok) throw await res.json();
+  return res.json();
+}
+
+export async function addSponsorDomain(
+  token: string,
+  groupId: string,
+  domain: string,
+): Promise<SponsorDomainsResponse> {
+  const res = await fetch(`${base}/api/admin/sponsored-groups/${groupId}/domains`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ domain }),
+  });
+  if (!res.ok) throw await res.json();
+  return res.json();
+}
+
+export async function removeSponsorDomain(
+  token: string,
+  groupId: string,
+  domain: string,
+): Promise<SponsorDomainsResponse> {
+  const res = await fetch(`${base}/api/admin/sponsored-groups/${groupId}/domains/${encodeURIComponent(domain)}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
   });
   if (!res.ok) throw await res.json();
   return res.json();

@@ -10,7 +10,8 @@ import { JoinGroupAction } from "@/components/groups/JoinGroupAction";
 import { InviteLinkShare } from "@/components/groups/InviteLinkShare";
 import { MemberList } from "@/components/groups/MemberList";
 import { RideCard } from "@/components/rides/RideCard";
-import type { GroupDetail, Ride } from "@fe-el-seka/shared";
+import { DomainVerifyForm } from "@/components/groups/DomainVerifyForm";
+import type { DomainVerificationConfirmResponse, GroupDetail, Ride } from "@fe-el-seka/shared";
 
 export default function GroupDetailPage() {
   const t = useTranslations("groups");
@@ -25,6 +26,7 @@ export default function GroupDetailPage() {
   const [loading, setLoading] = useState(true);
   const [ridesLoading, setRidesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showEligibilityForm, setShowEligibilityForm] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -87,9 +89,13 @@ export default function GroupDetailPage() {
 
       <div className="rounded-xl border border-border-default bg-surface-card p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-dash-badge-bg text-dash-primary">
-            {t(`type.${group.type}`)}
-          </span>
+          {group.is_sponsored ? (
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-dash-badge-bg text-dash-primary">
+              {t("sponsoredBadge")}
+            </span>
+          ) : (
+            <span />
+          )}
           <span className="text-caption text-content-muted">
             {t("memberCount", { count: group.member_count })}
           </span>
@@ -110,6 +116,34 @@ export default function GroupDetailPage() {
           </div>
         )}
       </div>
+
+      {group.is_sponsored && (
+        <div className="rounded-xl border border-border-default bg-surface-card p-4 space-y-3">
+          {showEligibilityForm ? (
+            token && (
+              <DomainVerifyForm
+                token={token}
+                groupId={group.id}
+                onSuccess={(result: DomainVerificationConfirmResponse) => {
+                  setGroup({ ...group, ...result.group, is_member: true });
+                  setShowEligibilityForm(false);
+                }}
+              />
+            )
+          ) : (
+            <>
+              <p className="text-body-sm text-content-secondary">{t("sponsorship.eligibilityHint")}</p>
+              <button
+                type="button"
+                onClick={() => setShowEligibilityForm(true)}
+                className="w-full bg-dash-primary hover:opacity-90 text-content-inverse rounded-xl py-3 font-medium transition-opacity"
+              >
+                {t("sponsorship.verifyEligibilityButton")}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {group.is_owner && token && <InviteLinkShare token={token} groupId={group.id} />}
 

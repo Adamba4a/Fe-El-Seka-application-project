@@ -67,9 +67,11 @@ export default function JoinGroupPage() {
       <div className="rounded-xl border border-border-default bg-surface-card p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-body font-semibold text-content-primary">{group.name}</h2>
-          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-dash-badge-bg text-dash-primary">
-            {tGroups(`type.${group.type}`)}
-          </span>
+          {group.is_sponsored && (
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-dash-badge-bg text-dash-primary">
+              {tGroups("sponsoredBadge")}
+            </span>
+          )}
         </div>
         {group.description && <p className="text-body-sm text-content-secondary">{group.description}</p>}
         <p className="text-caption text-content-muted">{tGroups("memberCount", { count: group.member_count })}</p>

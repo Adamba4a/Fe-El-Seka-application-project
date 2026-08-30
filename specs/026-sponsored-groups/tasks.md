@@ -5,6 +5,8 @@ description: "Task list for Sponsored Groups implementation"
 
 # Tasks: Sponsored Groups
 
+> **Superseded 2026-08-30**: T007's "auto-upgrade an existing non-sponsored domain group" behavior and the implicit one-domain-per-sponsored-group model were replaced by an open-membership, multi-domain redesign — `sponsored_group_service.create_or_upgrade_sponsored_group` now always creates a new group directly (no upgrade-existing-group branch), and a sponsored group can list many eligible domains via the new `group_sponsor_domains` table (`add_sponsor_domain`/`remove_sponsor_domain`), added by `supabase/migrations/20260830000004_open_groups_multi_domain_sponsorship.sql`. This fixed a real bug where a university's per-faculty email subdomains fragmented students across separate Groups (024) groups. See `specs/026-sponsored-groups/spec.md`'s superseded/replacement clarifications and `specs/026-sponsored-groups/data-model.md`. The task history below is left unchanged as a record of what was originally built.
+
 **Input**: Design documents from `specs/026-sponsored-groups/`
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/api.md, quickstart.md

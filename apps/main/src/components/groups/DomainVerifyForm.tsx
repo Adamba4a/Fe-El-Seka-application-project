@@ -4,18 +4,18 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { OtpInput } from "@/components/auth/OtpInput";
 import { requestDomainVerification, confirmDomainVerification } from "@/lib/api/groups";
-import type { DomainGroupType, DomainVerificationConfirmResponse } from "@fe-el-seka/shared";
+import type { DomainVerificationConfirmResponse } from "@fe-el-seka/shared";
 
 const inputClass =
   "w-full border border-border-default rounded-xl px-3 py-2 text-body-sm outline-none focus:border-border-focus transition-colors";
 
 interface DomainVerifyFormProps {
   token: string;
-  requestedGroupType: DomainGroupType;
+  groupId: string;
   onSuccess: (result: DomainVerificationConfirmResponse) => void;
 }
 
-export function DomainVerifyForm({ token, requestedGroupType, onSuccess }: DomainVerifyFormProps) {
+export function DomainVerifyForm({ token, groupId, onSuccess }: DomainVerifyFormProps) {
   const t = useTranslations("groups.domainVerify");
   const [step, setStep] = useState<"email" | "otp">("email");
   const [email, setEmail] = useState("");
@@ -34,6 +34,10 @@ export function DomainVerifyForm({ token, requestedGroupType, onSuccess }: Domai
         return t("errors.otpRateLimited");
       case "otp_send_failed":
         return t("errors.sendFailed");
+      case "not_sponsored":
+        return t("errors.notSponsored");
+      case "domain_not_eligible":
+        return t("errors.domainNotEligible");
       default:
         return e?.message ?? t("errors.sendFailed");
     }
@@ -47,10 +51,8 @@ export function DomainVerifyForm({ token, requestedGroupType, onSuccess }: Domai
         return t("errors.expired");
       case "otp_already_used":
         return t("errors.alreadyUsed");
-      case "domain_group_archived":
+      case "group_archived":
         return t("errors.domainArchived");
-      case "domain_registration_rate_limited":
-        return t("errors.registrationRateLimited");
       default:
         return e?.message ?? t("errors.invalidCode");
     }
@@ -62,9 +64,8 @@ export function DomainVerifyForm({ token, requestedGroupType, onSuccess }: Domai
     setLoading(true);
     setError("");
     try {
-      const res = await requestDomainVerification(token, {
+      const res = await requestDomainVerification(token, groupId, {
         email: email.trim(),
-        requested_group_type: requestedGroupType,
       });
       setVerificationId(res.verification_id);
       setExpiresAt(new Date(Date.now() + res.expires_in_seconds * 1000));

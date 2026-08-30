@@ -5,6 +5,8 @@ description: "Task list for feature implementation"
 
 # Tasks: Groups
 
+> **Superseded 2026-08-30**: The group-type model (`general`/`company`/`university`, one domain per type-group, auto-created-on-first-verification) implemented by the tasks below was replaced by an open-membership redesign — groups no longer have a type, any org-email-verified user can join any group unconditionally, and domain verification was repurposed to prove per-group sponsorship eligibility (many domains per sponsored group, via `group_sponsor_domains`) rather than to gate or create groups. See `specs/024-groups/spec.md`'s "Session 2026-08-30 — Superseding redesign" clarification, `specs/026-sponsored-groups/` for the sponsorship-eligibility flow, and migration `supabase/migrations/20260830000004_open_groups_multi_domain_sponsorship.sql`. The task history below is left unchanged as a record of what was actually built and later revised — it does not reflect the current schema or API contract.
+
 **Input**: Design documents from `specs/024-groups/` (`plan.md`, `spec.md`, `research.md`, `data-model.md`, `contracts/api.md`, `quickstart.md`)
 
 **Tests**: Not explicitly requested in the specification; dedicated test tasks are included only in the Polish phase (T045–T046), following this repo's existing convention (`services/api/tests/unit/`, `services/api/tests/integration/`) rather than as per-story TDD gates.

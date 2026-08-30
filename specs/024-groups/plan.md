@@ -4,6 +4,8 @@
 
 **Input**: Feature specification from `specs/024-groups/spec.md`
 
+> **Superseded 2026-08-30**: The design below (general/company/university group types, one domain per type-group, auto-created-on-first-verification) was replaced by an open-membership redesign. Groups no longer have a type or a domain; any org-email-verified user joins any group unconditionally. Domain-verified email OTP survives but was repurposed to prove per-group sponsorship eligibility on an already-existing sponsored group (many domains per group via `group_sponsor_domains`), per `specs/026-sponsored-groups/`. This document is left as a historical record of the original design and is not updated further below.
+
 ## Summary
 
 Add a Groups domain that scopes ride discovery to focused communities — general/interest (route-based), company, and university groups — on top of the existing ride-creation, search, and booking flows. Drivers optionally scope a ride to exactly one group they belong to; passengers who are members see and book those rides through the unchanged booking flow. Company/university groups are gated by domain-verified email OTP (custom-built, not Supabase Auth's login OTP, to avoid hijacking the user's primary sign-in identity) against a configurable public-provider blocklist, with no manual admin review. Both drivers and passengers can discover groups via a searchable directory or a permanent, revocable invite link — both paths enforce identical gating rules. This is the deterministic membership/community substrate that a later AI recommendation spec (025) will build on; no AI or chat is introduced here.

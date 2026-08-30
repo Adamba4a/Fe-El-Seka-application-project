@@ -643,15 +643,8 @@
     "noGroupsFound": "No groups found.",
     "loadFailed": "Failed to load groups",
     "memberCount": "{count, plural, one {# member} other {# members}}",
-    "type": {
-      "all": "All types",
-      "general": "General",
-      "company": "Company",
-      "university": "University"
-    },
+    "sponsoredBadge": "Sponsored",
     "createHeading": "Create a group",
-    "groupTypeLabel": "Group type",
-    "groupTypeHint": "Company and university groups are verified by your work or school email instead of a name you choose — the group is named after your domain automatically.",
     "nameLabel": "Group name",
     "descriptionLabel": "Description (optional)",
     "routeTagsLabel": "Route tags (optional)",
@@ -670,7 +663,6 @@
       "loadFailed": "Failed to load group",
       "alreadyMember": "You're already a member of this group.",
       "viewGroup": "View group",
-      "domainVerifiedRequired": "This is a domain-verified group. Confirm your work or school email to join.",
       "joinButton": "Join group",
       "joining": "Joining…",
       "joinFailed": "Failed to join group"
@@ -702,9 +694,14 @@
         "invalidCode": "Incorrect code. Please try again.",
         "expired": "Code has expired. Please request a new one.",
         "alreadyUsed": "This code has already been used. Please request a new one.",
-        "domainArchived": "This domain's group is no longer available.",
-        "registrationRateLimited": "Too many new domains registered recently. Please try again later."
+        "domainArchived": "This group is no longer available.",
+        "notSponsored": "This group isn't sponsored — no eligibility check is needed.",
+        "domainNotEligible": "This email domain isn't eligible for this sponsored group."
       }
+    },
+    "sponsorship": {
+      "eligibilityHint": "Verify your work or school email to ride for free in this sponsored group.",
+      "verifyEligibilityButton": "Verify sponsorship eligibility"
     },
     "members": {
       "heading": "Members",

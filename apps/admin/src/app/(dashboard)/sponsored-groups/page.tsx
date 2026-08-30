@@ -8,6 +8,8 @@ import {
   addFunds,
   listMembers,
   setDashboardContact,
+  addSponsorDomain,
+  removeSponsorDomain,
   type SponsoredGroupSummary,
   type GroupMember,
 } from "@/lib/api/admin-sponsored-groups";
@@ -15,9 +17,8 @@ import {
 const sb = createAdminBrowserClient();
 
 export default function SponsoredGroupsPage() {
-  const [domain, setDomain] = useState("");
+  const [domains, setDomains] = useState("");
   const [name, setName] = useState("");
-  const [groupType, setGroupType] = useState<"company" | "university">("company");
   const [fundedBalance, setFundedBalance] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
@@ -34,6 +35,12 @@ export default function SponsoredGroupsPage() {
   const [contactUserId, setContactUserId] = useState("");
   const [settingContact, setSettingContact] = useState(false);
 
+  const [domainsGroupId, setDomainsGroupId] = useState("");
+  const [newDomain, setNewDomain] = useState("");
+  const [removeDomainValue, setRemoveDomainValue] = useState("");
+  const [domainsResult, setDomainsResult] = useState<string[] | null>(null);
+  const [managingDomains, setManagingDomains] = useState(false);
+
   async function getToken() {
     const { data } = await sb.auth.getSession();
     return data.session?.access_token ?? "";
@@ -46,13 +53,53 @@ export default function SponsoredGroupsPage() {
     setCreating(true);
     try {
       const token = await getToken();
-      const group = await createOrUpgrade(token, domain.trim(), fundedBalance, groupType, name.trim());
+      const domainList = domains
+        .split(",")
+        .map((d) => d.trim())
+        .filter(Boolean);
+      const group = await createOrUpgrade(token, domainList, fundedBalance, name.trim());
       setResult(group);
-      setNotice("Group created or upgraded to sponsored.");
+      setNotice("Sponsored group created.");
     } catch (err: any) {
-      setError(err?.detail?.message ?? "Failed to create or upgrade sponsored group.");
+      setError(err?.detail?.message ?? "Failed to create sponsored group.");
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleAddDomain(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setNotice("");
+    setManagingDomains(true);
+    try {
+      const token = await getToken();
+      const res = await addSponsorDomain(token, domainsGroupId.trim(), newDomain.trim());
+      setDomainsResult(res.domains);
+      setNewDomain("");
+      setNotice("Domain added.");
+    } catch (err: any) {
+      setError(err?.detail?.message ?? "Failed to add domain.");
+    } finally {
+      setManagingDomains(false);
+    }
+  }
+
+  async function handleRemoveDomain(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setNotice("");
+    setManagingDomains(true);
+    try {
+      const token = await getToken();
+      const res = await removeSponsorDomain(token, domainsGroupId.trim(), removeDomainValue.trim());
+      setDomainsResult(res.domains);
+      setRemoveDomainValue("");
+      setNotice("Domain removed.");
+    } catch (err: any) {
+      setError(err?.detail?.message ?? "Failed to remove domain.");
+    } finally {
+      setManagingDomains(false);
     }
   }
 
@@ -125,20 +172,21 @@ export default function SponsoredGroupsPage() {
       {error && <p className="text-red-600 text-sm">{error}</p>}
 
       <section className="space-y-4 border rounded p-6">
-        <h2 className="text-lg font-medium">Create or upgrade a sponsored group</h2>
+        <h2 className="text-lg font-medium">Create a sponsored group</h2>
         <p className="text-sm text-gray-500">
-          Creates a new sponsored group for the domain, or upgrades an existing non-sponsored
-          group in place if one already exists.
+          Groups have no type — any org-verified user can join any group. Sponsorship eligibility
+          is decided separately, by whichever email domains you list here (e.g. every faculty
+          subdomain of one university), so students on different domains still share one group.
         </p>
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Domain</label>
+            <label className="block text-sm font-medium mb-1">Eligible domains (comma-separated)</label>
             <input
               type="text"
               required
-              value={domain}
-              onChange={(e) => setDomain(e.target.value)}
-              placeholder="example.edu"
+              value={domains}
+              onChange={(e) => setDomains(e.target.value)}
+              placeholder="eng-st.cu.edu.eg, cu.edu.eg"
               className="w-full border rounded px-3 py-2 text-sm"
             />
           </div>
@@ -150,17 +198,6 @@ export default function SponsoredGroupsPage() {
               onChange={(e) => setName(e.target.value)}
               className="w-full border rounded px-3 py-2 text-sm"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Group type</label>
-            <select
-              value={groupType}
-              onChange={(e) => setGroupType(e.target.value as "company" | "university")}
-              className="w-full border rounded px-3 py-2 text-sm"
-            >
-              <option value="company">Company</option>
-              <option value="university">University</option>
-            </select>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Initial funded balance (EGP)</label>
@@ -179,7 +216,7 @@ export default function SponsoredGroupsPage() {
             disabled={creating}
             className="bg-gray-900 text-white text-sm px-4 py-2 rounded disabled:bg-gray-400"
           >
-            {creating ? "Submitting…" : "Create or upgrade"}
+            {creating ? "Submitting…" : "Create sponsored group"}
           </button>
         </form>
 
@@ -187,10 +224,76 @@ export default function SponsoredGroupsPage() {
           <div className="text-sm bg-gray-50 border rounded p-3 space-y-1">
             <p><span className="text-gray-500">Group ID:</span> {result.id}</p>
             <p><span className="text-gray-500">Name:</span> {result.name}</p>
+            <p><span className="text-gray-500">Eligible domains:</span> {result.sponsor_domains.join(", ")}</p>
             <p>
               <span className="text-gray-500">Funded balance:</span>{" "}
               {Number(result.funded_balance_egp).toLocaleString("en-EG", { minimumFractionDigits: 2 })} EGP
             </p>
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-4 border rounded p-6">
+        <h2 className="text-lg font-medium">Manage a sponsored group&rsquo;s eligible domains</h2>
+        <p className="text-sm text-gray-500">
+          Add another subdomain to fold more students into an existing sponsored group instead of
+          fragmenting them into a new one, or remove one that no longer applies.
+        </p>
+        <div>
+          <label className="block text-sm font-medium mb-1">Group ID</label>
+          <input
+            type="text"
+            required
+            value={domainsGroupId}
+            onChange={(e) => setDomainsGroupId(e.target.value)}
+            className="w-full border rounded px-3 py-2 text-sm"
+          />
+        </div>
+        <form onSubmit={handleAddDomain} className="flex items-end gap-3">
+          <div className="flex-1">
+            <label className="block text-sm font-medium mb-1">Add domain</label>
+            <input
+              type="text"
+              required
+              value={newDomain}
+              onChange={(e) => setNewDomain(e.target.value)}
+              placeholder="eng-st.cu.edu.eg"
+              className="w-full border rounded px-3 py-2 text-sm"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={managingDomains || !domainsGroupId.trim()}
+            className="bg-gray-900 text-white text-sm px-4 py-2 rounded disabled:bg-gray-400"
+          >
+            {managingDomains ? "Submitting…" : "Add"}
+          </button>
+        </form>
+        <form onSubmit={handleRemoveDomain} className="flex items-end gap-3">
+          <div className="flex-1">
+            <label className="block text-sm font-medium mb-1">Remove domain</label>
+            <input
+              type="text"
+              required
+              value={removeDomainValue}
+              onChange={(e) => setRemoveDomainValue(e.target.value)}
+              placeholder="eng-st.cu.edu.eg"
+              className="w-full border rounded px-3 py-2 text-sm"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={managingDomains || !domainsGroupId.trim()}
+            className="bg-gray-200 text-gray-900 text-sm px-4 py-2 rounded disabled:opacity-50"
+          >
+            {managingDomains ? "Submitting…" : "Remove"}
+          </button>
+        </form>
+
+        {domainsResult && (
+          <div className="text-sm bg-gray-50 border rounded p-3">
+            <span className="text-gray-500">Eligible domains:</span>{" "}
+            {domainsResult.length > 0 ? domainsResult.join(", ") : "(none)"}
           </div>
         )}
       </section>

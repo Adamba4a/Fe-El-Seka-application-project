@@ -90,7 +90,6 @@ def _group_row(**overrides):
     row = {
         "id": uuid.uuid4(),
         "name": "El Shorouk Commuters",
-        "type": "general",
         "description": "Daily corridor carpool",
         "route_tags": ["el-shorouk", "cairo"],
         "member_count": 1,
@@ -169,7 +168,7 @@ class TestJoinGroup:
         }
         conn = _RoutedFakeConn(
             fetchrow_rules=[
-                ("SELECT id, type FROM groups", {"id": group_id, "type": "general"}),
+                ("SELECT id FROM groups WHERE id = $1 AND archived_at IS NULL", {"id": group_id}),
                 ("SELECT id, group_id, user_id, role, joined_at\n            FROM group_memberships", None),
                 ("INSERT INTO group_memberships", membership_row),
             ],
@@ -186,7 +185,9 @@ class TestJoinGroup:
             "id": str(uuid.uuid4()),
             "org_verified_at": "2026-01-01T00:00:00+00:00",
         }
-        conn = _RoutedFakeConn(fetchrow_rules=[("SELECT id, type FROM groups", None)])
+        conn = _RoutedFakeConn(
+            fetchrow_rules=[("SELECT id FROM groups WHERE id = $1 AND archived_at IS NULL", None)]
+        )
         monkeypatch.setattr(group_service, "get_pool", lambda: _FakePool(conn))
 
         resp = client.post(f"/api/groups/{uuid.uuid4()}/join")

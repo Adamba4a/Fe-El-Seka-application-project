@@ -33,7 +33,6 @@ from app.services.domain_verification_service import (
     _check_domain_otp_resend_rate,
     _generate_otp,
     _get_domain_blocklist,
-    _get_platform_setting,
     _hash_otp,
 )
 
@@ -42,14 +41,6 @@ def _derive_group_name(domain: str) -> str:
     label = domain.split(".")[0]
     words = [w for w in re.split(r"[-_]+", label) if w]
     return " ".join(w.capitalize() for w in words) or domain
-
-
-async def _get_new_domain_rate_limit(conn) -> tuple[int, int]:
-    limit = int(await _get_platform_setting(conn, "group_new_domain_rate_limit", "5"))
-    window_minutes = int(
-        await _get_platform_setting(conn, "group_new_domain_rate_limit_window_minutes", "60")
-    )
-    return limit, window_minutes
 
 
 def _require_verified(profile: dict) -> None:
@@ -85,14 +76,22 @@ def _to_summary(row) -> GroupSummary:
     return GroupSummary(
         id=str(d["id"]),
         name=d["name"],
-        type=d["type"],
         description=d["description"],
         route_tags=list(d["route_tags"]) if d["route_tags"] else [],
         member_count=d["member_count"],
         is_sponsored=bool(d.get("is_sponsored", False)),
         funded_balance_egp=d.get("funded_balance_egp", Decimal("0.00")),
         dashboard_contact_user_id=str(dashboard_contact_user_id) if dashboard_contact_user_id else None,
+        sponsor_domains=list(d["sponsor_domains"]) if d.get("sponsor_domains") else [],
     )
+
+
+async def _get_sponsor_domains(conn, group_id: uuid.UUID) -> list[str]:
+    rows = await conn.fetch(
+        "SELECT domain FROM group_sponsor_domains WHERE group_id = $1 ORDER BY domain ASC",
+        group_id,
+    )
+    return [r["domain"] for r in rows]
 
 
 # ── T013: create a general group ────────────────────────────────────────────
@@ -106,9 +105,9 @@ async def create_group(profile: dict, payload: CreateGroupRequest) -> GroupSumma
         async with conn.transaction():
             row = await conn.fetchrow(
                 """
-                INSERT INTO groups (name, type, description, route_tags, owner_id)
-                VALUES ($1, 'general', $2, $3, $4)
-                RETURNING id, name, type, description, route_tags
+                INSERT INTO groups (name, description, route_tags, owner_id)
+                VALUES ($1, $2, $3, $4)
+                RETURNING id, name, description, route_tags
                 """,
                 payload.name, payload.description, payload.route_tags, owner_id,
             )
@@ -126,7 +125,6 @@ async def create_group(profile: dict, payload: CreateGroupRequest) -> GroupSumma
 
 async def search_groups(
     q: Optional[str],
-    type_filter: Optional[str],
     route_tag: Optional[str],
     limit: int,
     offset: int,
@@ -140,9 +138,6 @@ async def search_groups(
     if q:
         params.append(f"%{q}%")
         where.append(f"name ILIKE ${len(params)}")
-    if type_filter:
-        params.append(type_filter)
-        where.append(f"type = ${len(params)}")
     if route_tag:
         params.append(route_tag)
         where.append(f"${len(params)} = ANY(route_tags)")
@@ -153,7 +148,7 @@ async def search_groups(
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             f"""
-            SELECT id, name, type, description, route_tags, member_count,
+            SELECT id, name, description, route_tags, member_count,
                    is_sponsored, funded_balance_egp, dashboard_contact_user_id
             FROM groups
             WHERE {where_clause}
@@ -174,7 +169,7 @@ async def get_group_detail(group_id: uuid.UUID, user_id: uuid.UUID) -> GroupDeta
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
-            SELECT id, name, type, description, route_tags, owner_id, member_count,
+            SELECT id, name, description, route_tags, owner_id, member_count,
                    is_sponsored, funded_balance_egp, dashboard_contact_user_id
             FROM groups
             WHERE id = $1 AND archived_at IS NULL
@@ -190,9 +185,10 @@ async def get_group_detail(group_id: uuid.UUID, user_id: uuid.UUID) -> GroupDeta
             "SELECT 1 FROM group_memberships WHERE group_id = $1 AND user_id = $2",
             group_id, user_id,
         )
+        sponsor_domains = await _get_sponsor_domains(conn, group_id) if row["is_sponsored"] else []
 
     return GroupDetailResponse(
-        **_to_summary(row).model_dump(),
+        **_to_summary({**dict(row), "sponsor_domains": sponsor_domains}).model_dump(),
         is_member=membership is not None,
         is_owner=row["owner_id"] == user_id,
     )
@@ -205,7 +201,7 @@ async def list_my_groups(user_id: uuid.UUID) -> list[GroupSummary]:
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            SELECT g.id, g.name, g.type, g.description, g.route_tags, g.member_count,
+            SELECT g.id, g.name, g.description, g.route_tags, g.member_count,
                    g.is_sponsored, g.funded_balance_egp, g.dashboard_contact_user_id
             FROM groups g
             JOIN group_memberships m ON m.group_id = g.id
@@ -303,7 +299,7 @@ async def resolve_invite_token(invite_token: str, user_id: uuid.UUID) -> GroupDe
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
-            SELECT id, name, type, description, route_tags, owner_id, member_count,
+            SELECT id, name, description, route_tags, owner_id, member_count,
                    is_sponsored, funded_balance_egp, dashboard_contact_user_id
             FROM groups
             WHERE invite_token = $1 AND archived_at IS NULL
@@ -330,7 +326,10 @@ async def resolve_invite_token(invite_token: str, user_id: uuid.UUID) -> GroupDe
     )
 
 
-# ── T033: join a general group (directory or resolved-invite-link path) ────
+# ── T033: join any group — Groups have no type distinction, membership is
+# open to any org-verified user (Spec 025 is the platform's sole trust floor;
+# a group's own sponsored-eligibility check happens separately, at
+# domain-verification and booking time, not at join time) ──────────────────
 
 async def join_group(profile: dict, group_id: uuid.UUID) -> MembershipResponse:
     _require_verified(profile)
@@ -339,7 +338,7 @@ async def join_group(profile: dict, group_id: uuid.UUID) -> MembershipResponse:
     pool = get_pool()
     async with pool.acquire() as conn:
         group_row = await conn.fetchrow(
-            "SELECT id, type FROM groups WHERE id = $1 AND archived_at IS NULL", group_id
+            "SELECT id FROM groups WHERE id = $1 AND archived_at IS NULL", group_id
         )
         if group_row is None:
             raise HTTPException(
@@ -357,15 +356,6 @@ async def join_group(profile: dict, group_id: uuid.UUID) -> MembershipResponse:
         if existing is not None:
             return _to_membership(existing)
 
-        if group_row["type"] != "general":
-            raise HTTPException(
-                status_code=409,
-                detail={
-                    "error": "domain_verification_required",
-                    "message": "You must verify a matching company or university email to join this group.",
-                },
-            )
-
         membership = await conn.fetchrow(
             """
             INSERT INTO group_memberships (group_id, user_id, role)
@@ -378,10 +368,14 @@ async def join_group(profile: dict, group_id: uuid.UUID) -> MembershipResponse:
     return _to_membership(membership)
 
 
-# ── T038/T039: request a company/university domain-verification OTP ────────
+# ── Sponsorship eligibility: request a domain-verification OTP against a
+# specific sponsored group's configured domain list (FR redesign — domain
+# verification no longer creates or gates membership in a group; it only
+# proves a member's email domain matches one of THIS sponsored group's
+# eligible domains, so they receive funded rides instead of paying cash) ───
 
 async def request_domain_verification(
-    profile: dict, payload: DomainVerificationRequest
+    profile: dict, group_id: uuid.UUID, payload: DomainVerificationRequest
 ) -> DomainVerificationRequestResponse:
     _require_verified(profile)
     user_id = uuid.UUID(str(profile["id"]))
@@ -396,22 +390,47 @@ async def request_domain_verification(
 
     pool = get_pool()
     async with pool.acquire() as conn:
+        group_row = await conn.fetchrow(
+            "SELECT id, is_sponsored FROM groups WHERE id = $1 AND archived_at IS NULL", group_id
+        )
+        if group_row is None:
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "group_not_found", "message": "Group not found."},
+            )
+        if not group_row["is_sponsored"]:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "not_sponsored",
+                    "message": "This group isn't sponsored — no eligibility check is needed to join or book its rides.",
+                },
+            )
+
         blocklist = await _get_domain_blocklist(conn)
         if domain in blocklist:
             raise HTTPException(
                 status_code=422,
                 detail={
                     "error": "blocklisted_domain",
-                    "message": "Personal email providers can't be used for company or university groups.",
+                    "message": "Personal email providers can't be used for sponsorship eligibility.",
+                },
+            )
+
+        is_eligible_domain = await conn.fetchval(
+            "SELECT 1 FROM group_sponsor_domains WHERE group_id = $1 AND domain = $2",
+            group_id, domain,
+        )
+        if not is_eligible_domain:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "domain_not_eligible",
+                    "message": "This email domain isn't on this group's list of sponsored domains.",
                 },
             )
 
         _check_domain_otp_resend_rate(email)
-
-        is_first_for_domain = not await conn.fetchval(
-            "SELECT 1 FROM domain_verifications WHERE domain = $1 AND verified_at IS NOT NULL",
-            domain,
-        )
 
         code = _generate_otp()
         salt = secrets.token_hex(16)
@@ -420,11 +439,11 @@ async def request_domain_verification(
         row = await conn.fetchrow(
             """
             INSERT INTO domain_verifications
-                (user_id, email, domain, requested_group_type, otp_code_hash, otp_expires_at, is_first_for_domain)
-            VALUES ($1, $2, $3, $4, $5, now() + interval '5 minutes', $6)
+                (user_id, group_id, email, domain, otp_code_hash, otp_expires_at)
+            VALUES ($1, $2, $3, $4, $5, now() + interval '5 minutes')
             RETURNING id
             """,
-            user_id, email, domain, payload.requested_group_type, otp_hash, is_first_for_domain,
+            user_id, group_id, email, domain, otp_hash,
         )
 
     try:
@@ -441,7 +460,9 @@ async def request_domain_verification(
     return DomainVerificationRequestResponse(verification_id=str(row["id"]), expires_in_seconds=300)
 
 
-# ── T041: confirm the OTP, then create/attach the domain's group ───────────
+# ── Confirm the OTP: marks the caller's membership in that specific group as
+# domain-verified (eligible for its funded rides), auto-joining the group
+# first if the caller wasn't already a member ───────────────────────────────
 
 async def confirm_domain_verification(
     profile: dict, payload: DomainVerificationConfirm
@@ -461,8 +482,7 @@ async def confirm_domain_verification(
         async with conn.transaction():
             verification = await conn.fetchrow(
                 """
-                SELECT id, domain, requested_group_type, otp_code_hash, otp_expires_at,
-                       verified_at, is_first_for_domain
+                SELECT id, group_id, otp_code_hash, otp_expires_at, verified_at
                 FROM domain_verifications
                 WHERE id = $1 AND user_id = $2
                 FOR UPDATE
@@ -477,7 +497,7 @@ async def confirm_domain_verification(
 
             if verification["verified_at"] is not None:
                 # A verification_id is single-use: once confirmed, it must not be
-                # replayable to re-grant membership without a fresh OTP challenge.
+                # replayable to re-grant eligibility without a fresh OTP challenge.
                 raise HTTPException(
                     status_code=400,
                     detail={
@@ -505,152 +525,58 @@ async def confirm_domain_verification(
                 verification_id,
             )
 
-            domain = verification["domain"]
-
-            # Spec 025 (org-only access gate): a successful Groups domain
-            # verification also satisfies the org-email gate, but only credits
-            # it once — a later verification of a second domain (e.g. to join
-            # another group) must not overwrite the account's original grant.
-            await conn.execute(
-                """
-                UPDATE profiles
-                SET org_verified_at = now(),
-                    org_verified_domain = $2
-                WHERE id = $1 AND org_verified_at IS NULL
-                """,
-                user_id, domain,
-            )
+            group_id = verification["group_id"]
 
             group_row = await conn.fetchrow(
-                """
-                SELECT id, name, type, description, route_tags, owner_id, member_count, archived_at
-                FROM groups WHERE domain = $1
-                """,
-                domain,
+                "SELECT id, archived_at FROM groups WHERE id = $1", group_id
             )
-
-            if group_row is not None and group_row["archived_at"] is not None:
+            if group_row is None or group_row["archived_at"] is not None:
                 raise HTTPException(
                     status_code=409,
                     detail={
-                        "error": "domain_group_archived",
-                        "message": "The group for this domain has been archived and is no longer accepting members.",
+                        "error": "group_archived",
+                        "message": "This group has been archived and is no longer accepting members.",
                     },
                 )
 
-            created_new_group = False
-            if group_row is None:
-                if verification["is_first_for_domain"]:
-                    limit, window_minutes = await _get_new_domain_rate_limit(conn)
-                    # Exclude the verification row we just marked verified_at on above —
-                    # otherwise this confirmation counts itself, tightening the effective
-                    # quota to limit - 1.
-                    recent_count = await conn.fetchval(
-                        """
-                        SELECT COUNT(*) FROM domain_verifications
-                        WHERE is_first_for_domain = true
-                          AND verified_at IS NOT NULL
-                          AND id != $1
-                          AND created_at > now() - ($2 || ' minutes')::interval
-                        """,
-                        verification_id,
-                        str(window_minutes),
-                    )
-                    if recent_count >= limit:
-                        raise HTTPException(
-                            status_code=429,
-                            detail={
-                                "error": "domain_registration_rate_limited",
-                                "message": (
-                                    "Too many new company/university domains registered "
-                                    "recently. Try again later."
-                                ),
-                            },
-                        )
-
-                # ON CONFLICT guards against a concurrent first-verifier on the
-                # same domain winning the race between our existence check
-                # above and this insert.
-                group_row = await conn.fetchrow(
-                    """
-                    INSERT INTO groups (name, type, description, route_tags, owner_id, domain)
-                    VALUES ($1, $2, $3, '{}', $4, $5)
-                    ON CONFLICT (domain) DO NOTHING
-                    RETURNING id, name, type, description, route_tags, owner_id, member_count,
-                              is_sponsored, funded_balance_egp, dashboard_contact_user_id
-                    """,
-                    _derive_group_name(domain), verification["requested_group_type"],
-                    f"Domain-verified group for {domain}.", user_id, domain,
-                )
-                created_new_group = group_row is not None
-                if group_row is None:
-                    group_row = await conn.fetchrow(
-                        """
-                        SELECT id, name, type, description, route_tags, owner_id, member_count,
-                               is_sponsored, funded_balance_egp, dashboard_contact_user_id
-                        FROM groups WHERE domain = $1 AND archived_at IS NULL
-                        """,
-                        domain,
-                    )
-                    if group_row is None:
-                        raise HTTPException(
-                            status_code=409,
-                            detail={
-                                "error": "domain_group_archived",
-                                "message": (
-                                    "The group for this domain has been archived and is "
-                                    "no longer accepting members."
-                                ),
-                            },
-                        )
-
-            if created_new_group:
-                await conn.execute(
+            membership = await conn.fetchrow(
+                """
+                SELECT id, group_id, user_id, role, joined_at
+                FROM group_memberships WHERE group_id = $1 AND user_id = $2
+                """,
+                group_id, user_id,
+            )
+            if membership is None:
+                membership = await conn.fetchrow(
                     """
                     INSERT INTO group_memberships (group_id, user_id, role, domain_verification_id)
-                    VALUES ($1, $2, 'owner', $3)
+                    VALUES ($1, $2, 'member', $3)
+                    RETURNING id, group_id, user_id, role, joined_at
                     """,
-                    group_row["id"], user_id, verification_id,
-                )
-                membership = await conn.fetchrow(
-                    """
-                    SELECT id, group_id, user_id, role, joined_at
-                    FROM group_memberships WHERE group_id = $1 AND user_id = $2
-                    """,
-                    group_row["id"], user_id,
+                    group_id, user_id, verification_id,
                 )
             else:
-                membership = await conn.fetchrow(
-                    """
-                    SELECT id, group_id, user_id, role, joined_at
-                    FROM group_memberships WHERE group_id = $1 AND user_id = $2
-                    """,
-                    group_row["id"], user_id,
+                await conn.execute(
+                    "UPDATE group_memberships SET domain_verification_id = $2 WHERE id = $1",
+                    membership["id"], verification_id,
                 )
-                if membership is None:
-                    membership = await conn.fetchrow(
-                        """
-                        INSERT INTO group_memberships (group_id, user_id, role, domain_verification_id)
-                        VALUES ($1, $2, 'member', $3)
-                        RETURNING id, group_id, user_id, role, joined_at
-                        """,
-                        group_row["id"], user_id, verification_id,
-                    )
 
-            # Re-fetch: the membership INSERT above fires trg_group_memberships_count,
-            # so group_row's member_count (captured before/around that insert) is stale.
+            # Re-fetch: the membership insert/update above may fire
+            # trg_group_memberships_count, so a group_row captured earlier
+            # could be stale.
             group_row = await conn.fetchrow(
                 """
-                SELECT id, name, type, description, route_tags, owner_id, member_count,
+                SELECT id, name, description, route_tags, owner_id, member_count,
                        is_sponsored, funded_balance_egp, dashboard_contact_user_id
                 FROM groups WHERE id = $1
                 """,
-                group_row["id"],
+                group_id,
             )
+            sponsor_domains = await _get_sponsor_domains(conn, group_id)
 
     return DomainVerificationConfirmResponse(
         membership=_to_membership(membership),
-        group=_to_summary(group_row),
+        group=_to_summary({**dict(group_row), "sponsor_domains": sponsor_domains}),
     )
 
 
@@ -839,7 +765,7 @@ async def transfer_ownership(
             row = await conn.fetchrow(
                 """
                 UPDATE groups SET owner_id = $2 WHERE id = $1
-                RETURNING id, name, type, description, route_tags, member_count,
+                RETURNING id, name, description, route_tags, member_count,
                           is_sponsored, funded_balance_egp, dashboard_contact_user_id
                 """,
                 group_id, new_owner_id,

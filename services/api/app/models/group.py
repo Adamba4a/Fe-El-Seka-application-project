@@ -3,9 +3,6 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-GroupType = Literal["general", "company", "university"]
-DomainGroupType = Literal["company", "university"]
-
 
 class CreateGroupRequest(BaseModel):
     name: str
@@ -27,13 +24,13 @@ class CreateGroupRequest(BaseModel):
 class GroupSummary(BaseModel):
     id: str
     name: str
-    type: GroupType
     description: str | None
     route_tags: list[str]
     member_count: int
     is_sponsored: bool = False
     funded_balance_egp: Decimal = Decimal("0.00")
     dashboard_contact_user_id: str | None = None
+    sponsor_domains: list[str] = []
 
 
 class GroupListResponse(BaseModel):
@@ -61,7 +58,6 @@ class MembershipResponse(BaseModel):
 
 class DomainVerificationRequest(BaseModel):
     email: str
-    requested_group_type: DomainGroupType
 
 
 class DomainVerificationRequestResponse(BaseModel):
@@ -92,10 +88,15 @@ class GroupMemberResponse(BaseModel):
 
 
 class SponsoredGroupCreateRequest(BaseModel):
-    domain: str
+    domains: list[str]
     name: str | None = None
     funded_balance_egp: Decimal
-    requested_group_type: DomainGroupType
+
+    def model_post_init(self, __context) -> None:
+        domains = [d.strip().lower() for d in self.domains if d.strip()]
+        if not domains:
+            raise ValueError("domains must include at least one domain")
+        self.domains = domains
 
 
 class AddFundsRequest(BaseModel):
@@ -105,6 +106,15 @@ class AddFundsRequest(BaseModel):
 class AddFundsResponse(BaseModel):
     group_id: str
     new_funded_balance_egp: Decimal
+
+
+class AddSponsorDomainRequest(BaseModel):
+    domain: str
+
+
+class SponsorDomainsResponse(BaseModel):
+    group_id: str
+    domains: list[str]
 
 
 class DashboardContactRequest(BaseModel):

@@ -49,13 +49,12 @@ async def list_my_groups(
 @router.get("", response_model=GroupListResponse)
 async def search_groups(
     q: Optional[str] = Query(None),
-    type_filter: Optional[str] = Query(None, alias="type"),
     route_tag: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=50),
     offset: int = Query(0, ge=0),
     _profile: dict = Depends(get_current_user),
 ):
-    return await group_service.search_groups(q, type_filter, route_tag, limit, offset)
+    return await group_service.search_groups(q, route_tag, limit, offset)
 
 
 @router.get("/{group_id}", response_model=GroupDetailResponse)
@@ -102,12 +101,13 @@ async def join_group(
     return await group_service.join_group(profile, group_id)
 
 
-@router.post("/domain-verification/request", response_model=DomainVerificationRequestResponse)
+@router.post("/{group_id}/domain-verification/request", response_model=DomainVerificationRequestResponse)
 async def request_domain_verification(
+    group_id: uuid.UUID,
     payload: DomainVerificationRequest,
     profile: dict = Depends(get_current_user),
 ):
-    return await group_service.request_domain_verification(profile, payload)
+    return await group_service.request_domain_verification(profile, group_id, payload)
 
 
 @router.post("/domain-verification/confirm", response_model=DomainVerificationConfirmResponse)

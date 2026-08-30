@@ -45,10 +45,11 @@ class _RoutedFakeConn:
     (substring, response) rules against the query text. `response` may be a
     plain value or a zero-arg callable (for dynamic/exception responses)."""
 
-    def __init__(self, fetchval_rules=None, fetchrow_rules=None, execute_rules=None):
+    def __init__(self, fetchval_rules=None, fetchrow_rules=None, execute_rules=None, fetch_rules=None):
         self._fetchval_rules = fetchval_rules or []
         self._fetchrow_rules = fetchrow_rules or []
         self._execute_rules = execute_rules or []
+        self._fetch_rules = fetch_rules or []
         self.executed_queries: list[str] = []
 
     def _resolve(self, rules, query):
@@ -63,6 +64,9 @@ class _RoutedFakeConn:
     async def fetchrow(self, query, *args):
         return self._resolve(self._fetchrow_rules, query)
 
+    async def fetch(self, query, *args):
+        return self._resolve(self._fetch_rules, query)
+
     async def execute(self, query, *args):
         self.executed_queries.append(query)
         return self._resolve(self._execute_rules, query) if self._execute_rules else "OK"
@@ -75,7 +79,6 @@ def _group_summary_row(**overrides):
     row = {
         "id": uuid.uuid4(),
         "name": "Test Group",
-        "type": "general",
         "description": None,
         "route_tags": [],
         "member_count": 2,
@@ -372,76 +375,75 @@ class TestListGroupMembers:
         assert exc_info.value.detail["error"] == "group_not_found"
 
 
-# ── domain verification: blocklist + rate limit (Phase 6, re-verified here) ─
+# ── domain verification: sponsorship eligibility is scoped to one specific
+# sponsored group's configured domain list, not to creating/gating a group ──
 
 
 class TestDomainVerificationGuards:
     async def test_blocklisted_domain_rejected(self, monkeypatch):
-        conn = _RoutedFakeConn(fetchval_rules=[("platform_settings", None)])
+        group_id = uuid.uuid4()
+        conn = _RoutedFakeConn(
+            fetchrow_rules=[("SELECT id, is_sponsored FROM groups", {"id": group_id, "is_sponsored": True})],
+            fetchval_rules=[("platform_settings", None)],
+        )
         monkeypatch.setattr(group_service, "get_pool", lambda: _FakePool(conn))
 
-        payload = DomainVerificationRequest(email="user@gmail.com", requested_group_type="company")
+        payload = DomainVerificationRequest(email="user@gmail.com")
         profile = {"id": str(uuid.uuid4()), "org_verified_at": "2026-01-01T00:00:00+00:00"}
 
         with pytest.raises(HTTPException) as exc_info:
-            await group_service.request_domain_verification(profile, payload)
+            await group_service.request_domain_verification(profile, group_id, payload)
 
         assert exc_info.value.status_code == 422
         assert exc_info.value.detail["error"] == "blocklisted_domain"
 
     async def test_unverified_org_email_blocked_before_domain_check(self, monkeypatch):
-        payload = DomainVerificationRequest(email="user@newco.com", requested_group_type="company")
+        payload = DomainVerificationRequest(email="user@newco.com")
         profile = {"id": str(uuid.uuid4()), "org_verified_at": None}
 
         with pytest.raises(HTTPException) as exc_info:
-            await group_service.request_domain_verification(profile, payload)
+            await group_service.request_domain_verification(profile, uuid.uuid4(), payload)
 
         assert exc_info.value.status_code == 403
         assert exc_info.value.detail["error"] == "org_verification_required"
 
-    async def test_new_domain_registration_rate_limited(self, monkeypatch):
-        verification_id = uuid.uuid4()
-        user_id = uuid.uuid4()
-        salt = "s" * 16
-        code = "123456"
-        otp_hash = f"{salt}${group_service._hash_otp(code, salt)}"
-
-        verification_row = {
-            "id": verification_id,
-            "domain": "newco.com",
-            "requested_group_type": "company",
-            "otp_code_hash": otp_hash,
-            "otp_expires_at": datetime.now(timezone.utc) + timedelta(minutes=5),
-            "verified_at": None,
-            "is_first_for_domain": True,
-        }
-
+    async def test_non_sponsored_group_rejected(self, monkeypatch):
+        group_id = uuid.uuid4()
         conn = _RoutedFakeConn(
-            fetchrow_rules=[
-                ("FOR UPDATE", verification_row),
-                ("FROM groups WHERE domain", None),
-            ],
+            fetchrow_rules=[("SELECT id, is_sponsored FROM groups", {"id": group_id, "is_sponsored": False})],
+        )
+        monkeypatch.setattr(group_service, "get_pool", lambda: _FakePool(conn))
+
+        payload = DomainVerificationRequest(email="user@newco.com")
+        profile = {"id": str(uuid.uuid4()), "org_verified_at": "2026-01-01T00:00:00+00:00"}
+
+        with pytest.raises(HTTPException) as exc_info:
+            await group_service.request_domain_verification(profile, group_id, payload)
+
+        assert exc_info.value.status_code == 422
+        assert exc_info.value.detail["error"] == "not_sponsored"
+
+    async def test_domain_not_on_groups_eligible_list_rejected(self, monkeypatch):
+        group_id = uuid.uuid4()
+        conn = _RoutedFakeConn(
+            fetchrow_rules=[("SELECT id, is_sponsored FROM groups", {"id": group_id, "is_sponsored": True})],
             fetchval_rules=[
-                ("COUNT(*)", 5),
                 ("platform_settings", None),
-            ],
-            execute_rules=[
-                ("UPDATE domain_verifications SET verified_at", "UPDATE 1"),
-                ("UPDATE profiles", "UPDATE 1"),
+                ("FROM group_sponsor_domains WHERE group_id", None),
             ],
         )
         monkeypatch.setattr(group_service, "get_pool", lambda: _FakePool(conn))
 
-        payload = DomainVerificationConfirm(verification_id=str(verification_id), code=code)
-        profile = {"id": str(user_id), "org_verified_at": "2026-01-01T00:00:00+00:00"}
+        payload = DomainVerificationRequest(email="user@othersite.com")
+        profile = {"id": str(uuid.uuid4()), "org_verified_at": "2026-01-01T00:00:00+00:00"}
 
         with pytest.raises(HTTPException) as exc_info:
-            await group_service.confirm_domain_verification(profile, payload)
+            await group_service.request_domain_verification(profile, group_id, payload)
 
-        assert exc_info.value.status_code == 429
-        assert exc_info.value.detail["error"] == "domain_registration_rate_limited"
+        assert exc_info.value.status_code == 422
+        assert exc_info.value.detail["error"] == "domain_not_eligible"
 
-    async def test_confirm_sets_org_verified_at_when_not_already_set(self, monkeypatch):
+    async def test_group_archived_before_confirm_rejected(self, monkeypatch):
         verification_id = uuid.uuid4()
         user_id = uuid.uuid4()
         group_id = uuid.uuid4()
@@ -451,61 +453,85 @@ class TestDomainVerificationGuards:
 
         verification_row = {
             "id": verification_id,
-            "domain": "newco.com",
-            "requested_group_type": "company",
+            "group_id": group_id,
             "otp_code_hash": otp_hash,
             "otp_expires_at": datetime.now(timezone.utc) + timedelta(minutes=5),
             "verified_at": None,
-            "is_first_for_domain": False,
         }
-        new_group_row = _group_summary_row(id=group_id, name="Newco", owner_id=user_id, member_count=0)
-        membership_row = {
-            "id": uuid.uuid4(),
-            "group_id": group_id,
-            "user_id": user_id,
-            "role": "owner",
-            "joined_at": datetime.now(timezone.utc),
-        }
-        final_group_row = _group_summary_row(id=group_id, name="Newco", owner_id=user_id, member_count=1)
 
         conn = _RoutedFakeConn(
             fetchrow_rules=[
                 ("FOR UPDATE", verification_row),
-                ("FROM groups WHERE domain", None),
-                ("INSERT INTO groups", new_group_row),
-                ("FROM group_memberships WHERE group_id = $1 AND user_id = $2", membership_row),
-                ("FROM groups WHERE id = $1", final_group_row),
+                ("FROM groups WHERE id = $1", {"id": group_id, "archived_at": datetime.now(timezone.utc)}),
             ],
-            execute_rules=[
-                ("UPDATE domain_verifications SET verified_at", "UPDATE 1"),
-                ("UPDATE profiles", "UPDATE 1"),
-                ("INSERT INTO group_memberships", "INSERT 1"),
-            ],
+            execute_rules=[("UPDATE domain_verifications SET verified_at", "UPDATE 1")],
         )
         monkeypatch.setattr(group_service, "get_pool", lambda: _FakePool(conn))
 
         payload = DomainVerificationConfirm(verification_id=str(verification_id), code=code)
         profile = {"id": str(user_id), "org_verified_at": "2026-01-01T00:00:00+00:00"}
 
-        await group_service.confirm_domain_verification(profile, payload)
+        with pytest.raises(HTTPException) as exc_info:
+            await group_service.confirm_domain_verification(profile, payload)
 
-        org_verified_updates = [
-            q for q in conn.executed_queries if "UPDATE profiles" in q and "org_verified_at" in q
-        ]
-        assert len(org_verified_updates) == 1
-        assert "org_verified_at IS NULL" in org_verified_updates[0]
+        assert exc_info.value.status_code == 409
+        assert exc_info.value.detail["error"] == "group_archived"
+
+    async def test_confirm_marks_new_membership_as_domain_verified(self, monkeypatch):
+        verification_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+        group_id = uuid.uuid4()
+        salt = "s" * 16
+        code = "123456"
+        otp_hash = f"{salt}${group_service._hash_otp(code, salt)}"
+
+        verification_row = {
+            "id": verification_id,
+            "group_id": group_id,
+            "otp_code_hash": otp_hash,
+            "otp_expires_at": datetime.now(timezone.utc) + timedelta(minutes=5),
+            "verified_at": None,
+        }
+        membership_row = {
+            "id": uuid.uuid4(),
+            "group_id": group_id,
+            "user_id": user_id,
+            "role": "member",
+            "joined_at": datetime.now(timezone.utc),
+        }
+        final_group_row = _group_summary_row(id=group_id, name="Cairo University", member_count=1)
+
+        conn = _RoutedFakeConn(
+            fetchrow_rules=[
+                ("FOR UPDATE", verification_row),
+                ("id, archived_at FROM groups", {"id": group_id, "archived_at": None}),
+                ("FROM group_memberships WHERE group_id = $1 AND user_id = $2", None),
+                ("INSERT INTO group_memberships", membership_row),
+                ("SELECT id, name, description", final_group_row),
+            ],
+            fetch_rules=[("group_sponsor_domains", [])],
+            execute_rules=[("UPDATE domain_verifications SET verified_at", "UPDATE 1")],
+        )
+        monkeypatch.setattr(group_service, "get_pool", lambda: _FakePool(conn))
+
+        payload = DomainVerificationConfirm(verification_id=str(verification_id), code=code)
+        profile = {"id": str(user_id), "org_verified_at": "2026-01-01T00:00:00+00:00"}
+
+        result = await group_service.confirm_domain_verification(profile, payload)
+
+        assert result.membership.group_id == str(group_id)
+        insert_membership_queries = [q for q in conn.executed_queries if "INSERT INTO group_memberships" in q]
+        assert insert_membership_queries == []  # inserted via fetchrow, not execute
 
     async def test_already_used_verification_id_rejected(self, monkeypatch):
         verification_id = uuid.uuid4()
         user_id = uuid.uuid4()
         verification_row = {
             "id": verification_id,
-            "domain": "newco.com",
-            "requested_group_type": "company",
+            "group_id": uuid.uuid4(),
             "otp_code_hash": "irrelevant$irrelevant",
             "otp_expires_at": datetime.now(timezone.utc) + timedelta(minutes=5),
             "verified_at": datetime.now(timezone.utc),
-            "is_first_for_domain": True,
         }
         conn = _RoutedFakeConn(fetchrow_rules=[("FOR UPDATE", verification_row)])
         monkeypatch.setattr(group_service, "get_pool", lambda: _FakePool(conn))

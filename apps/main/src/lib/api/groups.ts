@@ -41,7 +41,6 @@ function authHeaders(token: string): HeadersInit {
 
 export interface SearchGroupsParams {
   q?: string;
-  type?: string;
   route_tag?: string;
   limit?: number;
   offset?: number;
@@ -63,7 +62,6 @@ export async function searchGroups(
 ): Promise<GroupListResponse> {
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
-  if (params.type) query.set("type", params.type);
   if (params.route_tag) query.set("route_tag", params.route_tag);
   if (params.limit) query.set("limit", String(params.limit));
   if (params.offset) query.set("offset", String(params.offset));
@@ -127,9 +125,10 @@ export async function joinGroup(token: string, groupId: string): Promise<Members
 
 export async function requestDomainVerification(
   token: string,
+  groupId: string,
   payload: DomainVerificationRequestPayload
 ): Promise<DomainVerificationRequestResponse> {
-  const res = await fetch(`${base}/api/groups/domain-verification/request`, {
+  const res = await fetch(`${base}/api/groups/${groupId}/domain-verification/request`, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify(payload),
