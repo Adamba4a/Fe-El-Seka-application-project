@@ -15,7 +15,6 @@ from app.core.database import get_pool
 from app.dependencies.auth import get_current_user
 from app.dependencies.org_access import require_org_verified
 from app.dependencies.roles import get_current_driver
-from app.dependencies.verification import get_current_verified_driver
 from app.models.booking import (
     BookingCancelRequest,
     DriverBookingItem,
@@ -83,7 +82,7 @@ def _service_error_response(exc: RideServiceError) -> JSONResponse:
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_ride(
     payload: CreateRideRequest,
-    profile: dict = Depends(get_current_verified_driver),
+    profile: dict = Depends(get_current_driver),
     _org_verified: dict = Depends(require_org_verified),
 ):
     driver_id = uuid.UUID(str(profile["id"]))
@@ -227,7 +226,7 @@ async def get_ride(
 async def edit_ride(
     ride_id: uuid.UUID,
     payload: EditRideRequest,
-    profile: dict = Depends(get_current_verified_driver),
+    profile: dict = Depends(get_current_driver),
 ):
     driver_id = uuid.UUID(str(profile["id"]))
     try:
@@ -256,7 +255,7 @@ def _location_error_response(exc: LocationServiceError) -> JSONResponse:
 async def update_driver_location(
     ride_id: uuid.UUID,
     payload: LocationUpdateRequest,
-    profile: dict = Depends(get_current_verified_driver),
+    profile: dict = Depends(get_current_driver),
 ):
     t0 = time.monotonic()
     driver_id = uuid.UUID(str(profile["id"]))
@@ -338,7 +337,7 @@ async def get_driver_location(
 async def cancel_ride(
     ride_id: uuid.UUID,
     payload: CancelRideRequest,
-    profile: dict = Depends(get_current_verified_driver),
+    profile: dict = Depends(get_current_driver),
 ):
     driver_id = uuid.UUID(str(profile["id"]))
     if not payload.reason or not payload.reason.strip():
@@ -366,7 +365,7 @@ async def cancel_ride(
 @router.post("/{ride_id}/start")
 async def start_ride(
     ride_id: uuid.UUID,
-    profile: dict = Depends(get_current_verified_driver),
+    profile: dict = Depends(get_current_driver),
 ):
     driver_id = uuid.UUID(str(profile["id"]))
     try:
@@ -656,7 +655,7 @@ async def get_ride_passenger_detail(
 @router.post("/{ride_id}/complete")
 async def complete_ride(
     ride_id: uuid.UUID,
-    profile: dict = Depends(get_current_verified_driver),
+    profile: dict = Depends(get_current_driver),
 ):
     driver_id = uuid.UUID(str(profile["id"]))
     try:
@@ -674,7 +673,7 @@ async def complete_ride(
 async def list_ride_bookings(
     ride_id: uuid.UUID,
     status_filter: Optional[str] = Query(None, alias="status"),
-    profile: dict = Depends(get_current_verified_driver),
+    profile: dict = Depends(get_current_driver),
 ):
     driver_id = uuid.UUID(str(profile["id"]))
     pool = get_pool()
@@ -757,7 +756,7 @@ async def list_ride_bookings(
 async def confirm_booking(
     ride_id: uuid.UUID,
     booking_id: uuid.UUID,
-    profile: dict = Depends(get_current_verified_driver),
+    profile: dict = Depends(get_current_driver),
 ):
     driver_id = uuid.UUID(str(profile["id"]))
     pool = get_pool()
@@ -779,7 +778,7 @@ async def reject_booking(
     ride_id: uuid.UUID,
     booking_id: uuid.UUID,
     payload: BookingCancelRequest = None,
-    profile: dict = Depends(get_current_verified_driver),
+    profile: dict = Depends(get_current_driver),
 ):
     driver_id = uuid.UUID(str(profile["id"]))
     reason = payload.reason if payload else None
@@ -803,7 +802,7 @@ async def cancel_booking_driver(
     ride_id: uuid.UUID,
     booking_id: uuid.UUID,
     payload: BookingCancelRequest = None,
-    profile: dict = Depends(get_current_verified_driver),
+    profile: dict = Depends(get_current_driver),
 ):
     driver_id = uuid.UUID(str(profile["id"]))
     reason = payload.reason if payload else None

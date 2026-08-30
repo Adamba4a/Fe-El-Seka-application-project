@@ -42,7 +42,7 @@ A driver who regularly travels the El Shorouk/Badr → Sheikh Zayed corridor cre
 
 **Acceptance Scenarios**:
 
-1. **Given** a logged-in, identity-verified user, **When** they create a group with a name, type ("general"), description, and one or more route tags, **Then** the group exists and that user becomes its owner and first member.
+1. **Given** a logged-in, org-email-verified user, **When** they create a group with a name, type ("general"), description, and one or more route tags, **Then** the group exists and that user becomes its owner and first member.
 2. **Given** an existing general group, **When** another user searches the group directory by a matching name, type, or route tag, **Then** the group appears in results with its name, type, description, route tags, and member count visible, without requiring membership.
 3. **Given** a group directory search with no matching groups, **When** a user searches, **Then** the system clearly indicates no matches and offers to create a new group.
 
@@ -76,7 +76,7 @@ A group owner shares a link to their group (e.g., in a messaging app outside the
 **Acceptance Scenarios**:
 
 1. **Given** an existing group, **When** its owner requests a shareable invite link, **Then** the system produces a link that, when opened, takes any user directly to that group's join screen.
-2. **Given** a general/interest group's invite link, **When** a new user opens it, **Then** they can join immediately (subject to the same identity-verification floor required platform-wide) with no additional gate beyond what directory-based joining requires.
+2. **Given** a general/interest group's invite link, **When** a new user opens it, **Then** they can join immediately (subject to the same org-email-verification floor required platform-wide) with no additional gate beyond what directory-based joining requires.
 3. **Given** a company or university group's invite link, **When** a new user opens it, **Then** they must still complete domain-gated email verification (User Story 4) before becoming a member — the link does not bypass that gate.
 4. **Given** an invite link, **When** it is opened by a user who is already a member, **Then** the system shows they are already a member rather than duplicating membership.
 
@@ -133,9 +133,9 @@ A member who no longer wants to be part of a group leaves it. A group owner can 
 
 ### Functional Requirements
 
-- **FR-001**: System MUST allow an identity-verified user to create a general group by providing a name, a description, and one or more route tags. Company and university groups are not created through this manual form — they come into existence via domain verification (see FR-010–FR-013).
+- **FR-001**: System MUST allow an org-email-verified user (Spec 025) to create a general group by providing a name, a description, and one or more route tags. Company and university groups are not created through this manual form — they come into existence via domain verification (see FR-010–FR-013).
 - **FR-002**: System MUST make the creator of a group its owner and first member at creation time.
-- **FR-003**: System MUST let any identity-verified user (driver or passenger) search/browse a group directory by name, type, and route tags, and see each matching group's name, type, description, route tags, and member count without requiring membership.
+- **FR-003**: System MUST let any org-email-verified user (driver or passenger) search/browse a group directory by name, type, and route tags, and see each matching group's name, type, description, route tags, and member count without requiring membership.
 - **FR-004**: System MUST let a group owner generate a shareable invite link that deep-links directly to that group's join screen. The link MUST remain permanently valid and reusable by any number of users until the owner explicitly revokes or regenerates it, at which point the previous link MUST stop working.
 - **FR-005**: System MUST route both directory-based joining and invite-link-based joining through the same join flow and the same gating rules for a given group; an invite link MUST NOT bypass any verification a directory join would require.
 - **FR-006**: System MUST let a driver who is a member of a group create a ride scoped to that group, using the platform's existing ride-creation flow.
@@ -148,7 +148,7 @@ A member who no longer wants to be part of a group leaves it. A group owner can 
 - **FR-013**: System MUST associate each verified non-blocklisted domain with exactly one company/university group; the first successful verification on a domain determines that group's existence and type, and every subsequent user who verifies an email on the same domain MUST join that same group automatically. The group's display name MUST be auto-derived from the domain (e.g., `acmecorp.com` → "Acmecorp") at creation, with no manual naming step required from the first verifier.
 - **FR-014**: System MUST rate-limit how many distinct users can be the first to successfully register a previously-unseen domain within a given time window, to deter spam creation of fake organization groups.
 - **FR-015**: System MUST label company/university group verification to users as "domain-verified," and MUST NOT represent it as employment or enrollment verification.
-- **FR-016**: System MUST continue to require the platform's existing mandatory National ID identity verification for any user before they can post or book any ride, regardless of group membership or domain verification status.
+- **FR-016**: System MUST NOT require National ID identity verification (Spec 021) for any user to post or book a ride, group-scoped or otherwise — National ID verification is no longer a mandatory gate anywhere on the platform (legal constraint); org-email verification (Spec 025) is the sole trust-floor requirement for group actions.
 - **FR-017**: System MUST let a member leave a group, immediately revoking their access to that group's ride listing and posting ability.
 - **FR-018**: System MUST let a group owner remove another member, with the same effect as that member leaving voluntarily.
 - **FR-019**: System MUST prevent a group's owner from leaving while other members remain unless ownership is first transferred to another member.
@@ -186,7 +186,7 @@ A member who no longer wants to be part of a group leaves it. A group owner can 
 
 ## Dependencies *(mandatory)*
 
-- **Internal**: Ride Creation domain (rides gain an optional group scope); Passenger/Driver ride search and booking domains (existing flows are reused, filtered by group); Identity & Verification domain (National ID verification remains a hard prerequisite for all ride participation, independent of group/domain verification); the platform's existing one-time-code (OTP) delivery mechanism, extended to email in addition to phone.
+- **Internal**: Ride Creation domain (rides gain an optional group scope); Passenger/Driver ride search and booking domains (existing flows are reused, filtered by group); Org-Email Verification domain (Spec 025 — the platform's sole trust-floor prerequisite for ride participation; National ID verification, Spec 021, is no longer a gate anywhere on the platform); the platform's existing one-time-code (OTP) delivery mechanism, extended to email in addition to phone.
 - **External**: An email delivery capability able to send one-time verification codes to arbitrary external domains.
 - **Data**: No new external data dependency; uses the platform's existing PostgreSQL database.
 
@@ -218,6 +218,6 @@ A member who no longer wants to be part of a group leaves it. A group owner can 
 - A general/interest group's route tags are free-form descriptive text for v1, not a fixed geofence or enforced route boundary — route intelligence (OSRM/PostGIS overlap) is not required to gate group membership itself, only to power future recommendation work (out of scope here).
 - A user may belong to any number of groups simultaneously; there is no exclusivity constraint between groups.
 - A driver must be a member of a group before posting a ride scoped to it; a passenger must be a member before viewing or booking a group's ride listing.
-- Group directory metadata (name, type, description, route tags, member count) is visible to any identity-verified platform user, regardless of membership; only the actual ride listing requires membership to view.
+- Group directory metadata (name, type, description, route tags, member count) is visible to any org-email-verified platform user, regardless of membership; only the actual ride listing requires membership to view.
 - The platform already has (or can straightforwardly extend) an email-sending capability suitable for one-time codes, based on the existing phone OTP and transactional-notification patterns already in production.
 - Group deletion/archival is a soft-deletion, consistent with the platform's existing data standard for transactional entities.

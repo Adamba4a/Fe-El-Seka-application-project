@@ -151,7 +151,7 @@ A group owner or admin removes a member from a sponsored group (e.g., because th
 - **FR-019**: System MUST NOT expose any controls to add funds, modify membership, or otherwise change sponsorship state on the company dashboard — those actions remain admin-only.
 - **FR-020**: System MUST let an admin designate and reassign a sponsored group's dashboard contact only to an existing domain-verified member of that group; an admin MUST NOT be able to designate a person who has not yet joined the group.
 - **FR-021**: System MUST continue to honor existing Groups (024) member-removal capability for sponsored groups, immediately preventing a removed member from booking further sponsored rides while leaving their already-completed sponsored bookings unaffected.
-- **FR-022**: System MUST continue to require the platform's existing mandatory National ID identity verification and, per Spec 025, organization-email verification for any user before they can book any ride, including sponsored rides.
+- **FR-022**: System MUST require organization-email verification (Spec 025) for any user before they can book any ride, including sponsored rides. National ID identity verification (Spec 021) MUST NOT be required for this or any other action (legal constraint) — org-email verification is the sole trust-floor gate.
 
 ### Key Entities *(include if feature involves data)*
 

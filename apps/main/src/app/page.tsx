@@ -22,10 +22,6 @@ export default async function Home() {
   // submitted their real name/phone/date of birth — signup isn't complete yet.
   if (profile.display_name === "New User") redirect("/profile");
 
-  if (profile.verification_status === "rejected") {
-    redirect(profile.role === "driver" ? "/driver/verify-documents" : "/verify-id");
-  }
-
   if (profile.verification_status === "suspended") {
     return <SuspendedScreen />;
   }
@@ -35,8 +31,9 @@ export default async function Home() {
   // checked after suspension (FR-012) but before role-based routing.
   if (!profile.org_verified_at) redirect("/verify-org-email");
 
-  // unverified, pending_review, and verified all get full app access —
-  // verification is enforced at gated actions (booking/posting rides), not here.
+  // National ID verification (Spec 021) no longer gates anything: org-email
+  // verification (Spec 025) is the platform's sole trust-floor requirement,
+  // so every verification_status value gets full app access here.
   if (profile.role === "driver") redirect("/rides");
   if (profile.role === "passenger") redirect("/dashboard");
   // Any other role (e.g. "admin") has no place in the main app.

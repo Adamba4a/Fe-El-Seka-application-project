@@ -381,7 +381,7 @@ class TestDomainVerificationGuards:
         monkeypatch.setattr(group_service, "get_pool", lambda: _FakePool(conn))
 
         payload = DomainVerificationRequest(email="user@gmail.com", requested_group_type="company")
-        profile = {"id": str(uuid.uuid4()), "verification_status": "verified"}
+        profile = {"id": str(uuid.uuid4()), "org_verified_at": "2026-01-01T00:00:00+00:00"}
 
         with pytest.raises(HTTPException) as exc_info:
             await group_service.request_domain_verification(profile, payload)
@@ -389,15 +389,15 @@ class TestDomainVerificationGuards:
         assert exc_info.value.status_code == 422
         assert exc_info.value.detail["error"] == "blocklisted_domain"
 
-    async def test_unverified_identity_blocked_before_domain_check(self, monkeypatch):
+    async def test_unverified_org_email_blocked_before_domain_check(self, monkeypatch):
         payload = DomainVerificationRequest(email="user@newco.com", requested_group_type="company")
-        profile = {"id": str(uuid.uuid4()), "verification_status": "pending"}
+        profile = {"id": str(uuid.uuid4()), "org_verified_at": None}
 
         with pytest.raises(HTTPException) as exc_info:
             await group_service.request_domain_verification(profile, payload)
 
         assert exc_info.value.status_code == 403
-        assert exc_info.value.detail["error"] == "identity_verification_required"
+        assert exc_info.value.detail["error"] == "org_verification_required"
 
     async def test_new_domain_registration_rate_limited(self, monkeypatch):
         verification_id = uuid.uuid4()
@@ -433,7 +433,7 @@ class TestDomainVerificationGuards:
         monkeypatch.setattr(group_service, "get_pool", lambda: _FakePool(conn))
 
         payload = DomainVerificationConfirm(verification_id=str(verification_id), code=code)
-        profile = {"id": str(user_id), "verification_status": "verified"}
+        profile = {"id": str(user_id), "org_verified_at": "2026-01-01T00:00:00+00:00"}
 
         with pytest.raises(HTTPException) as exc_info:
             await group_service.confirm_domain_verification(profile, payload)
@@ -485,7 +485,7 @@ class TestDomainVerificationGuards:
         monkeypatch.setattr(group_service, "get_pool", lambda: _FakePool(conn))
 
         payload = DomainVerificationConfirm(verification_id=str(verification_id), code=code)
-        profile = {"id": str(user_id), "verification_status": "verified"}
+        profile = {"id": str(user_id), "org_verified_at": "2026-01-01T00:00:00+00:00"}
 
         await group_service.confirm_domain_verification(profile, payload)
 
@@ -511,7 +511,7 @@ class TestDomainVerificationGuards:
         monkeypatch.setattr(group_service, "get_pool", lambda: _FakePool(conn))
 
         payload = DomainVerificationConfirm(verification_id=str(verification_id), code="000000")
-        profile = {"id": str(user_id), "verification_status": "verified"}
+        profile = {"id": str(user_id), "org_verified_at": "2026-01-01T00:00:00+00:00"}
 
         with pytest.raises(HTTPException) as exc_info:
             await group_service.confirm_domain_verification(profile, payload)

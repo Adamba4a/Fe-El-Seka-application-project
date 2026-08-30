@@ -106,7 +106,7 @@ A user attempts to verify using a personal email address (e.g. a Gmail or Yahoo 
 - **FR-010**: System MUST prevent an email address that is already actively org-verified on one account from being used to complete org-verification on a second account; this conflict MUST be surfaced only after the second account's user enters a correct one-time code (proving inbox ownership), not at the point they merely submit the email address, so verification status is never revealed to someone who has not proven they control the inbox.
 - **FR-011**: System MUST apply the org-email verification requirement identically to both passenger and driver roles.
 - **FR-012**: System MUST check the account-suspension status before the org-email gate, so a suspended account is blocked by the existing suspension mechanism rather than being routed to the verification screen.
-- **FR-013**: System MUST apply the org-email gate independently of the account's National ID identity-verification status (Spec 021) — an account may be org-verified without being ID-verified, and vice versa; gated actions that already require ID verification (e.g. booking, posting a ride) continue to require it separately.
+- **FR-013**: System MUST apply the org-email gate independently of the account's National ID identity-verification status (Spec 021) — an account may be org-verified without ever completing ID verification. National ID verification is NOT a requirement anywhere on the platform (legal constraint); org-email verification is the sole trust-floor gate for booking, posting a ride, and all group actions.
 - **FR-014**: System MUST NOT treat the org-email gate as satisfied by the account's login/sign-in email address — the org email verified for this gate is independent of, and may differ from, the email used to sign in.
 - **FR-015**: System MUST automatically treat an account as org-verified for this gate, without requiring a new one-time code, if that account already has a confirmed domain verification from the existing Groups feature (Spec 024).
 
@@ -151,7 +151,7 @@ A user attempts to verify using a personal email address (e.g. a Gmail or Yahoo 
 - A grace period or transition window for existing users — the gate applies on each account's very next sign-in after release.
 - A manual admin exception/appeal path for users without any company or university email — they remain blocked; not addressed by this specification.
 - Periodic re-verification of an org email after the initial confirmation (e.g. re-checking if a user later leaves their company/university) — out of scope for this iteration.
-- Any change to how National ID identity verification (Spec 021) itself works, or to its independent gating of booking/posting actions.
+- Any change to how National ID identity verification (Spec 021) itself works. Note: as of 2026-08-30, National ID verification is no longer a gate on any action platform-wide (legal constraint) — org-email verification is the sole trust floor.
 - Sponsored/company-funded groups, recurring rides, or loyalty points (Specs 026-028) — this specification covers only the access gate they will build on top of.
 - Admin-panel workflows beyond exposing the existing org-verification status and domain rejection list for visibility — no new admin UI for managing individual verification records.
 
@@ -160,7 +160,7 @@ A user attempts to verify using a personal email address (e.g. a Gmail or Yahoo 
 ## Technical Considerations
 
 - Reuses the domain-verification OTP infrastructure introduced for Groups (Spec 024) — the request/confirm code-verification flow and its domain-rejection-list check — rather than building a parallel OTP mechanism, per the constitution's prohibition on duplicating shared functionality (Principle VII).
-- This gate must not depend on National ID verification status as a prerequisite, unlike Spec 024's Groups feature, which requires ID verification before a user can even request domain verification — for this app-wide gate, org-email verification must be reachable by brand-new, not-yet-ID-verified accounts (Spec 021 leaves most accounts in an "unverified" ID state well after signup).
+- This gate must not depend on National ID verification status as a prerequisite — org-email verification must be reachable by brand-new, not-yet-ID-verified accounts (Spec 021 leaves most accounts in an "unverified" ID state well after signup, and as of 2026-08-30 that ID state never gates anything, in Groups or elsewhere).
 - Follows the same "non-skippable full-app gate checked at sign-in" pattern established by Spec 020 (required phone/photo), rather than a per-action gate — apply as a page-level check in `apps/main`, not a rewrite of the shared authentication/login flow.
 
 ---

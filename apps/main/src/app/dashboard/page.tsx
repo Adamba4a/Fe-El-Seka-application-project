@@ -29,12 +29,9 @@ export default async function DashboardPage() {
 
   const isDriver = profile.role === "driver";
 
-  // Rejected users are sent to resubmit, mirroring app/page.tsx's redirect —
-  // unverified, pending_review, and verified all get full dashboard access;
-  // verification is enforced at gated actions, not here.
-  if (profile.verification_status === "rejected") {
-    redirect(isDriver ? "/driver/verify-documents" : "/verify-id");
-  }
+  // National ID verification (Spec 021) no longer gates anything: org-email
+  // verification (Spec 025) is the platform's sole trust-floor requirement,
+  // so every verification_status value gets full dashboard access here.
 
   return (
     <AppShell variant={isDriver ? "driver" : "passenger"}>

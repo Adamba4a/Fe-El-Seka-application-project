@@ -104,7 +104,7 @@ class TestCreateAndSearchGroup:
         user_id = uuid.uuid4()
         app.dependency_overrides[get_current_user] = lambda: {
             "id": str(user_id),
-            "verification_status": "verified",
+            "org_verified_at": "2026-01-01T00:00:00+00:00",
         }
         row = _group_row()
         conn = _RoutedFakeConn(fetchrow_rules=[("INSERT INTO groups", row)])
@@ -124,16 +124,16 @@ class TestCreateAndSearchGroup:
         assert body["id"] == str(row["id"])
         assert body["member_count"] == 1
 
-    def test_create_group_requires_verified_identity(self, client, monkeypatch):
+    def test_create_group_requires_org_verified_email(self, client, monkeypatch):
         app.dependency_overrides[get_current_user] = lambda: {
             "id": str(uuid.uuid4()),
-            "verification_status": "pending",
+            "org_verified_at": None,
         }
 
         resp = client.post("/api/groups", json={"name": "Test", "route_tags": []})
 
         assert resp.status_code == 403
-        assert resp.json()["error"] == "identity_verification_required"
+        assert resp.json()["error"] == "org_verification_required"
 
     def test_search_groups_returns_matches(self, client, monkeypatch):
         app.dependency_overrides[get_current_user] = lambda: {"id": str(uuid.uuid4())}
@@ -158,7 +158,7 @@ class TestJoinGroup:
         group_id = uuid.uuid4()
         app.dependency_overrides[get_current_user] = lambda: {
             "id": str(user_id),
-            "verification_status": "verified",
+            "org_verified_at": "2026-01-01T00:00:00+00:00",
         }
         membership_row = {
             "id": uuid.uuid4(),
@@ -184,7 +184,7 @@ class TestJoinGroup:
     def test_join_nonexistent_group_returns_404(self, client, monkeypatch):
         app.dependency_overrides[get_current_user] = lambda: {
             "id": str(uuid.uuid4()),
-            "verification_status": "verified",
+            "org_verified_at": "2026-01-01T00:00:00+00:00",
         }
         conn = _RoutedFakeConn(fetchrow_rules=[("SELECT id, type FROM groups", None)])
         monkeypatch.setattr(group_service, "get_pool", lambda: _FakePool(conn))

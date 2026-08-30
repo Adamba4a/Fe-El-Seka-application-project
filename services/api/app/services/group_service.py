@@ -53,17 +53,18 @@ async def _get_new_domain_rate_limit(conn) -> tuple[int, int]:
 
 
 def _require_verified(profile: dict) -> None:
-    # Groups reuses the platform's existing endpoint-level identity-verification
-    # gating pattern (Spec 021) rather than a middleware gate — see
-    # dependencies/auth.get_current_user, which only globally blocks 'suspended'.
-    # National ID verification remains the hard trust floor for group creation
-    # and joining (FR-016), independent of any domain-verification status.
-    if profile.get("verification_status") != "verified":
+    # Groups' trust floor is org-email verification (Spec 025), not National ID
+    # (Spec 021) — a user who signed in with a verified company/university email
+    # can create, join, and domain-verify groups without completing ID
+    # verification. Mirrors dependencies/org_access.require_org_verified, but
+    # applied inline here since these checks live inside the service layer
+    # rather than as router-level dependencies.
+    if profile.get("org_verified_at") is None:
         raise HTTPException(
             status_code=403,
             detail={
-                "error": "identity_verification_required",
-                "message": "You must complete National ID verification before using Groups.",
+                "error": "org_verification_required",
+                "message": "You must verify a company or university email before using Groups.",
             },
         )
 

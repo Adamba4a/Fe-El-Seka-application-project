@@ -11,7 +11,6 @@ from app.core.database import get_pool
 from app.dependencies.auth import get_current_user
 from app.dependencies.org_access import require_org_verified
 from app.dependencies.roles import get_current_passenger
-from app.dependencies.verification import get_current_verified_passenger
 from app.models.booking import (
     BookingAddSeatsRequest,
     BookingCancelRequest,
@@ -30,7 +29,7 @@ router = APIRouter()
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def book_ride(
     body: BookingCreateRequest,
-    profile: dict = Depends(get_current_verified_passenger),
+    profile: dict = Depends(get_current_passenger),
     _org_verified: dict = Depends(require_org_verified),
 ):
     passenger_id = uuid.UUID(str(profile["id"]))
@@ -288,7 +287,7 @@ async def cancel_booking_passenger(
 async def add_booking_seats(
     booking_id: uuid.UUID,
     body: BookingAddSeatsRequest,
-    profile: dict = Depends(get_current_verified_passenger),
+    profile: dict = Depends(get_current_passenger),
     _org_verified: dict = Depends(require_org_verified),
 ):
     passenger_id = uuid.UUID(str(profile["id"]))
