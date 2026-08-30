@@ -4,6 +4,7 @@ import re
 import secrets
 import uuid
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Optional
 
 from fastapi import HTTPException
@@ -12,6 +13,7 @@ from app.core.config import settings
 from app.core.database import get_pool
 from app.models.group import (
     CreateGroupRequest,
+    DashboardContactResponse,
     DomainVerificationConfirm,
     DomainVerificationConfirmResponse,
     DomainVerificationRequest,
@@ -22,6 +24,8 @@ from app.models.group import (
     GroupSummary,
     InviteLinkResponse,
     MembershipResponse,
+    SponsorshipActivityItem,
+    SponsorshipDashboardResponse,
 )
 from app.models.ride import RideListResponse
 from app.services import notification_service
@@ -75,13 +79,18 @@ def _to_membership(row) -> MembershipResponse:
 
 
 def _to_summary(row) -> GroupSummary:
+    d = dict(row)
+    dashboard_contact_user_id = d.get("dashboard_contact_user_id")
     return GroupSummary(
-        id=str(row["id"]),
-        name=row["name"],
-        type=row["type"],
-        description=row["description"],
-        route_tags=list(row["route_tags"]) if row["route_tags"] else [],
-        member_count=row["member_count"],
+        id=str(d["id"]),
+        name=d["name"],
+        type=d["type"],
+        description=d["description"],
+        route_tags=list(d["route_tags"]) if d["route_tags"] else [],
+        member_count=d["member_count"],
+        is_sponsored=bool(d.get("is_sponsored", False)),
+        funded_balance_egp=d.get("funded_balance_egp", Decimal("0.00")),
+        dashboard_contact_user_id=str(dashboard_contact_user_id) if dashboard_contact_user_id else None,
     )
 
 
@@ -143,7 +152,8 @@ async def search_groups(
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             f"""
-            SELECT id, name, type, description, route_tags, member_count
+            SELECT id, name, type, description, route_tags, member_count,
+                   is_sponsored, funded_balance_egp, dashboard_contact_user_id
             FROM groups
             WHERE {where_clause}
             ORDER BY member_count DESC, name ASC
@@ -163,7 +173,8 @@ async def get_group_detail(group_id: uuid.UUID, user_id: uuid.UUID) -> GroupDeta
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
-            SELECT id, name, type, description, route_tags, owner_id, member_count
+            SELECT id, name, type, description, route_tags, owner_id, member_count,
+                   is_sponsored, funded_balance_egp, dashboard_contact_user_id
             FROM groups
             WHERE id = $1 AND archived_at IS NULL
             """,
@@ -193,7 +204,8 @@ async def list_my_groups(user_id: uuid.UUID) -> list[GroupSummary]:
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            SELECT g.id, g.name, g.type, g.description, g.route_tags, g.member_count
+            SELECT g.id, g.name, g.type, g.description, g.route_tags, g.member_count,
+                   g.is_sponsored, g.funded_balance_egp, g.dashboard_contact_user_id
             FROM groups g
             JOIN group_memberships m ON m.group_id = g.id
             WHERE m.user_id = $1 AND g.archived_at IS NULL
@@ -290,7 +302,8 @@ async def resolve_invite_token(invite_token: str, user_id: uuid.UUID) -> GroupDe
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
-            SELECT id, name, type, description, route_tags, owner_id, member_count
+            SELECT id, name, type, description, route_tags, owner_id, member_count,
+                   is_sponsored, funded_balance_egp, dashboard_contact_user_id
             FROM groups
             WHERE invite_token = $1 AND archived_at IS NULL
             """,
@@ -562,7 +575,8 @@ async def confirm_domain_verification(
                     INSERT INTO groups (name, type, description, route_tags, owner_id, domain)
                     VALUES ($1, $2, $3, '{}', $4, $5)
                     ON CONFLICT (domain) DO NOTHING
-                    RETURNING id, name, type, description, route_tags, owner_id, member_count
+                    RETURNING id, name, type, description, route_tags, owner_id, member_count,
+                              is_sponsored, funded_balance_egp, dashboard_contact_user_id
                     """,
                     _derive_group_name(domain), verification["requested_group_type"],
                     f"Domain-verified group for {domain}.", user_id, domain,
@@ -571,7 +585,8 @@ async def confirm_domain_verification(
                 if group_row is None:
                     group_row = await conn.fetchrow(
                         """
-                        SELECT id, name, type, description, route_tags, owner_id, member_count
+                        SELECT id, name, type, description, route_tags, owner_id, member_count,
+                               is_sponsored, funded_balance_egp, dashboard_contact_user_id
                         FROM groups WHERE domain = $1 AND archived_at IS NULL
                         """,
                         domain,
@@ -625,7 +640,8 @@ async def confirm_domain_verification(
             # so group_row's member_count (captured before/around that insert) is stale.
             group_row = await conn.fetchrow(
                 """
-                SELECT id, name, type, description, route_tags, owner_id, member_count
+                SELECT id, name, type, description, route_tags, owner_id, member_count,
+                       is_sponsored, funded_balance_egp, dashboard_contact_user_id
                 FROM groups WHERE id = $1
                 """,
                 group_row["id"],
@@ -822,12 +838,152 @@ async def transfer_ownership(
             row = await conn.fetchrow(
                 """
                 UPDATE groups SET owner_id = $2 WHERE id = $1
-                RETURNING id, name, type, description, route_tags, member_count
+                RETURNING id, name, type, description, route_tags, member_count,
+                          is_sponsored, funded_balance_egp, dashboard_contact_user_id
                 """,
                 group_id, new_owner_id,
             )
 
     return _to_summary(row)
+
+
+# ── T028: list a sponsored group's members for the admin UI (no membership
+# requirement on the caller — admins aren't members of the org they sponsor) ─
+async def list_members_admin(group_id: uuid.UUID) -> list[GroupMemberResponse]:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        group_exists = await conn.fetchval(
+            "SELECT 1 FROM groups WHERE id = $1 AND archived_at IS NULL", group_id
+        )
+        if not group_exists:
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "group_not_found", "message": "Group not found."},
+            )
+        rows = await conn.fetch(
+            """
+            SELECT m.id, m.user_id, p.display_name, m.role, m.joined_at
+            FROM group_memberships m
+            JOIN profiles p ON p.id = m.user_id
+            WHERE m.group_id = $1
+            ORDER BY (m.role = 'owner') DESC, m.joined_at ASC
+            """,
+            group_id,
+        )
+
+    return [
+        GroupMemberResponse(
+            id=str(r["id"]),
+            user_id=str(r["user_id"]),
+            display_name=r["display_name"],
+            role=r["role"],
+            joined_at=r["joined_at"].isoformat(),
+        )
+        for r in rows
+    ]
+
+
+# ── T024: assign/reassign the sponsorship dashboard contact ────────────────
+async def set_dashboard_contact(
+    group_id: uuid.UUID, admin_id: uuid.UUID, user_id: str
+) -> DashboardContactResponse:
+    try:
+        target_user_id = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail={"error": "invalid_user_id", "message": "user_id must be a valid UUID."},
+        )
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            group_row = await conn.fetchrow(
+                "SELECT id FROM groups WHERE id = $1 AND archived_at IS NULL FOR UPDATE",
+                group_id,
+            )
+            if group_row is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail={"error": "group_not_found", "message": "Group not found."},
+                )
+
+            target_is_member = await conn.fetchval(
+                "SELECT 1 FROM group_memberships WHERE group_id = $1 AND user_id = $2",
+                group_id, target_user_id,
+            )
+            if not target_is_member:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": "not_a_group_member",
+                        "message": "The dashboard contact must already be a member of this group.",
+                    },
+                )
+
+            row = await conn.fetchrow(
+                "UPDATE groups SET dashboard_contact_user_id = $2 WHERE id = $1 "
+                "RETURNING id, dashboard_contact_user_id",
+                group_id, target_user_id,
+            )
+
+    return DashboardContactResponse(
+        group_id=str(row["id"]), dashboard_contact_user_id=str(row["dashboard_contact_user_id"])
+    )
+
+
+# ── T025: read-only sponsorship dashboard for the assigned contact ─────────
+async def get_sponsorship_dashboard(
+    group_id: uuid.UUID, requesting_user_id: uuid.UUID
+) -> SponsorshipDashboardResponse:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        group_row = await conn.fetchrow(
+            "SELECT funded_balance_egp, member_count, is_sponsored, dashboard_contact_user_id "
+            "FROM groups WHERE id = $1 AND archived_at IS NULL",
+            group_id,
+        )
+        if group_row is None or not group_row["is_sponsored"]:
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "group_not_found", "message": "Sponsored group not found."},
+            )
+        if group_row["dashboard_contact_user_id"] != requesting_user_id:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "not_dashboard_contact",
+                    "message": "Only the assigned dashboard contact can view this dashboard.",
+                },
+            )
+
+        activity_rows = await conn.fetch(
+            """
+            SELECT dle.type, dle.amount_egp, dle.ride_id, dle.booking_id, dle.created_at
+            FROM driver_ledger_entries dle
+            JOIN rides r ON r.id = dle.ride_id
+            WHERE r.group_id = $1
+              AND dle.type IN ('SPONSORED_RIDE_CREDIT', 'SPONSORED_RIDE_REVERSAL')
+            ORDER BY dle.created_at DESC
+            LIMIT 50
+            """,
+            group_id,
+        )
+
+    return SponsorshipDashboardResponse(
+        funded_balance_egp=group_row["funded_balance_egp"],
+        member_count=group_row["member_count"],
+        recent_activity=[
+            SponsorshipActivityItem(
+                type=r["type"],
+                amount_egp=r["amount_egp"],
+                ride_id=str(r["ride_id"]),
+                booking_id=str(r["booking_id"]),
+                created_at=r["created_at"].isoformat(),
+            )
+            for r in activity_rows
+        ],
+    )
 
 
 # ── T051: archive (soft-delete) a group ─────────────────────────────────────

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel
@@ -30,6 +31,9 @@ class GroupSummary(BaseModel):
     description: str | None
     route_tags: list[str]
     member_count: int
+    is_sponsored: bool = False
+    funded_balance_egp: Decimal = Decimal("0.00")
+    dashboard_contact_user_id: str | None = None
 
 
 class GroupListResponse(BaseModel):
@@ -85,3 +89,42 @@ class GroupMemberResponse(BaseModel):
     display_name: str
     role: Literal["owner", "member"]
     joined_at: str
+
+
+class SponsoredGroupCreateRequest(BaseModel):
+    domain: str
+    name: str | None = None
+    funded_balance_egp: Decimal
+    requested_group_type: DomainGroupType
+
+
+class AddFundsRequest(BaseModel):
+    amount_egp: Decimal
+
+
+class AddFundsResponse(BaseModel):
+    group_id: str
+    new_funded_balance_egp: Decimal
+
+
+class DashboardContactRequest(BaseModel):
+    user_id: str
+
+
+class DashboardContactResponse(BaseModel):
+    group_id: str
+    dashboard_contact_user_id: str
+
+
+class SponsorshipActivityItem(BaseModel):
+    type: Literal["SPONSORED_RIDE_CREDIT", "SPONSORED_RIDE_REVERSAL"]
+    amount_egp: Decimal
+    ride_id: str
+    booking_id: str
+    created_at: str
+
+
+class SponsorshipDashboardResponse(BaseModel):
+    funded_balance_egp: Decimal
+    member_count: int
+    recent_activity: list[SponsorshipActivityItem]

@@ -14,11 +14,13 @@ from app.api.admin.dashboard_router import router as admin_dashboard_router
 from app.api.admin.financial_router import router as admin_financial_router
 from app.api.admin.moderation_router import router as admin_moderation_router
 from app.api.admin.rides_router import router as admin_rides_router
+from app.api.admin.sponsored_groups_router import router as admin_sponsored_groups_router
 from app.api.admin.users_router import router as admin_users_router
 from app.api.admin.vehicle_updates_router import router as admin_vehicle_updates_router
 from app.api.admin.verification_router import router as admin_verification_router
 from app.api.admin.wallet_router import router as admin_wallet_router
 from app.api.admin.wallet_topup_router import router as admin_wallet_topup_router
+from app.api.admin.withdrawal_router import router as admin_withdrawal_router
 from app.api.auth.router import router as auth_router
 from app.api.bookings.router import router as bookings_router
 from app.api.geocode.router import router as geocode_router
@@ -38,6 +40,7 @@ from app.api.vehicles.router import router as vehicles_router
 from app.api.verification.router import router as verification_router
 from app.api.wallet.router import router as wallet_router
 from app.api.wallet_topup.router import router as wallet_topup_router
+from app.api.wallet_withdrawals.router import router as wallet_withdrawals_router
 from app.core.config import settings
 from app.core.database import close_pool, create_pool
 from app.services import ai_client as ai_client_module
@@ -237,6 +240,16 @@ app.include_router(
     tags=["admin-wallet-topup"],
 )
 app.include_router(
+    admin_withdrawal_router,
+    prefix="/api/admin/withdrawal-requests",
+    tags=["admin-withdrawal-requests"],
+)
+app.include_router(
+    admin_sponsored_groups_router,
+    prefix="/api/admin/sponsored-groups",
+    tags=["admin-sponsored-groups"],
+)
+app.include_router(
     admin_car_maintenance_router,
     prefix="/api/admin/car-maintenance-rewards",
     tags=["admin-car-maintenance"],
@@ -259,6 +272,7 @@ app.include_router(ratings_router, prefix="/api/v1/ratings", tags=["ratings"])
 app.include_router(reports_router, prefix="/api/v1/reports", tags=["reports"])
 app.include_router(wallet_router, prefix="/api/v1/drivers/me", tags=["wallet"])
 app.include_router(wallet_topup_router, prefix="/api/wallet/topup", tags=["wallet-topup"])
+app.include_router(wallet_withdrawals_router, prefix="/api/wallet/withdrawals", tags=["wallet-withdrawals"])
 app.include_router(internal_router, prefix="/api/v1/internal", tags=["internal"])
 app.include_router(routes_router, prefix="/api/routes", tags=["routes"])
 app.include_router(geocode_router, prefix="/api/geocode", tags=["geocode"])

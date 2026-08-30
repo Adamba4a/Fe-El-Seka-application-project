@@ -201,10 +201,11 @@ async def create_ride(
                     409,
                 )
 
+            is_sponsored_group = False
             if payload.group_id is not None:
                 group_row = await conn.fetchrow(
                     """
-                    SELECT g.archived_at
+                    SELECT g.archived_at, g.is_sponsored
                     FROM group_memberships gm
                     JOIN groups g ON g.id = gm.group_id
                     WHERE gm.group_id = $1 AND gm.user_id = $2
@@ -223,42 +224,48 @@ async def create_ride(
                         "This group has been archived and no longer accepts new rides.",
                         403,
                     )
+                is_sponsored_group = bool(group_row["is_sponsored"])
 
             # Phase 8 (FR-014): balance enforcement — lock wallet before ride INSERT so
             # the check and the ride creation are atomic; concurrent rides by the same
             # driver are serialized by the advisory lock already held above.
-            from fastapi import HTTPException as _HTTPException
+            # Spec 026 (research.md §6): sponsored-group rides settle per-booking out of
+            # the group's funded balance, not the driver's wallet, so no commission is
+            # ever reserved against the driver for these rides — skip the gate entirely.
+            wallet = None
+            if not is_sponsored_group:
+                from fastapi import HTTPException as _HTTPException
 
-            from app.services import wallet_service as _ws
-            from app.services.commission_service import (
-                COMMISSION_RATE,
-                check_available_balance,
-                create_reservation,
-            )
-
-            markup_commission = (price_per_seat - fair_price_dec) * payload.total_seats * COMMISSION_RATE
-            max_commission = (
-                Decimal(str(fuel_cost_egp)) * COMMISSION_RATE
-                + Decimal(str(distance_fee_egp))
-                + Decimal(str(safety_margin_egp))
-                + markup_commission
-            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            wallet = await _ws.get_wallet_with_lock(conn, driver_id)
-
-            if not check_available_balance(wallet, max_commission):
-                _balance = Decimal(str(wallet["balance_egp"]))
-                _reserved = Decimal(str(wallet["reserved_egp"]))
-                raise _HTTPException(
-                    status_code=422,
-                    detail={
-                        "error": "INSUFFICIENT_WALLET_BALANCE",
-                        "message": "Insufficient wallet balance to cover this ride's commission.",
-                        "available_egp": str(_balance - _reserved),
-                        "required_commission_egp": str(max_commission),
-                        "balance_egp": str(_balance),
-                        "reserved_egp": str(_reserved),
-                    },
+                from app.services import wallet_service as _ws
+                from app.services.commission_service import (
+                    COMMISSION_RATE,
+                    check_available_balance,
+                    create_reservation,
                 )
+
+                markup_commission = (price_per_seat - fair_price_dec) * payload.total_seats * COMMISSION_RATE
+                max_commission = (
+                    Decimal(str(fuel_cost_egp)) * COMMISSION_RATE
+                    + Decimal(str(distance_fee_egp))
+                    + Decimal(str(safety_margin_egp))
+                    + markup_commission
+                ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                wallet = await _ws.get_wallet_with_lock(conn, driver_id)
+
+                if not check_available_balance(wallet, max_commission):
+                    _balance = Decimal(str(wallet["balance_egp"]))
+                    _reserved = Decimal(str(wallet["reserved_egp"]))
+                    raise _HTTPException(
+                        status_code=422,
+                        detail={
+                            "error": "INSUFFICIENT_WALLET_BALANCE",
+                            "message": "Insufficient wallet balance to cover this ride's commission.",
+                            "available_egp": str(_balance - _reserved),
+                            "required_commission_egp": str(max_commission),
+                            "balance_egp": str(_balance),
+                            "reserved_egp": str(_reserved),
+                        },
+                    )
 
             row = await conn.fetchrow(
                 f"""
@@ -296,7 +303,8 @@ async def create_ride(
                 row["id"], driver_id,
             )
 
-            await create_reservation(conn, wallet["id"], driver_id, row["id"], max_commission)
+            if not is_sponsored_group:
+                await create_reservation(conn, wallet["id"], driver_id, row["id"], max_commission)
 
     return _to_response(dict(row))
 
@@ -815,15 +823,20 @@ async def complete_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideRespons
             # `seats` is required here — deduct_commission() charges per seat, not per
             # booking row, since a single booking can reserve more than one seat.
             confirmed_bookings = await conn.fetch(
-                "SELECT id, passenger_id, seats FROM bookings WHERE ride_id = $1 AND status = 'confirmed'",
+                "SELECT id, passenger_id, seats, payment_source FROM bookings "
+                "WHERE ride_id = $1 AND status = 'confirmed'",
                 ride_id,
             )
+            # Sponsored bookings (payment_source='SPONSORED') already settled commission
+            # at booking time (research.md §4/§5) — excluding them here prevents double-
+            # charging the driver at completion.
+            cash_bookings = [b for b in confirmed_bookings if b["payment_source"] == "CASH"]
 
             from app.services.booking_service import complete_ride_bookings
             await complete_ride_bookings(conn, ride_id)
 
             from app.services.commission_service import deduct_commission, release_reservation
-            await deduct_commission(conn, dict(ride), [dict(b) for b in confirmed_bookings])
+            await deduct_commission(conn, dict(ride), [dict(b) for b in cash_bookings])
             await release_reservation(conn, ride_id, driver_id)
 
             for b in confirmed_bookings:

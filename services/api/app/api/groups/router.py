@@ -18,6 +18,7 @@ from app.models.group import (
     GroupSummary,
     InviteLinkResponse,
     MembershipResponse,
+    SponsorshipDashboardResponse,
     TransferOwnershipRequest,
 )
 from app.models.ride import RideListResponse
@@ -153,6 +154,15 @@ async def transfer_ownership(
 ):
     owner_id = uuid.UUID(str(profile["id"]))
     return await group_service.transfer_ownership(group_id, owner_id, payload.new_owner_user_id)
+
+
+@router.get("/{group_id}/sponsorship-dashboard", response_model=SponsorshipDashboardResponse)
+async def get_sponsorship_dashboard(
+    group_id: uuid.UUID,
+    profile: dict = Depends(get_current_user),
+):
+    user_id = uuid.UUID(str(profile["id"]))
+    return await group_service.get_sponsorship_dashboard(group_id, user_id)
 
 
 @router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)

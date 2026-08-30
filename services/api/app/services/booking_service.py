@@ -4,7 +4,7 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Optional
 
 import asyncpg
@@ -88,7 +88,8 @@ async def create_booking(
         # 1. Lock the ride row to prevent concurrent seat races
         ride = await conn.fetchrow(
             """
-            SELECT id, status, departure_datetime, price_per_seat, booked_seats, total_seats, driver_id, group_id
+            SELECT id, status, departure_datetime, price_per_seat, booked_seats, total_seats, driver_id, group_id,
+                   fuel_cost_egp, distance_fee_egp, safety_margin_egp, fair_price_per_seat
             FROM rides WHERE id = $1 FOR UPDATE
             """,
             ride_id,
@@ -131,6 +132,41 @@ async def create_booking(
                 detail={"error": "ride_departed", "message": "Ride has already departed"},
             )
 
+        # Spec 026 (research.md §4): a sponsored-group ride settles per-seat out of
+        # the group's funded balance at booking time instead of cash, so the funds
+        # check/debit must happen before seats are claimed (FR-008 — no seats
+        # claimed if the balance can't cover it).
+        payment_source = "CASH"
+        total_seat_price = None
+        group_row = None
+        if ride["group_id"] is not None:
+            is_sponsored_group = await conn.fetchval(
+                "SELECT is_sponsored FROM groups WHERE id = $1", ride["group_id"],
+            )
+            if is_sponsored_group:
+                # Only lock the group row when settlement will actually touch its
+                # balance — locking it for every ordinary group-ride booking would
+                # needlessly serialize unrelated bookings across the whole group.
+                group_row = await conn.fetchrow(
+                    "SELECT id, is_sponsored, funded_balance_egp FROM groups WHERE id = $1 FOR UPDATE",
+                    ride["group_id"],
+                )
+        if group_row is not None and group_row["is_sponsored"]:
+            total_seat_price = Decimal(str(ride["price_per_seat"])) * seats
+            if Decimal(str(group_row["funded_balance_egp"])) < total_seat_price:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": "insufficient_funded_balance",
+                        "message": "This group's funded balance cannot cover this booking.",
+                    },
+                )
+            await conn.execute(
+                "UPDATE groups SET funded_balance_egp = funded_balance_egp - $2 WHERE id = $1",
+                group_row["id"], total_seat_price,
+            )
+            payment_source = "SPONSORED"
+
         # 2. Atomic seat claim — zero rows means not enough seats remain
         claimed = await conn.fetchrow(
             """
@@ -161,12 +197,12 @@ async def create_booking(
                     ride_id, passenger_id, per_seat_price, total_price, seats,
                     passenger_pickup_point, passenger_dropoff_point,
                     premium_pickup_requested, premium_dropoff_requested,
-                    premium_pickup_fee, premium_dropoff_fee
+                    premium_pickup_fee, premium_dropoff_fee, payment_source
                 ) VALUES (
                     $1, $2, $3, $4, $5,
                     ST_SetSRID(ST_MakePoint($6, $7), 4326),
                     ST_SetSRID(ST_MakePoint($8, $9), 4326),
-                    $10, $11, $12, $13
+                    $10, $11, $12, $13, $14
                 ) RETURNING id, status, per_seat_price, total_price, seats,
                            premium_pickup_requested, premium_dropoff_requested,
                            premium_pickup_fee, premium_dropoff_fee, created_at
@@ -177,6 +213,7 @@ async def create_booking(
                 premium_pickup, premium_dropoff,
                 pu_fee if premium_pickup else None,
                 do_fee if premium_dropoff else None,
+                payment_source,
             )
         except asyncpg.UniqueViolationError:
             raise HTTPException(
@@ -189,6 +226,41 @@ async def create_booking(
 
         booking = dict(row)
         booking_id = booking["id"]
+
+        if payment_source == "SPONSORED":
+            from app.services import wallet_service
+            from app.services.commission_service import COMMISSION_RATE
+
+            fuel_cost_egp = Decimal(str(ride["fuel_cost_egp"] or 0))
+            distance_fee_egp = Decimal(str(ride["distance_fee_egp"] or 0))
+            safety_margin_egp = Decimal(str(ride["safety_margin_egp"] or 0))
+            fair_price_per_seat = Decimal(str(ride["fair_price_per_seat"]))
+            price_per_seat = Decimal(str(ride["price_per_seat"]))
+            total_seats_on_ride = ride["total_seats"]
+
+            markup_commission_per_seat = (
+                max(Decimal("0"), price_per_seat - fair_price_per_seat) * COMMISSION_RATE
+            )
+            per_seat_commission = (
+                fuel_cost_egp * COMMISSION_RATE + distance_fee_egp + safety_margin_egp
+            ) / total_seats_on_ride + markup_commission_per_seat
+            commission_for_booking = (per_seat_commission * seats).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+            net_credit = total_seat_price - commission_for_booking
+
+            driver_wallet = await wallet_service.get_wallet_with_lock(conn, ride["driver_id"])
+            await wallet_service.increment_balance(conn, driver_wallet["id"], net_credit)
+            await wallet_service.insert_ledger_entry(
+                conn,
+                driver_wallet["id"],
+                ride["driver_id"],
+                "SPONSORED_RIDE_CREDIT",
+                net_credit,
+                ride_id=ride_id,
+                booking_id=booking_id,
+                note="Sponsored group booking settlement",
+            )
 
         # 5. Audit log
         await _insert_audit_log(conn, booking_id, "created", passenger_id, "passenger", None, "pending")
@@ -441,8 +513,9 @@ async def cancel_booking(
     async with conn.transaction():
         row = await conn.fetchrow(
             """
-            SELECT b.id, b.status, b.ride_id, b.passenger_id, b.seats,
-                   r.driver_id, r.departure_datetime
+            SELECT b.id, b.status, b.ride_id, b.passenger_id, b.seats, b.payment_source, b.per_seat_price,
+                   r.driver_id, r.departure_datetime, r.group_id, r.price_per_seat, r.total_seats,
+                   r.fuel_cost_egp, r.distance_fee_egp, r.safety_margin_egp, r.fair_price_per_seat
             FROM bookings b
             JOIN rides r ON r.id = b.ride_id
             WHERE b.id = $1
@@ -485,6 +558,49 @@ async def cancel_booking(
                 },
             )
         late_cancellation = time_until_dep < timedelta(hours=2)
+
+        # Spec 026 (research.md §11): reverse a sponsored booking's settlement —
+        # refund the group's funded balance and claw back the driver's net credit.
+        if row["payment_source"] == "SPONSORED":
+            from app.services import wallet_service
+            from app.services.commission_service import COMMISSION_RATE
+
+            total_seat_price = Decimal(str(row["price_per_seat"])) * row["seats"]
+            fuel_cost_egp = Decimal(str(row["fuel_cost_egp"] or 0))
+            distance_fee_egp = Decimal(str(row["distance_fee_egp"] or 0))
+            safety_margin_egp = Decimal(str(row["safety_margin_egp"] or 0))
+            fair_price_per_seat = Decimal(str(row["fair_price_per_seat"]))
+            price_per_seat = Decimal(str(row["price_per_seat"]))
+            total_seats_on_ride = row["total_seats"]
+
+            markup_commission_per_seat = (
+                max(Decimal("0"), price_per_seat - fair_price_per_seat) * COMMISSION_RATE
+            )
+            per_seat_commission = (
+                fuel_cost_egp * COMMISSION_RATE + distance_fee_egp + safety_margin_egp
+            ) / total_seats_on_ride + markup_commission_per_seat
+            commission_for_booking = (per_seat_commission * row["seats"]).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+            net_credit = total_seat_price - commission_for_booking
+
+            await conn.fetchrow("SELECT id FROM groups WHERE id = $1 FOR UPDATE", row["group_id"])
+            await conn.execute(
+                "UPDATE groups SET funded_balance_egp = funded_balance_egp + $2 WHERE id = $1",
+                row["group_id"], total_seat_price,
+            )
+            driver_wallet = await wallet_service.get_wallet_with_lock(conn, row["driver_id"])
+            await wallet_service.decrement_balance(conn, driver_wallet["id"], net_credit)
+            await wallet_service.insert_ledger_entry(
+                conn,
+                driver_wallet["id"],
+                row["driver_id"],
+                "SPONSORED_RIDE_REVERSAL",
+                net_credit,
+                ride_id=row["ride_id"],
+                booking_id=booking_id,
+                note="Sponsored group booking cancellation reversal",
+            )
 
         await conn.execute(
             "UPDATE rides SET booked_seats = GREATEST(booked_seats - $2, 0) WHERE id = $1",

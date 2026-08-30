@@ -732,6 +732,18 @@
         "group_not_found": "Group not found.",
         "invalid_user_id": "Something went wrong. Please try again."
       }
+    },
+    "sponsorshipDashboard": {
+      "heading": "Sponsorship dashboard",
+      "fundedBalance": "Funded balance",
+      "memberCount": "{count, plural, one {# member} other {# members}}",
+      "activityHeading": "Recent sponsored activity",
+      "noActivity": "No sponsored ride activity yet.",
+      "creditLabel": "Ride credit",
+      "reversalLabel": "Cancellation reversal",
+      "loadFailed": "Failed to load dashboard",
+      "notContact": "You don't have access to this dashboard.",
+      "notFound": "Sponsorship dashboard not found."
     }
   },
   "orgAccess": {

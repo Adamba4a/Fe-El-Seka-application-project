@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/moderation", label: "Moderation" },
   { href: "/financial", label: "Financial" },
   { href: "/wallet-topup", label: "Wallet Top-Ups" },
+  { href: "/sponsored-groups", label: "Sponsored Groups" },
   { href: "/car-maintenance", label: "Car Maintenance" },
   { href: "/vehicles", label: "Vehicles" },
 ];

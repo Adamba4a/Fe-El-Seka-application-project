@@ -11,6 +11,7 @@ import type {
   InviteLinkResponse,
   Membership,
   RideListResponse,
+  SponsorshipDashboard,
   TransferOwnershipPayload,
 } from "@fe-el-seka/shared";
 
@@ -194,4 +195,15 @@ export async function archiveGroup(token: string, groupId: string): Promise<void
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw await parseErrorResponse(res);
+}
+
+export async function getSponsorshipDashboard(
+  token: string,
+  groupId: string
+): Promise<SponsorshipDashboard> {
+  const res = await fetch(`${base}/api/groups/${groupId}/sponsorship-dashboard`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.json();
 }

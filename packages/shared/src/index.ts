@@ -79,6 +79,8 @@ export type {
   DomainVerificationConfirmResponse,
   GroupMember,
   TransferOwnershipPayload,
+  SponsorshipActivityItem,
+  SponsorshipDashboard,
 } from "./types/groups";
 
 export type {

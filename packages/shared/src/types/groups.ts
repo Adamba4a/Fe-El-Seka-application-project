@@ -71,3 +71,17 @@ export interface GroupMember {
 export interface TransferOwnershipPayload {
   new_owner_user_id: string;
 }
+
+export interface SponsorshipActivityItem {
+  type: "SPONSORED_RIDE_CREDIT" | "SPONSORED_RIDE_REVERSAL";
+  amount_egp: string;
+  ride_id: string;
+  booking_id: string;
+  created_at: string;
+}
+
+export interface SponsorshipDashboard {
+  funded_balance_egp: string;
+  member_count: number;
+  recent_activity: SponsorshipActivityItem[];
+}

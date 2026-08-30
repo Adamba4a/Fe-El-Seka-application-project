@@ -732,6 +732,18 @@
         "group_not_found": "المجموعة غير موجودة.",
         "invalid_user_id": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
       }
+    },
+    "sponsorshipDashboard": {
+      "heading": "لوحة الرعاية",
+      "fundedBalance": "الرصيد الممول",
+      "memberCount": "{count, plural, one {# عضو} other {# أعضاء}}",
+      "activityHeading": "نشاط الرعاية الأخير",
+      "noActivity": "لا يوجد نشاط رحلات مرعية بعد.",
+      "creditLabel": "رصيد الرحلة",
+      "reversalLabel": "عكس الإلغاء",
+      "loadFailed": "فشل تحميل اللوحة",
+      "notContact": "ليس لديك صلاحية الوصول إلى هذه اللوحة.",
+      "notFound": "لوحة الرعاية غير موجودة."
     }
   },
   "orgAccess": {

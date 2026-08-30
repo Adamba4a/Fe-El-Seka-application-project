@@ -13,6 +13,9 @@ class LedgerEntryType(str, Enum):
     COMMISSION_DEBIT = "COMMISSION_DEBIT"
     ADMIN_CREDIT = "ADMIN_CREDIT"
     ADMIN_DEBIT = "ADMIN_DEBIT"
+    SPONSORED_RIDE_CREDIT = "SPONSORED_RIDE_CREDIT"
+    SPONSORED_RIDE_REVERSAL = "SPONSORED_RIDE_REVERSAL"
+    WITHDRAWAL_DEBIT = "WITHDRAWAL_DEBIT"
 
 
 # ── Response schemas ─────────────────────────────────────────────────────────
