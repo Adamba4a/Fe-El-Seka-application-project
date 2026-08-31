@@ -918,7 +918,7 @@ async def get_sponsorship_dashboard(
 
         activity_rows = await conn.fetch(
             """
-            SELECT dle.type, dle.amount_egp, dle.ride_id, dle.booking_id, dle.created_at,
+            SELECT dle.type, b.total_price AS amount_egp, dle.ride_id, dle.booking_id, dle.created_at,
                    r.origin_address, r.destination_address,
                    drv.display_name AS driver_name,
                    pax.display_name AS passenger_name
@@ -1013,7 +1013,7 @@ async def stream_sponsorship_dashboard_csv(
 
         activity_rows = await conn.fetch(
             """
-            SELECT dle.type, dle.amount_egp, dle.ride_id, dle.booking_id, dle.created_at,
+            SELECT dle.type, b.total_price AS amount_egp, dle.ride_id, dle.booking_id, dle.created_at,
                    r.origin_address, r.destination_address,
                    drv.display_name AS driver_name,
                    pax.display_name AS passenger_name
