@@ -63,6 +63,17 @@ export interface DashboardContactResponse {
   dashboard_contact_user_id: string;
 }
 
+export interface DeleteSponsoredGroupResponse {
+  group_id: string;
+  cleared_funded_balance_egp: string;
+}
+
+export interface UnsponsorGroupResponse {
+  group_id: string;
+  is_sponsored: boolean;
+  cleared_funded_balance_egp: string;
+}
+
 export async function listSponsoredGroups(token: string): Promise<SponsoredGroupSummary[]> {
   const res = await fetch(`${base}/api/admin/sponsored-groups`, {
     headers: authHeaders(token),
@@ -133,6 +144,30 @@ export async function addFunds(
 
 export async function listMembers(token: string, groupId: string): Promise<GroupMember[]> {
   const res = await fetch(`${base}/api/admin/sponsored-groups/${groupId}/members`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.json();
+}
+
+export async function deleteSponsoredGroup(
+  token: string,
+  groupId: string,
+): Promise<DeleteSponsoredGroupResponse> {
+  const res = await fetch(`${base}/api/admin/sponsored-groups/${groupId}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.json();
+}
+
+export async function unsponsorGroup(
+  token: string,
+  groupId: string,
+): Promise<UnsponsorGroupResponse> {
+  const res = await fetch(`${base}/api/admin/sponsored-groups/${groupId}/unsponsor`, {
+    method: "POST",
     headers: authHeaders(token),
   });
   if (!res.ok) throw await parseErrorResponse(res);

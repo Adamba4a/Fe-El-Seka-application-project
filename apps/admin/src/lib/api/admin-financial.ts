@@ -12,6 +12,7 @@ export interface FinancialTrendPoint {
 export interface FinancialReport {
   range: { start: string; end: string };
   commission_collected_egp: string;
+  sponsored_commission_collected_egp: string;
   admin_credits_egp: string;
   admin_debits_egp: string;
   net_revenue_egp: string;

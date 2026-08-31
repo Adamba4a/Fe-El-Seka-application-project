@@ -78,6 +78,10 @@ export interface SponsorshipActivityItem {
   ride_id: string;
   booking_id: string;
   created_at: string;
+  driver_name: string | null;
+  passenger_name: string | null;
+  origin_address: string | null;
+  destination_address: string | null;
 }
 
 export interface SponsorshipDashboard {

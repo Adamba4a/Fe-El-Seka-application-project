@@ -376,7 +376,8 @@
       "noRidesBody": "Post your first ride and start sharing your route",
       "postFirstRide": "Post your first ride",
       "seatsAvailableCount": "{available}/{total} seats available",
-      "perSeatSuffix": "/seat"
+      "perSeatSuffix": "/seat",
+      "sponsoredByGroup": "Sponsored · {groupName}"
     },
     "editRide": {
       "loadFailed": "Failed to load ride.",
@@ -390,8 +391,43 @@
       "loading": "Loading…",
       "heading": "My Wallet",
       "addBalance": "Add Balance",
+      "requestWithdrawal": "Request Withdrawal",
       "transactionHistory": "Transaction History",
       "noTransactions": "No transactions yet. Add balance to start posting rides."
+    },
+    "walletWithdraw": {
+      "heading": "Request Withdrawal",
+      "instructions": "Enter the amount you'd like to withdraw and where we should send it. An admin will review and send the payout manually.",
+      "amountLabel": "Amount (EGP)",
+      "amountPlaceholder": "e.g. 100.00",
+      "payoutReferenceLabel": "Payout Number",
+      "payoutReferencePlaceholder": "e.g. your Vodafone Cash number",
+      "payoutReferenceHelp": "The mobile wallet number we should send your payout to.",
+      "submit": "Submit Request",
+      "submitting": "Submitting…",
+      "backToWallet": "Back to Wallet",
+      "pendingHeading": "Pending Review",
+      "pendingBody": "We're reviewing your withdrawal request. This usually takes a short while.",
+      "errors": {
+        "validation_error": "Please check the amount and payout number and try again.",
+        "insufficient_balance": "This amount exceeds your available wallet balance.",
+        "pending_request_exists": "You already have a withdrawal request awaiting review.",
+        "generic": "Something went wrong. Please try again."
+      },
+      "history": {
+        "heading": "Withdrawal History",
+        "backToWithdraw": "New Withdrawal",
+        "loading": "Loading…",
+        "loadFailedPrefix": "Failed to load withdrawal history: {message}",
+        "empty": "You haven't submitted any withdrawal requests yet.",
+        "loadMore": "Load more",
+        "statuses": {
+          "PENDING": "Pending",
+          "APPROVED": "Approved",
+          "REJECTED": "Rejected"
+        },
+        "rejectionReasonPrefix": "Reason: {reason}"
+      }
     },
     "walletTopup": {
       "heading": "Add Balance",
@@ -742,7 +778,11 @@
       "reversalLabel": "Cancellation reversal",
       "loadFailed": "Failed to load dashboard",
       "notContact": "You don't have access to this dashboard.",
-      "notFound": "Sponsorship dashboard not found."
+      "notFound": "Sponsorship dashboard not found.",
+      "driverLabel": "Driver",
+      "passengerLabel": "Passenger",
+      "unknownUser": "Unknown",
+      "routeSeparator": "→"
     }
   },
   "orgAccess": {
@@ -1029,6 +1069,9 @@
     "commissionCharge": "Commission Charge",
     "balanceTopUp": "Balance Top-Up",
     "balanceAdjustment": "Balance Adjustment",
+    "sponsoredRideCredit": "Sponsored Ride Earnings",
+    "sponsoredRideReversal": "Sponsored Ride Reversal",
+    "withdrawal": "Withdrawal",
     "justNow": "Just now",
     "minutesAgo": "{minutes}m ago",
     "hoursAgo": "{hours}h ago",

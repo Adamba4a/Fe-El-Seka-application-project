@@ -51,7 +51,26 @@ async def get_report(conn, start: date, end: date) -> dict:
     commission = totals["COMMISSION_DEBIT"]
     credits = totals["ADMIN_CREDIT"]
     debits = totals["ADMIN_DEBIT"]
-    net_revenue = commission - debits
+
+    # Sponsored-ride commission never touches the driver's own balance (there's
+    # no cash the driver held to debit) — it's the gap between what the group's
+    # funded balance is debited (bookings.total_price) and what the driver is
+    # credited (the SPONSORED_RIDE_CREDIT entry), so it must be computed here
+    # rather than summed directly out of driver_ledger_entries like the other
+    # ledger-type totals above.
+    sponsored_commission = await conn.fetchval(
+        """
+        SELECT COALESCE(SUM(b.total_price - l.amount_egp), 0)
+        FROM driver_ledger_entries l
+        JOIN bookings b ON b.id = l.booking_id
+        WHERE l.type = 'SPONSORED_RIDE_CREDIT' AND l.created_at >= $1 AND l.created_at < $2
+        """,
+        start_dt,
+        end_dt,
+    )
+    sponsored_commission = Decimal(str(sponsored_commission))
+
+    net_revenue = commission + sponsored_commission - debits
 
     granularity = get_trend_granularity(start, end)
     buckets = _buckets(start, end, granularity)
@@ -82,6 +101,7 @@ async def get_report(conn, start: date, end: date) -> dict:
     return {
         "range": {"start": start.isoformat(), "end": end.isoformat()},
         "commission_collected_egp": str(commission),
+        "sponsored_commission_collected_egp": str(sponsored_commission),
         "admin_credits_egp": str(credits),
         "admin_debits_egp": str(debits),
         "net_revenue_egp": str(net_revenue),
@@ -134,13 +154,14 @@ async def stream_report_csv(conn, start: date, end: date) -> AsyncIterator[str]:
     report = await get_report(conn, start, end)
 
     yield _csv_row(
-        "start", "end", "commission_collected_egp", "admin_credits_egp",
-        "admin_debits_egp", "net_revenue_egp",
+        "start", "end", "commission_collected_egp", "sponsored_commission_collected_egp",
+        "admin_credits_egp", "admin_debits_egp", "net_revenue_egp",
     )
     yield _csv_row(
         report["range"]["start"],
         report["range"]["end"],
         report["commission_collected_egp"],
+        report["sponsored_commission_collected_egp"],
         report["admin_credits_egp"],
         report["admin_debits_egp"],
         report["net_revenue_egp"],

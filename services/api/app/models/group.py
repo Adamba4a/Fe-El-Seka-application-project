@@ -148,12 +148,27 @@ class DashboardContactResponse(BaseModel):
     dashboard_contact_user_id: str
 
 
+class DeleteSponsoredGroupResponse(BaseModel):
+    group_id: str
+    cleared_funded_balance_egp: Decimal
+
+
+class UnsponsorGroupResponse(BaseModel):
+    group_id: str
+    is_sponsored: bool
+    cleared_funded_balance_egp: Decimal
+
+
 class SponsorshipActivityItem(BaseModel):
     type: Literal["SPONSORED_RIDE_CREDIT", "SPONSORED_RIDE_REVERSAL"]
     amount_egp: Decimal
     ride_id: str
     booking_id: str
     created_at: str
+    driver_name: str | None = None
+    passenger_name: str | None = None
+    origin_address: str | None = None
+    destination_address: str | None = None
 
 
 class SponsorshipDashboardResponse(BaseModel):

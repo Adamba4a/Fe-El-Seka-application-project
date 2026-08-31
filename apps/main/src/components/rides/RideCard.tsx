@@ -30,6 +30,12 @@ export function RideCard({ ride, href }: { ride: Ride; href?: string }) {
           <RideStatusBadge status={ride.status} />
         </div>
 
+        {ride.group_name && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-medium px-2 py-0.5 w-fit">
+            {t("sponsoredByGroup", { groupName: ride.group_name })}
+          </span>
+        )}
+
         <div className="flex items-center justify-between text-xs text-content-muted">
           <span>{formatDate(ride.departure_datetime, locale)}</span>
           <span className="font-medium text-content-secondary">{formatCurrency(Number(ride.price_per_seat), locale)}{t("perSeatSuffix")}</span>

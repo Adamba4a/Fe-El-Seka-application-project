@@ -6,7 +6,13 @@ from decimal import Decimal
 from fastapi import HTTPException
 
 from app.core.database import get_pool
-from app.models.group import AddFundsResponse, GroupSummary, SponsoredGroupCreateRequest
+from app.models.group import (
+    AddFundsResponse,
+    DeleteSponsoredGroupResponse,
+    GroupSummary,
+    SponsoredGroupCreateRequest,
+    UnsponsorGroupResponse,
+)
 from app.services.group_service import _derive_group_name, _get_sponsor_domains, _to_summary
 
 
@@ -67,6 +73,18 @@ async def create_or_upgrade_sponsored_group(
                 )
 
             name = (payload.name or "").strip() or _derive_group_name(domains[0])
+            existing_name = await conn.fetchval(
+                "SELECT id FROM groups WHERE archived_at IS NULL AND lower(name) = lower($1)",
+                name,
+            )
+            if existing_name:
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "error": "duplicate_group_name",
+                        "message": f"A group named '{name}' already exists. Please choose a different name.",
+                    },
+                )
             row = await conn.fetchrow(
                 """
                 INSERT INTO groups
@@ -214,3 +232,74 @@ async def add_funds(group_id: uuid.UUID, amount_egp: Decimal) -> AddFundsRespons
             )
 
     return AddFundsResponse(group_id=str(group_id), new_funded_balance_egp=updated["funded_balance_egp"])
+
+
+async def delete_sponsored_group(group_id: uuid.UUID) -> DeleteSponsoredGroupResponse:
+    """Admin action: soft-delete (archive) a sponsored group. Releases its
+    claimed domains so they can be attached to a different sponsored group
+    later, and reports whatever funded balance was still on the books at
+    deletion time so the admin has an audit trail of what was cleared."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            row = await conn.fetchrow(
+                "SELECT id, is_sponsored, funded_balance_egp FROM groups "
+                "WHERE id = $1 AND archived_at IS NULL FOR UPDATE",
+                group_id,
+            )
+            if row is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail={"error": "group_not_found", "message": "Group not found."},
+                )
+            if not row["is_sponsored"]:
+                raise HTTPException(
+                    status_code=422,
+                    detail={"error": "not_sponsored", "message": "This group is not sponsored."},
+                )
+
+            await conn.execute(
+                "UPDATE groups SET archived_at = now(), funded_balance_egp = 0 WHERE id = $1",
+                group_id,
+            )
+            await conn.execute("DELETE FROM group_sponsor_domains WHERE group_id = $1", group_id)
+
+    return DeleteSponsoredGroupResponse(
+        group_id=str(group_id), cleared_funded_balance_egp=row["funded_balance_egp"]
+    )
+
+
+async def unsponsor_group(group_id: uuid.UUID) -> UnsponsorGroupResponse:
+    """Admin action: convert a sponsored group back to a regular, unfunded
+    group. Unlike delete, the group and its memberships stay active — only
+    sponsorship (is_sponsored, funded balance, eligible domains) is removed."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            row = await conn.fetchrow(
+                "SELECT id, is_sponsored, funded_balance_egp FROM groups "
+                "WHERE id = $1 AND archived_at IS NULL FOR UPDATE",
+                group_id,
+            )
+            if row is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail={"error": "group_not_found", "message": "Group not found."},
+                )
+            if not row["is_sponsored"]:
+                raise HTTPException(
+                    status_code=422,
+                    detail={"error": "not_sponsored", "message": "This group is not sponsored."},
+                )
+
+            await conn.execute(
+                "UPDATE groups SET is_sponsored = false, funded_balance_egp = 0 WHERE id = $1",
+                group_id,
+            )
+            await conn.execute("DELETE FROM group_sponsor_domains WHERE group_id = $1", group_id)
+
+    return UnsponsorGroupResponse(
+        group_id=str(group_id),
+        is_sponsored=False,
+        cleared_funded_balance_egp=row["funded_balance_egp"],
+    )

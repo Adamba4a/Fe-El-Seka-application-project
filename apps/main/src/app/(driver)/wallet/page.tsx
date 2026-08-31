@@ -51,14 +51,22 @@ export default function WalletPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
-        <Link
-          href="/wallet/topup"
-          className="rounded-xl bg-dash-primary px-4 py-2 text-body-sm font-semibold text-content-inverse hover:opacity-90 transition-opacity"
-        >
-          {t("addBalance")}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/wallet/withdraw"
+            className="rounded-xl border border-border-default px-4 py-2 text-body-sm font-semibold text-content-primary hover:bg-surface-bg transition-colors"
+          >
+            {t("requestWithdrawal")}
+          </Link>
+          <Link
+            href="/wallet/topup"
+            className="rounded-xl bg-dash-primary px-4 py-2 text-body-sm font-semibold text-content-inverse hover:opacity-90 transition-opacity"
+          >
+            {t("addBalance")}
+          </Link>
+        </div>
       </div>
 
       <WalletBalanceCard

@@ -37,8 +37,11 @@ export function LedgerEntryRow({ entry }: Props) {
     COMMISSION_DEBIT: t("commissionCharge"),
     ADMIN_CREDIT: t("balanceTopUp"),
     ADMIN_DEBIT: t("balanceAdjustment"),
+    SPONSORED_RIDE_CREDIT: t("sponsoredRideCredit"),
+    SPONSORED_RIDE_REVERSAL: t("sponsoredRideReversal"),
+    WITHDRAWAL_DEBIT: t("withdrawal"),
   };
-  const isCredit = entry.type === "ADMIN_CREDIT";
+  const isCredit = entry.type === "ADMIN_CREDIT" || entry.type === "SPONSORED_RIDE_CREDIT";
   const amountColor = isCredit ? "text-green-600" : "text-red-600";
   const sign = isCredit ? "+" : "−";
 
@@ -50,7 +53,7 @@ export function LedgerEntryRow({ entry }: Props) {
         </p>
         <div className="flex items-center gap-2 text-xs text-content-muted">
           <span>{relativeTime(entry.created_at, locale, t)}</span>
-          {entry.ride_id && entry.type === "COMMISSION_DEBIT" && (
+          {entry.ride_id && (entry.type === "COMMISSION_DEBIT" || entry.type === "SPONSORED_RIDE_CREDIT" || entry.type === "SPONSORED_RIDE_REVERSAL") && (
             <Link
               href={`/rides/${entry.ride_id}/manage`}
               className="text-brand-primary underline"

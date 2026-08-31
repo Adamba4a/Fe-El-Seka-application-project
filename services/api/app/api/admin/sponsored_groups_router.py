@@ -11,10 +11,12 @@ from app.models.group import (
     AddSponsorDomainRequest,
     DashboardContactRequest,
     DashboardContactResponse,
+    DeleteSponsoredGroupResponse,
     GroupMemberResponse,
     GroupSummary,
     SponsorDomainsResponse,
     SponsoredGroupCreateRequest,
+    UnsponsorGroupResponse,
 )
 from app.services import group_service, sponsored_group_service
 
@@ -80,3 +82,19 @@ async def remove_sponsor_domain(
     _admin: dict = Depends(get_current_admin),
 ) -> SponsorDomainsResponse:
     return await sponsored_group_service.remove_sponsor_domain(group_id, domain)
+
+
+@router.delete("/{group_id}", response_model=DeleteSponsoredGroupResponse)
+async def delete_sponsored_group(
+    group_id: uuid.UUID,
+    _admin: dict = Depends(get_current_admin),
+) -> DeleteSponsoredGroupResponse:
+    return await sponsored_group_service.delete_sponsored_group(group_id)
+
+
+@router.post("/{group_id}/unsponsor", response_model=UnsponsorGroupResponse)
+async def unsponsor_group(
+    group_id: uuid.UUID,
+    _admin: dict = Depends(get_current_admin),
+) -> UnsponsorGroupResponse:
+    return await sponsored_group_service.unsponsor_group(group_id)

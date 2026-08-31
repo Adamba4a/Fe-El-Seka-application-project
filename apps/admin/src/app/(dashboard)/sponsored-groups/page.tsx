@@ -11,6 +11,8 @@ import {
   setDashboardContact,
   addSponsorDomain,
   removeSponsorDomain,
+  deleteSponsoredGroup,
+  unsponsorGroup,
   type SponsoredGroupSummary,
   type GroupMember,
 } from "@/lib/api/admin-sponsored-groups";
@@ -45,6 +47,8 @@ export default function SponsoredGroupsPage() {
   const [removeDomainValue, setRemoveDomainValue] = useState("");
   const [domainsResult, setDomainsResult] = useState<string[] | null>(null);
   const [managingDomains, setManagingDomains] = useState(false);
+
+  const [pendingActionId, setPendingActionId] = useState("");
 
   async function getToken() {
     const { data } = await sb.auth.getSession();
@@ -186,6 +190,66 @@ export default function SponsoredGroupsPage() {
     }
   }
 
+  async function handleUnsponsor(group: SponsoredGroupSummary) {
+    const balanceNote =
+      Number(group.funded_balance_egp) > 0
+        ? ` This will clear its remaining funded balance of ${Number(group.funded_balance_egp).toLocaleString("en-EG", { minimumFractionDigits: 2 })} EGP.`
+        : "";
+    if (
+      !window.confirm(
+        `Convert "${group.name}" back to a regular, unsponsored group?${balanceNote} Its eligible domains will be released. This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setError("");
+    setNotice("");
+    setPendingActionId(group.id);
+    try {
+      const token = await getToken();
+      const res = await unsponsorGroup(token, group.id);
+      setNotice(
+        `"${group.name}" is no longer sponsored.${
+          Number(res.cleared_funded_balance_egp) > 0
+            ? ` Cleared balance: ${Number(res.cleared_funded_balance_egp).toLocaleString("en-EG", { minimumFractionDigits: 2 })} EGP.`
+            : ""
+        }`
+      );
+      await refreshGroups();
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to unsponsor group.");
+    } finally {
+      setPendingActionId("");
+    }
+  }
+
+  async function handleDelete(group: SponsoredGroupSummary) {
+    const balanceNote =
+      Number(group.funded_balance_egp) > 0
+        ? ` This will clear its remaining funded balance of ${Number(group.funded_balance_egp).toLocaleString("en-EG", { minimumFractionDigits: 2 })} EGP.`
+        : "";
+    if (
+      !window.confirm(
+        `Delete the sponsored group "${group.name}"?${balanceNote} Its eligible domains will be released and members will lose access to it. This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setError("");
+    setNotice("");
+    setPendingActionId(group.id);
+    try {
+      const token = await getToken();
+      await deleteSponsoredGroup(token, group.id);
+      setNotice(`"${group.name}" was deleted.`);
+      await refreshGroups();
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to delete group.");
+    } finally {
+      setPendingActionId("");
+    }
+  }
+
   async function handleSetContact(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -278,13 +342,29 @@ export default function SponsoredGroupsPage() {
                     <td className="py-2 pr-3 font-mono text-xs">
                       {g.dashboard_contact_user_id ? g.dashboard_contact_user_id.slice(0, 8) + "…" : "(unassigned)"}
                     </td>
-                    <td className="py-2">
+                    <td className="py-2 space-x-3 whitespace-nowrap">
                       <button
                         type="button"
                         onClick={() => useGroupId(g.id)}
                         className="text-blue-600 hover:underline"
                       >
                         Use ID
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleUnsponsor(g)}
+                        disabled={pendingActionId === g.id}
+                        className="text-amber-600 hover:underline disabled:text-gray-400"
+                      >
+                        Unsponsor
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(g)}
+                        disabled={pendingActionId === g.id}
+                        className="text-red-600 hover:underline disabled:text-gray-400"
+                      >
+                        Delete
                       </button>
                     </td>
                   </tr>

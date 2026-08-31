@@ -31,6 +31,7 @@ export interface Ride {
   updated_at: string;
   route_geometry: object | null;
   group_id: string | null;
+  group_name?: string | null;
 }
 
 export interface RideHistoryEntry {

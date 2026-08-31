@@ -103,6 +103,18 @@ async def create_group(profile: dict, payload: CreateGroupRequest) -> GroupSumma
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
+            existing = await conn.fetchval(
+                "SELECT id FROM groups WHERE archived_at IS NULL AND lower(name) = lower($1)",
+                payload.name,
+            )
+            if existing:
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "error": "duplicate_group_name",
+                        "message": f"A group named '{payload.name}' already exists. Please choose a different name.",
+                    },
+                )
             row = await conn.fetchrow(
                 """
                 INSERT INTO groups (name, description, route_tags, owner_id)
@@ -890,9 +902,15 @@ async def get_sponsorship_dashboard(
 
         activity_rows = await conn.fetch(
             """
-            SELECT dle.type, dle.amount_egp, dle.ride_id, dle.booking_id, dle.created_at
+            SELECT dle.type, dle.amount_egp, dle.ride_id, dle.booking_id, dle.created_at,
+                   r.origin_address, r.destination_address,
+                   drv.display_name AS driver_name,
+                   pax.display_name AS passenger_name
             FROM driver_ledger_entries dle
             JOIN rides r ON r.id = dle.ride_id
+            LEFT JOIN profiles drv ON drv.id = r.driver_id
+            LEFT JOIN bookings b ON b.id = dle.booking_id
+            LEFT JOIN profiles pax ON pax.id = b.passenger_id
             WHERE r.group_id = $1
               AND dle.type IN ('SPONSORED_RIDE_CREDIT', 'SPONSORED_RIDE_REVERSAL')
             ORDER BY dle.created_at DESC
@@ -911,6 +929,10 @@ async def get_sponsorship_dashboard(
                 ride_id=str(r["ride_id"]),
                 booking_id=str(r["booking_id"]),
                 created_at=r["created_at"].isoformat(),
+                driver_name=r["driver_name"],
+                passenger_name=r["passenger_name"],
+                origin_address=r["origin_address"],
+                destination_address=r["destination_address"],
             )
             for r in activity_rows
         ],

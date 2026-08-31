@@ -376,7 +376,8 @@
       "noRidesBody": "انشر رحلتك الأولى وابدأ في مشاركة مسارك",
       "postFirstRide": "انشر رحلتك الأولى",
       "seatsAvailableCount": "{available}/{total} مقاعد متاحة",
-      "perSeatSuffix": "/مقعد"
+      "perSeatSuffix": "/مقعد",
+      "sponsoredByGroup": "برعاية · {groupName}"
     },
     "editRide": {
       "loadFailed": "فشل تحميل الرحلة.",
@@ -390,8 +391,43 @@
       "loading": "جارٍ التحميل…",
       "heading": "محفظتي",
       "addBalance": "إضافة رصيد",
+      "requestWithdrawal": "طلب سحب",
       "transactionHistory": "سجل المعاملات",
       "noTransactions": "لا توجد معاملات بعد. أضف رصيدًا لبدء نشر الرحلات."
+    },
+    "walletWithdraw": {
+      "heading": "طلب سحب",
+      "instructions": "أدخل المبلغ الذي تريد سحبه والرقم الذي نرسل إليه المبلغ. سيقوم أحد المسؤولين بالمراجعة وإرسال المبلغ يدويًا.",
+      "amountLabel": "المبلغ (جنيه)",
+      "amountPlaceholder": "مثال: 100.00",
+      "payoutReferenceLabel": "رقم الاستلام",
+      "payoutReferencePlaceholder": "مثال: رقم محفظة فودافون كاش",
+      "payoutReferenceHelp": "رقم المحفظة الذي سنرسل إليه المبلغ.",
+      "submit": "إرسال الطلب",
+      "submitting": "جارٍ الإرسال…",
+      "backToWallet": "العودة إلى المحفظة",
+      "pendingHeading": "قيد المراجعة",
+      "pendingBody": "نقوم بمراجعة طلب السحب الخاص بك. عادةً ما يستغرق ذلك وقتًا قصيرًا.",
+      "errors": {
+        "validation_error": "يرجى التحقق من المبلغ ورقم الاستلام والمحاولة مرة أخرى.",
+        "insufficient_balance": "هذا المبلغ يتجاوز رصيدك المتاح في المحفظة.",
+        "pending_request_exists": "لديك بالفعل طلب سحب قيد المراجعة.",
+        "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
+      },
+      "history": {
+        "heading": "سجل السحب",
+        "backToWithdraw": "طلب سحب جديد",
+        "loading": "جارٍ التحميل…",
+        "loadFailedPrefix": "فشل تحميل سجل السحب: {message}",
+        "empty": "لم تقم بإرسال أي طلبات سحب بعد.",
+        "loadMore": "عرض المزيد",
+        "statuses": {
+          "PENDING": "قيد المراجعة",
+          "APPROVED": "تمت الموافقة",
+          "REJECTED": "مرفوض"
+        },
+        "rejectionReasonPrefix": "السبب: {reason}"
+      }
     },
     "walletTopup": {
       "heading": "إضافة رصيد",
@@ -742,7 +778,11 @@
       "reversalLabel": "عكس الإلغاء",
       "loadFailed": "فشل تحميل اللوحة",
       "notContact": "ليس لديك صلاحية الوصول إلى هذه اللوحة.",
-      "notFound": "لوحة الرعاية غير موجودة."
+      "notFound": "لوحة الرعاية غير موجودة.",
+      "driverLabel": "السائق",
+      "passengerLabel": "الراكب",
+      "unknownUser": "غير معروف",
+      "routeSeparator": "←"
     }
   },
   "orgAccess": {
@@ -1029,6 +1069,9 @@
     "commissionCharge": "رسوم العمولة",
     "balanceTopUp": "شحن الرصيد",
     "balanceAdjustment": "تعديل الرصيد",
+    "sponsoredRideCredit": "أرباح رحلة مموّلة",
+    "sponsoredRideReversal": "عكس رحلة مموّلة",
+    "withdrawal": "سحب",
     "justNow": "الآن",
     "minutesAgo": "منذ {minutes} د",
     "hoursAgo": "منذ {hours} س",

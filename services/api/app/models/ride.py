@@ -82,6 +82,7 @@ class RideResponse(BaseModel):
     completed_at: Optional[datetime] = None
     route_geometry: Optional[dict] = None
     group_id: Optional[UUID] = None
+    group_name: Optional[str] = None
 
 
 class RideDetailResponse(BaseModel):

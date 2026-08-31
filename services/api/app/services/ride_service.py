@@ -105,6 +105,7 @@ def _to_response(row: dict) -> RideResponse:
             json.loads(row["route_geometry_geojson"]) if row["route_geometry_geojson"] else None
         ),
         group_id=row["group_id"],
+        group_name=row.get("group_name"),
     )
 
 
@@ -352,8 +353,22 @@ async def list_rides(
         )
         total = await conn.fetchval(f"SELECT COUNT(*) FROM rides {where}", *params)
 
+        group_ids = {r["group_id"] for r in rows if r["group_id"] is not None}
+        group_names: dict = {}
+        if group_ids:
+            group_rows = await conn.fetch(
+                "SELECT id, name FROM groups WHERE id = ANY($1::uuid[])", list(group_ids)
+            )
+            group_names = {g["id"]: g["name"] for g in group_rows}
+
+    ride_dicts = []
+    for r in rows:
+        d = dict(r)
+        d["group_name"] = group_names.get(d["group_id"])
+        ride_dicts.append(d)
+
     return RideListResponse(
-        rides=[_to_response(dict(r)) for r in rows],
+        rides=[_to_response(d) for d in ride_dicts],
         total=total,
         page=page,
         page_size=page_size,

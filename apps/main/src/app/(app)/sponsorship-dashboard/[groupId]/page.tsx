@@ -96,26 +96,42 @@ export default function SponsorshipDashboardPage() {
             {dashboard.recent_activity.map((item, idx) => (
               <div
                 key={`${item.booking_id}-${idx}`}
-                className="rounded-xl border border-border-default bg-surface-card p-3 flex items-center justify-between"
+                className="rounded-xl border border-border-default bg-surface-card p-3 space-y-2"
               >
-                <div>
-                  <p className="text-body-sm text-content-primary">
-                    {item.type === "SPONSORED_RIDE_CREDIT" ? t("creditLabel") : t("reversalLabel")}
-                  </p>
-                  <p className="text-caption text-content-muted">
-                    {new Date(item.created_at).toLocaleString(locale === "ar" ? "ar-EG" : "en-EG")}
-                  </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-body-sm text-content-primary">
+                      {item.type === "SPONSORED_RIDE_CREDIT" ? t("creditLabel") : t("reversalLabel")}
+                    </p>
+                    <p className="text-caption text-content-muted">
+                      {new Date(item.created_at).toLocaleString(locale === "ar" ? "ar-EG" : "en-EG")}
+                    </p>
+                  </div>
+                  <span
+                    className={
+                      item.type === "SPONSORED_RIDE_CREDIT"
+                        ? "text-body-sm font-semibold text-content-primary"
+                        : "text-body-sm font-semibold text-yellow-600"
+                    }
+                  >
+                    {item.type === "SPONSORED_RIDE_REVERSAL" ? "+" : "-"}
+                    {formatEgp(item.amount_egp, locale)}
+                  </span>
                 </div>
-                <span
-                  className={
-                    item.type === "SPONSORED_RIDE_CREDIT"
-                      ? "text-body-sm font-semibold text-content-primary"
-                      : "text-body-sm font-semibold text-yellow-600"
-                  }
-                >
-                  {item.type === "SPONSORED_RIDE_REVERSAL" ? "+" : "-"}
-                  {formatEgp(item.amount_egp, locale)}
-                </span>
+                <div className="border-t border-border-default pt-2 space-y-1 text-caption text-content-muted">
+                  <p>
+                    <span className="text-content-secondary">{t("driverLabel")}:</span>{" "}
+                    {item.driver_name ?? t("unknownUser")}
+                    {" · "}
+                    <span className="text-content-secondary">{t("passengerLabel")}:</span>{" "}
+                    {item.passenger_name ?? t("unknownUser")}
+                  </p>
+                  {(item.origin_address || item.destination_address) && (
+                    <p className="truncate">
+                      {item.origin_address ?? "?"} {t("routeSeparator")} {item.destination_address ?? "?"}
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
           </div>

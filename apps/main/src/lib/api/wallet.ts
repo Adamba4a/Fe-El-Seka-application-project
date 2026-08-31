@@ -10,7 +10,13 @@ function authHeaders(token: string) {
 
 export interface LedgerEntry {
   id: string;
-  type: "COMMISSION_DEBIT" | "ADMIN_CREDIT" | "ADMIN_DEBIT";
+  type:
+    | "COMMISSION_DEBIT"
+    | "ADMIN_CREDIT"
+    | "ADMIN_DEBIT"
+    | "SPONSORED_RIDE_CREDIT"
+    | "SPONSORED_RIDE_REVERSAL"
+    | "WITHDRAWAL_DEBIT";
   amount_egp: string;
   ride_id: string | null;
   booking_id: string | null;
