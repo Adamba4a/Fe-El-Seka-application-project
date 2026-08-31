@@ -211,13 +211,15 @@ async def nearby_rides(
                 ST_X(r.destination_coordinates::geometry) AS destination_lng,
                 ST_Distance(r.origin_coordinates, ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography) AS distance_m,
                 p.display_name, p.profile_photo_path AS avatar_url, p.verification_status,
-                p.rating_avg, p.rating_count
+                p.rating_avg, p.rating_count,
+                r.group_id, g.name AS group_name
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
+            LEFT JOIN groups g ON g.id = r.group_id
             WHERE r.status = 'scheduled'
               AND r.available_seats > 0
               AND r.departure_datetime > now()
-              AND r.group_id IS NULL
+              AND (r.group_id IS NULL OR g.is_sponsored = false)
               AND ST_DWithin(r.origin_coordinates, ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography, $4)
             ORDER BY r.origin_coordinates <-> ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography
             LIMIT $3
@@ -245,6 +247,8 @@ async def nearby_rides(
             "destination_lat": float(r["destination_lat"]),
             "destination_lng": float(r["destination_lng"]),
             "distance_meters": round(float(r["distance_m"])),
+            "group_id": str(r["group_id"]) if r["group_id"] else None,
+            "group_name": r["group_name"],
         }
         for r in rows
     ]
@@ -359,6 +363,8 @@ async def search_rides(
             "candidate_type": c.candidate_type,
             "match_score_pct": score_map.get(str(c.ride_id)),
             "compatibility": _shape_compatibility(c.compatibility),
+            "group_id": str(c.group_id) if c.group_id else None,
+            "group_name": c.group_name,
         })
 
     search_ctx = match_logging_service.SearchContext(

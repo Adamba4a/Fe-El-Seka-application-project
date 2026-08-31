@@ -14,6 +14,8 @@ export interface RideCandidate {
   per_seat_price: string;
   candidate_type: "standard" | "premium" | "nearby_endpoint";
   match_score_pct: number | null;
+  group_id: string | null;
+  group_name: string | null;
   compatibility: {
     overlap_percentage: number;
     pickup_walk_meters: number;
@@ -55,6 +57,8 @@ export interface NearbyRide {
   destination_lat: number;
   destination_lng: number;
   distance_meters: number;
+  group_id: string | null;
+  group_name: string | null;
 }
 
 export async function getNearbyRides(

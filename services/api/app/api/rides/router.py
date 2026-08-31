@@ -504,7 +504,8 @@ async def get_ride_passenger_detail(
                 ST_X(r.destination_coordinates::geometry)  AS destination_lng,
                 p.display_name, p.profile_photo_path AS avatar_url, p.verification_status,
                 p.rating_avg, p.rating_count,
-                COALESCE(g.is_sponsored, false) AS is_sponsored
+                COALESCE(g.is_sponsored, false) AS is_sponsored,
+                r.group_id, g.name AS group_name
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
             LEFT JOIN groups g ON g.id = r.group_id
@@ -640,6 +641,8 @@ async def get_ride_passenger_detail(
             "route_distance_km": float(ride["route_distance_km"] or 0),
             "route_duration_minutes": duration_min,
             "is_sponsored": ride["is_sponsored"],
+            "group_id": str(ride["group_id"]) if ride["group_id"] else None,
+            "group_name": ride["group_name"],
         },
         "passenger_context": {
             "boarding_point": {"lat": pickup_lat_val, "lng": pickup_lng_val},

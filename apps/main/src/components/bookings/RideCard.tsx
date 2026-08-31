@@ -20,6 +20,8 @@ export interface RideCandidate {
   per_seat_price: string;
   candidate_type: "standard" | "premium" | "nearby_endpoint";
   match_score_pct: number | null;
+  group_id?: string | null;
+  group_name?: string | null;
   compatibility: {
     overlap_percentage: number;
     pickup_walk_meters: number;
@@ -143,6 +145,12 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
             </div>
           </div>
         </div>
+
+        {candidate.group_name && (
+          <span className="inline-block text-xs font-semibold bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">
+            {t("groupRide", { name: candidate.group_name })}
+          </span>
+        )}
 
         {candidate.match_score_pct !== null && (
           <MatchScoreBadge score_pct={candidate.match_score_pct} />

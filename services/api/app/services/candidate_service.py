@@ -56,27 +56,30 @@ async def _stage1_query(
         rows = await conn.fetch(
             """
             SELECT
-                id,
-                driver_id,
-                departure_datetime,
-                available_seats,
-                price_per_seat,
-                route_distance_km,
-                route_duration_minutes,
-                ST_Y(origin_coordinates::geometry)      AS origin_lat,
-                ST_X(origin_coordinates::geometry)      AS origin_lng,
-                ST_Y(destination_coordinates::geometry) AS destination_lat,
-                ST_X(destination_coordinates::geometry) AS destination_lng,
-                ST_AsText(route_geometry)               AS route_geometry_wkt
+                rides.id,
+                rides.driver_id,
+                rides.departure_datetime,
+                rides.available_seats,
+                rides.price_per_seat,
+                rides.route_distance_km,
+                rides.route_duration_minutes,
+                ST_Y(rides.origin_coordinates::geometry)      AS origin_lat,
+                ST_X(rides.origin_coordinates::geometry)      AS origin_lng,
+                ST_Y(rides.destination_coordinates::geometry) AS destination_lat,
+                ST_X(rides.destination_coordinates::geometry) AS destination_lng,
+                ST_AsText(rides.route_geometry)               AS route_geometry_wkt,
+                rides.group_id,
+                g.name AS group_name
             FROM rides
+            LEFT JOIN groups g ON g.id = rides.group_id
             WHERE
-                status = 'scheduled'
-                AND available_seats > 0
-                AND route_geometry IS NOT NULL
-                AND departure_datetime > NOW()
-                AND group_id IS NULL
-                AND route_geometry && ST_MakeEnvelope($1, $2, $3, $4, 4326)
-            ORDER BY departure_datetime
+                rides.status = 'scheduled'
+                AND rides.available_seats > 0
+                AND rides.route_geometry IS NOT NULL
+                AND rides.departure_datetime > NOW()
+                AND (rides.group_id IS NULL OR g.is_sponsored = false)
+                AND rides.route_geometry && ST_MakeEnvelope($1, $2, $3, $4, 4326)
+            ORDER BY rides.departure_datetime
             LIMIT $5
             """,
             min_lng,
@@ -179,6 +182,8 @@ async def generate_candidates(
             driver_origin_lng=float(ride["origin_lng"]),
             driver_dest_lat=float(ride["destination_lat"]),
             driver_dest_lng=float(ride["destination_lng"]),
+            group_id=ride["group_id"],
+            group_name=ride["group_name"],
         )
 
         if compat.is_compatible:

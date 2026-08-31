@@ -937,7 +937,8 @@
     "seatsAvailable": "{count, plural, one {مقعد واحد متاح} other {# مقاعد متاحة}}",
     "walkToPickup": "مشي {meters} متر إلى نقطة الصعود",
     "defaultDriverName": "سائق",
-    "book": "احجز"
+    "book": "احجز",
+    "groupRide": "مجموعة: {name}"
   },
   "matchScoreBadge": {
     "matchPercent": "تطابق {score}%"

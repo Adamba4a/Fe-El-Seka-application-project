@@ -937,7 +937,8 @@
     "seatsAvailable": "{count, plural, one {# seat} other {# seats}} available",
     "walkToPickup": "{meters}m walk to pickup",
     "defaultDriverName": "Driver",
-    "book": "Book"
+    "book": "Book",
+    "groupRide": "Group: {name}"
   },
   "matchScoreBadge": {
     "matchPercent": "{score}% match"

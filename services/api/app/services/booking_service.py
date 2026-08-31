@@ -109,20 +109,29 @@ async def create_booking(
                 detail={"error": "ride_not_schedulable", "message": "Ride is not accepting bookings"},
             )
 
+        # A general (non-sponsored) group's rides are open to anyone — they surface in
+        # normal search and need no membership check. Only a SPONSORED group's rides
+        # are membership-gated, since booking one can draw on the group's funded
+        # balance (see the payment_source branch below).
         membership_row = None
+        is_sponsored_group = False
         if ride["group_id"] is not None:
-            membership_row = await conn.fetchrow(
-                "SELECT domain_verification_id FROM group_memberships WHERE group_id = $1 AND user_id = $2",
-                ride["group_id"], passenger_id,
+            is_sponsored_group = bool(
+                await conn.fetchval("SELECT is_sponsored FROM groups WHERE id = $1", ride["group_id"])
             )
-            if membership_row is None:
-                raise HTTPException(
-                    status_code=403,
-                    detail={
-                        "error": "group_membership_required",
-                        "message": "You must be a member of this group to book this ride.",
-                    },
+            if is_sponsored_group:
+                membership_row = await conn.fetchrow(
+                    "SELECT domain_verification_id FROM group_memberships WHERE group_id = $1 AND user_id = $2",
+                    ride["group_id"], passenger_id,
                 )
+                if membership_row is None:
+                    raise HTTPException(
+                        status_code=403,
+                        detail={
+                            "error": "group_membership_required",
+                            "message": "You must be a member of this group to book this ride.",
+                        },
+                    )
 
         dep = ride["departure_datetime"]
         if dep.tzinfo is None:
@@ -144,20 +153,16 @@ async def create_booking(
         # draws on its funded balance — any other member of the same group still rides,
         # just pays cash.
         payment_source = "CASH"
-        if ride["group_id"] is not None and membership_row["domain_verification_id"] is not None:
-            is_sponsored_group = await conn.fetchval(
-                "SELECT is_sponsored FROM groups WHERE id = $1", ride["group_id"],
-            )
-            if is_sponsored_group:
-                if seats > 1:
-                    raise HTTPException(
-                        status_code=422,
-                        detail={
-                            "error": "sponsored_ride_seat_limit",
-                            "message": "Sponsored rides are limited to 1 seat per booking.",
-                        },
-                    )
-                payment_source = "SPONSORED"
+        if is_sponsored_group and membership_row["domain_verification_id"] is not None:
+            if seats > 1:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": "sponsored_ride_seat_limit",
+                        "message": "Sponsored rides are limited to 1 seat per booking.",
+                    },
+                )
+            payment_source = "SPONSORED"
 
         # 2. Atomic seat claim — zero rows means not enough seats remain
         claimed = await conn.fetchrow(

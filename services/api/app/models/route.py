@@ -56,6 +56,8 @@ class RideCandidate(BaseModel):
     driver_origin_lng: Optional[float] = None
     driver_dest_lat: Optional[float] = None
     driver_dest_lng: Optional[float] = None
+    group_id: Optional[UUID] = None
+    group_name: Optional[str] = None
 
 
 class CandidateSearchRequest(BaseModel):

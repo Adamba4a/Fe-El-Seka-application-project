@@ -58,6 +58,8 @@ interface RideDetail {
   route_distance_km: number;
   route_duration_minutes: number;
   is_sponsored: boolean;
+  group_id: string | null;
+  group_name: string | null;
 }
 
 interface DetailResponse {
@@ -102,6 +104,7 @@ export default function PassengerRideDetailPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const t = useTranslations("passenger.rideDetail");
+  const tRideCard = useTranslations("rideCard");
   const locale = useLocale() as Locale;
 
   // No origin/dest in the URL yet → this is a bare dashboard-card click, show
@@ -442,6 +445,12 @@ export default function PassengerRideDetailPage() {
           {t("viewProfile")}
         </Link>
       </div>
+
+      {ride.group_name && (
+        <span className="inline-block text-xs font-semibold bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">
+          {tRideCard("groupRide", { name: ride.group_name })}
+        </span>
+      )}
 
       {detail.match_score_pct !== null && (
         <MatchScoreBadge score_pct={detail.match_score_pct} />
