@@ -78,9 +78,9 @@ Per plan.md Project Structure: `services/api/app/{models,services,api}` (FastAPI
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Extend the passenger-facing ride detail view (existing route under `apps/main/src/app/(passenger)/rides/[rideId]/`) to show a "part of a recurring series" indicator plus the definition's other active days when `ride.recurring_ride_definition_id` is set (FR-009 passenger side) — read-only, does not alter the booking action.
-- [ ] T016 [US2] Verify the existing `GET /rides` search endpoint and `create_booking` flow require zero code changes for generated instances (FR-004/FR-005) — they are plain `rides` rows already covered by every existing query/mutation; confirm via a direct service-layer check, no code change expected beyond T011's ineligibility filter.
-- [ ] T017 [US2] Run `quickstart.md` Scenario 2 end-to-end; confirm a generated instance is searchable and bookable via the unmodified flow, and that booking one day instance does not affect a sibling day instance's seat availability.
+- [X] T015 [US2] Extend the passenger-facing ride detail view (existing route under `apps/main/src/app/(passenger)/rides/[id]/`) to show a "part of a recurring series" indicator plus the definition's other active days when `ride.recurring_ride_definition_id` is set (FR-009 passenger side) — read-only, does not alter the booking action.
+- [X] T016 [US2] Verify the existing `GET /rides` search endpoint and `create_booking` flow require zero code changes for generated instances (FR-004/FR-005) — they are plain `rides` rows already covered by every existing query/mutation; confirm via a direct service-layer check, no code change expected beyond T011's ineligibility filter.
+- [X] T017 [US2] Run `quickstart.md` Scenario 2 end-to-end; confirm a generated instance is searchable and bookable via the unmodified flow, and that booking one day instance does not affect a sibling day instance's seat availability.
 
 **Checkpoint**: User Stories 1 AND 2 both work independently — passengers can find and book specific day instances.
 

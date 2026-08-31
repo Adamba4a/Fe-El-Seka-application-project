@@ -14,6 +14,7 @@ import Link from "next/link";
 import { env } from "@/lib/env";
 import { formatCurrency } from "@fe-el-seka/shared";
 import type { Locale } from "@fe-el-seka/shared";
+import { fromIsoWeekday } from "@/lib/weekdays";
 
 const RideDetailMap = dynamic(
   () => import("@/components/bookings/RideDetailMap").then((m) => ({ default: m.RideDetailMap })),
@@ -60,6 +61,8 @@ interface RideDetail {
   is_sponsored: boolean;
   group_id: string | null;
   group_name: string | null;
+  recurring_ride_definition_id: string | null;
+  recurring_weekdays: number[] | null;
 }
 
 interface DetailResponse {
@@ -84,9 +87,32 @@ interface PreviewRide {
   route_distance_km: number;
   route_duration_minutes: number | null;
   existing_booking: ExistingBooking | null;
+  recurring_ride_definition_id: string | null;
+  recurring_weekdays: number[] | null;
 }
 
 type PremiumOption = "standard" | "premium_pickup" | "premium_dropoff" | "premium_both";
+
+function RecurringSeriesNote({
+  definitionId,
+  weekdays,
+  t,
+}: {
+  definitionId: string | null;
+  weekdays: number[] | null;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  if (!definitionId) return null;
+  const dayLabels = (weekdays ?? [])
+    .map((d) => t(`weekdayShort.${fromIsoWeekday(d)}`))
+    .join(", ");
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-bg border border-border-default text-xs text-content-secondary">
+      <span className="font-medium text-content-primary">{t("recurringSeriesLabel")}</span>
+      {dayLabels && <span>· {t("recurringSeriesOtherDays", { days: dayLabels })}</span>}
+    </div>
+  );
+}
 
 function formatDeparture(iso: string, locale: Locale) {
   return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", {
@@ -249,6 +275,12 @@ export default function PassengerRideDetailPage() {
             {t("viewProfile")}
           </Link>
         </div>
+
+        <RecurringSeriesNote
+          definitionId={preview.recurring_ride_definition_id}
+          weekdays={preview.recurring_weekdays}
+          t={t}
+        />
 
         <RideDetailMap
           routeGeometry={preview.route_geometry}
@@ -455,6 +487,12 @@ export default function PassengerRideDetailPage() {
       {detail.match_score_pct !== null && (
         <MatchScoreBadge score_pct={detail.match_score_pct} />
       )}
+
+      <RecurringSeriesNote
+        definitionId={ride.recurring_ride_definition_id}
+        weekdays={ride.recurring_weekdays}
+        t={t}
+      />
 
       {/* Map */}
       <RideDetailMap

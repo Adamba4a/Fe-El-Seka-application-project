@@ -7,8 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { listRecurringDefinitions } from "@/lib/api/recurring-rides";
 import { formatCurrency } from "@fe-el-seka/shared";
 import type { RecurringRideDefinition, Locale } from "@fe-el-seka/shared";
-
-const WEEKDAY_KEYS = ["0", "1", "2", "3", "4", "5", "6"] as const;
+import { fromIsoWeekday } from "@/lib/weekdays";
 
 export default function RecurringRidesPage() {
   const t = useTranslations("driver.recurring");
@@ -95,7 +94,7 @@ export default function RecurringRidesPage() {
                 <div className="flex items-center justify-between text-xs text-content-muted">
                   <span>
                     {def.departure_time.substring(0, 5)} ·{" "}
-                    {def.weekdays.map((d) => t(`weekdayShort.${WEEKDAY_KEYS[d]}`)).join(", ")}
+                    {def.weekdays.map((d) => t(`weekdayShort.${fromIsoWeekday(d)}`)).join(", ")}
                   </span>
                   <span className="font-medium text-content-secondary">
                     {formatCurrency(Number(def.price_per_seat), locale)}

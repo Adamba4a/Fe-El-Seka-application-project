@@ -277,6 +277,17 @@
       "rideNoLongerAvailableTitle": "الرحلة لم تعد متاحة",
       "rideNoLongerAvailableBody": "تم إلغاء هذه الرحلة أو اكتملت.",
       "searchAnotherRide": "ابحث عن رحلة أخرى",
+      "recurringSeriesLabel": "جزء من رحلة متكررة",
+      "recurringSeriesOtherDays": "تعمل أيضًا في: {days}",
+      "weekdayShort": {
+        "0": "أحد",
+        "1": "اثنين",
+        "2": "ثلاثاء",
+        "3": "أربعاء",
+        "4": "خميس",
+        "5": "جمعة",
+        "6": "سبت"
+      },
       "errors": {
         "loadFailed": "فشل تحميل تفاصيل الرحلة.",
         "network": "خطأ في الشبكة — يرجى التحقق من اتصالك.",

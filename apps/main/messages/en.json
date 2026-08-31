@@ -277,6 +277,17 @@
       "rideNoLongerAvailableTitle": "Ride no longer available",
       "rideNoLongerAvailableBody": "This ride has been cancelled or completed.",
       "searchAnotherRide": "Search for another ride",
+      "recurringSeriesLabel": "Part of a recurring series",
+      "recurringSeriesOtherDays": "Also runs on: {days}",
+      "weekdayShort": {
+        "0": "Sun",
+        "1": "Mon",
+        "2": "Tue",
+        "3": "Wed",
+        "4": "Thu",
+        "5": "Fri",
+        "6": "Sat"
+      },
       "errors": {
         "loadFailed": "Failed to load ride details.",
         "network": "Network error — please check your connection.",

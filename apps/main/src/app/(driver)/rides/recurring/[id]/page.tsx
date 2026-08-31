@@ -10,6 +10,7 @@ import { RideCard } from "@/components/rides/RideCard";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatCurrency } from "@fe-el-seka/shared";
 import type { RecurringRideDefinition, Ride, Locale } from "@fe-el-seka/shared";
+import { toIsoWeekday, fromIsoWeekday } from "@/lib/weekdays";
 
 const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const;
 
@@ -45,7 +46,7 @@ export default function RecurringRideDetailPage() {
       setDefinition(res.definition);
       setInstances(res.instances);
       setEditTime(res.definition.departure_time.substring(0, 5));
-      setEditWeekdays(res.definition.weekdays);
+      setEditWeekdays(res.definition.weekdays.map(fromIsoWeekday));
       setEditSeats(res.definition.total_seats);
       setEditPrice(Number(res.definition.price_per_seat));
       setEditNotes(res.definition.notes ?? "");
@@ -71,7 +72,7 @@ export default function RecurringRideDetailPage() {
       if (!session) { router.push("/login"); return; }
       const res = await editRecurringDefinition(session.access_token, id, {
         departure_time: editTime,
-        weekdays: editWeekdays,
+        weekdays: editWeekdays.map(toIsoWeekday),
         total_seats: editSeats,
         price_per_seat: editPrice,
         notes: editNotes.trim() || undefined,
@@ -174,7 +175,7 @@ export default function RecurringRideDetailPage() {
             <div>
               <p className="text-caption text-content-muted uppercase tracking-wide">{t("weekdaysLabel")}</p>
               <p className="text-body-sm font-medium text-content-primary">
-                {definition.weekdays.map((d) => t(`weekdayShort.${d}`)).join(", ")}
+                {definition.weekdays.map((d) => t(`weekdayShort.${fromIsoWeekday(d)}`)).join(", ")}
               </p>
             </div>
 
@@ -266,7 +267,7 @@ export default function RecurringRideDetailPage() {
                   setIsEditing(false);
                   setSaveError(null);
                   setEditTime(definition.departure_time.substring(0, 5));
-                  setEditWeekdays(definition.weekdays);
+                  setEditWeekdays(definition.weekdays.map(fromIsoWeekday));
                   setEditSeats(definition.total_seats);
                   setEditPrice(Number(definition.price_per_seat));
                   setEditNotes(definition.notes ?? "");
