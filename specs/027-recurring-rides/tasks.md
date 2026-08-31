@@ -106,10 +106,10 @@ Per plan.md Project Structure: `services/api/app/{models,services,api}` (FastAPI
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T023 [P] Verify `recurring_ride_definitions` RLS policy (`driver_read_own_recurring_definitions`) matches the `rides.driver_read_own_rides` pattern via the Supabase dashboard or a direct SQL check, per `data-model.md`.
-- [ ] T024 Run the full `quickstart.md` validation suite (all 4 scenarios) end-to-end against the local stack in one pass.
-- [ ] T025 Confirm CI checks (typecheck/build/lint) pass for the `services/api` and `apps/main` changes.
-- [ ] T026 [P] Add any new user-facing strings (recurring-mode toggle, recurring list/detail/edit UI, series indicator, "end series" action) to the message catalog (`en.json`/`ar.json`) and republish via `services/api/scripts/publish_message_catalog.py` before considering the UI text live.
+- [X] T023 [P] Verify `recurring_ride_definitions` RLS policy (`driver_read_own_recurring_definitions`) matches the `rides.driver_read_own_rides` pattern via the Supabase dashboard or a direct SQL check, per `data-model.md`.
+- [X] T024 Run the full `quickstart.md` validation suite (all 4 scenarios) end-to-end against the local stack in one pass.
+- [X] T025 Confirm CI checks (typecheck/build/lint) pass for the `services/api` and `apps/main` changes.
+- [X] T026 [P] Add any new user-facing strings (recurring-mode toggle, recurring list/detail/edit UI, series indicator, "end series" action) to the message catalog (`en.json`/`ar.json`) and republish via `services/api/scripts/publish_message_catalog.py` before considering the UI text live.
 
 ---
 

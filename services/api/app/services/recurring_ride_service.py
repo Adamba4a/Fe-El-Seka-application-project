@@ -306,14 +306,12 @@ async def edit_definition(
                 return f"${len(params)}"
 
             if payload.origin is not None:
-                sets.append(
-                    f"origin_coordinates = ST_GeomFromText({add_param(f'POINT({new_origin_lng} {new_origin_lat})')}, 4326)::geography"
-                )
+                origin_point = add_param(f"POINT({new_origin_lng} {new_origin_lat})")
+                sets.append(f"origin_coordinates = ST_GeomFromText({origin_point}, 4326)::geography")
                 sets.append(f"origin_address = {add_param(new_origin_address)}")
             if payload.destination is not None:
-                sets.append(
-                    f"destination_coordinates = ST_GeomFromText({add_param(f'POINT({new_dest_lng} {new_dest_lat})')}, 4326)::geography"
-                )
+                dest_point = add_param(f"POINT({new_dest_lng} {new_dest_lat})")
+                sets.append(f"destination_coordinates = ST_GeomFromText({dest_point}, 4326)::geography")
                 sets.append(f"destination_address = {add_param(new_dest_address)}")
             if payload.departure_time is not None:
                 sets.append(f"departure_time = {add_param(payload.departure_time)}")
