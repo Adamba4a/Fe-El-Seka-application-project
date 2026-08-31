@@ -23,6 +23,9 @@ export interface Ride {
   available_seats: number;
   price_per_seat: string;
   fair_price_per_seat: string;
+  fuel_cost_egp: number | null;
+  distance_fee_egp: number | null;
+  safety_margin_egp: number | null;
   status: RideStatus;
   cancellation_reason: string | null;
   cancellation_source: "driver" | "system" | null;

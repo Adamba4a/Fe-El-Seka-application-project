@@ -157,6 +157,14 @@ async def create_booking(
                     ride["group_id"],
                 )
         if group_row is not None and group_row["is_sponsored"]:
+            if seats > 1:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": "sponsored_ride_seat_limit",
+                        "message": "Sponsored rides are limited to 1 seat per booking.",
+                    },
+                )
             total_seat_price = Decimal(str(ride["price_per_seat"])) * seats
             if Decimal(str(group_row["funded_balance_egp"])) < total_seat_price:
                 raise HTTPException(
@@ -234,21 +242,17 @@ async def create_booking(
 
         if payment_source == "SPONSORED":
             from app.services import car_maintenance_service, wallet_service
-            from app.services.commission_service import COMMISSION_RATE
+            from app.services.commission_service import compute_per_seat_commission
 
             fuel_cost_egp = Decimal(str(ride["fuel_cost_egp"] or 0))
             distance_fee_egp = Decimal(str(ride["distance_fee_egp"] or 0))
             safety_margin_egp = Decimal(str(ride["safety_margin_egp"] or 0))
             fair_price_per_seat = Decimal(str(ride["fair_price_per_seat"]))
             price_per_seat = Decimal(str(ride["price_per_seat"]))
-            total_seats_on_ride = ride["total_seats"]
 
-            markup_commission_per_seat = (
-                max(Decimal("0"), price_per_seat - fair_price_per_seat) * COMMISSION_RATE
+            per_seat_commission, per_seat_distance_fee = compute_per_seat_commission(
+                fuel_cost_egp, distance_fee_egp, safety_margin_egp, price_per_seat, fair_price_per_seat
             )
-            per_seat_commission = (
-                fuel_cost_egp * COMMISSION_RATE + distance_fee_egp + safety_margin_egp
-            ) / total_seats_on_ride + markup_commission_per_seat
             commission_for_booking = (per_seat_commission * seats).quantize(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
@@ -257,7 +261,7 @@ async def create_booking(
             # commission_service.deduct_commission() for cash rides — sponsored rides settle
             # commission at booking time instead of ride completion, so the car-maintenance
             # savings accumulation has to happen here rather than in deduct_commission.
-            distance_fee_amount = ((distance_fee_egp / total_seats_on_ride) * seats).quantize(
+            distance_fee_amount = (per_seat_distance_fee * seats).quantize(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
 
@@ -577,8 +581,8 @@ async def cancel_booking(
         # Spec 026 (research.md §11): reverse a sponsored booking's settlement —
         # refund the group's funded balance and claw back the driver's net credit.
         if row["payment_source"] == "SPONSORED":
-            from app.services import car_maintenance_service, wallet_service
-            from app.services.commission_service import COMMISSION_RATE
+            from app.services import wallet_service
+            from app.services.commission_service import compute_per_seat_commission
 
             total_seat_price = Decimal(str(row["price_per_seat"])) * row["seats"]
             fuel_cost_egp = Decimal(str(row["fuel_cost_egp"] or 0))
@@ -586,14 +590,10 @@ async def cancel_booking(
             safety_margin_egp = Decimal(str(row["safety_margin_egp"] or 0))
             fair_price_per_seat = Decimal(str(row["fair_price_per_seat"]))
             price_per_seat = Decimal(str(row["price_per_seat"]))
-            total_seats_on_ride = row["total_seats"]
 
-            markup_commission_per_seat = (
-                max(Decimal("0"), price_per_seat - fair_price_per_seat) * COMMISSION_RATE
+            per_seat_commission, per_seat_distance_fee = compute_per_seat_commission(
+                fuel_cost_egp, distance_fee_egp, safety_margin_egp, price_per_seat, fair_price_per_seat
             )
-            per_seat_commission = (
-                fuel_cost_egp * COMMISSION_RATE + distance_fee_egp + safety_margin_egp
-            ) / total_seats_on_ride + markup_commission_per_seat
             commission_for_booking = (per_seat_commission * row["seats"]).quantize(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
@@ -601,7 +601,7 @@ async def cancel_booking(
             # Mirrors the accumulation applied at booking creation — claw it back so a
             # cancelled sponsored booking doesn't leave phantom progress toward the
             # car-maintenance reward (see create_booking's SPONSORED branch).
-            distance_fee_amount = ((distance_fee_egp / total_seats_on_ride) * row["seats"]).quantize(
+            distance_fee_amount = (per_seat_distance_fee * row["seats"]).quantize(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
 
@@ -719,7 +719,7 @@ async def add_booking_seats(
     async with conn.transaction():
         row = await conn.fetchrow(
             """
-            SELECT b.id, b.status, b.ride_id, b.passenger_id, b.seats, b.per_seat_price,
+            SELECT b.id, b.status, b.ride_id, b.passenger_id, b.seats, b.per_seat_price, b.payment_source,
                    r.driver_id, r.departure_datetime
             FROM bookings b
             JOIN rides r ON r.id = b.ride_id
@@ -736,6 +736,14 @@ async def add_booking_seats(
             raise HTTPException(
                 status_code=409,
                 detail={"error": "booking_terminal", "message": "Booking is not active"},
+            )
+        if row["payment_source"] == "SPONSORED":
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "sponsored_ride_seat_limit",
+                    "message": "Sponsored rides are limited to 1 seat per booking.",
+                },
             )
 
         dep = row["departure_datetime"]

@@ -57,6 +57,7 @@ interface RideDetail {
   route_geometry: object | null;
   route_distance_km: number;
   route_duration_minutes: number;
+  is_sponsored: boolean;
 }
 
 interface DetailResponse {
@@ -330,7 +331,7 @@ export default function PassengerRideDetailPage() {
     return 0;
   })();
 
-  const maxSeats = Math.min(ride.available_seats, 8);
+  const maxSeats = ride.is_sponsored ? 1 : Math.min(ride.available_seats, 8);
   const clampedSeatCount = Math.max(1, Math.min(seatCount, maxSeats || 1));
   const totalPrice = (parseFloat(ride.per_seat_price) * clampedSeatCount + premiumFee).toFixed(2);
   const noSeats = ride.available_seats === 0;

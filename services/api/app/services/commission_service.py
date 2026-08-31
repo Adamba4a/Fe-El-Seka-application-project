@@ -6,12 +6,44 @@ import uuid
 from decimal import ROUND_HALF_UP, Decimal
 
 from app.services import car_maintenance_service, wallet_service
+from app.services.pricing_service import FARE_SPLIT_SEATS
 
 logger = logging.getLogger(__name__)
 
 # Fixed platform commission rate — same constant as pricing_service.PLATFORM_COMMISSION_RATE.
 # NOT separately configurable: Phase 5 FR-025 and Phase 8 FR-018.
 COMMISSION_RATE = Decimal("0.20")
+
+
+def compute_per_seat_commission(
+    fuel_cost_egp: Decimal,
+    distance_fee_egp: Decimal,
+    safety_margin_egp: Decimal,
+    price_per_seat: Decimal,
+    fair_price_per_seat: Decimal,
+) -> tuple[Decimal, Decimal]:
+    """Return (per_seat_commission, per_seat_distance_fee) for one booked seat.
+
+    Split across FARE_SPLIT_SEATS — the SAME fixed divisor pricing_service.calculate_fare()
+    uses to quote price_per_seat — rather than the ride's actual total_seats. price_per_seat
+    is quoted assuming a 2-way cost split regardless of how many seats the car actually has,
+    so commission must be pulled against that same assumption or it silently over/under-charges
+    whenever total_seats != FARE_SPLIT_SEATS (e.g. a 1-seat ride was previously charged the
+    ride's ENTIRE undivided commission from its single passenger). Every booked seat — including
+    seats beyond FARE_SPLIT_SEATS on rides with more capacity — is charged this same per-seat
+    rate; extra fill-up seats are pure additional platform/driver revenue, matching the
+    "total_collected_egp" fill-up-bonus estimate already shown at quote time.
+
+    This is the single source of truth reused by deduct_commission() below (cash rides, at ride
+    completion) and by booking_service.py's sponsored-ride settlement/reversal (which duplicate
+    this shape because sponsored rides settle at booking time instead of completion).
+    """
+    markup_commission_per_seat = max(Decimal("0.00"), price_per_seat - fair_price_per_seat) * COMMISSION_RATE
+    per_seat_commission = (
+        fuel_cost_egp * COMMISSION_RATE + distance_fee_egp + safety_margin_egp
+    ) / FARE_SPLIT_SEATS + markup_commission_per_seat
+    per_seat_distance_fee = distance_fee_egp / FARE_SPLIT_SEATS
+    return per_seat_commission, per_seat_distance_fee
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -28,9 +60,11 @@ async def deduct_commission(
     Commission is charged per seat, not per booking row — a single booking can reserve
     more than one seat (see the multi-seat booking feature), and each of those seats
     must be charged its share:
-        per_seat = (fuel_cost_egp * 0.20 + distance_fee_egp + safety_margin_egp) / total_seats
+        per_seat = (fuel_cost_egp * 0.20 + distance_fee_egp + safety_margin_egp) / FARE_SPLIT_SEATS
                    + (price_per_seat - fair_price_per_seat) * 0.20
         commission for a booking = ROUND(per_seat * booking.seats, 2)
+    See compute_per_seat_commission() above for why the divisor is the fixed FARE_SPLIT_SEATS
+    constant and not the ride's actual total_seats.
 
     The platform keeps the 20% fuel-cost commission plus the flat safety margin and the
     per-km distance fee in full — both are platform revenue, not a driver buffer. When the
@@ -62,7 +96,6 @@ async def deduct_commission(
         if ride.get("safety_margin_egp") is not None
         else Decimal("0")
     )
-    total_seats = int(ride["total_seats"])
     price_per_seat = Decimal(str(ride["price_per_seat"]))
     fair_price_per_seat = (
         Decimal(str(ride["fair_price_per_seat"])) if ride.get("fair_price_per_seat") is not None else price_per_seat
@@ -72,7 +105,7 @@ async def deduct_commission(
     wallet = await wallet_service.get_wallet_with_lock(conn, driver_id)
     wallet_id = wallet["id"]
 
-    if not confirmed_bookings or total_seats == 0 or (
+    if not confirmed_bookings or (
         fuel_cost == Decimal("0")
         and distance_fee == Decimal("0")
         and safety_margin == Decimal("0")
@@ -86,10 +119,9 @@ async def deduct_commission(
         )
         return
 
-    per_seat_commission = (
-        fuel_cost * COMMISSION_RATE + distance_fee + safety_margin
-    ) / total_seats + markup_commission_per_seat
-    per_seat_distance_fee = distance_fee / total_seats
+    per_seat_commission, per_seat_distance_fee = compute_per_seat_commission(
+        fuel_cost, distance_fee, safety_margin, price_per_seat, fair_price_per_seat
+    )
 
     total_deducted = Decimal("0.00")
     total_distance_fee = Decimal("0.00")

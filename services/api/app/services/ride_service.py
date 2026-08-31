@@ -251,18 +251,26 @@ async def create_ride(
 
                 from app.services import wallet_service as _ws
                 from app.services.commission_service import (
-                    COMMISSION_RATE,
                     check_available_balance,
+                    compute_per_seat_commission,
                     create_reservation,
                 )
 
-                markup_commission = (price_per_seat - fair_price_dec) * payload.total_seats * COMMISSION_RATE
-                max_commission = (
-                    Decimal(str(fuel_cost_egp)) * COMMISSION_RATE
-                    + Decimal(str(distance_fee_egp))
-                    + Decimal(str(safety_margin_egp))
-                    + markup_commission
-                ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                # Worst case: every seat fills. Per-seat commission uses the same fixed
+                # FARE_SPLIT_SEATS divisor as pricing/deduction (see
+                # compute_per_seat_commission's docstring) — scale by total_seats so the
+                # reservation actually covers what deduct_commission can charge, instead of
+                # under-reserving on any ride whose total_seats != FARE_SPLIT_SEATS.
+                per_seat_commission, _ = compute_per_seat_commission(
+                    Decimal(str(fuel_cost_egp)),
+                    Decimal(str(distance_fee_egp)),
+                    Decimal(str(safety_margin_egp)),
+                    price_per_seat,
+                    fair_price_dec,
+                )
+                max_commission = (per_seat_commission * payload.total_seats).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
                 wallet = await _ws.get_wallet_with_lock(conn, driver_id)
 
                 if not check_available_balance(wallet, max_commission):
@@ -583,8 +591,8 @@ async def edit_ride(
 
                 from app.services import wallet_service as _ws
                 from app.services.commission_service import (
-                    COMMISSION_RATE,
                     check_available_balance,
+                    compute_per_seat_commission,
                     create_reservation,
                     update_reservation,
                 )
@@ -611,10 +619,12 @@ async def edit_ride(
                         else Decimal("0")
                     )
 
-                markup_commission = (final_price_per_seat - fair_price) * final_total_seats * COMMISSION_RATE
-                new_max_commission = (
-                    fuel_cost * COMMISSION_RATE + distance_fee + safety_margin + markup_commission
-                ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                per_seat_commission, _ = compute_per_seat_commission(
+                    fuel_cost, distance_fee, safety_margin, final_price_per_seat, fair_price
+                )
+                new_max_commission = (per_seat_commission * final_total_seats).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
 
                 existing_reservation = await conn.fetchrow(
                     "SELECT reserved_amount_egp FROM commission_reservations WHERE ride_id = $1",

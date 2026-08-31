@@ -106,7 +106,10 @@ class TestCreateAndSearchGroup:
             "org_verified_at": "2026-01-01T00:00:00+00:00",
         }
         row = _group_row()
-        conn = _RoutedFakeConn(fetchrow_rules=[("INSERT INTO groups", row)])
+        conn = _RoutedFakeConn(
+            fetchval_rules=[("SELECT id FROM groups WHERE archived_at IS NULL AND lower(name)", None)],
+            fetchrow_rules=[("INSERT INTO groups", row)],
+        )
         monkeypatch.setattr(group_service, "get_pool", lambda: _FakePool(conn))
 
         resp = client.post(
@@ -168,7 +171,7 @@ class TestJoinGroup:
         }
         conn = _RoutedFakeConn(
             fetchrow_rules=[
-                ("SELECT id FROM groups WHERE id = $1 AND archived_at IS NULL", {"id": group_id}),
+                ("SELECT id, is_sponsored FROM groups", {"id": group_id, "is_sponsored": False}),
                 ("SELECT id, group_id, user_id, role, joined_at\n            FROM group_memberships", None),
                 ("INSERT INTO group_memberships", membership_row),
             ],
@@ -186,7 +189,7 @@ class TestJoinGroup:
             "org_verified_at": "2026-01-01T00:00:00+00:00",
         }
         conn = _RoutedFakeConn(
-            fetchrow_rules=[("SELECT id FROM groups WHERE id = $1 AND archived_at IS NULL", None)]
+            fetchrow_rules=[("SELECT id, is_sponsored FROM groups", None)]
         )
         monkeypatch.setattr(group_service, "get_pool", lambda: _FakePool(conn))
 

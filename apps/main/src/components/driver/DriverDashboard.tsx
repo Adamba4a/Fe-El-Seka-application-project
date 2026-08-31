@@ -7,7 +7,7 @@ import { useSession } from "@/lib/auth/hooks";
 import { getMe } from "@/lib/api/profiles";
 import { listRides, listRideBookings } from "@/lib/api/rides";
 import { getWallet } from "@/lib/api/wallet";
-import { formatCurrency } from "@fe-el-seka/shared";
+import { formatCurrency, computeNetEarningsPerSeat } from "@fe-el-seka/shared";
 import type { Ride, Profile, Locale } from "@fe-el-seka/shared";
 import { StatsCard } from "@/components/driver/StatsCard";
 import { UpcomingTripCard } from "@/components/driver/UpcomingTripCard";
@@ -83,8 +83,12 @@ export function DriverDashboard() {
         setCarMaintenanceSavings(parseFloat(wallet.car_maintenance_savings_egp));
         setCarMaintenanceThreshold(parseFloat(wallet.car_maintenance_threshold_egp));
         setCompletedCount(completed.total);
+        // Net of platform commission (20% of fuel cost + the flat safety-margin fee) —
+        // the per-km distance fee is left in since it's saved toward the driver's car-
+        // maintenance fund rather than lost. What actually lands in the driver's wallet
+        // per seat, not the gross price passengers paid.
         const totalEarnings = completed.rides.reduce(
-          (sum, r) => sum + parseFloat(r.price_per_seat) * r.booked_seats,
+          (sum, r) => sum + computeNetEarningsPerSeat(r) * r.booked_seats,
           0
         );
         setEarnings(totalEarnings);
