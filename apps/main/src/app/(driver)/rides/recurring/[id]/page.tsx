@@ -5,9 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
-import { getRecurringDefinition, editRecurringDefinition } from "@/lib/api/recurring-rides";
+import { getRecurringDefinition, editRecurringDefinition, endRecurringDefinition } from "@/lib/api/recurring-rides";
 import { RideCard } from "@/components/rides/RideCard";
-import { Spinner } from "@/components/ui/Spinner";
+import { BottomSheet, Spinner } from "@/components";
 import { formatCurrency } from "@fe-el-seka/shared";
 import type { RecurringRideDefinition, Ride, Locale } from "@fe-el-seka/shared";
 import { toIsoWeekday, fromIsoWeekday } from "@/lib/weekdays";
@@ -34,6 +34,10 @@ export default function RecurringRideDetailPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+
+  const [isEndConfirmOpen, setIsEndConfirmOpen] = useState(false);
+  const [ending, setEnding] = useState(false);
+  const [endError, setEndError] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -88,6 +92,24 @@ export default function RecurringRideDetailPage() {
     }
   };
 
+  const handleEndSeries = async () => {
+    setEnding(true);
+    setEndError(null);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { router.push("/login"); return; }
+      const updated = await endRecurringDefinition(session.access_token, id);
+      setDefinition((prev) => (prev ? { ...prev, status: updated.status } : prev));
+      setIsEndConfirmOpen(false);
+      setIsEditing(false);
+    } catch (err: any) {
+      setEndError(err?.message ?? t("endSeriesFailed"));
+    } finally {
+      setEnding(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -128,13 +150,22 @@ export default function RecurringRideDetailPage() {
             {t(definition.status === "active" ? "statusActive" : "statusEnded")}
           </span>
           {definition.status === "active" && !isEditing && (
-            <button
-              type="button"
-              onClick={() => setIsEditing(true)}
-              className="rounded-xl bg-dash-primary px-4 py-2 text-body-sm font-semibold text-content-inverse hover:opacity-90 transition-opacity"
-            >
-              {t("editButton")}
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="rounded-xl bg-dash-primary px-4 py-2 text-body-sm font-semibold text-content-inverse hover:opacity-90 transition-opacity"
+              >
+                {t("editButton")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEndConfirmOpen(true)}
+                className="rounded-xl border border-border-default px-4 py-2 text-body-sm font-semibold text-content-destructive hover:bg-status-cancelled-bg transition-colors"
+              >
+                {t("endSeriesButton")}
+              </button>
+            </div>
           )}
         </div>
 
@@ -302,6 +333,23 @@ export default function RecurringRideDetailPage() {
           </div>
         )}
       </div>
+
+      <BottomSheet isOpen={isEndConfirmOpen} onClose={() => setIsEndConfirmOpen(false)}>
+        <div className="space-y-4">
+          <h2 className="text-h3 text-content-primary">{t("endSeriesConfirmTitle")}</h2>
+          <p className="text-body-sm text-content-muted">{t("endSeriesConfirmBody")}</p>
+          {endError && <p className="text-caption text-content-destructive">{endError}</p>}
+          <button
+            type="button"
+            onClick={handleEndSeries}
+            disabled={ending}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-surface-destructive text-content-inverse rounded-xl font-medium disabled:opacity-50 transition-colors"
+          >
+            {ending && <Spinner />}
+            {ending ? t("endingSeries") : t("confirmEndSeries")}
+          </button>
+        </div>
+      </BottomSheet>
     </div>
   );
 }

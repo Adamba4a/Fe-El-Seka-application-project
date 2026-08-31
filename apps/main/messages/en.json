@@ -546,7 +546,13 @@
       "saveFailed": "Failed to save changes.",
       "editSuccessPrefix": "Updated {count} upcoming ride(s).",
       "instancesHeading": "Upcoming Rides",
-      "noInstancesYet": "No upcoming rides generated yet."
+      "noInstancesYet": "No upcoming rides generated yet.",
+      "endSeriesButton": "End Series",
+      "endSeriesConfirmTitle": "End this recurring series?",
+      "endSeriesConfirmBody": "No new rides will be generated. Rides already scheduled or booked are not affected and will continue as planned.",
+      "confirmEndSeries": "End Series",
+      "endingSeries": "Ending…",
+      "endSeriesFailed": "Failed to end the recurring series."
     },
     "manage": {
       "heading": "Ride Detail",

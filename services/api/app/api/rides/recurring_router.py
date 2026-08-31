@@ -113,5 +113,17 @@ async def edit_recurring_definition(
         return _service_error_response(exc)
 
 
-# NOTE: POST /{definition_id}/end (T019, ending a series) lands in Phase 5
-# (US3) alongside recurring_ride_service.end_definition (T018).
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /api/v1/rides/recurring/{definition_id}/end
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post("/{definition_id}/end")
+async def end_recurring_definition(
+    definition_id: uuid.UUID,
+    profile: dict = Depends(get_current_driver),
+) -> RecurringRideDefinitionResponse:
+    driver_id = uuid.UUID(str(profile["id"]))
+    try:
+        return await recurring_ride_service.end_definition(driver_id, definition_id)
+    except RecurringRideServiceError as exc:
+        return _service_error_response(exc)

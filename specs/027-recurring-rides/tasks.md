@@ -94,11 +94,11 @@ Per plan.md Project Structure: `services/api/app/{models,services,api}` (FastAPI
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Implement `end_definition` in `recurring_ride_service.py` (FR-008): set `status='ended'`; idempotent — ending an already-ended definition is a no-op returning the current state; no mutation of any existing `rides` row.
-- [ ] T019 [US3] Add `POST /rides/recurring/{definition_id}/end` to `recurring_router.py` (T018).
-- [ ] T020 [US3] Verify the existing `POST /rides/{ride_id}/cancel` endpoint requires zero code changes when called directly on a generated instance's `ride_id` (FR-006/FR-007) — cancellation consequences and next-occurrence regeneration on the following loop tick already work unchanged since the instance is a plain `rides` row; confirm via `quickstart.md`.
-- [ ] T021 [P] [US3] Add an "End recurring series" action to the driver recurring-definition detail UI (`apps/main/src/app/(driver)/rides/recurring/`, from T013), calling T019; single-instance cancellation reuses the existing one-off ride cancel action already present on each instance's ride row.
-- [ ] T022 [US3] Run `quickstart.md` Scenario 3 end-to-end; confirm all pass conditions (cancellation isolated to one instance, weekday keeps regenerating, ending the series stops only future generation).
+- [X] T018 [US3] Implement `end_definition` in `recurring_ride_service.py` (FR-008): set `status='ended'`; idempotent — ending an already-ended definition is a no-op returning the current state; no mutation of any existing `rides` row.
+- [X] T019 [US3] Add `POST /rides/recurring/{definition_id}/end` to `recurring_router.py` (T018).
+- [X] T020 [US3] Verify the existing `POST /rides/{ride_id}/cancel` endpoint requires zero code changes when called directly on a generated instance's `ride_id` (FR-006/FR-007) — cancellation consequences and next-occurrence regeneration on the following loop tick already work unchanged since the instance is a plain `rides` row; confirm via `quickstart.md`.
+- [X] T021 [P] [US3] Add an "End recurring series" action to the driver recurring-definition detail UI (`apps/main/src/app/(driver)/rides/recurring/`, from T013), calling T019; single-instance cancellation reuses the existing one-off ride cancel action already present on each instance's ride row.
+- [X] T022 [US3] Run `quickstart.md` Scenario 3 end-to-end; confirm all pass conditions (cancellation isolated to one instance, weekday keeps regenerating, ending the series stops only future generation).
 
 **Checkpoint**: All user stories are independently functional — the full recurring-rides feature works end-to-end.
 

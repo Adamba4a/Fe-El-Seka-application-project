@@ -75,3 +75,16 @@ export async function editRecurringDefinition(
   if (!res.ok) throw unwrapError(json);
   return json;
 }
+
+export async function endRecurringDefinition(
+  token: string,
+  id: string
+): Promise<RecurringRideDefinition> {
+  const res = await fetch(`${base}/api/v1/rides/recurring/${id}/end`, {
+    method: "POST",
+    headers: authHeaders(token),
+  });
+  const json = await res.json();
+  if (!res.ok) throw unwrapError(json);
+  return json;
+}

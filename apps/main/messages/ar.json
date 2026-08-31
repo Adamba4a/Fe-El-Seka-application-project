@@ -546,7 +546,13 @@
       "saveFailed": "فشل حفظ التغييرات.",
       "editSuccessPrefix": "تم تحديث {count} رحلة قادمة.",
       "instancesHeading": "الرحلات القادمة",
-      "noInstancesYet": "لم يتم إنشاء رحلات قادمة بعد."
+      "noInstancesYet": "لم يتم إنشاء رحلات قادمة بعد.",
+      "endSeriesButton": "إنهاء السلسلة",
+      "endSeriesConfirmTitle": "هل تريد إنهاء هذه السلسلة المتكررة؟",
+      "endSeriesConfirmBody": "لن يتم إنشاء رحلات جديدة. الرحلات المجدولة أو المحجوزة بالفعل لن تتأثر وستستمر كما هو مخطط لها.",
+      "confirmEndSeries": "إنهاء السلسلة",
+      "endingSeries": "جارٍ الإنهاء…",
+      "endSeriesFailed": "فشل إنهاء السلسلة المتكررة."
     },
     "manage": {
       "heading": "تفاصيل الرحلة",

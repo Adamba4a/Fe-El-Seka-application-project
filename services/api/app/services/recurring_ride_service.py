@@ -456,6 +456,36 @@ async def edit_definition(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# End definition (T018) — FR-008
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def end_definition(
+    driver_id: uuid.UUID, definition_id: uuid.UUID
+) -> RecurringRideDefinitionResponse:
+    """Stop future generation for this definition. Idempotent — ending an
+    already-ended definition is a no-op that returns the current state.
+    Never mutates any existing `rides` row (FR-008): already-generated
+    instances, booked or not, are left exactly as they are."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        definition = await _fetch_own_definition(conn, definition_id, driver_id)
+        if definition["status"] == "ended":
+            return _to_definition_response(definition)
+
+        row = await conn.fetchrow(
+            f"""
+            UPDATE recurring_ride_definitions
+            SET status = 'ended', updated_at = now()
+            WHERE id = $1
+            RETURNING {_DEFINITION_COLS}
+            """,
+            definition_id,
+        )
+
+    return _to_definition_response(dict(row))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Generation loop (T006)
 # ─────────────────────────────────────────────────────────────────────────────
 
