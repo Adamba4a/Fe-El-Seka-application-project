@@ -33,3 +33,4 @@
 
 - No [NEEDS CLARIFICATION] markers were needed — the feature description plus the existing recurring-rides approach the user already agreed to (recorded in project memory `project_students_employees_pivot`) supplied enough detail to fill gaps with documented defaults (forward-generation window, single route/time per definition, edit/cancellation reuse of existing ride mechanics).
 - All items pass on first validation pass.
+- 2026-08-31 `/speckit-clarify` session: found and fixed a real contradiction between FR-008 and User Story 3 Scenario 3 (series-ending vs. instance cancellation), plus resolved 3 more ambiguities (per-day route/time variation, edit-time propagation to unbooked instances, ineligibility handling mid-series). All items still pass after integration.

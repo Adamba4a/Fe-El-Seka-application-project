@@ -18,6 +18,17 @@ Let a driver who repeats the same commute on the same days every week post it on
 
 ---
 
+## Clarifications
+
+### Session 2026-08-31
+
+- Q: When a driver ends a recurring definition entirely, what happens to its already-booked upcoming day instances? → A: Ending the series only stops future generation — already-generated instances (booked or not) run their course untouched unless the driver cancels each one individually via the existing single-instance cancellation mechanism (FR-006).
+- Q: Can one recurring ride definition have a different route/departure time per selected day, or is one fixed route+time+seat-count shared across all its selected days? → A: One fixed route, departure time, and seat count shared across all selected days per definition; a driver wanting different patterns on different days creates a separate recurring definition per pattern.
+- Q: When a driver edits a recurring definition's route/time/seats, what happens to already-generated day instances that have zero bookings yet and haven't hit the edit cutoff? → A: They are updated in place to the new values — only instances with at least one confirmed booking keep their pre-edit locked details; this matches how editing a normal one-off ride already behaves.
+- Q: When a driver's vehicle/verification becomes ineligible mid-series (FR-012), what happens to already-generated, unbooked future instances that exist at that moment? → A: They are immediately hidden/unbookable, same as an ineligible driver being unable to post a new one-off ride today; already-booked instances are untouched — existing bookings are not cancelled just because eligibility lapsed.
+
+---
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Driver Defines a Recurring Ride (Priority: P1)
@@ -64,14 +75,14 @@ A driver who can't make one specific day (e.g., a one-off conflict) cancels just
 
 1. **Given** a specific day's instance of a recurring ride, **When** the driver cancels that instance, **Then** the same cancellation mechanism and consequences that apply to a one-off ride cancellation apply here (booked passengers are notified and refunded/reversed per existing cancellation rules), and no other instance of the recurring series is affected.
 2. **Given** a driver has cancelled one day's instance, **When** the next occurrence of that same weekday arrives, **Then** a new bookable instance for that weekday is generated as normal — a single-day cancellation does not remove that weekday from the recurring definition going forward.
-3. **Given** a driver wants to stop offering the recurring ride entirely, **When** they end the recurring definition, **Then** no further future instances are generated, while already-booked upcoming instances follow the same single-instance cancellation consequences as Scenario 1 for each of them.
+3. **Given** a driver wants to stop offering the recurring ride entirely, **When** they end the recurring definition, **Then** no further future instances are generated, while every already-generated instance (booked or not) remains untouched and continues to run its own course — ending the series is not itself a cancellation, and any of those instances is only cancelled if the driver separately cancels it via Scenario 1.
 
 ---
 
 ### Edge Cases
 
 - What happens when a driver edits the recurring definition's route, time, or seat count? Edits apply to future instances not yet generated or not yet departed, subject to the same ride-edit cutoff window already enforced for one-off rides; already-booked instances keep the locked price/details a passenger booked under, consistent with how editing a one-off ride never changes an existing booking's locked price.
-- What happens when a driver's vehicle or verification status becomes invalid partway through a recurring series? Future instance generation stops until the driver's eligibility is restored, mirroring the eligibility checks already enforced when posting a one-off ride.
+- What happens when a driver's vehicle or verification status becomes invalid partway through a recurring series? Future instance generation stops and any already-generated, unbooked instance becomes immediately unsearchable/unbookable until eligibility is restored (already-booked instances are untouched), mirroring the eligibility checks already enforced when posting a one-off ride.
 - What happens if a driver tries to define two recurring rides with heavily overlapping days/times/routes? No new restriction is introduced — this is treated the same as a driver posting two overlapping one-off rides today (allowed, at the driver's own discretion).
 - How far in advance are future day instances visible/bookable? A rolling window is generated (see Assumptions) rather than generating every future week indefinitely.
 - What happens when a recurring ride's day instance passes with zero bookings? It simply lapses the same way an unbooked one-off ride does today; no special handling needed.
@@ -87,11 +98,11 @@ A driver who can't make one specific day (e.g., a one-off conflict) cancels just
 - **FR-005**: System MUST allow a booking made on one day instance to be entirely independent of any other day instance in the same recurring series — booking or cancelling one day's seat MUST NOT affect seat availability on any other day.
 - **FR-006**: System MUST allow a driver to cancel a single day's instance without ending the recurring definition, using the platform's existing ride-cancellation mechanism and consequences (passenger notification, refund/reversal per current cash and sponsored cancellation rules) applied to just that instance.
 - **FR-007**: System MUST continue generating future instances for a weekday after a single instance of that weekday has been cancelled — a single-day cancellation MUST NOT remove that day from the recurring definition.
-- **FR-008**: System MUST allow a driver to end a recurring definition so that no further future instances are generated, while leaving already-generated (past or currently booked upcoming) instances unaffected except through their own individual cancellation per FR-006.
+- **FR-008**: System MUST allow a driver to end a recurring definition so that no further future instances are generated, while leaving every already-generated instance (past, booked, or unbooked upcoming) unaffected — ending the definition is not itself a cancellation — except through that instance's own individual cancellation per FR-006.
 - **FR-009**: System MUST visibly indicate, on both the driver's ride list and the passenger-facing ride detail view, that a given day instance is part of a recurring series rather than a one-off ride.
 - **FR-010**: System MUST apply the same driver-eligibility checks (verified vehicle, verification status) to recurring ride definitions and their generated instances as already apply to one-off ride creation.
-- **FR-011**: System MUST let a driver edit a recurring definition's route, departure time, or seat count for instances not yet generated or not yet past the existing ride-edit cutoff window, without altering the locked details of any already-booked instance.
-- **FR-012**: System MUST stop generating new future instances of a recurring ride if the driver's vehicle or verification status becomes ineligible, resuming generation once eligibility is restored.
+- **FR-011**: System MUST let a driver edit a recurring definition's route, departure time, or seat count, and MUST apply the edit to both not-yet-generated future instances and already-generated instances that have zero confirmed bookings and have not yet passed the existing ride-edit cutoff window; the edit MUST NOT alter the locked details of any instance with at least one confirmed booking.
+- **FR-012**: System MUST stop generating new future instances of a recurring ride if the driver's vehicle or verification status becomes ineligible, and MUST immediately make any already-generated, not-yet-booked instance unsearchable and unbookable for as long as the driver remains ineligible; instances with at least one confirmed booking are unaffected. Generation and visibility resume automatically once eligibility is restored.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -144,6 +155,6 @@ A driver who can't make one specific day (e.g., a one-off conflict) cancels just
 ## Assumptions
 
 - The forward generation window is 2 weeks of upcoming instances at any time, refreshed as instances pass — long enough for a passenger to plan ahead, short enough to avoid generating rides far past a driver's likely eligibility/pricing changes; exact window is an implementation default, not user-specified.
-- A recurring ride definition has a single fixed route, departure time, and seat count shared across all its selected days for v1 — a driver wanting different times/routes on different days creates a separate recurring definition per distinct pattern.
+- A recurring ride definition has a single fixed route, departure time, and seat count shared across all its selected days for v1 (confirmed, see Clarifications) — a driver wanting different times/routes on different days creates a separate recurring definition per distinct pattern.
 - Existing driver fare-override (Spec 023) and ride-edit cutoff window behavior apply to recurring day instances identically to one-off rides; no new pricing or timing rule is introduced.
 - A driver may run multiple independent recurring ride definitions simultaneously (e.g., different routes on different days); the platform does not limit a driver to one active recurring definition.
