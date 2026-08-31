@@ -942,7 +942,7 @@ async def get_sponsorship_dashboard(
             JOIN rides r ON r.id = b.ride_id
             WHERE r.group_id = $1
               AND b.payment_source = 'SPONSORED'
-              AND b.status != 'cancelled'
+              AND b.status IN ('confirmed', 'completed')
             """,
             group_id,
         )
@@ -1006,7 +1006,7 @@ async def stream_sponsorship_dashboard_csv(
             JOIN rides r ON r.id = b.ride_id
             WHERE r.group_id = $1
               AND b.payment_source = 'SPONSORED'
-              AND b.status != 'cancelled'
+              AND b.status IN ('confirmed', 'completed')
             """,
             group_id,
         )

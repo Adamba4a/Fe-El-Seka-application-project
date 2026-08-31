@@ -581,24 +581,29 @@ async def get_ride_passenger_detail(
             from app.services import ai_client as _ai
             from app.utils.zone_lookup import nearest_zone as _nz
 
-            p_orig_zone, p_orig_c = _nz(origin_lat, origin_lng)
-            p_dest_zone, p_dest_c = _nz(destination_lat, destination_lng)
-            d_orig_zone, d_orig_c = _nz(float(ride["origin_lat"]), float(ride["origin_lng"]))
-            d_dest_zone, d_dest_c = _nz(float(ride["destination_lat"]), float(ride["destination_lng"]))
+            # Zone snapping is only used to derive a human-readable zone label, same
+            # as search/router.py's _ai_rank — the actual GPS points go straight into
+            # the AI request, not the snapped zone's centroid.
+            p_orig_zone, _ = _nz(origin_lat, origin_lng)
+            p_dest_zone, _ = _nz(destination_lat, destination_lng)
+            d_orig_zone, _ = _nz(float(ride["origin_lat"]), float(ride["origin_lng"]))
+            d_dest_zone, _ = _nz(float(ride["destination_lat"]), float(ride["destination_lng"]))
 
             passenger_req = PassengerRequestFeatures(
                 origin_zone=p_orig_zone,
                 destination_zone=p_dest_zone,
-                origin_centroid=ZoneCentroid(**p_orig_c),
-                destination_centroid=ZoneCentroid(**p_dest_c),
+                origin_centroid=ZoneCentroid(lat=origin_lat, lng=origin_lng),
+                destination_centroid=ZoneCentroid(lat=destination_lat, lng=destination_lng),
                 departure_at=departure_at,
             )
             candidate_feat = CandidateFeatures(
                 ride_id=str(ride_id),
                 driver_origin_zone=d_orig_zone,
                 driver_destination_zone=d_dest_zone,
-                driver_origin_centroid=ZoneCentroid(**d_orig_c),
-                driver_dest_centroid=ZoneCentroid(**d_dest_c),
+                driver_origin_centroid=ZoneCentroid(lat=float(ride["origin_lat"]), lng=float(ride["origin_lng"])),
+                driver_dest_centroid=ZoneCentroid(
+                    lat=float(ride["destination_lat"]), lng=float(ride["destination_lng"])
+                ),
                 driver_departure_at=ride["departure_datetime"],
                 estimated_overlap_ratio=max(0.0, min(1.0, compat.overlap_pct / 100)),
                 estimated_pickup_detour_km=max(0.0, compat.pickup_walk_m / 1000),
@@ -607,8 +612,12 @@ async def get_ride_passenger_detail(
             scored, _, _ = await _ai.score_candidates(passenger_req, [candidate_feat])
             if scored:
                 match_score_pct = scored[0].match_score_pct
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning(json.dumps({
+                "event": "passenger_detail_match_score_failed",
+                "ride_id": str(ride_id),
+                "error": str(exc),
+            }))
 
     return JSONResponse({
         "ride": {

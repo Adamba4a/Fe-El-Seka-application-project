@@ -473,6 +473,16 @@ async def edit_ride(
                 raise RideServiceError("ride_not_editable", "Only scheduled rides can be edited.", 409)
 
             now = _now()
+            current_dep = ride["departure_datetime"]
+            if current_dep.tzinfo is None:
+                current_dep = current_dep.replace(tzinfo=timezone.utc)
+            if current_dep - now < timedelta(hours=4):
+                raise RideServiceError(
+                    "edit_window_closed",
+                    "Rides can only be edited up to 4 hours before departure.",
+                    409,
+                )
+
             sets: list[str] = []
             params: list = []
             changed_fields: dict = {}

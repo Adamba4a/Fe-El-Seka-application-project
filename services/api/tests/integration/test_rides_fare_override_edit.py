@@ -104,7 +104,7 @@ def _ride_row(**overrides) -> dict:
         "dest_lat": 30.0626,
         "dest_lng": 31.3462,
         "destination_address": "B",
-        "departure_datetime": datetime.now(timezone.utc) + timedelta(hours=3),
+        "departure_datetime": datetime.now(timezone.utc) + timedelta(hours=12),
         "total_seats": 2,
         "booked_seats": 0,
         "available_seats": 2,
