@@ -48,10 +48,57 @@ async def enqueue_cancellation_emails(ride_id: uuid.UUID) -> None:
         )
 
 
-def _build_email_html(ride_id: uuid.UUID) -> str:
+def _build_email_content(notification_type: str, ride_id: uuid.UUID, payload: dict) -> tuple[str, str]:
+    """Return (subject, html) for a queued email_notifications row, keyed by its
+    notification_type. Every booking-lifecycle event shares the email_notifications
+    table/retry pipeline, so the content must be looked up per type here rather than
+    assuming every row is a cancellation."""
+    if notification_type == "booking_created":
+        return (
+            "Your booking request was sent",
+            f"<p>Your booking request for ride <code>{ride_id}</code> has been sent to the driver "
+            f"and is awaiting confirmation.</p>",
+        )
+    if notification_type == "booking_confirmed":
+        return (
+            "Your booking is confirmed",
+            f"<p>Good news — your booking for ride <code>{ride_id}</code> has been confirmed by the driver.</p>",
+        )
+    if notification_type == "booking_rejected":
+        return (
+            "Your booking request was declined",
+            f"<p>The driver declined your booking request for ride <code>{ride_id}</code>. "
+            f"Please check the app to find alternative rides.</p>",
+        )
+    if notification_type == "booking_cancelled_by_driver":
+        return (
+            "Your booking has been cancelled",
+            f"<p>The driver cancelled your booking for ride <code>{ride_id}</code>. "
+            f"Please check the app to find alternative rides.</p>",
+        )
+    if notification_type == "booking_cancelled_by_passenger":
+        return (
+            "A passenger cancelled their booking",
+            f"<p>A passenger cancelled their booking on your ride <code>{ride_id}</code>.</p>",
+        )
+    if notification_type == "booking_seats_added":
+        additional_seats = payload.get("additional_seats")
+        seats_html = f" ({additional_seats} additional seat(s))" if additional_seats else ""
+        return (
+            "A passenger added seats to their booking",
+            f"<p>A passenger added seats{seats_html} to their booking on your ride <code>{ride_id}</code>.</p>",
+        )
+    if notification_type == "booking_expired":
+        return (
+            "Your booking request expired",
+            f"<p>Your booking request for ride <code>{ride_id}</code> expired before the driver responded. "
+            f"Please check the app to find alternative rides.</p>",
+        )
+    # "ride_cancelled" and any unrecognized type fall back to the original cancellation copy.
     return (
+        "Your ride has been cancelled",
         f"<p>We're sorry — the ride you booked (ID: <code>{ride_id}</code>) "
-        f"has been cancelled. Please check the app to find alternative rides.</p>"
+        f"has been cancelled. Please check the app to find alternative rides.</p>",
     )
 
 
@@ -83,8 +130,11 @@ async def _send_email(to: str, subject: str, html: str) -> None:
         })
 
 
-async def _send_cancellation_email(passenger_email: str, ride_id: uuid.UUID) -> None:
-    await _send_email(passenger_email, "Your ride has been cancelled", _build_email_html(ride_id))
+async def _send_booking_notification_email(
+    recipient_email: str, notification_type: str, ride_id: uuid.UUID, payload: dict
+) -> None:
+    subject, html = _build_email_content(notification_type, ride_id, payload)
+    await _send_email(recipient_email, subject, html)
 
 
 async def send_verification_decision_email(
@@ -144,7 +194,7 @@ async def _process_pending_emails() -> None:
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            SELECT id, ride_id, passenger_email, retry_count, last_attempted_at
+            SELECT id, ride_id, passenger_email, notification_type, payload, retry_count, last_attempted_at
             FROM email_notifications
             WHERE status = 'pending'
             ORDER BY created_at ASC
@@ -182,7 +232,9 @@ async def _process_pending_emails() -> None:
                     continue
 
                 try:
-                    await _send_cancellation_email(row["passenger_email"], row["ride_id"])
+                    await _send_booking_notification_email(
+                        row["passenger_email"], row["notification_type"], row["ride_id"], row["payload"] or {}
+                    )
                     await conn.execute(
                         "UPDATE email_notifications SET status = 'sent', last_attempted_at = now() WHERE id = $1",
                         row["id"],
