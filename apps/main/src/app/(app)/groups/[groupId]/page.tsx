@@ -119,13 +119,17 @@ export default function GroupDetailPage() {
 
       {group.is_sponsored && (
         <div className="rounded-xl border border-border-default bg-surface-card p-4 space-y-3">
-          {showEligibilityForm ? (
+          {group.is_domain_verified ? (
+            <p className="text-body-sm text-dash-primary font-medium flex items-center gap-1.5">
+              <span aria-hidden>✓</span> {t("sponsorship.verifiedBadge")}
+            </p>
+          ) : showEligibilityForm ? (
             token && (
               <DomainVerifyForm
                 token={token}
                 groupId={group.id}
                 onSuccess={(result: DomainVerificationConfirmResponse) => {
-                  setGroup({ ...group, ...result.group, is_member: true });
+                  setGroup({ ...group, ...result.group, is_member: true, is_domain_verified: true });
                   setShowEligibilityForm(false);
                 }}
               />
@@ -143,6 +147,16 @@ export default function GroupDetailPage() {
             </>
           )}
         </div>
+      )}
+
+      {group.is_dashboard_contact && (
+        <button
+          type="button"
+          onClick={() => router.push(`/sponsorship-dashboard/${group.id}`)}
+          className="w-full border border-border-default bg-surface-card hover:bg-surface-bg text-content-primary rounded-xl py-3 font-medium transition-colors"
+        >
+          {t("sponsorship.viewDashboardButton")}
+        </button>
       )}
 
       {group.is_owner && token && <InviteLinkShare token={token} groupId={group.id} />}

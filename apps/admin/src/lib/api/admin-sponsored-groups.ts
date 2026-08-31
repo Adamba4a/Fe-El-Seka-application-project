@@ -4,6 +4,30 @@ function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 }
 
+// FastAPI wraps our own HTTPException payloads as {"detail": {error, message}},
+// but a Pydantic model_post_init validation failure (e.g. an invalid sponsor
+// domain) produces {"detail": [{"msg": "Value error, ...", ...}]} instead — a
+// list, not an object. Callers used to do `err?.detail?.message`, which is
+// undefined for that second shape, so every validation rejection silently fell
+// back to a generic "Failed to ..." message instead of the actual reason.
+async function parseErrorResponse(res: Response): Promise<{ error?: string; message?: string }> {
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    return { message: res.statusText || `Request failed with status ${res.status}` };
+  }
+  const detail = body && typeof body === "object" ? (body as any).detail : undefined;
+  if (Array.isArray(detail)) {
+    const msg = typeof detail[0]?.msg === "string" ? detail[0].msg.replace(/^Value error,\s*/, "") : undefined;
+    return { error: "validation_error", message: msg };
+  }
+  if (detail && typeof detail === "object") {
+    return detail as { error?: string; message?: string };
+  }
+  return body as { error?: string; message?: string };
+}
+
 export interface SponsoredGroupSummary {
   id: string;
   name: string;
@@ -43,7 +67,7 @@ export async function listSponsoredGroups(token: string): Promise<SponsoredGroup
   const res = await fetch(`${base}/api/admin/sponsored-groups`, {
     headers: authHeaders(token),
   });
-  if (!res.ok) throw await res.json();
+  if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
 }
 
@@ -62,7 +86,7 @@ export async function createOrUpgrade(
       name: name || undefined,
     }),
   });
-  if (!res.ok) throw await res.json();
+  if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
 }
 
@@ -76,7 +100,7 @@ export async function addSponsorDomain(
     headers: authHeaders(token),
     body: JSON.stringify({ domain }),
   });
-  if (!res.ok) throw await res.json();
+  if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
 }
 
@@ -89,7 +113,7 @@ export async function removeSponsorDomain(
     method: "DELETE",
     headers: authHeaders(token),
   });
-  if (!res.ok) throw await res.json();
+  if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
 }
 
@@ -103,7 +127,7 @@ export async function addFunds(
     headers: authHeaders(token),
     body: JSON.stringify({ amount_egp: amountEgp }),
   });
-  if (!res.ok) throw await res.json();
+  if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
 }
 
@@ -111,7 +135,7 @@ export async function listMembers(token: string, groupId: string): Promise<Group
   const res = await fetch(`${base}/api/admin/sponsored-groups/${groupId}/members`, {
     headers: authHeaders(token),
   });
-  if (!res.ok) throw await res.json();
+  if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
 }
 
@@ -125,6 +149,6 @@ export async function setDashboardContact(
     headers: authHeaders(token),
     body: JSON.stringify({ user_id: userId }),
   });
-  if (!res.ok) throw await res.json();
+  if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
 }

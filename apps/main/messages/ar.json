@@ -701,7 +701,9 @@
     },
     "sponsorship": {
       "eligibilityHint": "تحقق من بريدك الإلكتروني الخاص بالعمل أو الجامعة للركوب مجانًا في هذه المجموعة المموّلة.",
-      "verifyEligibilityButton": "تحقق من أهلية الرعاية"
+      "verifyEligibilityButton": "تحقق من أهلية الرعاية",
+      "verifiedBadge": "تم التحقق من أهلية الرعاية — تركب مجانًا في هذه المجموعة.",
+      "viewDashboardButton": "عرض لوحة الرعاية"
     },
     "members": {
       "heading": "الأعضاء",

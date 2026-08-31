@@ -181,8 +181,8 @@ async def get_group_detail(group_id: uuid.UUID, user_id: uuid.UUID) -> GroupDeta
                 status_code=404,
                 detail={"error": "group_not_found", "message": "Group not found."},
             )
-        membership = await conn.fetchval(
-            "SELECT 1 FROM group_memberships WHERE group_id = $1 AND user_id = $2",
+        membership = await conn.fetchrow(
+            "SELECT domain_verification_id FROM group_memberships WHERE group_id = $1 AND user_id = $2",
             group_id, user_id,
         )
         sponsor_domains = await _get_sponsor_domains(conn, group_id) if row["is_sponsored"] else []
@@ -191,6 +191,8 @@ async def get_group_detail(group_id: uuid.UUID, user_id: uuid.UUID) -> GroupDeta
         **_to_summary({**dict(row), "sponsor_domains": sponsor_domains}).model_dump(),
         is_member=membership is not None,
         is_owner=row["owner_id"] == user_id,
+        is_domain_verified=membership is not None and membership["domain_verification_id"] is not None,
+        is_dashboard_contact=row["dashboard_contact_user_id"] == user_id,
     )
 
 
@@ -314,8 +316,8 @@ async def resolve_invite_token(invite_token: str, user_id: uuid.UUID) -> GroupDe
                     "message": "This invite link is invalid, expired, or has been revoked.",
                 },
             )
-        membership = await conn.fetchval(
-            "SELECT 1 FROM group_memberships WHERE group_id = $1 AND user_id = $2",
+        membership = await conn.fetchrow(
+            "SELECT domain_verification_id FROM group_memberships WHERE group_id = $1 AND user_id = $2",
             row["id"], user_id,
         )
 
@@ -323,6 +325,8 @@ async def resolve_invite_token(invite_token: str, user_id: uuid.UUID) -> GroupDe
         **_to_summary(row).model_dump(),
         is_member=membership is not None,
         is_owner=row["owner_id"] == user_id,
+        is_domain_verified=membership is not None and membership["domain_verification_id"] is not None,
+        is_dashboard_contact=row["dashboard_contact_user_id"] == user_id,
     )
 
 

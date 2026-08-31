@@ -13,6 +13,8 @@ export interface Group {
 export interface GroupDetail extends Group {
   is_member: boolean;
   is_owner: boolean;
+  is_domain_verified: boolean;
+  is_dashboard_contact: boolean;
 }
 
 export interface GroupListResponse {

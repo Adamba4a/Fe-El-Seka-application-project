@@ -57,7 +57,7 @@ export default function SponsoredGroupsPage() {
       const token = await getToken();
       setGroups(await listSponsoredGroups(token));
     } catch (err: any) {
-      setError(err?.detail?.message ?? "Failed to load sponsored groups.");
+      setError(err?.message ?? "Failed to load sponsored groups.");
     } finally {
       setLoadingGroups(false);
     }
@@ -103,7 +103,7 @@ export default function SponsoredGroupsPage() {
       setNotice("Sponsored group created.");
       await refreshGroups();
     } catch (err: any) {
-      setError(err?.detail?.message ?? "Failed to create sponsored group.");
+      setError(err?.message ?? "Failed to create sponsored group.");
     } finally {
       setCreating(false);
     }
@@ -122,7 +122,7 @@ export default function SponsoredGroupsPage() {
       setNotice("Domain added.");
       await refreshGroups();
     } catch (err: any) {
-      setError(err?.detail?.message ?? "Failed to add domain.");
+      setError(err?.message ?? "Failed to add domain.");
     } finally {
       setManagingDomains(false);
     }
@@ -141,7 +141,7 @@ export default function SponsoredGroupsPage() {
       setNotice("Domain removed.");
       await refreshGroups();
     } catch (err: any) {
-      setError(err?.detail?.message ?? "Failed to remove domain.");
+      setError(err?.message ?? "Failed to remove domain.");
     } finally {
       setManagingDomains(false);
     }
@@ -162,7 +162,7 @@ export default function SponsoredGroupsPage() {
       );
       await refreshGroups();
     } catch (err: any) {
-      setError(err?.detail?.message ?? "Failed to add funds.");
+      setError(err?.message ?? "Failed to add funds.");
     } finally {
       setAddingFunds(false);
     }
@@ -180,7 +180,7 @@ export default function SponsoredGroupsPage() {
       const res = await listMembers(token, contactGroupId.trim());
       setMembers(res);
     } catch (err: any) {
-      setError(err?.detail?.message ?? "Failed to load group members.");
+      setError(err?.message ?? "Failed to load group members.");
     } finally {
       setLoadingMembers(false);
     }
@@ -198,7 +198,7 @@ export default function SponsoredGroupsPage() {
       setNotice(`Dashboard contact assigned: ${assignedName}.`);
       await refreshGroups();
     } catch (err: any) {
-      setError(err?.detail?.message ?? "Failed to assign dashboard contact.");
+      setError(err?.message ?? "Failed to assign dashboard contact.");
     } finally {
       setSettingContact(false);
     }

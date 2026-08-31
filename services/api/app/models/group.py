@@ -58,6 +58,8 @@ class GroupListResponse(BaseModel):
 class GroupDetailResponse(GroupSummary):
     is_member: bool
     is_owner: bool
+    is_domain_verified: bool = False
+    is_dashboard_contact: bool = False
 
 
 class InviteLinkResponse(BaseModel):

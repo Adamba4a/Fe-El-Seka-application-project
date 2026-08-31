@@ -701,7 +701,9 @@
     },
     "sponsorship": {
       "eligibilityHint": "Verify your work or school email to ride for free in this sponsored group.",
-      "verifyEligibilityButton": "Verify sponsorship eligibility"
+      "verifyEligibilityButton": "Verify sponsorship eligibility",
+      "verifiedBadge": "Sponsorship eligibility verified — you ride for free in this group.",
+      "viewDashboardButton": "View sponsorship dashboard"
     },
     "members": {
       "heading": "Members",
