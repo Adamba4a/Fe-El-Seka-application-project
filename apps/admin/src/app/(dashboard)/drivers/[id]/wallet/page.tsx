@@ -53,6 +53,7 @@ export default function DriverWalletPage({ params }: { params: { id: string } })
         balance_egp={wallet.balance_egp}
         reserved_egp={wallet.reserved_egp}
         available_egp={wallet.available_egp}
+        sponsored_earnings_egp={wallet.sponsored_earnings_egp}
       />
 
       <div className="space-y-4">

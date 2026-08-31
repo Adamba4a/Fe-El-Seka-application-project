@@ -22,6 +22,7 @@ export interface WalletData {
   balance_egp: string;
   reserved_egp: string;
   available_egp: string;
+  sponsored_earnings_egp: string;
   entries: LedgerEntry[];
   pagination: {
     page: number;

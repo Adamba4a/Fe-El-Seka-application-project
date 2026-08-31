@@ -29,6 +29,7 @@ export interface WalletResponse {
   balance_egp: string;
   reserved_egp: string;
   available_egp: string;
+  sponsored_earnings_egp: string;
   car_maintenance_savings_egp: string;
   car_maintenance_threshold_egp: string;
   entries: LedgerEntry[];

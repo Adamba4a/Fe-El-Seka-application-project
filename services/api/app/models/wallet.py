@@ -43,6 +43,7 @@ class WalletPageResponse(BaseModel):
     balance_egp: str
     reserved_egp: str
     available_egp: str
+    sponsored_earnings_egp: str
     entries: list[LedgerEntryResponse]
     pagination: PaginationMeta
 

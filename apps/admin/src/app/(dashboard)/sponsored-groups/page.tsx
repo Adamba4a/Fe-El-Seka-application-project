@@ -49,6 +49,7 @@ export default function SponsoredGroupsPage() {
   const [managingDomains, setManagingDomains] = useState(false);
 
   const [pendingActionId, setPendingActionId] = useState("");
+  const [dangerGroupId, setDangerGroupId] = useState("");
 
   async function getToken() {
     const { data } = await sb.auth.getSession();
@@ -75,6 +76,7 @@ export default function SponsoredGroupsPage() {
     setDomainsGroupId(groupId);
     setFundsGroupId(groupId);
     setContactGroupId(groupId);
+    setDangerGroupId(groupId);
     setDomainsResult(null);
     setMembers([]);
     setContactUserId("");
@@ -248,6 +250,26 @@ export default function SponsoredGroupsPage() {
     } finally {
       setPendingActionId("");
     }
+  }
+
+  function resolveDangerGroup(): SponsoredGroupSummary | null {
+    const id = dangerGroupId.trim();
+    const group = groups.find((g) => g.id === id);
+    if (!group) {
+      setError("No sponsored group found with that ID. Click \"Use ID\" in the table above, or paste the full ID.");
+      return null;
+    }
+    return group;
+  }
+
+  async function handleDangerUnsponsor() {
+    const group = resolveDangerGroup();
+    if (group) await handleUnsponsor(group);
+  }
+
+  async function handleDangerDelete() {
+    const group = resolveDangerGroup();
+    if (group) await handleDelete(group);
   }
 
   async function handleSetContact(e: React.FormEvent) {
@@ -535,6 +557,45 @@ export default function SponsoredGroupsPage() {
             {addingFunds ? "Submitting…" : "Add funds"}
           </button>
         </form>
+      </section>
+
+      <section className="space-y-4 border-2 border-red-200 rounded p-6 bg-red-50/30">
+        <h2 className="text-lg font-medium text-red-900">Delete or unsponsor a group</h2>
+        <p className="text-sm text-gray-600">
+          <strong>Unsponsor</strong> converts the group back to a regular, unfunded group — it stays
+          active but members lose free-ride access. <strong>Delete</strong> archives the group entirely.
+          Both release the group&rsquo;s eligible domains and clear any remaining funded balance, and
+          neither can be undone.
+        </p>
+        <div>
+          <label className="block text-sm font-medium mb-1">Group ID</label>
+          <input
+            type="text"
+            required
+            value={dangerGroupId}
+            onChange={(e) => setDangerGroupId(e.target.value)}
+            placeholder="Paste a group ID, or click a row above"
+            className="w-full border rounded px-3 py-2 text-sm"
+          />
+        </div>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={handleDangerUnsponsor}
+            disabled={!dangerGroupId.trim() || pendingActionId !== ""}
+            className="bg-amber-600 text-white text-sm px-4 py-2 rounded disabled:bg-gray-400"
+          >
+            Unsponsor group
+          </button>
+          <button
+            type="button"
+            onClick={handleDangerDelete}
+            disabled={!dangerGroupId.trim() || pendingActionId !== ""}
+            className="bg-red-600 text-white text-sm px-4 py-2 rounded disabled:bg-gray-400"
+          >
+            Delete group
+          </button>
+        </div>
       </section>
 
       <section className="space-y-4 border rounded p-6">

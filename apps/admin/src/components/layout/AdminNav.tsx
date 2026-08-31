@@ -13,6 +13,7 @@ const LINKS = [
   { href: "/financial", label: "Financial" },
   { href: "/wallet-topup", label: "Wallet Top-Ups" },
   { href: "/sponsored-groups", label: "Sponsored Groups" },
+  { href: "/withdrawal-requests", label: "Withdrawal Requests" },
   { href: "/car-maintenance", label: "Car Maintenance" },
   { href: "/vehicles", label: "Vehicles" },
 ];

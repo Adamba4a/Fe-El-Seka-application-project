@@ -174,4 +174,6 @@ class SponsorshipActivityItem(BaseModel):
 class SponsorshipDashboardResponse(BaseModel):
     funded_balance_egp: Decimal
     member_count: int
+    total_paid_egp: Decimal
+    total_rides: int
     recent_activity: list[SponsorshipActivityItem]

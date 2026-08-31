@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import csv
+import io
 import re
 import secrets
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Optional
+from typing import AsyncIterator, Optional
 
 from fastapi import HTTPException
 
@@ -919,9 +921,23 @@ async def get_sponsorship_dashboard(
             group_id,
         )
 
+        stats_row = await conn.fetchrow(
+            """
+            SELECT COALESCE(SUM(b.total_price), 0) AS total_paid_egp, COUNT(*) AS total_rides
+            FROM bookings b
+            JOIN rides r ON r.id = b.ride_id
+            WHERE r.group_id = $1
+              AND b.payment_source = 'SPONSORED'
+              AND b.status != 'cancelled'
+            """,
+            group_id,
+        )
+
     return SponsorshipDashboardResponse(
         funded_balance_egp=group_row["funded_balance_egp"],
         member_count=group_row["member_count"],
+        total_paid_egp=stats_row["total_paid_egp"],
+        total_rides=stats_row["total_rides"],
         recent_activity=[
             SponsorshipActivityItem(
                 type=r["type"],
@@ -937,6 +953,90 @@ async def get_sponsorship_dashboard(
             for r in activity_rows
         ],
     )
+
+
+def _csv_row(*fields: object) -> str:
+    buf = io.StringIO()
+    csv.writer(buf).writerow(fields)
+    return buf.getvalue()
+
+
+async def stream_sponsorship_dashboard_csv(
+    group_id: uuid.UUID, requesting_user_id: uuid.UUID
+) -> AsyncIterator[str]:
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        group_row = await conn.fetchrow(
+            "SELECT name, funded_balance_egp, member_count, is_sponsored, dashboard_contact_user_id "
+            "FROM groups WHERE id = $1 AND archived_at IS NULL",
+            group_id,
+        )
+        if group_row is None or not group_row["is_sponsored"]:
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "group_not_found", "message": "Sponsored group not found."},
+            )
+        if group_row["dashboard_contact_user_id"] != requesting_user_id:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "error": "not_dashboard_contact",
+                    "message": "Only the assigned dashboard contact can view this dashboard.",
+                },
+            )
+
+        stats_row = await conn.fetchrow(
+            """
+            SELECT COALESCE(SUM(b.total_price), 0) AS total_paid_egp, COUNT(*) AS total_rides
+            FROM bookings b
+            JOIN rides r ON r.id = b.ride_id
+            WHERE r.group_id = $1
+              AND b.payment_source = 'SPONSORED'
+              AND b.status != 'cancelled'
+            """,
+            group_id,
+        )
+
+        activity_rows = await conn.fetch(
+            """
+            SELECT dle.type, dle.amount_egp, dle.ride_id, dle.booking_id, dle.created_at,
+                   r.origin_address, r.destination_address,
+                   drv.display_name AS driver_name,
+                   pax.display_name AS passenger_name
+            FROM driver_ledger_entries dle
+            JOIN rides r ON r.id = dle.ride_id
+            LEFT JOIN profiles drv ON drv.id = r.driver_id
+            LEFT JOIN bookings b ON b.id = dle.booking_id
+            LEFT JOIN profiles pax ON pax.id = b.passenger_id
+            WHERE r.group_id = $1
+              AND dle.type IN ('SPONSORED_RIDE_CREDIT', 'SPONSORED_RIDE_REVERSAL')
+            ORDER BY dle.created_at DESC
+            """,
+            group_id,
+        )
+
+    yield _csv_row("group_name", "funded_balance_egp", "member_count", "total_paid_egp", "total_rides")
+    yield _csv_row(
+        group_row["name"],
+        str(group_row["funded_balance_egp"]),
+        group_row["member_count"],
+        str(stats_row["total_paid_egp"]),
+        stats_row["total_rides"],
+    )
+    yield _csv_row()
+    yield _csv_row(
+        "date", "type", "amount_egp", "driver", "passenger", "origin", "destination",
+    )
+    for r in activity_rows:
+        yield _csv_row(
+            r["created_at"].isoformat(),
+            r["type"],
+            str(r["amount_egp"]),
+            r["driver_name"] or "",
+            r["passenger_name"] or "",
+            r["origin_address"] or "",
+            r["destination_address"] or "",
+        )
 
 
 # ── T051: archive (soft-delete) a group ─────────────────────────────────────

@@ -169,14 +169,40 @@ export default function FinancialPage() {
           </div>
 
           <div>
+            <h2 className="text-lg font-semibold mb-3">Sponsored Commission by Group</h2>
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b text-left text-gray-500">
+                  <th className="pb-2 pr-4 font-medium">Sponsored group</th>
+                  <th className="pb-2 pr-4 font-medium">Commission collected</th>
+                  <th className="pb-2 font-medium">Rides</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.sponsored_commission_by_group.map((g) => (
+                  <tr key={g.group_id} className="border-b">
+                    <td className="py-3 pr-4">{g.group_name}</td>
+                    <td className="py-3 pr-4">{g.commission_egp} EGP</td>
+                    <td className="py-3">{g.rides}</td>
+                  </tr>
+                ))}
+                {report.sponsored_commission_by_group.length === 0 && (
+                  <tr><td colSpan={3} className="py-8 text-center text-gray-400">No sponsored ride activity in this range</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div>
             <h2 className="text-lg font-semibold mb-3">Driver Balances</h2>
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b text-left text-gray-500">
                   <th className="pb-2 pr-4 font-medium">Driver</th>
-                  <th className="pb-2 pr-4 font-medium">Balance</th>
+                  <th className="pb-2 pr-4 font-medium">Cash balance</th>
                   <th className="pb-2 pr-4 font-medium">Reserved</th>
                   <th className="pb-2 pr-4 font-medium">Available</th>
+                  <th className="pb-2 pr-4 font-medium">Sponsored earnings (withdrawable)</th>
                   <th className="pb-2 font-medium">Status</th>
                 </tr>
               </thead>
@@ -187,6 +213,7 @@ export default function FinancialPage() {
                     <td className="py-3 pr-4">{d.balance_egp} EGP</td>
                     <td className="py-3 pr-4">{d.reserved_egp} EGP</td>
                     <td className="py-3 pr-4">{d.available_egp} EGP</td>
+                    <td className="py-3 pr-4">{d.sponsored_earnings_egp} EGP</td>
                     <td className="py-3">
                       {d.is_at_risk && (
                         <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
@@ -197,7 +224,7 @@ export default function FinancialPage() {
                   </tr>
                 ))}
                 {drivers.length === 0 && (
-                  <tr><td colSpan={5} className="py-8 text-center text-gray-400">No drivers yet</td></tr>
+                  <tr><td colSpan={6} className="py-8 text-center text-gray-400">No drivers yet</td></tr>
                 )}
               </tbody>
             </table>

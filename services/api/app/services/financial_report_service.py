@@ -70,6 +70,32 @@ async def get_report(conn, start: date, end: date) -> dict:
     )
     sponsored_commission = Decimal(str(sponsored_commission))
 
+    sponsored_commission_by_group_rows = await conn.fetch(
+        """
+        SELECT g.id AS group_id, g.name AS group_name,
+               COALESCE(SUM(b.total_price - l.amount_egp), 0) AS commission_egp,
+               COUNT(*) AS rides
+        FROM driver_ledger_entries l
+        JOIN bookings b ON b.id = l.booking_id
+        JOIN rides r ON r.id = l.ride_id
+        JOIN groups g ON g.id = r.group_id
+        WHERE l.type = 'SPONSORED_RIDE_CREDIT' AND l.created_at >= $1 AND l.created_at < $2
+        GROUP BY g.id, g.name
+        ORDER BY commission_egp DESC
+        """,
+        start_dt,
+        end_dt,
+    )
+    sponsored_commission_by_group = [
+        {
+            "group_id": str(r["group_id"]),
+            "group_name": r["group_name"],
+            "commission_egp": str(r["commission_egp"]),
+            "rides": r["rides"],
+        }
+        for r in sponsored_commission_by_group_rows
+    ]
+
     net_revenue = commission + sponsored_commission - debits
 
     granularity = get_trend_granularity(start, end)
@@ -102,6 +128,7 @@ async def get_report(conn, start: date, end: date) -> dict:
         "range": {"start": start.isoformat(), "end": end.isoformat()},
         "commission_collected_egp": str(commission),
         "sponsored_commission_collected_egp": str(sponsored_commission),
+        "sponsored_commission_by_group": sponsored_commission_by_group,
         "admin_credits_egp": str(credits),
         "admin_debits_egp": str(debits),
         "net_revenue_egp": str(net_revenue),
@@ -118,7 +145,8 @@ async def get_driver_balances(conn) -> dict:
         """
         SELECT p.id AS driver_id, p.display_name,
                COALESCE(w.balance_egp, 0) AS balance_egp,
-               COALESCE(w.reserved_egp, 0) AS reserved_egp
+               COALESCE(w.reserved_egp, 0) AS reserved_egp,
+               COALESCE(w.sponsored_earnings_egp, 0) AS sponsored_earnings_egp
         FROM profiles p
         LEFT JOIN driver_wallets w ON w.driver_id = p.id
         WHERE p.role = 'driver'
@@ -129,6 +157,7 @@ async def get_driver_balances(conn) -> dict:
         balance = Decimal(str(r["balance_egp"]))
         reserved = Decimal(str(r["reserved_egp"]))
         available = balance - reserved
+        sponsored_earnings = Decimal(str(r["sponsored_earnings_egp"]))
         items.append(
             {
                 "driver_id": str(r["driver_id"]),
@@ -136,6 +165,7 @@ async def get_driver_balances(conn) -> dict:
                 "balance_egp": str(balance),
                 "reserved_egp": str(reserved),
                 "available_egp": str(available),
+                "sponsored_earnings_egp": str(sponsored_earnings),
                 "is_at_risk": available <= 0,
             }
         )
@@ -170,3 +200,7 @@ async def stream_report_csv(conn, start: date, end: date) -> AsyncIterator[str]:
     yield _csv_row("trend_date", "trend_commission_collected_egp")
     for point in report["trend"]["points"]:
         yield _csv_row(point["date"], str(point["value"]))
+    yield _csv_row()
+    yield _csv_row("sponsored_group_name", "sponsored_group_commission_egp", "sponsored_group_rides")
+    for g in report["sponsored_commission_by_group"]:
+        yield _csv_row(g["group_name"], g["commission_egp"], str(g["rides"]))

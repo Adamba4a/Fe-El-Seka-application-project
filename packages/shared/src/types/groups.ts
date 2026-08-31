@@ -87,5 +87,7 @@ export interface SponsorshipActivityItem {
 export interface SponsorshipDashboard {
   funded_balance_egp: string;
   member_count: number;
+  total_paid_egp: string;
+  total_rides: number;
   recent_activity: SponsorshipActivityItem[];
 }

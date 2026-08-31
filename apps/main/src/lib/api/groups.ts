@@ -206,3 +206,14 @@ export async function getSponsorshipDashboard(
   if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
 }
+
+export async function exportSponsorshipDashboardCsv(
+  token: string,
+  groupId: string
+): Promise<Blob> {
+  const res = await fetch(`${base}/api/groups/${groupId}/sponsorship-dashboard/export`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await parseErrorResponse(res);
+  return res.blob();
+}

@@ -393,11 +393,16 @@
       "addBalance": "إضافة رصيد",
       "requestWithdrawal": "طلب سحب",
       "transactionHistory": "سجل المعاملات",
-      "noTransactions": "لا توجد معاملات بعد. أضف رصيدًا لبدء نشر الرحلات."
+      "noTransactions": "لا توجد معاملات بعد. أضف رصيدًا لبدء نشر الرحلات.",
+      "cashWalletHeading": "المحفظة النقدية",
+      "cashWalletHelp": "رصيدك الخاص المضاف بنفسك، يُستخدم لدفع عمولات الرحلات العادية (غير المرعية).",
+      "sponsoredEarningsHeading": "أرباح الرعاية",
+      "sponsoredEarningsHelp": "ما ربحته من رحلات المجموعات المرعية. هذا هو الرصيد الوحيد الذي يمكنك سحبه.",
+      "sponsoredEarningsBalance": "متاح للسحب"
     },
     "walletWithdraw": {
       "heading": "طلب سحب",
-      "instructions": "أدخل المبلغ الذي تريد سحبه والرقم الذي نرسل إليه المبلغ. سيقوم أحد المسؤولين بالمراجعة وإرسال المبلغ يدويًا.",
+      "instructions": "اسحب من أرباح الرعاية الخاصة بك — الأموال التي ربحتها من رحلات المجموعات المرعية. أدخل المبلغ والرقم الذي نرسل إليه المبلغ؛ سيقوم أحد المسؤولين بالمراجعة وإرسال المبلغ يدويًا.",
       "amountLabel": "المبلغ (جنيه)",
       "amountPlaceholder": "مثال: 100.00",
       "payoutReferenceLabel": "رقم الاستلام",
@@ -410,7 +415,7 @@
       "pendingBody": "نقوم بمراجعة طلب السحب الخاص بك. عادةً ما يستغرق ذلك وقتًا قصيرًا.",
       "errors": {
         "validation_error": "يرجى التحقق من المبلغ ورقم الاستلام والمحاولة مرة أخرى.",
-        "insufficient_balance": "هذا المبلغ يتجاوز رصيدك المتاح في المحفظة.",
+        "insufficient_balance": "هذا المبلغ يتجاوز أرباح الرعاية المتاحة لديك.",
         "pending_request_exists": "لديك بالفعل طلب سحب قيد المراجعة.",
         "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
       },
@@ -782,7 +787,15 @@
       "driverLabel": "السائق",
       "passengerLabel": "الراكب",
       "unknownUser": "غير معروف",
-      "routeSeparator": "←"
+      "routeSeparator": "←",
+      "fromLabel": "من",
+      "toLabel": "إلى",
+      "totalPaid": "إجمالي المدفوع",
+      "totalRides": "الرحلات الممولة",
+      "membersLabel": "الأعضاء",
+      "exportCsv": "تصدير CSV",
+      "exporting": "جارٍ التصدير…",
+      "exportFailed": "فشل تصدير CSV"
     }
   },
   "orgAccess": {

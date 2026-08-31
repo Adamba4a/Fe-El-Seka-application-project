@@ -30,6 +30,7 @@ async def get_my_wallet(
     balance = Decimal(str(wallet["balance_egp"]))
     reserved = Decimal(str(wallet["reserved_egp"]))
     available = balance - reserved
+    sponsored_earnings = Decimal(str(wallet["sponsored_earnings_egp"]))
     car_maintenance_savings = Decimal(str(wallet["car_maintenance_savings_egp"]))
     total_pages = max(1, (total + _PER_PAGE - 1) // _PER_PAGE)
 
@@ -37,6 +38,7 @@ async def get_my_wallet(
         "balance_egp": str(balance),
         "reserved_egp": str(reserved),
         "available_egp": str(available),
+        "sponsored_earnings_egp": str(sponsored_earnings),
         "car_maintenance_savings_egp": str(car_maintenance_savings),
         "car_maintenance_threshold_egp": str(car_maintenance_service.CAR_MAINTENANCE_THRESHOLD_EGP),
         "entries": [

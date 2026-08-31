@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────────────────────────
 
 _WALLET_COLS = (
-    "id, driver_id, balance_egp, reserved_egp, car_maintenance_savings_egp, created_at, updated_at"
+    "id, driver_id, balance_egp, reserved_egp, sponsored_earnings_egp, "
+    "car_maintenance_savings_egp, created_at, updated_at"
 )
 
 
@@ -85,6 +86,29 @@ async def decrement_reserved(conn, wallet_id: uuid.UUID, amount: Decimal) -> Non
     against floating-point drift — commission_service should always pass the exact amount."""
     await conn.execute(
         "UPDATE driver_wallets SET reserved_egp = GREATEST(reserved_egp - $2, 0), updated_at = now() WHERE id = $1",
+        wallet_id,
+        amount,
+    )
+
+
+async def increment_sponsored_earnings(conn, wallet_id: uuid.UUID, amount: Decimal) -> None:
+    """Credit sponsored_earnings_egp — the ONLY pool withdrawal requests may draw from.
+    Kept separate from balance_egp so a driver can never withdraw self-funded top-ups
+    (including the promotional free-ride credit)."""
+    await conn.execute(
+        "UPDATE driver_wallets SET sponsored_earnings_egp = sponsored_earnings_egp + $2, "
+        "updated_at = now() WHERE id = $1",
+        wallet_id,
+        amount,
+    )
+
+
+async def decrement_sponsored_earnings(conn, wallet_id: uuid.UUID, amount: Decimal) -> None:
+    """Subtract amount from sponsored_earnings_egp. GREATEST(..., 0) guards the DB CHECK
+    constraint against floating-point drift on booking-cancellation reversals."""
+    await conn.execute(
+        "UPDATE driver_wallets SET sponsored_earnings_egp = GREATEST(sponsored_earnings_egp - $2, 0), "
+        "updated_at = now() WHERE id = $1",
         wallet_id,
         amount,
     )

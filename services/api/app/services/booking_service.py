@@ -255,7 +255,7 @@ async def create_booking(
             net_credit = total_seat_price - commission_for_booking
 
             driver_wallet = await wallet_service.get_wallet_with_lock(conn, ride["driver_id"])
-            await wallet_service.increment_balance(conn, driver_wallet["id"], net_credit)
+            await wallet_service.increment_sponsored_earnings(conn, driver_wallet["id"], net_credit)
             await wallet_service.insert_ledger_entry(
                 conn,
                 driver_wallet["id"],
@@ -595,7 +595,7 @@ async def cancel_booking(
                 row["group_id"], total_seat_price,
             )
             driver_wallet = await wallet_service.get_wallet_with_lock(conn, row["driver_id"])
-            await wallet_service.decrement_balance(conn, driver_wallet["id"], net_credit)
+            await wallet_service.decrement_sponsored_earnings(conn, driver_wallet["id"], net_credit)
             await wallet_service.insert_ledger_entry(
                 conn,
                 driver_wallet["id"],

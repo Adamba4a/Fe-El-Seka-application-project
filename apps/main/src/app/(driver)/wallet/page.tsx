@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { getWallet, type WalletResponse } from "@/lib/api/wallet";
+import { getWallet, formatEgp, type WalletResponse } from "@/lib/api/wallet";
 import { WalletBalanceCard } from "@/components/wallet/WalletBalanceCard";
 import { LedgerEntryList } from "@/components/wallet/LedgerEntryList";
+import type { Locale } from "@fe-el-seka/shared";
 
 const supabase = createClient();
 
@@ -17,6 +18,7 @@ async function getToken(): Promise<string> {
 
 export default function WalletPage() {
   const t = useTranslations("driver.wallet");
+  const locale = useLocale() as Locale;
   const [wallet, setWallet] = useState<WalletResponse | null>(null);
   const [error, setError] = useState("");
 
@@ -51,15 +53,11 @@ export default function WalletPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/wallet/withdraw"
-            className="rounded-xl border border-border-default px-4 py-2 text-body-sm font-semibold text-content-primary hover:bg-surface-bg transition-colors"
-          >
-            {t("requestWithdrawal")}
-          </Link>
+      <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
+
+      <section className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-body-sm font-semibold text-content-primary">{t("cashWalletHeading")}</h2>
           <Link
             href="/wallet/topup"
             className="rounded-xl bg-dash-primary px-4 py-2 text-body-sm font-semibold text-content-inverse hover:opacity-90 transition-opacity"
@@ -67,13 +65,32 @@ export default function WalletPage() {
             {t("addBalance")}
           </Link>
         </div>
-      </div>
+        <p className="text-caption text-content-muted">{t("cashWalletHelp")}</p>
+        <WalletBalanceCard
+          balance_egp={wallet.balance_egp}
+          reserved_egp={wallet.reserved_egp}
+          available_egp={wallet.available_egp}
+        />
+      </section>
 
-      <WalletBalanceCard
-        balance_egp={wallet.balance_egp}
-        reserved_egp={wallet.reserved_egp}
-        available_egp={wallet.available_egp}
-      />
+      <section className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-body-sm font-semibold text-content-primary">{t("sponsoredEarningsHeading")}</h2>
+          <Link
+            href="/wallet/withdraw"
+            className="rounded-xl border border-border-default px-4 py-2 text-body-sm font-semibold text-content-primary hover:bg-surface-bg transition-colors"
+          >
+            {t("requestWithdrawal")}
+          </Link>
+        </div>
+        <p className="text-caption text-content-muted">{t("sponsoredEarningsHelp")}</p>
+        <div className="bg-surface-card rounded-2xl p-5 border border-border-default text-center">
+          <p className="text-body-sm text-content-muted mb-1">{t("sponsoredEarningsBalance")}</p>
+          <p className="text-3xl font-bold text-brand-primary">
+            {formatEgp(wallet.sponsored_earnings_egp, locale)}
+          </p>
+        </div>
+      </section>
 
       <section>
         <h2 className="text-body-sm font-semibold text-content-primary mb-3">

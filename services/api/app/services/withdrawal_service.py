@@ -16,8 +16,11 @@ _ADMIN_PAGE_SIZE = 20
 
 
 async def _available_balance(conn, driver_id: uuid.UUID) -> Decimal:
+    """Withdrawals draw exclusively from sponsored_earnings_egp — never balance_egp,
+    which holds the driver's own top-ups (including the promotional free-ride credit)
+    and must not be withdrawable."""
     wallet = await wallet_service.get_or_create_wallet(conn, driver_id)
-    return Decimal(str(wallet["balance_egp"])) - Decimal(str(wallet["reserved_egp"]))
+    return Decimal(str(wallet["sponsored_earnings_egp"]))
 
 
 async def _enqueue_notification(conn, recipient_user_id: uuid.UUID, event_type: str, payload: dict) -> None:
@@ -203,17 +206,17 @@ async def approve_request(conn, request_id: uuid.UUID, admin_id: uuid.UUID) -> d
         amount = row["amount_egp"]
 
         wallet = await wallet_service.get_wallet_with_lock(conn, driver_id)
-        available = Decimal(str(wallet["balance_egp"])) - Decimal(str(wallet["reserved_egp"]))
+        available = Decimal(str(wallet["sponsored_earnings_egp"]))
         if Decimal(str(amount)) > available:
             raise HTTPException(
                 status_code=409,
                 detail={
                     "error": "insufficient_balance_at_approval",
-                    "message": "The driver's available balance no longer covers this withdrawal.",
+                    "message": "The driver's available sponsored earnings no longer cover this withdrawal.",
                 },
             )
 
-        await wallet_service.decrement_balance(conn, wallet["id"], amount)
+        await wallet_service.decrement_sponsored_earnings(conn, wallet["id"], amount)
         entry = await wallet_service.insert_ledger_entry(
             conn,
             wallet_id=wallet["id"],
@@ -242,7 +245,7 @@ async def approve_request(conn, request_id: uuid.UUID, admin_id: uuid.UUID) -> d
             {"request_id": str(request_id), "amount_egp": str(amount)},
         )
 
-    new_balance_egp = Decimal(str(wallet["balance_egp"])) - Decimal(str(amount))
+    new_balance_egp = Decimal(str(wallet["sponsored_earnings_egp"])) - Decimal(str(amount))
 
     audit_service.append_log(
         str(admin_id), "approved", str(driver_id), withdrawal_request_id=str(request_id)

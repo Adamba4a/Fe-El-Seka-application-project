@@ -393,11 +393,16 @@
       "addBalance": "Add Balance",
       "requestWithdrawal": "Request Withdrawal",
       "transactionHistory": "Transaction History",
-      "noTransactions": "No transactions yet. Add balance to start posting rides."
+      "noTransactions": "No transactions yet. Add balance to start posting rides.",
+      "cashWalletHeading": "Cash Wallet",
+      "cashWalletHelp": "Your own top-ups, used to pay ride commissions on regular (non-sponsored) rides.",
+      "sponsoredEarningsHeading": "Sponsored Earnings",
+      "sponsoredEarningsHelp": "What you've earned from sponsored-group rides. This is the only balance you can withdraw.",
+      "sponsoredEarningsBalance": "Available to withdraw"
     },
     "walletWithdraw": {
       "heading": "Request Withdrawal",
-      "instructions": "Enter the amount you'd like to withdraw and where we should send it. An admin will review and send the payout manually.",
+      "instructions": "Withdraw from your sponsored earnings — money you've made from sponsored-group rides. Enter the amount and where we should send it; an admin will review and send the payout manually.",
       "amountLabel": "Amount (EGP)",
       "amountPlaceholder": "e.g. 100.00",
       "payoutReferenceLabel": "Payout Number",
@@ -410,7 +415,7 @@
       "pendingBody": "We're reviewing your withdrawal request. This usually takes a short while.",
       "errors": {
         "validation_error": "Please check the amount and payout number and try again.",
-        "insufficient_balance": "This amount exceeds your available wallet balance.",
+        "insufficient_balance": "This amount exceeds your available sponsored earnings.",
         "pending_request_exists": "You already have a withdrawal request awaiting review.",
         "generic": "Something went wrong. Please try again."
       },
@@ -782,7 +787,15 @@
       "driverLabel": "Driver",
       "passengerLabel": "Passenger",
       "unknownUser": "Unknown",
-      "routeSeparator": "→"
+      "routeSeparator": "→",
+      "fromLabel": "From",
+      "toLabel": "To",
+      "totalPaid": "Total paid",
+      "totalRides": "Rides funded",
+      "membersLabel": "Members",
+      "exportCsv": "Export CSV",
+      "exporting": "Exporting…",
+      "exportFailed": "Failed to export CSV"
     }
   },
   "orgAccess": {

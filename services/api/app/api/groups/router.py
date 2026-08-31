@@ -4,6 +4,7 @@ import uuid
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import StreamingResponse
 
 from app.dependencies.auth import get_current_user
 from app.models.group import (
@@ -163,6 +164,24 @@ async def get_sponsorship_dashboard(
 ):
     user_id = uuid.UUID(str(profile["id"]))
     return await group_service.get_sponsorship_dashboard(group_id, user_id)
+
+
+@router.get("/{group_id}/sponsorship-dashboard/export")
+async def export_sponsorship_dashboard(
+    group_id: uuid.UUID,
+    profile: dict = Depends(get_current_user),
+) -> StreamingResponse:
+    user_id = uuid.UUID(str(profile["id"]))
+
+    async def _generate():
+        async for line in group_service.stream_sponsorship_dashboard_csv(group_id, user_id):
+            yield line
+
+    return StreamingResponse(
+        _generate(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="sponsorship_{group_id}.csv"'},
+    )
 
 
 @router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
