@@ -7,7 +7,8 @@ import { Spinner } from "@/components/ui/Spinner";
 import { createClient } from "@/lib/supabase/client";
 import { resolveInviteToken } from "@/lib/api/groups";
 import { JoinGroupAction } from "@/components/groups/JoinGroupAction";
-import type { GroupDetail } from "@fe-el-seka/shared";
+import { DomainVerifyForm } from "@/components/groups/DomainVerifyForm";
+import type { DomainVerificationConfirmResponse, GroupDetail } from "@fe-el-seka/shared";
 
 export default function JoinGroupPage() {
   const t = useTranslations("groups.join");
@@ -87,6 +88,17 @@ export default function JoinGroupPage() {
           >
             {t("viewGroup")}
           </button>
+        </div>
+      ) : group.is_sponsored ? (
+        <div className="rounded-xl border border-border-default bg-surface-card p-4 space-y-3">
+          <p className="text-body-sm text-content-secondary">{tGroups("sponsorship.eligibilityHint")}</p>
+          <DomainVerifyForm
+            token={token}
+            groupId={group.id}
+            onSuccess={(result: DomainVerificationConfirmResponse) => {
+              setGroup({ ...group, ...result.group, is_member: true, is_domain_verified: true });
+            }}
+          />
         </div>
       ) : (
         <JoinGroupAction

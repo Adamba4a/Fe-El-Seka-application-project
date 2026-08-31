@@ -141,6 +141,18 @@ async def reset_car_maintenance_savings(conn, wallet_id: uuid.UUID) -> None:
     )
 
 
+async def decrement_car_maintenance_savings(conn, wallet_id: uuid.UUID, amount: Decimal) -> None:
+    """Subtract amount from car_maintenance_savings_egp. GREATEST(..., 0) guards against a
+    sponsored booking's distance fee being clawed back after a threshold reward already reset
+    the counter — the driver keeps the already-granted reward, the counter just can't go negative."""
+    await conn.execute(
+        "UPDATE driver_wallets SET car_maintenance_savings_egp = GREATEST(car_maintenance_savings_egp - $2, 0), "
+        "updated_at = now() WHERE id = $1",
+        wallet_id,
+        amount,
+    )
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Ledger
 # ─────────────────────────────────────────────────────────────────────────────

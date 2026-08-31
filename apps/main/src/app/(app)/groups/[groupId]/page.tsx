@@ -123,7 +123,7 @@ export default function GroupDetailPage() {
             <p className="text-body-sm text-dash-primary font-medium flex items-center gap-1.5">
               <span aria-hidden>✓</span> {t("sponsorship.verifiedBadge")}
             </p>
-          ) : showEligibilityForm ? (
+          ) : showEligibilityForm || !group.is_member ? (
             token && (
               <DomainVerifyForm
                 token={token}
@@ -189,7 +189,7 @@ export default function GroupDetailPage() {
             </div>
           )}
         </div>
-      ) : (
+      ) : !group.is_sponsored ? (
         <div className="space-y-3">
           <p className="text-body-sm text-content-muted text-center py-2">{t("joinToSeeRides")}</p>
           {token && (
@@ -206,7 +206,7 @@ export default function GroupDetailPage() {
             />
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

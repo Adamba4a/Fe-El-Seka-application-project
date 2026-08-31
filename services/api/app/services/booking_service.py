@@ -233,7 +233,7 @@ async def create_booking(
         booking_id = booking["id"]
 
         if payment_source == "SPONSORED":
-            from app.services import wallet_service
+            from app.services import car_maintenance_service, wallet_service
             from app.services.commission_service import COMMISSION_RATE
 
             fuel_cost_egp = Decimal(str(ride["fuel_cost_egp"] or 0))
@@ -253,6 +253,13 @@ async def create_booking(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
             net_credit = total_seat_price - commission_for_booking
+            # This booking's share of the ride's distance fee, same per-seat split used by
+            # commission_service.deduct_commission() for cash rides — sponsored rides settle
+            # commission at booking time instead of ride completion, so the car-maintenance
+            # savings accumulation has to happen here rather than in deduct_commission.
+            distance_fee_amount = ((distance_fee_egp / total_seats_on_ride) * seats).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
 
             driver_wallet = await wallet_service.get_wallet_with_lock(conn, ride["driver_id"])
             await wallet_service.increment_sponsored_earnings(conn, driver_wallet["id"], net_credit)
@@ -265,6 +272,9 @@ async def create_booking(
                 ride_id=ride_id,
                 booking_id=booking_id,
                 note="Sponsored group booking settlement",
+            )
+            await car_maintenance_service.accumulate_and_maybe_grant(
+                conn, ride["driver_id"], driver_wallet["id"], distance_fee_amount
             )
 
         # 5. Audit log
@@ -567,7 +577,7 @@ async def cancel_booking(
         # Spec 026 (research.md §11): reverse a sponsored booking's settlement —
         # refund the group's funded balance and claw back the driver's net credit.
         if row["payment_source"] == "SPONSORED":
-            from app.services import wallet_service
+            from app.services import car_maintenance_service, wallet_service
             from app.services.commission_service import COMMISSION_RATE
 
             total_seat_price = Decimal(str(row["price_per_seat"])) * row["seats"]
@@ -588,6 +598,12 @@ async def cancel_booking(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
             net_credit = total_seat_price - commission_for_booking
+            # Mirrors the accumulation applied at booking creation — claw it back so a
+            # cancelled sponsored booking doesn't leave phantom progress toward the
+            # car-maintenance reward (see create_booking's SPONSORED branch).
+            distance_fee_amount = ((distance_fee_egp / total_seats_on_ride) * row["seats"]).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
 
             await conn.fetchrow("SELECT id FROM groups WHERE id = $1 FOR UPDATE", row["group_id"])
             await conn.execute(
@@ -605,6 +621,9 @@ async def cancel_booking(
                 ride_id=row["ride_id"],
                 booking_id=booking_id,
                 note="Sponsored group booking cancellation reversal",
+            )
+            await wallet_service.decrement_car_maintenance_savings(
+                conn, driver_wallet["id"], distance_fee_amount
             )
 
         await conn.execute(

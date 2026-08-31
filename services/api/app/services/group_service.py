@@ -356,12 +356,26 @@ async def join_group(profile: dict, group_id: uuid.UUID) -> MembershipResponse:
     pool = get_pool()
     async with pool.acquire() as conn:
         group_row = await conn.fetchrow(
-            "SELECT id FROM groups WHERE id = $1 AND archived_at IS NULL", group_id
+            "SELECT id, is_sponsored FROM groups WHERE id = $1 AND archived_at IS NULL", group_id
         )
         if group_row is None:
             raise HTTPException(
                 status_code=404,
                 detail={"error": "group_not_found", "message": "Group not found."},
+            )
+        # A sponsored group's rides are billed straight to the sponsor's funded balance,
+        # so a member must prove a matching eligible domain email BEFORE they're in the
+        # group — not join freely and verify later (or never). The domain-verification
+        # OTP flow (request_domain_verification/confirm_domain_verification) is the only
+        # way to become a member of a sponsored group; it creates the membership itself
+        # once the OTP is confirmed, so this plain unconditional join must reject instead.
+        if group_row["is_sponsored"]:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "sponsored_group_requires_domain_verification",
+                    "message": "This is a sponsored group — verify your work or school email to join.",
+                },
             )
 
         existing = await conn.fetchrow(
