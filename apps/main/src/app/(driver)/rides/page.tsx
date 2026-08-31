@@ -10,6 +10,7 @@ import type { Ride } from "@fe-el-seka/shared";
 
 export default function MyRidesPage() {
   const t = useTranslations("driver.rides");
+  const tRecurring = useTranslations("driver.recurring");
 
   const TABS: { label: string; value: string }[] = [
     { label: t("tabAll"), value: "" },
@@ -49,12 +50,20 @@ export default function MyRidesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
-        <Link
-          href="/rides/new"
-          className="bg-dash-primary hover:opacity-90 text-content-inverse text-body-sm font-medium px-4 py-2 rounded-xl transition-opacity"
-        >
-          {t("postARide")}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/rides/recurring"
+            className="border border-border-default hover:bg-surface-bg text-content-secondary text-body-sm font-medium px-4 py-2 rounded-xl transition-colors"
+          >
+            {tRecurring("manageLink")}
+          </Link>
+          <Link
+            href="/rides/new"
+            className="bg-dash-primary hover:opacity-90 text-content-inverse text-body-sm font-medium px-4 py-2 rounded-xl transition-opacity"
+          >
+            {t("postARide")}
+          </Link>
+        </div>
       </div>
 
       {/* Status filter tabs */}

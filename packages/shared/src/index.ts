@@ -18,6 +18,13 @@ export type {
   CancelRidePayload,
   RideListResponse,
   RideDetailResponse,
+  RecurringRideDefinitionStatus,
+  RecurringRideDefinition,
+  CreateRecurringRideDefinitionPayload,
+  EditRecurringRideDefinitionPayload,
+  RecurringRideDefinitionListResponse,
+  RecurringRideDefinitionDetailResponse,
+  RecurringRideDefinitionUpdateResponse,
 } from "./types/rides";
 export { formatPhone, formatDate, formatCurrency, computeNetEarningsPerSeat } from "./utils";
 

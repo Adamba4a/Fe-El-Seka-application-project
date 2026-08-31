@@ -25,6 +25,7 @@ from app.services import (
 )
 from app.services.ai_client import AIServiceUnavailableError
 from app.services.pricing_service import get_pricing_config
+from app.services.ride_service import recurring_instance_visibility_sql
 from app.services.route_service import RouteServiceUnavailableError
 from app.utils.zone_lookup import nearest_zone
 
@@ -203,7 +204,7 @@ async def nearby_rides(
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            """
+            f"""
             SELECT
                 r.id, r.departure_datetime, r.available_seats, r.price_per_seat,
                 r.origin_address, r.destination_address,
@@ -221,6 +222,7 @@ async def nearby_rides(
               AND r.departure_datetime > now()
               AND (r.group_id IS NULL OR g.is_sponsored = false)
               AND ST_DWithin(r.origin_coordinates, ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography, $4)
+              AND {recurring_instance_visibility_sql("r")}
             ORDER BY r.origin_coordinates <-> ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography
             LIMIT $3
             """,

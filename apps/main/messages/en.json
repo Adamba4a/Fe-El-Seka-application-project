@@ -499,6 +499,44 @@
       "heading": "Post a Ride",
       "postFailed": "Failed to post ride. Please try again."
     },
+    "recurring": {
+      "heading": "Recurring Rides",
+      "newRecurringRide": "+ New Recurring Ride",
+      "manageLink": "Recurring Rides",
+      "loadFailed": "Failed to load recurring rides.",
+      "emptyTitle": "No recurring rides yet",
+      "emptyBody": "Post a recurring ride to automatically generate rides on a weekly schedule",
+      "statusActive": "Active",
+      "statusEnded": "Ended",
+      "perSeatSuffix": "/seat",
+      "weekdayShort": {
+        "0": "Sun",
+        "1": "Mon",
+        "2": "Tue",
+        "3": "Wed",
+        "4": "Thu",
+        "5": "Fri",
+        "6": "Sat"
+      },
+      "detailHeading": "Recurring Ride",
+      "backToList": "← Back to recurring rides",
+      "notFoundTitle": "Recurring ride not found.",
+      "fromLabel": "From",
+      "toLabel": "To",
+      "timeLabel": "Departure time",
+      "weekdaysLabel": "Repeats on",
+      "seatsLabel": "Seats",
+      "priceLabel": "Price per seat",
+      "notesLabel": "Notes",
+      "editButton": "Edit",
+      "cancelEdit": "Cancel",
+      "saveChanges": "Save Changes",
+      "savingChanges": "Saving…",
+      "saveFailed": "Failed to save changes.",
+      "editSuccessPrefix": "Updated {count} upcoming ride(s).",
+      "instancesHeading": "Upcoming Rides",
+      "noInstancesYet": "No upcoming rides generated yet."
+    },
     "manage": {
       "heading": "Ride Detail",
       "bookings": "Bookings",
@@ -1005,6 +1043,21 @@
     "savingChanges": "Saving changes…",
     "postRide": "Post Ride",
     "saveChanges": "Save Changes",
+    "recurringToggleLabel": "Recurring ride",
+    "recurringToggleHint": "Repeats weekly on the days you choose — instances are posted automatically.",
+    "recurringTimeLabel": "Departure Time",
+    "recurringWeekdaysLabel": "Repeats on",
+    "weekdayShort": {
+      "0": "Sun",
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat"
+    },
+    "postingRecurringRide": "Setting up recurring ride…",
+    "postRecurringRide": "Create Recurring Ride",
     "errors": {
       "originRequired": "Please select an origin on the map.",
       "destinationRequired": "Please select a destination on the map.",
@@ -1014,7 +1067,9 @@
       "departureTooFar": "Rides can only be scheduled up to 7 days in advance.",
       "seatsRange": "Seat count must be between 1 and {maxSeats}.",
       "fareEstimateFailed": "Could not calculate the fare for this route. Please try again.",
-      "fareEstimatePending": "Please wait for the price to finish calculating."
+      "fareEstimatePending": "Please wait for the price to finish calculating.",
+      "recurringTimeRequired": "Please choose a departure time.",
+      "recurringWeekdaysRequired": "Please select at least one day of the week."
     }
   },
   "driverDashboard": {
