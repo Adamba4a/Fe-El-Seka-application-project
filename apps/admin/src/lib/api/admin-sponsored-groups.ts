@@ -39,6 +39,14 @@ export interface DashboardContactResponse {
   dashboard_contact_user_id: string;
 }
 
+export async function listSponsoredGroups(token: string): Promise<SponsoredGroupSummary[]> {
+  const res = await fetch(`${base}/api/admin/sponsored-groups`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw await res.json();
+  return res.json();
+}
+
 export async function createOrUpgrade(
   token: string,
   domains: string[],

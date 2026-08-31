@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createAdminBrowserClient } from "@/lib/supabase/browser-client";
 import {
   createOrUpgrade,
   addFunds,
   listMembers,
+  listSponsoredGroups,
   setDashboardContact,
   addSponsorDomain,
   removeSponsorDomain,
@@ -17,6 +18,10 @@ import {
 const sb = createAdminBrowserClient();
 
 export default function SponsoredGroupsPage() {
+  const [groups, setGroups] = useState<SponsoredGroupSummary[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(true);
+  const [copiedId, setCopiedId] = useState("");
+
   const [domains, setDomains] = useState("");
   const [name, setName] = useState("");
   const [fundedBalance, setFundedBalance] = useState("");
@@ -46,6 +51,42 @@ export default function SponsoredGroupsPage() {
     return data.session?.access_token ?? "";
   }
 
+  async function refreshGroups() {
+    setLoadingGroups(true);
+    try {
+      const token = await getToken();
+      setGroups(await listSponsoredGroups(token));
+    } catch (err: any) {
+      setError(err?.detail?.message ?? "Failed to load sponsored groups.");
+    } finally {
+      setLoadingGroups(false);
+    }
+  }
+
+  useEffect(() => {
+    refreshGroups();
+  }, []);
+
+  function useGroupId(groupId: string) {
+    setDomainsGroupId(groupId);
+    setFundsGroupId(groupId);
+    setContactGroupId(groupId);
+    setDomainsResult(null);
+    setMembers([]);
+    setContactUserId("");
+  }
+
+  async function copyGroupId(groupId: string) {
+    try {
+      await navigator.clipboard.writeText(groupId);
+      setCopiedId(groupId);
+      setTimeout(() => setCopiedId(""), 1500);
+    } catch {
+      // Clipboard API can be unavailable (e.g. non-HTTPS) — the ID is still
+      // selectable/visible in the table, so this is a nice-to-have only.
+    }
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -60,6 +101,7 @@ export default function SponsoredGroupsPage() {
       const group = await createOrUpgrade(token, domainList, fundedBalance, name.trim());
       setResult(group);
       setNotice("Sponsored group created.");
+      await refreshGroups();
     } catch (err: any) {
       setError(err?.detail?.message ?? "Failed to create sponsored group.");
     } finally {
@@ -78,6 +120,7 @@ export default function SponsoredGroupsPage() {
       setDomainsResult(res.domains);
       setNewDomain("");
       setNotice("Domain added.");
+      await refreshGroups();
     } catch (err: any) {
       setError(err?.detail?.message ?? "Failed to add domain.");
     } finally {
@@ -96,6 +139,7 @@ export default function SponsoredGroupsPage() {
       setDomainsResult(res.domains);
       setRemoveDomainValue("");
       setNotice("Domain removed.");
+      await refreshGroups();
     } catch (err: any) {
       setError(err?.detail?.message ?? "Failed to remove domain.");
     } finally {
@@ -116,6 +160,7 @@ export default function SponsoredGroupsPage() {
           minimumFractionDigits: 2,
         })} EGP`
       );
+      await refreshGroups();
     } catch (err: any) {
       setError(err?.detail?.message ?? "Failed to add funds.");
     } finally {
@@ -149,7 +194,9 @@ export default function SponsoredGroupsPage() {
     try {
       const token = await getToken();
       await setDashboardContact(token, contactGroupId.trim(), contactUserId);
-      setNotice("Dashboard contact assigned.");
+      const assignedName = members.find((m) => m.user_id === contactUserId)?.display_name ?? contactUserId;
+      setNotice(`Dashboard contact assigned: ${assignedName}.`);
+      await refreshGroups();
     } catch (err: any) {
       setError(err?.detail?.message ?? "Failed to assign dashboard contact.");
     } finally {
@@ -164,12 +211,89 @@ export default function SponsoredGroupsPage() {
         <h1 className="text-2xl font-semibold">Sponsored Groups</h1>
       </div>
 
-      {notice && (
-        <div className="rounded border border-green-200 bg-green-50 text-green-800 text-sm p-3">
-          {notice}
+      {(notice || error) && (
+        <div className="sticky top-2 z-10 space-y-2">
+          {notice && (
+            <div className="rounded border border-green-200 bg-green-50 text-green-800 text-sm p-3 shadow-sm">
+              {notice}
+            </div>
+          )}
+          {error && (
+            <p className="rounded border border-red-200 bg-red-50 text-red-600 text-sm p-3 shadow-sm">{error}</p>
+          )}
         </div>
       )}
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+
+      <section className="space-y-4 border rounded p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-medium">Sponsored groups</h2>
+          <button
+            type="button"
+            onClick={refreshGroups}
+            disabled={loadingGroups}
+            className="text-sm text-blue-600 hover:underline disabled:text-gray-400"
+          >
+            {loadingGroups ? "Refreshing…" : "Refresh"}
+          </button>
+        </div>
+        <p className="text-sm text-gray-500">
+          Every group ID you need for the sections below — click one to fill in the Group ID
+          fields, or copy it directly.
+        </p>
+        {loadingGroups ? (
+          <p className="text-sm text-gray-500">Loading…</p>
+        ) : groups.length === 0 ? (
+          <p className="text-sm text-gray-500">No sponsored groups yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-500 border-b">
+                  <th className="py-2 pr-3">Name</th>
+                  <th className="py-2 pr-3">Group ID</th>
+                  <th className="py-2 pr-3">Domains</th>
+                  <th className="py-2 pr-3">Balance (EGP)</th>
+                  <th className="py-2 pr-3">Dashboard contact</th>
+                  <th className="py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {groups.map((g) => (
+                  <tr key={g.id} className="border-b last:border-0 align-top">
+                    <td className="py-2 pr-3">{g.name}</td>
+                    <td className="py-2 pr-3 font-mono text-xs">
+                      <button
+                        type="button"
+                        onClick={() => copyGroupId(g.id)}
+                        title={g.id}
+                        className="hover:underline"
+                      >
+                        {g.id.slice(0, 8)}… {copiedId === g.id ? "(copied)" : ""}
+                      </button>
+                    </td>
+                    <td className="py-2 pr-3">{g.sponsor_domains.join(", ") || "(none)"}</td>
+                    <td className="py-2 pr-3">
+                      {Number(g.funded_balance_egp).toLocaleString("en-EG", { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-2 pr-3 font-mono text-xs">
+                      {g.dashboard_contact_user_id ? g.dashboard_contact_user_id.slice(0, 8) + "…" : "(unassigned)"}
+                    </td>
+                    <td className="py-2">
+                      <button
+                        type="button"
+                        onClick={() => useGroupId(g.id)}
+                        className="text-blue-600 hover:underline"
+                      >
+                        Use ID
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       <section className="space-y-4 border rounded p-6">
         <h2 className="text-lg font-medium">Create a sponsored group</h2>

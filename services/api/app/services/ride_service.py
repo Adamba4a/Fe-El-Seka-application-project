@@ -205,7 +205,7 @@ async def create_ride(
             if payload.group_id is not None:
                 group_row = await conn.fetchrow(
                     """
-                    SELECT g.archived_at, g.is_sponsored
+                    SELECT g.archived_at, g.is_sponsored, gm.domain_verification_id
                     FROM group_memberships gm
                     JOIN groups g ON g.id = gm.group_id
                     WHERE gm.group_id = $1 AND gm.user_id = $2
@@ -225,6 +225,18 @@ async def create_ride(
                         403,
                     )
                 is_sponsored_group = bool(group_row["is_sponsored"])
+                # Every seat on a sponsored group's rides is settled from the
+                # group's funded balance automatically (no cash option) — a
+                # driver who hasn't proven their own email domain against this
+                # group's sponsor list has no business posting rides that will
+                # be billed to the sponsor, so gate ride creation the same way
+                # booking eligibility is gated.
+                if is_sponsored_group and group_row["domain_verification_id"] is None:
+                    raise RideServiceError(
+                        "domain_verification_required",
+                        "Verify your work or school email for this sponsored group before posting rides to it.",
+                        403,
+                    )
 
             # Phase 8 (FR-014): balance enforcement — lock wallet before ride INSERT so
             # the check and the ride creation are atomic; concurrent rides by the same

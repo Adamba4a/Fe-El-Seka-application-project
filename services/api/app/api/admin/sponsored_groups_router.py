@@ -21,6 +21,13 @@ from app.services import group_service, sponsored_group_service
 router = APIRouter()
 
 
+@router.get("", response_model=list[GroupSummary])
+async def list_sponsored_groups(
+    _admin: dict = Depends(get_current_admin),
+) -> list[GroupSummary]:
+    return await sponsored_group_service.list_sponsored_groups()
+
+
 @router.post("", response_model=GroupSummary)
 async def create_or_upgrade_sponsored_group(
     body: SponsoredGroupCreateRequest,

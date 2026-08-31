@@ -1,7 +1,24 @@
+import re
 from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel
+
+# A real email domain always has at least one dot (name.tld) — this catches
+# the common admin mistake of entering the company name ("adam") instead of
+# its actual email domain ("adam.com"), which would otherwise sit in the
+# eligible-domains list forever silently rejecting every real employee email.
+_DOMAIN_RE = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$")
+
+
+def _validate_domain(domain: str) -> str:
+    domain = domain.strip().lower()
+    if not _DOMAIN_RE.match(domain):
+        raise ValueError(
+            f"'{domain}' isn't a valid email domain — it must look like a real domain "
+            "with a TLD, e.g. 'company.com', not just 'company'."
+        )
+    return domain
 
 
 class CreateGroupRequest(BaseModel):
@@ -96,7 +113,7 @@ class SponsoredGroupCreateRequest(BaseModel):
         domains = [d.strip().lower() for d in self.domains if d.strip()]
         if not domains:
             raise ValueError("domains must include at least one domain")
-        self.domains = domains
+        self.domains = [_validate_domain(d) for d in domains]
 
 
 class AddFundsRequest(BaseModel):
@@ -110,6 +127,9 @@ class AddFundsResponse(BaseModel):
 
 class AddSponsorDomainRequest(BaseModel):
     domain: str
+
+    def model_post_init(self, __context) -> None:
+        self.domain = _validate_domain(self.domain)
 
 
 class SponsorDomainsResponse(BaseModel):

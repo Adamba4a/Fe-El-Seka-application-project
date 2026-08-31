@@ -7,7 +7,31 @@ from fastapi import HTTPException
 
 from app.core.database import get_pool
 from app.models.group import AddFundsResponse, GroupSummary, SponsoredGroupCreateRequest
-from app.services.group_service import _derive_group_name, _to_summary
+from app.services.group_service import _derive_group_name, _get_sponsor_domains, _to_summary
+
+
+async def list_sponsored_groups() -> list[GroupSummary]:
+    """Admin lookup surface for T009's Group ID gap: every other admin action
+    on this page (add funds, manage domains, assign a dashboard contact)
+    needs a group_id, but create_or_upgrade_sponsored_group only ever returns
+    one at creation time — without this, the id is gone the moment the admin
+    navigates away or refreshes."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT id, name, description, route_tags, member_count,
+                   is_sponsored, funded_balance_egp, dashboard_contact_user_id
+            FROM groups
+            WHERE is_sponsored = true AND archived_at IS NULL
+            ORDER BY name ASC
+            """
+        )
+        groups = []
+        for row in rows:
+            domains = await _get_sponsor_domains(conn, row["id"])
+            groups.append(_to_summary({**dict(row), "sponsor_domains": domains}))
+    return groups
 
 
 async def create_or_upgrade_sponsored_group(
