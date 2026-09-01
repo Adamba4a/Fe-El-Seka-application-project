@@ -698,21 +698,32 @@ async def get_ride_recurring_instances(
         if definition_id is None:
             return JSONResponse({"instances": []})
 
+        # One entry per weekday of the series' pattern (nearest upcoming occurrence
+        # only) so the picker reads as a single weekly cycle rather than listing
+        # every instance in the rolling generation window (which can span 2+ weeks
+        # and so include a second occurrence of the same weekday).
         rows = await conn.fetch(
             f"""
-            SELECT r.id, r.departure_datetime, r.available_seats, r.total_seats,
-                   r.price_per_seat,
-                   b.id AS booking_id, b.status AS booking_status, b.seats AS booking_seats
-            FROM rides r
-            LEFT JOIN bookings b
-                ON b.ride_id = r.id AND b.passenger_id = $2 AND b.status IN ('pending', 'confirmed')
-            WHERE r.recurring_ride_definition_id = $1
-              AND r.status = 'scheduled'
-              AND r.departure_datetime > now()
-              AND {recurring_instance_visibility_sql("r")}
-            ORDER BY r.departure_datetime ASC
+            SELECT id, departure_datetime, available_seats, total_seats, price_per_seat,
+                   booking_id, booking_status, booking_seats
+            FROM (
+                SELECT DISTINCT ON (EXTRACT(ISODOW FROM r.departure_datetime))
+                       r.id, r.departure_datetime, r.available_seats, r.total_seats,
+                       r.price_per_seat,
+                       b.id AS booking_id, b.status AS booking_status, b.seats AS booking_seats
+                FROM rides r
+                LEFT JOIN bookings b
+                    ON b.ride_id = r.id AND b.passenger_id = $2 AND b.status IN ('pending', 'confirmed')
+                WHERE r.recurring_ride_definition_id = $1
+                  AND r.id != $3
+                  AND r.status = 'scheduled'
+                  AND r.departure_datetime > now()
+                  AND {recurring_instance_visibility_sql("r")}
+                ORDER BY EXTRACT(ISODOW FROM r.departure_datetime), r.departure_datetime ASC
+            ) next_per_weekday
+            ORDER BY departure_datetime ASC
             """,
-            definition_id, caller_id,
+            definition_id, caller_id, ride_id,
         )
 
     return JSONResponse({
