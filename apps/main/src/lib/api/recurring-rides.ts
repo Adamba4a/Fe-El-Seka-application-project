@@ -76,6 +76,31 @@ export async function editRecurringDefinition(
   return json;
 }
 
+export interface RecurringInstanceOption {
+  ride_id: string;
+  departure_datetime: string;
+  available_seats: number;
+  total_seats: number;
+  per_seat_price: string;
+  existing_booking: { booking_id: string; status: string; seats: number } | null;
+}
+
+export interface RecurringInstancesResponse {
+  instances: RecurringInstanceOption[];
+}
+
+export async function listRecurringInstancesForRide(
+  token: string,
+  rideId: string
+): Promise<RecurringInstancesResponse> {
+  const res = await fetch(`${base}/api/v1/rides/${rideId}/recurring-instances`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  if (!res.ok) throw unwrapError(json);
+  return json;
+}
+
 export async function endRecurringDefinition(
   token: string,
   id: string

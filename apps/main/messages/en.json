@@ -279,6 +279,12 @@
       "searchAnotherRide": "Search for another ride",
       "recurringSeriesLabel": "Part of a recurring series",
       "recurringSeriesOtherDays": "Also runs on: {days}",
+      "recurringPickerHeading": "Book other days too",
+      "recurringPickerHint": "Select more upcoming days on this route and choose how many seats you need for each.",
+      "alreadyBooked": "Already booked",
+      "seatsLeft": "{count} seats left",
+      "seatsCount": "{count} seat(s)",
+      "premiumFeeIncludedNote": "Premium fee applies to each selected day.",
       "weekdayShort": {
         "0": "Sun",
         "1": "Mon",
@@ -295,7 +301,8 @@
         "duplicateBooking": "You already have a booking for this ride.",
         "noSeats": "No seats available — this ride just filled up.",
         "bookingFailed": "Booking failed. Please try again.",
-        "networkBooking": "Network error — please try again."
+        "networkBooking": "Network error — please try again.",
+        "partialBookingFailure": "{succeeded} of {total} day(s) booked. The rest were full or already booked."
       }
     },
     "bookRide": {
@@ -596,7 +603,8 @@
       "rateAndReport": "Rate & Report",
       "viewProfile": "View Profile",
       "seats": "seats",
-      "pickupDropoffMapTitle": "{name}'s pickup & dropoff"
+      "pickupDropoffMapTitle": "{name}'s pickup & dropoff",
+      "recurringSeriesLink": "View all days in this series"
     }
   },
   "settings": {

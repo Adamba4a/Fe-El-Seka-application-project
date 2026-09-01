@@ -279,6 +279,12 @@
       "searchAnotherRide": "ابحث عن رحلة أخرى",
       "recurringSeriesLabel": "جزء من رحلة متكررة",
       "recurringSeriesOtherDays": "تعمل أيضًا في: {days}",
+      "recurringPickerHeading": "احجز أيامًا أخرى أيضًا",
+      "recurringPickerHint": "اختر أيامًا قادمة أخرى على نفس المسار وحدد عدد المقاعد التي تحتاجها لكل يوم.",
+      "alreadyBooked": "محجوز بالفعل",
+      "seatsLeft": "{count} مقعد متبقي",
+      "seatsCount": "{count} مقعد",
+      "premiumFeeIncludedNote": "تُطبَّق الرسوم المميزة على كل يوم مختار.",
       "weekdayShort": {
         "0": "أحد",
         "1": "اثنين",
@@ -295,7 +301,8 @@
         "duplicateBooking": "لديك بالفعل حجز لهذه الرحلة.",
         "noSeats": "لا توجد مقاعد متاحة — امتلأت هذه الرحلة للتو.",
         "bookingFailed": "فشل الحجز. يرجى المحاولة مرة أخرى.",
-        "networkBooking": "خطأ في الشبكة — يرجى المحاولة مرة أخرى."
+        "networkBooking": "خطأ في الشبكة — يرجى المحاولة مرة أخرى.",
+        "partialBookingFailure": "تم حجز {succeeded} من أصل {total} يوم. الأيام المتبقية كانت ممتلئة أو محجوزة بالفعل."
       }
     },
     "bookRide": {
@@ -596,7 +603,8 @@
       "rateAndReport": "قيّم وأبلغ",
       "viewProfile": "عرض الملف الشخصي",
       "seats": "مقاعد",
-      "pickupDropoffMapTitle": "نقطة الصعود والنزول لـ {name}"
+      "pickupDropoffMapTitle": "نقطة الصعود والنزول لـ {name}",
+      "recurringSeriesLink": "عرض كل أيام هذه السلسلة"
     }
   },
   "settings": {

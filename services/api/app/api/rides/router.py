@@ -38,7 +38,7 @@ from app.services import (
 )
 from app.services.location_service import LocationServiceError
 from app.services.pricing_service import calculate_fare, get_pricing_config
-from app.services.ride_service import RideServiceError
+from app.services.ride_service import RideServiceError, recurring_instance_visibility_sql
 from app.services.route_service import RouteServiceUnavailableError
 
 logger = logging.getLogger(__name__)
@@ -672,6 +672,68 @@ async def get_ride_passenger_detail(
             {"booking_id": str(existing["id"]), "status": existing["status"], "seats": existing["seats"]}
             if existing else None
         ),
+    })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET /api/v1/rides/{ride_id}/recurring-instances
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/{ride_id}/recurring-instances")
+async def get_ride_recurring_instances(
+    ride_id: uuid.UUID,
+    _user: dict = Depends(get_current_user),
+):
+    """Sibling day-instances of the same recurring ride definition as `ride_id`,
+    so a passenger can pick several upcoming days (each with its own seat count)
+    from one ride's detail page instead of re-searching per date. Each instance
+    is still booked individually via the existing POST /bookings endpoint — this
+    just lists what's bookable (FR-004/FR-005: no new booking mechanism)."""
+    caller_id = uuid.UUID(str(_user["id"]))
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        definition_id = await conn.fetchval(
+            "SELECT recurring_ride_definition_id FROM rides WHERE id = $1", ride_id
+        )
+        if definition_id is None:
+            return JSONResponse({"instances": []})
+
+        rows = await conn.fetch(
+            f"""
+            SELECT r.id, r.departure_datetime, r.available_seats, r.total_seats,
+                   r.price_per_seat,
+                   b.id AS booking_id, b.status AS booking_status, b.seats AS booking_seats
+            FROM rides r
+            LEFT JOIN bookings b
+                ON b.ride_id = r.id AND b.passenger_id = $2 AND b.status IN ('pending', 'confirmed')
+            WHERE r.recurring_ride_definition_id = $1
+              AND r.status = 'scheduled'
+              AND r.departure_datetime > now()
+              AND {recurring_instance_visibility_sql("r")}
+            ORDER BY r.departure_datetime ASC
+            """,
+            definition_id, caller_id,
+        )
+
+    return JSONResponse({
+        "instances": [
+            {
+                "ride_id": str(r["id"]),
+                "departure_datetime": r["departure_datetime"].isoformat(),
+                "available_seats": r["available_seats"],
+                "total_seats": r["total_seats"],
+                "per_seat_price": f"{float(r['price_per_seat']):.2f}",
+                "existing_booking": (
+                    {
+                        "booking_id": str(r["booking_id"]),
+                        "status": r["booking_status"],
+                        "seats": r["booking_seats"],
+                    }
+                    if r["booking_id"] else None
+                ),
+            }
+            for r in rows
+        ]
     })
 
 

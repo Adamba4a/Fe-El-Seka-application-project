@@ -35,6 +35,7 @@ export interface Ride {
   route_geometry: object | null;
   group_id: string | null;
   group_name?: string | null;
+  recurring_ride_definition_id: string | null;
 }
 
 export interface RideHistoryEntry {

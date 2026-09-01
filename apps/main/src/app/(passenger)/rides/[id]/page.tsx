@@ -15,6 +15,7 @@ import { env } from "@/lib/env";
 import { formatCurrency } from "@fe-el-seka/shared";
 import type { Locale } from "@fe-el-seka/shared";
 import { fromIsoWeekday } from "@/lib/weekdays";
+import { listRecurringInstancesForRide, type RecurringInstanceOption } from "@/lib/api/recurring-rides";
 
 const RideDetailMap = dynamic(
   () => import("@/components/bookings/RideDetailMap").then((m) => ({ default: m.RideDetailMap })),
@@ -125,6 +126,112 @@ function formatDeparture(iso: string, locale: Locale) {
   }).format(new Date(iso));
 }
 
+function formatDayLabel(iso: string, locale: Locale) {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    numberingSystem: "latn",
+  }).format(new Date(iso));
+}
+
+function RecurringDayPicker({
+  instances,
+  currentRideId,
+  extraSeats,
+  onToggle,
+  onSeatsChange,
+  locale,
+  t,
+}: {
+  instances: RecurringInstanceOption[];
+  currentRideId: string;
+  extraSeats: Record<string, number>;
+  onToggle: (instance: RecurringInstanceOption) => void;
+  onSeatsChange: (rideId: string, seats: number) => void;
+  locale: Locale;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  const otherDays = instances.filter((i) => i.ride_id !== currentRideId);
+  if (otherDays.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium text-content-primary">{t("recurringPickerHeading")}</p>
+      <p className="text-xs text-content-muted">{t("recurringPickerHint")}</p>
+      <div className="space-y-2">
+        {otherDays.map((inst) => {
+          const alreadyBooked = !!inst.existing_booking;
+          const full = inst.available_seats === 0;
+          const disabled = alreadyBooked || full;
+          const selected = inst.ride_id in extraSeats;
+          const maxSeats = Math.min(inst.available_seats, 8);
+          const seats = extraSeats[inst.ride_id] ?? 1;
+
+          return (
+            <div
+              key={inst.ride_id}
+              className={`rounded-xl border p-3 transition-colors ${
+                selected ? "border-brand-primary bg-brand-primary/5" : "border-border-default bg-surface-card"
+              } ${disabled ? "opacity-60" : ""}`}
+            >
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => onToggle(inst)}
+                className="w-full flex items-center justify-between text-sm disabled:cursor-not-allowed"
+              >
+                <span className="flex items-center gap-2">
+                  <span
+                    className={`w-5 h-5 rounded-md border flex items-center justify-center text-xs ${
+                      selected ? "bg-brand-primary border-brand-primary text-content-inverse" : "border-border-default"
+                    }`}
+                  >
+                    {selected ? "✓" : ""}
+                  </span>
+                  <span className="font-medium text-content-primary">{formatDayLabel(inst.departure_datetime, locale)}</span>
+                </span>
+                <span className="text-xs text-content-muted">
+                  {alreadyBooked
+                    ? t("alreadyBooked")
+                    : full
+                    ? t("full")
+                    : t("seatsLeft", { count: inst.available_seats })}
+                </span>
+              </button>
+
+              {selected && !disabled && (
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-border-default/60">
+                  <span className="text-xs text-content-secondary">{t("numberOfSeats")}</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onSeatsChange(inst.ride_id, Math.max(1, seats - 1))}
+                      disabled={seats <= 1}
+                      className="w-6 h-6 rounded-full border border-border-default text-content-primary disabled:opacity-40 hover:bg-surface-bg transition-colors text-xs"
+                    >
+                      −
+                    </button>
+                    <span className="w-5 text-center text-xs font-semibold text-content-primary">{seats}</span>
+                    <button
+                      type="button"
+                      onClick={() => onSeatsChange(inst.ride_id, Math.min(maxSeats, seats + 1))}
+                      disabled={seats >= maxSeats}
+                      className="w-6 h-6 rounded-full border border-border-default text-content-primary disabled:opacity-40 hover:bg-surface-bg transition-colors text-xs"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function PassengerRideDetailPage() {
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
@@ -154,6 +261,8 @@ export default function PassengerRideDetailPage() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [siblingInstances, setSiblingInstances] = useState<RecurringInstanceOption[]>([]);
+  const [extraSeats, setExtraSeats] = useState<Record<string, number>>({});
 
   useEffect(() => {
     async function load() {
@@ -200,6 +309,22 @@ export default function PassengerRideDetailPage() {
     }
     load();
   }, [id, hasParams]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    async function loadSiblings() {
+      if (!detail?.ride.recurring_ride_definition_id) return;
+      try {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const { instances } = await listRecurringInstancesForRide(session.access_token, String(id));
+        setSiblingInstances(instances);
+      } catch {
+        // Non-critical: the day-picker just stays hidden if this fails.
+      }
+    }
+    loadSiblings();
+  }, [id, detail?.ride.recurring_ride_definition_id]);
 
   if (loading) {
     return (
@@ -368,12 +493,34 @@ export default function PassengerRideDetailPage() {
 
   const maxSeats = ride.is_sponsored ? 1 : Math.min(ride.available_seats, 8);
   const clampedSeatCount = Math.max(1, Math.min(seatCount, maxSeats || 1));
-  const totalPrice = (parseFloat(ride.per_seat_price) * clampedSeatCount + premiumFee).toFixed(2);
+  const extraTotal = Object.entries(extraSeats).reduce((sum, [rideId, seats]) => {
+    const inst = siblingInstances.find((i) => i.ride_id === rideId);
+    if (!inst) return sum;
+    return sum + parseFloat(inst.per_seat_price) * seats + premiumFee;
+  }, 0);
+  const totalPrice = (parseFloat(ride.per_seat_price) * clampedSeatCount + premiumFee + extraTotal).toFixed(2);
   const noSeats = ride.available_seats === 0;
+  const selectedExtraCount = Object.keys(extraSeats).length;
 
   const handleBook = () => {
     setBookingError(null);
     setShowSheet(true);
+  };
+
+  const toggleExtraDay = (inst: RecurringInstanceOption) => {
+    setExtraSeats((prev) => {
+      const next = { ...prev };
+      if (inst.ride_id in next) {
+        delete next[inst.ride_id];
+      } else {
+        next[inst.ride_id] = Math.min(1, Math.max(1, Math.min(inst.available_seats, 8)));
+      }
+      return next;
+    });
+  };
+
+  const setExtraDaySeats = (rideId: string, seats: number) => {
+    setExtraSeats((prev) => ({ ...prev, [rideId]: seats }));
   };
 
   const confirmBooking = async () => {
@@ -391,43 +538,74 @@ export default function PassengerRideDetailPage() {
       const dropoffFee = premiumOption === "premium_dropoff" || premiumOption === "premium_both"
         ? ctx.premium_dropoff_fee : null;
 
-      const res = await fetch(`${env.apiUrl}/api/v1/bookings`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ride_id: detail.ride.id,
-          boarding_point: ctx.boarding_point,
-          alighting_point: ctx.alighting_point,
-          premium_pickup_requested: premiumOption === "premium_pickup" || premiumOption === "premium_both",
-          premium_dropoff_requested: premiumOption === "premium_dropoff" || premiumOption === "premium_both",
-          premium_pickup_fee: pickupFee,
-          premium_dropoff_fee: dropoffFee,
-          seats: clampedSeatCount,
-        }),
-      });
+      const postBooking = async (
+        rideId: string,
+        seats: number
+      ): Promise<{ res: Response; json: { booking_id?: string; detail?: unknown; error?: string; message?: string } }> => {
+        const res = await fetch(`${env.apiUrl}/api/v1/bookings`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ride_id: rideId,
+            boarding_point: ctx.boarding_point,
+            alighting_point: ctx.alighting_point,
+            premium_pickup_requested: premiumOption === "premium_pickup" || premiumOption === "premium_both",
+            premium_dropoff_requested: premiumOption === "premium_dropoff" || premiumOption === "premium_both",
+            premium_pickup_fee: pickupFee,
+            premium_dropoff_fee: dropoffFee,
+            seats,
+          }),
+        });
+        const json = await res.json();
+        return { res, json };
+      };
 
-      const json = await res.json();
-      if (res.status === 201) {
-        router.push(`/bookings/${json.booking_id}`);
+      const targets = [
+        { rideId: detail.ride.id, seats: clampedSeatCount },
+        ...Object.entries(extraSeats).map(([rideId, seats]) => ({ rideId, seats })),
+      ];
+
+      const outcomes: Awaited<ReturnType<typeof postBooking>>[] = [];
+      for (const target of targets) {
+        outcomes.push(await postBooking(target.rideId, target.seats));
+      }
+
+      const succeeded = outcomes.filter((o) => o.res.status === 201);
+      const failed = outcomes.filter((o) => o.res.status !== 201);
+
+      if (succeeded.length === 0) {
+        const { res, json } = outcomes[0];
+        const err = (
+          json && typeof json === "object" && json.detail && typeof json.detail === "object"
+            ? json.detail
+            : json
+        ) as { error?: string; message?: string };
+        if (res.status === 403 && err?.error === "verification_required") {
+          setShowSheet(false);
+          setShowVerifyModal(true);
+        } else if (res.status === 409) {
+          setBookingError(
+            err?.error === "duplicate_booking"
+              ? t("errors.duplicateBooking")
+              : t("errors.noSeats")
+          );
+        } else {
+          setBookingError(err?.message ?? t("errors.bookingFailed"));
+        }
         return;
       }
-      const err = json && typeof json === "object" && json.detail && typeof json.detail === "object"
-        ? json.detail
-        : json;
-      if (res.status === 403 && err?.error === "verification_required") {
-        setShowSheet(false);
-        setShowVerifyModal(true);
-      } else if (res.status === 409) {
-        setBookingError(
-          err?.error === "duplicate_booking"
-            ? t("errors.duplicateBooking")
-            : t("errors.noSeats")
-        );
+
+      if (failed.length > 0) {
+        window.alert(t("errors.partialBookingFailure", { succeeded: succeeded.length, total: outcomes.length }));
+      }
+
+      if (succeeded.length === 1 && failed.length === 0) {
+        router.push(`/bookings/${succeeded[0].json.booking_id}`);
       } else {
-        setBookingError(err?.message ?? t("errors.bookingFailed"));
+        router.push("/bookings");
       }
     } catch {
       setBookingError(t("errors.networkBooking"));
@@ -493,6 +671,18 @@ export default function PassengerRideDetailPage() {
         weekdays={ride.recurring_weekdays}
         t={t}
       />
+
+      {ride.recurring_ride_definition_id && !detail.existing_booking && (
+        <RecurringDayPicker
+          instances={siblingInstances}
+          currentRideId={ride.id}
+          extraSeats={extraSeats}
+          onToggle={toggleExtraDay}
+          onSeatsChange={setExtraDaySeats}
+          locale={locale}
+          t={t}
+        />
+      )}
 
       {/* Map */}
       <RideDetailMap
@@ -680,24 +870,26 @@ export default function PassengerRideDetailPage() {
 
           <div className="border-t border-border-default pt-3 space-y-1 text-sm">
             <div className="flex justify-between text-content-secondary">
-              <span>{t("seats")}</span>
-              <span className="font-medium text-content-primary">{clampedSeatCount}</span>
+              <span>{formatDayLabel(ride.departure_datetime, locale)}</span>
+              <span className="font-medium text-content-primary">
+                {t("seatsCount", { count: clampedSeatCount })} · {formatCurrency(Number(ride.per_seat_price) * clampedSeatCount + premiumFee, locale)}
+              </span>
             </div>
-            <div className="flex justify-between text-content-secondary">
-              <span>{t("baseFare")}</span>
-              <span>{formatCurrency(Number(ride.per_seat_price) * clampedSeatCount, locale)}</span>
-            </div>
-            {(premiumOption === "premium_pickup" || premiumOption === "premium_both") && ctx.premium_pickup_fee && (
-              <div className="flex justify-between text-amber-700">
-                <span>{t("premiumPickupFee")}</span>
-                <span>+{formatCurrency(ctx.premium_pickup_fee, locale)}</span>
-              </div>
-            )}
-            {(premiumOption === "premium_dropoff" || premiumOption === "premium_both") && ctx.premium_dropoff_fee && (
-              <div className="flex justify-between text-amber-700">
-                <span>{t("premiumDropoffFee")}</span>
-                <span>+{formatCurrency(ctx.premium_dropoff_fee, locale)}</span>
-              </div>
+            {selectedExtraCount > 0 &&
+              Object.entries(extraSeats).map(([rideId, seats]) => {
+                const inst = siblingInstances.find((i) => i.ride_id === rideId);
+                if (!inst) return null;
+                return (
+                  <div key={rideId} className="flex justify-between text-content-secondary">
+                    <span>{formatDayLabel(inst.departure_datetime, locale)}</span>
+                    <span className="font-medium text-content-primary">
+                      {t("seatsCount", { count: seats })} · {formatCurrency(parseFloat(inst.per_seat_price) * seats + premiumFee, locale)}
+                    </span>
+                  </div>
+                );
+              })}
+            {premiumFee > 0 && (
+              <p className="text-xs text-amber-700">{t("premiumFeeIncludedNote")}</p>
             )}
             <div className="flex justify-between font-semibold text-content-primary pt-1 border-t border-border-default">
               <span>{t("total")}</span>

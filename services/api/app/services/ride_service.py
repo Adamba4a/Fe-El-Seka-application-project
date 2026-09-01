@@ -51,7 +51,7 @@ _RIDE_COLS = """
     fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp, price_source,
     started_at, completed_at,
     ST_AsGeoJSON(route_geometry) AS route_geometry_geojson,
-    group_id
+    group_id, recurring_ride_definition_id
 """
 
 
@@ -144,6 +144,7 @@ def _to_response(row: dict) -> RideResponse:
         ),
         group_id=row["group_id"],
         group_name=row.get("group_name"),
+        recurring_ride_definition_id=row.get("recurring_ride_definition_id"),
     )
 
 
