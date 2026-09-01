@@ -366,7 +366,7 @@
         "ride_reversal_clawback": "تم عكس النقاط"
       },
       "showMore": "عرض المزيد",
-      "redeemHeading": "استبدال",
+      "redeemHeading": "استبدال النقاط",
       "redeemVoucher": "استبدل {points} نقطة بـ {title}",
       "redeeming": "جارٍ الاستبدال…",
       "redeemFulfilled": "تم الاستبدال! مكافأتك جاهزة.",
@@ -462,7 +462,7 @@
       "title": "نقاط الولاء",
       "loadFailed": "فشل تحميل نقاط الولاء.",
       "balance": "{points} نقطة",
-      "redeemHeading": "استبدال",
+      "redeemHeading": "استبدال النقاط",
       "redeemCarMaintenance": "استبدل {points} نقطة بصيانة مجانية للسيارة",
       "redeemVoucher": "استبدل {points} نقطة بـ {title}",
       "redeeming": "جارٍ الاستبدال…",
@@ -1201,7 +1201,11 @@
     "noActiveBookingsTitle": "لا توجد حجوزات نشطة",
     "noActiveBookingsBody": "ستظهر هنا الرحلات التي تنضم إليها.",
     "dayToday": "اليوم",
-    "dayTomorrow": "غدًا"
+    "dayTomorrow": "غدًا",
+    "loyaltyPointsTitle": "نقاطي",
+    "loyaltyPointsBalance": "{points} نقطة",
+    "loyaltyPointsBody": "اكسب نقاطًا من كل رحلة واستبدلها برحلات مجانية أو خصومات أو قسائم.",
+    "viewLoyaltyPoints": "عرض النقاط"
   },
   "availableRideCard": {
     "verifiedDriver": "سائق موثّق",

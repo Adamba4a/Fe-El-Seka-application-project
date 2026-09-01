@@ -366,7 +366,7 @@
         "ride_reversal_clawback": "Points reversed"
       },
       "showMore": "Show more",
-      "redeemHeading": "Redeem",
+      "redeemHeading": "Redeem Points",
       "redeemVoucher": "Redeem {points} points for {title}",
       "redeeming": "Redeeming…",
       "redeemFulfilled": "Redeemed! Your reward is ready.",
@@ -462,7 +462,7 @@
       "title": "Loyalty Points",
       "loadFailed": "Failed to load loyalty points.",
       "balance": "{points} points",
-      "redeemHeading": "Redeem",
+      "redeemHeading": "Redeem Points",
       "redeemCarMaintenance": "Redeem {points} points for free car maintenance",
       "redeemVoucher": "Redeem {points} points for {title}",
       "redeeming": "Redeeming…",
@@ -1201,7 +1201,11 @@
     "noActiveBookingsTitle": "No active bookings",
     "noActiveBookingsBody": "Rides you join will show up here.",
     "dayToday": "TODAY",
-    "dayTomorrow": "TOMORROW"
+    "dayTomorrow": "TOMORROW",
+    "loyaltyPointsTitle": "My Points",
+    "loyaltyPointsBalance": "{points} pts",
+    "loyaltyPointsBody": "Earn points from every ride and redeem them for free rides, discounts, or vouchers.",
+    "viewLoyaltyPoints": "View Points"
   },
   "availableRideCard": {
     "verifiedDriver": "Verified driver",

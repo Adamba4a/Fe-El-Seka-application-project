@@ -38,6 +38,7 @@ function formatDate(iso: string, locale: Locale): string {
 
 export default function LoyaltyPage() {
   const t = useTranslations("passenger.loyalty");
+  const tc = useTranslations("common");
   const locale = useLocale() as Locale;
   const [balance, setBalance] = useState<number | null>(null);
   const [entries, setEntries] = useState<LoyaltyTransaction[]>([]);
@@ -112,7 +113,16 @@ export default function LoyaltyPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-h3 text-content-primary">{t("title")}</h1>
+      <div className="flex items-center gap-3">
+        <a
+          href="/dashboard"
+          aria-label={tc("back")}
+          className="text-content-muted hover:text-content-secondary text-lg"
+        >
+          <span className="inline-block rtl:rotate-180">←</span>
+        </a>
+        <h1 className="text-h3 text-content-primary">{t("title")}</h1>
+      </div>
 
       <div className="bg-surface-card rounded-2xl p-5 border border-border-default text-center">
         <p className="text-3xl font-bold text-brand-primary">{t("balance", { points: balance ?? 0 })}</p>

@@ -7,6 +7,7 @@ import { useSession } from "@/lib/auth/hooks";
 import { getMe } from "@/lib/api/profiles";
 import { getNearbyRides, type NearbyRide } from "@/lib/api/search";
 import { listBookings, type PassengerBooking } from "@/lib/api/bookings";
+import { getLoyaltyBalance } from "@/lib/api/loyalty";
 import { formatCurrency } from "@fe-el-seka/shared";
 import type { Profile, Locale } from "@fe-el-seka/shared";
 import { AvailableRideCard } from "@/components/passenger/AvailableRideCard";
@@ -59,6 +60,7 @@ export function PassengerDashboard() {
   const [geoState, setGeoState] = useState<GeoState>("idle");
   const [joined, setJoined] = useState<PassengerBooking[]>([]);
   const [joinedLoading, setJoinedLoading] = useState(true);
+  const [loyaltyBalance, setLoyaltyBalance] = useState<number | null>(null);
 
   useEffect(() => {
     if (!session?.access_token) return;
@@ -76,6 +78,10 @@ export function PassengerDashboard() {
       })
       .catch(() => {})
       .finally(() => setJoinedLoading(false));
+
+    getLoyaltyBalance(token)
+      .then((res) => setLoyaltyBalance(res.balance))
+      .catch(() => {});
 
     if (!navigator.geolocation) {
       setGeoState("denied");
@@ -116,6 +122,23 @@ export function PassengerDashboard() {
       >
         {t("findARide")}
       </Link>
+
+      <div className="mt-6 bg-dash-surface rounded-2xl p-5 border border-dash-border flex items-center justify-between gap-3">
+        <div>
+          <p className="font-bold text-dash-navy">
+            {t("loyaltyPointsTitle")}
+            {loyaltyBalance != null && (
+              <span className="ms-2 text-sm font-semibold text-dash-primary">
+                {t("loyaltyPointsBalance", { points: loyaltyBalance })}
+              </span>
+            )}
+          </p>
+          <p className="text-sm text-dash-text-muted mt-1">{t("loyaltyPointsBody")}</p>
+        </div>
+        <Link href="/loyalty" className="shrink-0 text-xs font-semibold text-dash-primary whitespace-nowrap">
+          {t("viewLoyaltyPoints")}
+        </Link>
+      </div>
 
       <h2 className="text-xl font-bold text-dash-navy mt-8 mb-3">{t("ridesNearYou")}</h2>
 
