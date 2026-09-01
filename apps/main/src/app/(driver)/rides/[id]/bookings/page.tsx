@@ -15,6 +15,17 @@ import { useBookingStatus } from "@/lib/hooks/useBookingStatus";
 import { formatCurrency } from "@fe-el-seka/shared";
 import type { Ride, Locale } from "@fe-el-seka/shared";
 
+function formatBookingsRideDate(iso: string, locale: Locale) {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    numberingSystem: "latn",
+  }).format(new Date(iso));
+}
+
 const RideDetailMap = dynamic(
   () => import("@/components/bookings/RideDetailMap").then((m) => ({ default: m.RideDetailMap })),
   { ssr: false, loading: () => <div className="w-full h-56 bg-surface-bg rounded-xl animate-pulse" /> }
@@ -257,6 +268,26 @@ export default function DriverRideBookingsPage() {
         </button>
         <h1 className="text-h3 font-bold text-dash-navy">{t("heading")}</h1>
       </div>
+
+      {ride && (
+        <div className="rounded-2xl bg-surface-bg p-4 space-y-2">
+          <p className="text-sm font-semibold text-content-primary">
+            {formatBookingsRideDate(ride.departure_datetime, locale)}
+          </p>
+          <p className="text-xs text-content-secondary truncate">
+            {ride.origin.address} → {ride.destination.address}
+          </p>
+          {ride.recurring_ride_definition_id && (
+            <Link
+              href={`/rides/recurring/${ride.recurring_ride_definition_id}`}
+              className="inline-flex items-center gap-1 text-xs font-medium text-dash-primary"
+            >
+              <span>{t("recurringSeriesLink")}</span>
+              <span className="rtl:rotate-180">→</span>
+            </Link>
+          )}
+        </div>
+      )}
 
       <section className="space-y-3">
         <h2 className="text-sm font-medium text-content-secondary uppercase tracking-wide">

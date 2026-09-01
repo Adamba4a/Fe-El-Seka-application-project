@@ -10,6 +10,7 @@ from app.models.group import (
     AddFundsResponse,
     DeleteSponsoredGroupResponse,
     GroupSummary,
+    SponsorDomainsResponse,
     SponsoredGroupCreateRequest,
     UnsponsorGroupResponse,
 )
@@ -115,8 +116,6 @@ async def add_sponsor_domain(group_id: uuid.UUID, domain: str) -> "SponsorDomain
     """Add another eligible domain to an existing sponsored group — the fix
     for domain fragmentation: an admin can attach every subdomain of the same
     organization to one group instead of creating a separate group per domain."""
-    from app.models.group import SponsorDomainsResponse
-
     domain = domain.strip().lower()
     if not domain:
         raise HTTPException(
@@ -168,8 +167,6 @@ async def add_sponsor_domain(group_id: uuid.UUID, domain: str) -> "SponsorDomain
 
 
 async def remove_sponsor_domain(group_id: uuid.UUID, domain: str) -> "SponsorDomainsResponse":
-    from app.models.group import SponsorDomainsResponse
-
     domain = domain.strip().lower()
 
     pool = get_pool()

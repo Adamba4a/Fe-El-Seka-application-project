@@ -6,13 +6,22 @@ import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { createRide } from "@/lib/api/rides";
+import { createRecurringDefinition } from "@/lib/api/recurring-rides";
 import { getMyVehicle } from "@/lib/api/vehicles";
 import { getMyGroups } from "@/lib/api/groups";
 import { RideForm } from "@/components/rides/RideForm";
 import { BottomSheet } from "@/components";
 import { VerificationRequiredModal } from "@/components/verification/VerificationRequiredModal";
 import { formatCurrency } from "@fe-el-seka/shared";
-import type { Ride, CreateRidePayload, Location, Coordinates, Locale, Group } from "@fe-el-seka/shared";
+import type {
+  Ride,
+  CreateRidePayload,
+  CreateRecurringRideDefinitionPayload,
+  Location,
+  Coordinates,
+  Locale,
+  Group,
+} from "@fe-el-seka/shared";
 
 const RideMap = dynamic(
   () => import("@/components/rides/RideMap").then((m) => ({ default: m.RideMap })),
@@ -28,6 +37,7 @@ export default function NewRidePage() {
   const [createdRide, setCreatedRide] = useState<Ride | null>(null);
   const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [vehicleChecked, setVehicleChecked] = useState(false);
+  const [vehicleId, setVehicleId] = useState<string | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
   const [sheetOpen, setSheetOpen] = useState(true);
   const [origin, setOrigin] = useState<Location | undefined>();
@@ -40,7 +50,8 @@ export default function NewRidePage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push("/login"); return; }
       try {
-        await getMyVehicle(session.access_token);
+        const vehicle = await getMyVehicle(session.access_token);
+        setVehicleId(vehicle.id);
         setVehicleChecked(true);
       } catch {
         router.replace("/driver/register-vehicle");
@@ -91,6 +102,26 @@ export default function NewRidePage() {
       if (!session) { router.push("/login"); return; }
       const ride = await createRide(session.access_token, payload);
       setCreatedRide(ride);
+    } catch (err: any) {
+      if (err?.error === "verification_required") {
+        setVerifyModalOpen(true);
+      } else {
+        setError(err?.message ?? t("postFailed"));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmitRecurring = async (payload: CreateRecurringRideDefinitionPayload) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { router.push("/login"); return; }
+      const definition = await createRecurringDefinition(session.access_token, payload);
+      router.push(`/rides/recurring/${definition.id}`);
     } catch (err: any) {
       if (err?.error === "verification_required") {
         setVerifyModalOpen(true);
@@ -191,6 +222,8 @@ export default function NewRidePage() {
             error={error}
             groups={groups}
             onSubmit={handleSubmit as any}
+            onSubmitRecurring={vehicleId ? handleSubmitRecurring : undefined}
+            vehicleId={vehicleId ?? undefined}
             externalOrigin={origin}
             externalDestination={destination}
             onRequestOriginMap={handleRequestOriginMap}

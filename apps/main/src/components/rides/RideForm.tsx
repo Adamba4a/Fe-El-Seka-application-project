@@ -5,8 +5,18 @@ import dynamic from "next/dynamic";
 import { useLocale, useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatCurrency } from "@fe-el-seka/shared";
-import type { CreateRidePayload, EditRidePayload, Location, Coordinates, Group } from "@fe-el-seka/shared";
+import type {
+  CreateRidePayload,
+  EditRidePayload,
+  CreateRecurringRideDefinitionPayload,
+  Location,
+  Coordinates,
+  Group,
+} from "@fe-el-seka/shared";
 import { getFareEstimate } from "@/lib/api/pricing";
+import { toIsoWeekday } from "@/lib/weekdays";
+
+const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const; // 0 = Sunday .. 6 = Saturday
 
 const MAX_MARKUP_RATE = 0.3;
 function calculateMaxPrice(fairPrice: number): number {
@@ -35,6 +45,10 @@ interface RideFormProps {
   // Create mode only — groups the driver belongs to, for the optional group picker (T028).
   groups?: Group[];
   onSubmit: (payload: CreateRidePayload | EditRidePayload) => void;
+  // Create mode only (Spec 027) — when provided, a "Recurring" toggle appears; submitting
+  // in recurring mode calls this instead of onSubmit. Needs the driver's own vehicle id.
+  onSubmitRecurring?: (payload: CreateRecurringRideDefinitionPayload) => void;
+  vehicleId?: string;
   onDirtyChange?: (isDirty: boolean) => void;
   // External coordinate props — when provided, the page owns pin-drop via a full-screen map
   externalOrigin?: Location;
@@ -49,7 +63,7 @@ function toDatetimeLocal(iso?: string): string {
 }
 
 export function RideForm({
-  mode, initialValues, maxSeats = 7, loading, error, groups, onSubmit, onDirtyChange,
+  mode, initialValues, maxSeats = 7, loading, error, groups, onSubmit, onSubmitRecurring, vehicleId, onDirtyChange,
   externalOrigin, externalDestination, onRequestOriginMap, onRequestDestinationMap,
 }: RideFormProps) {
   const t = useTranslations("rideForm");
@@ -61,6 +75,10 @@ export function RideForm({
   const [notes, setNotes] = useState(initialValues?.notes ?? "");
   const [groupId, setGroupId] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringTime, setRecurringTime] = useState("");
+  const [recurringWeekdays, setRecurringWeekdays] = useState<number[]>([]);
 
   const initialFairPrice = initialValues?.fair_price_per_seat
     ? Number(initialValues.fair_price_per_seat)
@@ -130,12 +148,17 @@ export function RideForm({
     ) {
       return t("errors.sameLocation");
     }
-    if (!departureRaw) return t("errors.departureRequired");
-    const dep = new Date(departureRaw);
-    const now = new Date();
-    if (dep <= now) return t("errors.departureInPast");
-    if (dep > new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000))
-      return t("errors.departureTooFar");
+    if (mode === "create" && isRecurring) {
+      if (!recurringTime) return t("errors.recurringTimeRequired");
+      if (recurringWeekdays.length === 0) return t("errors.recurringWeekdaysRequired");
+    } else {
+      if (!departureRaw) return t("errors.departureRequired");
+      const dep = new Date(departureRaw);
+      const now = new Date();
+      if (dep <= now) return t("errors.departureInPast");
+      if (dep > new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000))
+        return t("errors.departureTooFar");
+    }
     if (totalSeats < 1 || totalSeats > maxSeats)
       return t("errors.seatsRange", { maxSeats });
     if (mode === "create" && (fairPrice === null || selectedPrice === null))
@@ -149,6 +172,20 @@ export function RideForm({
     const err = validate();
     if (err) {
       setValidationError(err);
+      return;
+    }
+
+    if (mode === "create" && isRecurring) {
+      onSubmitRecurring?.({
+        vehicle_id: vehicleId!,
+        origin: origin!,
+        destination: destination!,
+        departure_time: recurringTime,
+        weekdays: recurringWeekdays.map(toIsoWeekday),
+        total_seats: totalSeats,
+        price_per_seat: selectedPrice!,
+        notes: notes.trim() || undefined,
+      });
       return;
     }
 
@@ -262,15 +299,79 @@ export function RideForm({
         </div>
       )}
 
-      <div className="space-y-1">
-        <label className="block text-label text-content-secondary">{t("departureLabel")}</label>
-        <input
-          type="datetime-local"
-          value={departureRaw}
-          onChange={(e) => setDepartureRaw(e.target.value)}
-          className={inputClass}
-        />
-      </div>
+      {mode === "create" && onSubmitRecurring && (
+        <div className="flex items-center justify-between bg-surface-bg rounded-xl px-3 py-3">
+          <div>
+            <p className="text-label text-content-primary">{t("recurringToggleLabel")}</p>
+            <p className="text-caption text-content-muted">{t("recurringToggleHint")}</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isRecurring}
+            onClick={() => setIsRecurring((v) => !v)}
+            className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${
+              isRecurring ? "bg-dash-primary" : "bg-border-default"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                isRecurring ? "translate-x-5 rtl:-translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+      )}
+
+      {mode === "create" && isRecurring ? (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="block text-label text-content-secondary">{t("recurringTimeLabel")}</label>
+            <input
+              type="time"
+              value={recurringTime}
+              onChange={(e) => setRecurringTime(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="block text-label text-content-secondary">{t("recurringWeekdaysLabel")}</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {WEEKDAYS.map((day) => {
+                const selected = recurringWeekdays.includes(day);
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() =>
+                      setRecurringWeekdays((prev) =>
+                        selected ? prev.filter((d) => d !== day) : [...prev, day].sort()
+                      )
+                    }
+                    className={`w-10 h-10 rounded-full text-body-sm font-medium transition-colors ${
+                      selected
+                        ? "bg-dash-primary text-content-inverse"
+                        : "bg-surface-bg text-content-secondary hover:bg-border-default"
+                    }`}
+                  >
+                    {t(`weekdayShort.${day}`)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <label className="block text-label text-content-secondary">{t("departureLabel")}</label>
+          <input
+            type="datetime-local"
+            value={departureRaw}
+            onChange={(e) => setDepartureRaw(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+      )}
 
       <div className="space-y-1">
         <label className="block text-label text-content-secondary">
@@ -328,7 +429,7 @@ export function RideForm({
         <p className="text-caption text-content-muted">{t("priceAutoNote")}</p>
       </div>
 
-      {mode === "create" && groups && groups.length > 0 && (
+      {mode === "create" && !isRecurring && groups && groups.length > 0 && (
         <div className="space-y-1">
           <label className="block text-label text-content-secondary">{t("groupLabel")}</label>
           <select
@@ -367,8 +468,12 @@ export function RideForm({
       >
         {loading && <Spinner />}
         {loading
-          ? mode === "create" ? t("postingRide") : t("savingChanges")
-          : mode === "create" ? t("postRide") : t("saveChanges")}
+          ? mode === "create"
+            ? isRecurring ? t("postingRecurringRide") : t("postingRide")
+            : t("savingChanges")
+          : mode === "create"
+            ? isRecurring ? t("postRecurringRide") : t("postRide")
+            : t("saveChanges")}
       </button>
     </form>
   );

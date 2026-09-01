@@ -11,7 +11,7 @@ import asyncpg
 from fastapi import HTTPException
 
 from app.core.database import get_pool
-from app.services import match_logging_service
+from app.services import match_logging_service, ride_service
 from app.services.notification_service import enqueue_booking_notification
 
 logger = logging.getLogger(__name__)
@@ -89,7 +89,8 @@ async def create_booking(
         ride = await conn.fetchrow(
             """
             SELECT id, status, departure_datetime, price_per_seat, booked_seats, total_seats, driver_id, group_id,
-                   fuel_cost_egp, distance_fee_egp, safety_margin_egp, fair_price_per_seat
+                   fuel_cost_egp, distance_fee_egp, safety_margin_egp, fair_price_per_seat,
+                   vehicle_id, recurring_ride_definition_id
             FROM rides WHERE id = $1 FOR UPDATE
             """,
             ride_id,
@@ -141,6 +142,24 @@ async def create_booking(
                 status_code=422,
                 detail={"error": "ride_departed", "message": "Ride has already departed"},
             )
+
+        # FR-012 (Spec 027): a generated recurring instance with zero confirmed
+        # bookings becomes unbookable the moment its driver/vehicle goes
+        # ineligible (unverified org email, deactivated vehicle) — mirrors the
+        # visibility rule applied in search (ride_service.recurring_instance_visibility_sql).
+        # An instance that already has a confirmed booking is exempt.
+        if ride["recurring_ride_definition_id"] is not None and ride["booked_seats"] == 0:
+            eligible = await ride_service.is_driver_vehicle_eligible(
+                conn, ride["driver_id"], ride["vehicle_id"]
+            )
+            if not eligible:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": "ride_not_schedulable",
+                        "message": "Ride is not accepting bookings",
+                    },
+                )
 
         # Spec 026 (redesigned 2026-08-31): a sponsored-group booking only settles —
         # debits the group's funded balance and credits the driver — once the driver

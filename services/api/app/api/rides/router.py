@@ -38,7 +38,7 @@ from app.services import (
 )
 from app.services.location_service import LocationServiceError
 from app.services.pricing_service import calculate_fare, get_pricing_config
-from app.services.ride_service import RideServiceError
+from app.services.ride_service import RideServiceError, recurring_instance_visibility_sql
 from app.services.route_service import RouteServiceUnavailableError
 
 logger = logging.getLogger(__name__)
@@ -403,9 +403,11 @@ async def get_ride_preview(
                 ST_Y(r.destination_coordinates::geometry)  AS destination_lat,
                 ST_X(r.destination_coordinates::geometry)  AS destination_lng,
                 p.display_name, p.profile_photo_path AS avatar_url, p.verification_status,
-                p.rating_avg, p.rating_count
+                p.rating_avg, p.rating_count,
+                r.recurring_ride_definition_id, rd.weekdays AS recurring_weekdays
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
+            LEFT JOIN recurring_ride_definitions rd ON rd.id = r.recurring_ride_definition_id
             WHERE r.id = $1
             """,
             ride_id,
@@ -458,6 +460,10 @@ async def get_ride_preview(
             "route_geometry": route_geojson,
             "route_distance_km": float(ride["route_distance_km"] or 0),
             "route_duration_minutes": ride["route_duration_minutes"],
+            "recurring_ride_definition_id": (
+                str(ride["recurring_ride_definition_id"]) if ride["recurring_ride_definition_id"] else None
+            ),
+            "recurring_weekdays": ride["recurring_weekdays"],
         },
         "existing_booking": (
             {"booking_id": str(existing["id"]), "status": existing["status"], "seats": existing["seats"]}
@@ -505,10 +511,12 @@ async def get_ride_passenger_detail(
                 p.display_name, p.profile_photo_path AS avatar_url, p.verification_status,
                 p.rating_avg, p.rating_count,
                 COALESCE(g.is_sponsored, false) AS is_sponsored,
-                r.group_id, g.name AS group_name
+                r.group_id, g.name AS group_name,
+                r.recurring_ride_definition_id, rd.weekdays AS recurring_weekdays
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
             LEFT JOIN groups g ON g.id = r.group_id
+            LEFT JOIN recurring_ride_definitions rd ON rd.id = r.recurring_ride_definition_id
             WHERE r.id = $1
             """,
             ride_id,
@@ -643,6 +651,10 @@ async def get_ride_passenger_detail(
             "is_sponsored": ride["is_sponsored"],
             "group_id": str(ride["group_id"]) if ride["group_id"] else None,
             "group_name": ride["group_name"],
+            "recurring_ride_definition_id": (
+                str(ride["recurring_ride_definition_id"]) if ride["recurring_ride_definition_id"] else None
+            ),
+            "recurring_weekdays": ride["recurring_weekdays"],
         },
         "passenger_context": {
             "boarding_point": {"lat": pickup_lat_val, "lng": pickup_lng_val},
@@ -660,6 +672,81 @@ async def get_ride_passenger_detail(
             {"booking_id": str(existing["id"]), "status": existing["status"], "seats": existing["seats"]}
             if existing else None
         ),
+    })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET /api/v1/rides/{ride_id}/recurring-instances
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/{ride_id}/recurring-instances")
+async def get_ride_recurring_instances(
+    ride_id: uuid.UUID,
+    _user: dict = Depends(get_current_user),
+):
+    """Sibling day-instances of the same recurring ride definition as `ride_id`,
+    so a passenger can pick several upcoming days (each with its own seat count)
+    from one ride's detail page instead of re-searching per date. Each instance
+    is still booked individually via the existing POST /bookings endpoint — this
+    just lists what's bookable (FR-004/FR-005: no new booking mechanism)."""
+    caller_id = uuid.UUID(str(_user["id"]))
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        definition_id = await conn.fetchval(
+            "SELECT recurring_ride_definition_id FROM rides WHERE id = $1", ride_id
+        )
+        if definition_id is None:
+            return JSONResponse({"instances": []})
+
+        # Only this calendar week's (Sun-Sat) remaining instances are bookable from
+        # the picker — not the whole rolling generation window. Once every instance
+        # in the current week has departed, "now" no longer qualifies them as
+        # upcoming, so the min bucket below naturally advances to next week's
+        # instances on the next fetch — no separate unlock step needed.
+        rows = await conn.fetch(
+            f"""
+            WITH upcoming AS (
+                SELECT r.id, r.departure_datetime, r.available_seats, r.total_seats,
+                       r.price_per_seat,
+                       date_trunc('day', r.departure_datetime)
+                           - (EXTRACT(DOW FROM r.departure_datetime) * interval '1 day') AS week_bucket
+                FROM rides r
+                WHERE r.recurring_ride_definition_id = $1
+                  AND r.status = 'scheduled'
+                  AND r.departure_datetime > now()
+                  AND {recurring_instance_visibility_sql("r")}
+            )
+            SELECT u.id, u.departure_datetime, u.available_seats, u.total_seats, u.price_per_seat,
+                   b.id AS booking_id, b.status AS booking_status, b.seats AS booking_seats
+            FROM upcoming u
+            LEFT JOIN bookings b
+                ON b.ride_id = u.id AND b.passenger_id = $2 AND b.status IN ('pending', 'confirmed')
+            WHERE u.id != $3
+              AND u.week_bucket = (SELECT min(week_bucket) FROM upcoming)
+            ORDER BY u.departure_datetime ASC
+            """,
+            definition_id, caller_id, ride_id,
+        )
+
+    return JSONResponse({
+        "instances": [
+            {
+                "ride_id": str(r["id"]),
+                "departure_datetime": r["departure_datetime"].isoformat(),
+                "available_seats": r["available_seats"],
+                "total_seats": r["total_seats"],
+                "per_seat_price": f"{float(r['price_per_seat']):.2f}",
+                "existing_booking": (
+                    {
+                        "booking_id": str(r["booking_id"]),
+                        "status": r["booking_status"],
+                        "seats": r["booking_seats"],
+                    }
+                    if r["booking_id"] else None
+                ),
+            }
+            for r in rows
+        ]
     })
 
 

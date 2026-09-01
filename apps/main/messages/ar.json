@@ -256,6 +256,7 @@
       "bookSeat": "احجز مقعدًا",
       "noSeatsAvailable": "لا توجد مقاعد متاحة",
       "numberOfSeats": "عدد المقاعد",
+      "numberOfSeatsForDay": "مقاعد يوم {day}",
       "existingBookingTitle": "لديك بالفعل حجز في هذه الرحلة",
       "existingBookingBody": "أدر حجزك لإضافة مقاعد أخرى أو للاطلاع على حالته.",
       "manageBooking": "إدارة الحجز",
@@ -277,6 +278,23 @@
       "rideNoLongerAvailableTitle": "الرحلة لم تعد متاحة",
       "rideNoLongerAvailableBody": "تم إلغاء هذه الرحلة أو اكتملت.",
       "searchAnotherRide": "ابحث عن رحلة أخرى",
+      "recurringSeriesLabel": "جزء من رحلة متكررة",
+      "recurringSeriesOtherDays": "تعمل أيضًا في: {days}",
+      "recurringPickerHeading": "احجز أيامًا أخرى أيضًا",
+      "recurringPickerHint": "متاح للحجز هذا الأسبوع فقط. تُفتح أيام جديدة بعد انطلاق رحلات هذا الأسبوع.",
+      "alreadyBooked": "محجوز بالفعل",
+      "seatsLeft": "{count} مقعد متبقي",
+      "seatsCount": "{count} مقعد",
+      "premiumFeeIncludedNote": "تُطبَّق الرسوم المميزة على كل يوم مختار.",
+      "weekdayShort": {
+        "0": "أحد",
+        "1": "اثنين",
+        "2": "ثلاثاء",
+        "3": "أربعاء",
+        "4": "خميس",
+        "5": "جمعة",
+        "6": "سبت"
+      },
       "errors": {
         "loadFailed": "فشل تحميل تفاصيل الرحلة.",
         "network": "خطأ في الشبكة — يرجى التحقق من اتصالك.",
@@ -284,7 +302,8 @@
         "duplicateBooking": "لديك بالفعل حجز لهذه الرحلة.",
         "noSeats": "لا توجد مقاعد متاحة — امتلأت هذه الرحلة للتو.",
         "bookingFailed": "فشل الحجز. يرجى المحاولة مرة أخرى.",
-        "networkBooking": "خطأ في الشبكة — يرجى المحاولة مرة أخرى."
+        "networkBooking": "خطأ في الشبكة — يرجى المحاولة مرة أخرى.",
+        "partialBookingFailure": "تم حجز {succeeded} من أصل {total} يوم. الأيام المتبقية كانت ممتلئة أو محجوزة بالفعل."
       }
     },
     "bookRide": {
@@ -377,7 +396,9 @@
       "postFirstRide": "انشر رحلتك الأولى",
       "seatsAvailableCount": "{available}/{total} مقاعد متاحة",
       "perSeatSuffix": "/مقعد",
-      "sponsoredByGroup": "برعاية · {groupName}"
+      "sponsoredByGroup": "برعاية · {groupName}",
+      "recurringUpcomingCount": "{count} يوم قادم",
+      "recurringNextDeparture": "التالي: {date}"
     },
     "editRide": {
       "loadFailed": "فشل تحميل الرحلة.",
@@ -499,6 +520,52 @@
       "heading": "انشر رحلة",
       "postFailed": "فشل نشر الرحلة. حاول مرة أخرى."
     },
+    "recurring": {
+      "heading": "الرحلات المتكررة",
+      "newRecurringRide": "+ رحلة متكررة جديدة",
+      "manageLink": "الرحلات المتكررة",
+      "seriesBadge": "متكررة",
+      "loadFailed": "فشل تحميل الرحلات المتكررة.",
+      "emptyTitle": "لا توجد رحلات متكررة بعد",
+      "emptyBody": "انشر رحلة متكررة لإنشاء رحلات تلقائيًا حسب جدول أسبوعي",
+      "statusActive": "نشطة",
+      "statusEnded": "منتهية",
+      "perSeatSuffix": "/مقعد",
+      "weekdayShort": {
+        "0": "أحد",
+        "1": "اثنين",
+        "2": "ثلاثاء",
+        "3": "أربعاء",
+        "4": "خميس",
+        "5": "جمعة",
+        "6": "سبت"
+      },
+      "detailHeading": "رحلة متكررة",
+      "backToList": "← العودة إلى الرحلات المتكررة",
+      "notFoundTitle": "الرحلة المتكررة غير موجودة.",
+      "fromLabel": "من",
+      "toLabel": "إلى",
+      "timeLabel": "وقت الانطلاق",
+      "weekdaysLabel": "تتكرر في",
+      "seatsLabel": "المقاعد",
+      "priceLabel": "السعر لكل مقعد",
+      "notesLabel": "ملاحظات",
+      "editButton": "تعديل",
+      "cancelEdit": "إلغاء",
+      "saveChanges": "حفظ التغييرات",
+      "savingChanges": "جارٍ الحفظ…",
+      "saveFailed": "فشل حفظ التغييرات.",
+      "editSuccessPrefix": "تم تحديث {count} رحلة قادمة.",
+      "instancesHeading": "الرحلات القادمة",
+      "instancesHint": "يتم عرض أيام هذا الأسبوع فقط. تظهر رحلات الأسبوع القادم هنا بعد انطلاق رحلات هذا الأسبوع.",
+      "noInstancesYet": "لم يتم إنشاء رحلات قادمة بعد.",
+      "endSeriesButton": "إنهاء السلسلة",
+      "endSeriesConfirmTitle": "هل تريد إنهاء هذه السلسلة المتكررة؟",
+      "endSeriesConfirmBody": "لن يتم إنشاء رحلات جديدة. الرحلات المجدولة أو المحجوزة بالفعل لن تتأثر وستستمر كما هو مخطط لها.",
+      "confirmEndSeries": "إنهاء السلسلة",
+      "endingSeries": "جارٍ الإنهاء…",
+      "endSeriesFailed": "فشل إنهاء السلسلة المتكررة."
+    },
     "manage": {
       "heading": "تفاصيل الرحلة",
       "bookings": "الحجوزات",
@@ -541,7 +608,8 @@
       "rateAndReport": "قيّم وأبلغ",
       "viewProfile": "عرض الملف الشخصي",
       "seats": "مقاعد",
-      "pickupDropoffMapTitle": "نقطة الصعود والنزول لـ {name}"
+      "pickupDropoffMapTitle": "نقطة الصعود والنزول لـ {name}",
+      "recurringSeriesLink": "عرض كل أيام هذه السلسلة"
     }
   },
   "settings": {
@@ -1005,6 +1073,21 @@
     "savingChanges": "جارٍ حفظ التغييرات…",
     "postRide": "انشر الرحلة",
     "saveChanges": "احفظ التغييرات",
+    "recurringToggleLabel": "رحلة متكررة",
+    "recurringToggleHint": "تتكرر أسبوعيًا في الأيام التي تختارها — يتم نشر الرحلات تلقائيًا.",
+    "recurringTimeLabel": "وقت الانطلاق",
+    "recurringWeekdaysLabel": "تتكرر في",
+    "weekdayShort": {
+      "0": "أحد",
+      "1": "اثنين",
+      "2": "ثلاثاء",
+      "3": "أربعاء",
+      "4": "خميس",
+      "5": "جمعة",
+      "6": "سبت"
+    },
+    "postingRecurringRide": "جارٍ إعداد الرحلة المتكررة…",
+    "postRecurringRide": "إنشاء رحلة متكررة",
     "errors": {
       "originRequired": "يرجى تحديد نقطة انطلاق على الخريطة.",
       "destinationRequired": "يرجى تحديد وجهة على الخريطة.",
@@ -1014,7 +1097,9 @@
       "departureTooFar": "لا يمكن جدولة الرحلة قبل أكثر من 7 أيام من موعدها.",
       "seatsRange": "يجب أن يكون عدد المقاعد بين 1 و{maxSeats}.",
       "fareEstimateFailed": "تعذر حساب سعر هذا المسار. يرجى المحاولة مرة أخرى.",
-      "fareEstimatePending": "يرجى الانتظار حتى يكتمل حساب السعر."
+      "fareEstimatePending": "يرجى الانتظار حتى يكتمل حساب السعر.",
+      "recurringTimeRequired": "يرجى اختيار وقت الانطلاق.",
+      "recurringWeekdaysRequired": "يرجى اختيار يوم واحد على الأقل من أيام الأسبوع."
     }
   },
   "driverDashboard": {

@@ -14,6 +14,7 @@ from app.models.route import (
 )
 from app.services import route_service
 from app.services.pricing_service import get_pricing_config
+from app.services.ride_service import recurring_instance_visibility_sql
 from app.services.route_service import RouteServiceUnavailableError
 
 logger = logging.getLogger(__name__)
@@ -54,7 +55,7 @@ async def _stage1_query(
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            """
+            f"""
             SELECT
                 rides.id,
                 rides.driver_id,
@@ -79,6 +80,7 @@ async def _stage1_query(
                 AND rides.departure_datetime > NOW()
                 AND (rides.group_id IS NULL OR g.is_sponsored = false)
                 AND rides.route_geometry && ST_MakeEnvelope($1, $2, $3, $4, 4326)
+                AND {recurring_instance_visibility_sql("rides")}
             ORDER BY rides.departure_datetime
             LIMIT $5
             """,

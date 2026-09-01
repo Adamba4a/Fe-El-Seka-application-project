@@ -35,6 +35,7 @@ export interface Ride {
   route_geometry: object | null;
   group_id: string | null;
   group_name?: string | null;
+  recurring_ride_definition_id: string | null;
 }
 
 export interface RideHistoryEntry {
@@ -78,4 +79,58 @@ export interface RideListResponse {
 export interface RideDetailResponse {
   ride: Ride;
   history: RideHistoryEntry[];
+}
+
+export type RecurringRideDefinitionStatus = "active" | "ended";
+
+export interface RecurringRideDefinition {
+  id: string;
+  driver_id: string;
+  vehicle_id: string;
+  origin: Location;
+  destination: Location;
+  departure_time: string; // "HH:MM:SS"
+  weekdays: number[]; // 0 = Sunday .. 6 = Saturday
+  total_seats: number;
+  price_per_seat: string;
+  notes: string | null;
+  status: RecurringRideDefinitionStatus;
+  created_at: string;
+  updated_at: string;
+  upcoming_instance_count?: number | null;
+}
+
+export interface CreateRecurringRideDefinitionPayload {
+  vehicle_id: string;
+  origin: Location;
+  destination: Location;
+  departure_time: string; // "HH:MM"
+  weekdays: number[];
+  total_seats: number;
+  price_per_seat: number;
+  notes?: string;
+}
+
+export interface EditRecurringRideDefinitionPayload {
+  origin?: Location;
+  destination?: Location;
+  departure_time?: string;
+  weekdays?: number[];
+  total_seats?: number;
+  price_per_seat?: number;
+  notes?: string;
+}
+
+export interface RecurringRideDefinitionListResponse {
+  definitions: RecurringRideDefinition[];
+}
+
+export interface RecurringRideDefinitionDetailResponse {
+  definition: RecurringRideDefinition;
+  instances: Ride[];
+}
+
+export interface RecurringRideDefinitionUpdateResponse {
+  definition: RecurringRideDefinition;
+  updated_instance_count: number;
 }

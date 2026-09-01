@@ -51,8 +51,46 @@ _RIDE_COLS = """
     fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp, price_source,
     started_at, completed_at,
     ST_AsGeoJSON(route_geometry) AS route_geometry_geojson,
-    group_id
+    group_id, recurring_ride_definition_id
 """
+
+
+# FR-012 (Spec 027): a generated recurring instance with zero confirmed
+# bookings must disappear from search/booking the moment its driver or
+# vehicle becomes ineligible (unverified org email, deactivated vehicle),
+# and reappear automatically once eligibility is restored — mirrors the
+# same p.org_verified_at/v.is_active condition the generation loop itself
+# uses to decide which definitions to keep generating (recurring_ride_service
+# .generate_upcoming_instances). One-off rides (recurring_ride_definition_id
+# IS NULL) and any instance with >=1 confirmed booking are always visible.
+def recurring_instance_visibility_sql(alias: str = "rides") -> str:
+    return f"""(
+        {alias}.recurring_ride_definition_id IS NULL
+        OR {alias}.booked_seats > 0
+        OR EXISTS (
+            SELECT 1 FROM profiles rev_p
+            JOIN vehicles rev_v ON rev_v.id = {alias}.vehicle_id AND rev_v.driver_id = {alias}.driver_id
+            WHERE rev_p.id = {alias}.driver_id
+              AND rev_p.org_verified_at IS NOT NULL
+              AND rev_v.is_active = true
+        )
+    )"""
+
+
+async def is_driver_vehicle_eligible(conn, driver_id: uuid.UUID, vehicle_id: uuid.UUID) -> bool:
+    """Single-row counterpart to recurring_instance_visibility_sql, for call
+    sites (e.g. booking creation) that already have one ride row locked
+    rather than filtering a list."""
+    return bool(
+        await conn.fetchval(
+            """
+            SELECT 1 FROM profiles p
+            JOIN vehicles v ON v.id = $2 AND v.driver_id = $1
+            WHERE p.id = $1 AND p.org_verified_at IS NOT NULL AND v.is_active = true
+            """,
+            driver_id, vehicle_id,
+        )
+    )
 
 
 def _to_response(row: dict) -> RideResponse:
@@ -106,6 +144,7 @@ def _to_response(row: dict) -> RideResponse:
         ),
         group_id=row["group_id"],
         group_name=row.get("group_name"),
+        recurring_ride_definition_id=row.get("recurring_ride_definition_id"),
     )
 
 

@@ -32,6 +32,7 @@ from app.api.org_access.router import router as org_access_router
 from app.api.profiles.router import router as profiles_router
 from app.api.ratings.router import router as ratings_router
 from app.api.reports.router import router as reports_router
+from app.api.rides.recurring_router import router as recurring_rides_router
 from app.api.rides.router import router as rides_router
 from app.api.routes.router import router as routes_router
 from app.api.search.router import router as search_router
@@ -58,6 +59,7 @@ from app.services.notification_dispatcher import notification_dispatcher_loop
 from app.services.notification_service import email_retry_loop
 from app.services.pricing_service import init_pricing_config, pricing_config_refresh_loop
 from app.services.ranking_config_service import init_ranking_config, ranking_config_refresh_loop
+from app.services.recurring_ride_service import recurring_ride_generation_loop
 from app.services.retraining_scheduler_service import retraining_scheduler_loop
 
 logging.basicConfig(
@@ -92,7 +94,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     reminder_task = asyncio.create_task(driver_reminder_loop())
     retraining_scheduler_task = asyncio.create_task(retraining_scheduler_loop())
     model_monitoring_task = asyncio.create_task(model_monitoring_loop())
+    recurring_generation_task = asyncio.create_task(recurring_ride_generation_loop())
     yield
+    recurring_generation_task.cancel()
     model_monitoring_task.cancel()
     retraining_scheduler_task.cancel()
     reminder_task.cancel()
@@ -265,6 +269,11 @@ app.include_router(
     tags=["admin"],
 )
 app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
+# Must be registered before rides_router: GET /api/v1/rides/recurring would
+# otherwise be shadowed by rides_router's GET /{ride_id} (Starlette matches
+# routes in registration order, and "recurring" structurally matches that
+# single-segment path parameter before FastAPI's UUID validation ever runs).
+app.include_router(recurring_rides_router, prefix="/api/v1/rides/recurring", tags=["rides"])
 app.include_router(rides_router, prefix="/api/v1/rides", tags=["rides"])
 app.include_router(search_router, prefix="/api/v1/search", tags=["search"])
 app.include_router(bookings_router, prefix="/api/v1/bookings", tags=["bookings"])

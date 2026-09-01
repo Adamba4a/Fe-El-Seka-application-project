@@ -83,6 +83,7 @@ class RideResponse(BaseModel):
     route_geometry: Optional[dict] = None
     group_id: Optional[UUID] = None
     group_name: Optional[str] = None
+    recurring_ride_definition_id: Optional[UUID] = None
 
 
 class RideDetailResponse(BaseModel):
