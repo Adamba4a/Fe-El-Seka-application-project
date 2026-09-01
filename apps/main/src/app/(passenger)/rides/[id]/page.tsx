@@ -789,7 +789,11 @@ export default function PassengerRideDetailPage() {
       <div className="space-y-3 pt-2 border-t border-border-default">
         {!detail.existing_booking && !noSeats && (
           <div className="flex items-center justify-between text-sm">
-            <span className="text-content-secondary">{t("numberOfSeats")}</span>
+            <span className="text-content-secondary">
+              {ride.recurring_ride_definition_id
+                ? t("numberOfSeatsForDay", { day: formatDayLabel(ride.departure_datetime, locale) })
+                : t("numberOfSeats")}
+            </span>
             <div className="flex items-center gap-3">
               <button
                 type="button"

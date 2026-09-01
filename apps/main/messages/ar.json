@@ -256,6 +256,7 @@
       "bookSeat": "احجز مقعدًا",
       "noSeatsAvailable": "لا توجد مقاعد متاحة",
       "numberOfSeats": "عدد المقاعد",
+      "numberOfSeatsForDay": "مقاعد يوم {day}",
       "existingBookingTitle": "لديك بالفعل حجز في هذه الرحلة",
       "existingBookingBody": "أدر حجزك لإضافة مقاعد أخرى أو للاطلاع على حالته.",
       "manageBooking": "إدارة الحجز",

@@ -256,6 +256,7 @@
       "bookSeat": "Book Seat",
       "noSeatsAvailable": "No Seats Available",
       "numberOfSeats": "Number of seats",
+      "numberOfSeatsForDay": "Seats for {day}",
       "existingBookingTitle": "You already have a booking on this ride",
       "existingBookingBody": "Manage your booking to add more seats or check its status.",
       "manageBooking": "Manage Booking",
