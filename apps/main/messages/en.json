@@ -281,7 +281,7 @@
       "recurringSeriesLabel": "Part of a recurring series",
       "recurringSeriesOtherDays": "Also runs on: {days}",
       "recurringPickerHeading": "Book other days too",
-      "recurringPickerHint": "Select more upcoming days on this route and choose how many seats you need for each.",
+      "recurringPickerHint": "Available to book this week. More days open up once this week's rides depart.",
       "alreadyBooked": "Already booked",
       "seatsLeft": "{count} seats left",
       "seatsCount": "{count} seat(s)",

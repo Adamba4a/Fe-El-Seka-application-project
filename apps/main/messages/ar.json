@@ -281,7 +281,7 @@
       "recurringSeriesLabel": "جزء من رحلة متكررة",
       "recurringSeriesOtherDays": "تعمل أيضًا في: {days}",
       "recurringPickerHeading": "احجز أيامًا أخرى أيضًا",
-      "recurringPickerHint": "اختر أيامًا قادمة أخرى على نفس المسار وحدد عدد المقاعد التي تحتاجها لكل يوم.",
+      "recurringPickerHint": "متاح للحجز هذا الأسبوع فقط. تُفتح أيام جديدة بعد انطلاق رحلات هذا الأسبوع.",
       "alreadyBooked": "محجوز بالفعل",
       "seatsLeft": "{count} مقعد متبقي",
       "seatsCount": "{count} مقعد",

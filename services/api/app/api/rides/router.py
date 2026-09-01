@@ -698,30 +698,32 @@ async def get_ride_recurring_instances(
         if definition_id is None:
             return JSONResponse({"instances": []})
 
-        # One entry per weekday of the series' pattern (nearest upcoming occurrence
-        # only) so the picker reads as a single weekly cycle rather than listing
-        # every instance in the rolling generation window (which can span 2+ weeks
-        # and so include a second occurrence of the same weekday).
+        # Only this calendar week's (Sun-Sat) remaining instances are bookable from
+        # the picker — not the whole rolling generation window. Once every instance
+        # in the current week has departed, "now" no longer qualifies them as
+        # upcoming, so the min bucket below naturally advances to next week's
+        # instances on the next fetch — no separate unlock step needed.
         rows = await conn.fetch(
             f"""
-            SELECT id, departure_datetime, available_seats, total_seats, price_per_seat,
-                   booking_id, booking_status, booking_seats
-            FROM (
-                SELECT DISTINCT ON (EXTRACT(ISODOW FROM r.departure_datetime))
-                       r.id, r.departure_datetime, r.available_seats, r.total_seats,
+            WITH upcoming AS (
+                SELECT r.id, r.departure_datetime, r.available_seats, r.total_seats,
                        r.price_per_seat,
-                       b.id AS booking_id, b.status AS booking_status, b.seats AS booking_seats
+                       date_trunc('day', r.departure_datetime)
+                           - (EXTRACT(DOW FROM r.departure_datetime) * interval '1 day') AS week_bucket
                 FROM rides r
-                LEFT JOIN bookings b
-                    ON b.ride_id = r.id AND b.passenger_id = $2 AND b.status IN ('pending', 'confirmed')
                 WHERE r.recurring_ride_definition_id = $1
-                  AND r.id != $3
                   AND r.status = 'scheduled'
                   AND r.departure_datetime > now()
                   AND {recurring_instance_visibility_sql("r")}
-                ORDER BY EXTRACT(ISODOW FROM r.departure_datetime), r.departure_datetime ASC
-            ) next_per_weekday
-            ORDER BY departure_datetime ASC
+            )
+            SELECT u.id, u.departure_datetime, u.available_seats, u.total_seats, u.price_per_seat,
+                   b.id AS booking_id, b.status AS booking_status, b.seats AS booking_seats
+            FROM upcoming u
+            LEFT JOIN bookings b
+                ON b.ride_id = u.id AND b.passenger_id = $2 AND b.status IN ('pending', 'confirmed')
+            WHERE u.id != $3
+              AND u.week_bucket = (SELECT min(week_bucket) FROM upcoming)
+            ORDER BY u.departure_datetime ASC
             """,
             definition_id, caller_id, ride_id,
         )
