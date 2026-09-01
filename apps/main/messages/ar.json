@@ -365,7 +365,15 @@
         "redemption_refund": "تم استرداد الاستبدال",
         "ride_reversal_clawback": "تم عكس النقاط"
       },
-      "showMore": "عرض المزيد"
+      "showMore": "عرض المزيد",
+      "redeemHeading": "استبدال",
+      "redeemVoucher": "استبدل {points} نقطة بـ {title}",
+      "redeeming": "جارٍ الاستبدال…",
+      "redeemFulfilled": "تم الاستبدال! مكافأتك جاهزة.",
+      "redeemPending": "تم إرسال طلب الاستبدال — سيراجعه المسؤول قريبًا.",
+      "redeemFailed": "فشل الاستبدال. حاول مرة أخرى.",
+      "insufficientPoints": "لا توجد نقاط كافية بعد",
+      "noVouchers": "لا توجد قسائم متاحة حاليًا."
     },
     "bookingDetail": {
       "title": "تفاصيل الحجز",
@@ -462,6 +470,7 @@
       "redeemPending": "تم إرسال طلب الاستبدال — سيراجعه المسؤول قريبًا.",
       "redeemFailed": "فشل الاستبدال. حاول مرة أخرى.",
       "insufficientPoints": "لا توجد نقاط كافية بعد",
+      "noVouchers": "لا توجد قسائم متاحة حاليًا.",
       "transactionHistory": "سجل المعاملات",
       "noTransactions": "لا توجد معاملات نقاط بعد.",
       "showMore": "عرض المزيد",

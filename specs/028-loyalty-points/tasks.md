@@ -105,10 +105,10 @@ Per plan.md Project Structure: `services/api/app/{models,services,api}` (FastAPI
 
 ### Implementation for User Story 3
 
-- [ ] T029 [US3] Verify T012's `list_catalog` and T022's `redeem_catalog_entry` already fully cover `voucher`-type entries with no code change (they were written type-agnostic in Phase 4) — confirm via a direct service-layer check that audience filtering (FR-007) and instant-vs-manual resolution (clarify answer) both work correctly for `voucher` rows.
-- [ ] T030 [US3] Verify NFR-002/FR-011's no-double-spend guarantee holds under concurrent voucher redemption: two simultaneous `redeem_catalog_entry` calls against an account with exactly one voucher's `point_cost` in balance — confirm via `get_account_with_lock`'s `SELECT ... FOR UPDATE` serializing the two transactions, one succeeds and one returns `409 insufficient_points`.
-- [ ] T031 [P] [US3] Add a voucher browse/redeem section to `apps/main/src/app/(passenger)/loyalty/` (T017) and `apps/main/src/app/(driver)/wallet/loyalty/` (T026): list `voucher`-type catalog entries (T016's `GET /catalog`), redeem action (T023), show redeemed vouchers (including retired ones, FR edge case) in transaction history.
-- [ ] T032 [US3] Run `quickstart.md` Scenario 4 (instant voucher redemption) and Scenario 6 (concurrent redemption, no double-spend) end-to-end; confirm all pass conditions.
+- [X] T029 [US3] Verify T012's `list_catalog` and T022's `redeem_catalog_entry` already fully cover `voucher`-type entries with no code change (they were written type-agnostic in Phase 4) — confirm via a direct service-layer check that audience filtering (FR-007) and instant-vs-manual resolution (clarify answer) both work correctly for `voucher` rows.
+- [X] T030 [US3] Verify NFR-002/FR-011's no-double-spend guarantee holds under concurrent voucher redemption: two simultaneous `redeem_catalog_entry` calls against an account with exactly one voucher's `point_cost` in balance — confirm via `get_account_with_lock`'s `SELECT ... FOR UPDATE` serializing the two transactions, one succeeds and one returns `409 insufficient_points`.
+- [X] T031 [P] [US3] Add a voucher browse/redeem section to `apps/main/src/app/(passenger)/loyalty/` (T017) and `apps/main/src/app/(driver)/wallet/loyalty/` (T026): list `voucher`-type catalog entries (T016's `GET /catalog`), redeem action (T023), show redeemed vouchers (including retired ones, FR edge case) in transaction history.
+- [X] T032 [US3] Run `quickstart.md` Scenario 4 (instant voucher redemption) and Scenario 6 (concurrent redemption, no double-spend) end-to-end; confirm all pass conditions.
 
 **Checkpoint**: All user-facing stories (US1–US3) are independently functional.
 

@@ -365,7 +365,15 @@
         "redemption_refund": "Redemption refunded",
         "ride_reversal_clawback": "Points reversed"
       },
-      "showMore": "Show more"
+      "showMore": "Show more",
+      "redeemHeading": "Redeem",
+      "redeemVoucher": "Redeem {points} points for {title}",
+      "redeeming": "Redeeming…",
+      "redeemFulfilled": "Redeemed! Your reward is ready.",
+      "redeemPending": "Redemption submitted — an admin will review it shortly.",
+      "redeemFailed": "Redemption failed. Please try again.",
+      "insufficientPoints": "Not enough points yet",
+      "noVouchers": "No vouchers available right now."
     },
     "bookingDetail": {
       "title": "Booking Details",
@@ -462,6 +470,7 @@
       "redeemPending": "Redemption submitted — an admin will review it shortly.",
       "redeemFailed": "Redemption failed. Please try again.",
       "insufficientPoints": "Not enough points yet",
+      "noVouchers": "No vouchers available right now.",
       "transactionHistory": "Transaction History",
       "noTransactions": "No point transactions yet.",
       "showMore": "Show more",

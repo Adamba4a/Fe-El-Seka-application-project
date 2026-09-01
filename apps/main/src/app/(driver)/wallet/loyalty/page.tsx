@@ -12,6 +12,7 @@ import {
   type LoyaltyTransaction,
   type LoyaltyCatalogEntry,
 } from "@/lib/api/loyalty";
+import { VoucherRedeemSection } from "@/components/loyalty/VoucherRedeemSection";
 import type { Locale } from "@fe-el-seka/shared";
 
 const supabase = createClient();
@@ -44,6 +45,7 @@ export default function DriverLoyaltyPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [carMaintenanceEntry, setCarMaintenanceEntry] = useState<LoyaltyCatalogEntry | null>(null);
+  const [vouchers, setVouchers] = useState<LoyaltyCatalogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [redeeming, setRedeeming] = useState(false);
@@ -66,6 +68,7 @@ export default function DriverLoyaltyPage() {
       setPage(1);
       setTotalPages(Math.max(1, Math.ceil(txRes.total / PER_PAGE)));
       setCarMaintenanceEntry(catalogRes.items.find((i) => i.type === "car_maintenance") ?? null);
+      setVouchers(catalogRes.items.filter((i) => i.type === "voucher"));
     } catch {
       setError(t("loadFailed"));
     } finally {
@@ -158,6 +161,14 @@ export default function DriverLoyaltyPage() {
           </div>
         </section>
       )}
+
+      <VoucherRedeemSection
+        t={t}
+        vouchers={vouchers}
+        balance={balance ?? 0}
+        getToken={getToken}
+        onRedeemed={load}
+      />
 
       <section>
         <h2 className="text-body-sm font-semibold text-content-primary mb-3">

@@ -7,8 +7,11 @@ import { Spinner } from "@/components/ui/Spinner";
 import {
   getLoyaltyBalance,
   getLoyaltyTransactions,
+  getLoyaltyCatalog,
   type LoyaltyTransaction,
+  type LoyaltyCatalogEntry,
 } from "@/lib/api/loyalty";
+import { VoucherRedeemSection } from "@/components/loyalty/VoucherRedeemSection";
 import type { Locale } from "@fe-el-seka/shared";
 
 const supabase = createClient();
@@ -38,6 +41,7 @@ export default function LoyaltyPage() {
   const locale = useLocale() as Locale;
   const [balance, setBalance] = useState<number | null>(null);
   const [entries, setEntries] = useState<LoyaltyTransaction[]>([]);
+  const [vouchers, setVouchers] = useState<LoyaltyCatalogEntry[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -50,14 +54,16 @@ export default function LoyaltyPage() {
     try {
       setError(null);
       const token = await getToken();
-      const [balanceRes, txRes] = await Promise.all([
+      const [balanceRes, txRes, catalogRes] = await Promise.all([
         getLoyaltyBalance(token),
         getLoyaltyTransactions(token, 1),
+        getLoyaltyCatalog(token),
       ]);
       setBalance(balanceRes.balance);
       setEntries(txRes.items);
       setPage(1);
       setTotalPages(Math.max(1, Math.ceil(txRes.total / PER_PAGE)));
+      setVouchers(catalogRes.items.filter((i) => i.type === "voucher"));
     } catch {
       setError(t("loadFailed"));
     } finally {
@@ -111,6 +117,14 @@ export default function LoyaltyPage() {
       <div className="bg-surface-card rounded-2xl p-5 border border-border-default text-center">
         <p className="text-3xl font-bold text-brand-primary">{t("balance", { points: balance ?? 0 })}</p>
       </div>
+
+      <VoucherRedeemSection
+        t={t}
+        vouchers={vouchers}
+        balance={balance ?? 0}
+        getToken={getToken}
+        onRedeemed={load}
+      />
 
       <section>
         <h2 className="text-body-sm font-semibold text-content-primary mb-3">
