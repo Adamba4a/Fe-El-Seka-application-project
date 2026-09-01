@@ -9,6 +9,7 @@ from app.dependencies.auth import get_current_user
 from app.models.loyalty import (
     LoyaltyBalanceResponse,
     LoyaltyCatalogResponse,
+    LoyaltyRedeemResponse,
     LoyaltyTransactionsResponse,
 )
 from app.services import loyalty_service
@@ -59,3 +60,16 @@ async def get_catalog(profile: dict = Depends(_current_passenger_or_driver)) -> 
     async with pool.acquire() as conn:
         items = await loyalty_service.list_catalog(conn, role)
     return {"items": items}
+
+
+@router.post("/catalog/{catalog_entry_id}/redeem", response_model=LoyaltyRedeemResponse)
+async def redeem_catalog_entry(
+    catalog_entry_id: uuid.UUID,
+    profile: dict = Depends(_current_passenger_or_driver),
+) -> dict:
+    user_id = uuid.UUID(str(profile["id"]))
+    role = profile["role"]
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        result = await loyalty_service.redeem_catalog_entry(conn, user_id, role, catalog_entry_id)
+    return result

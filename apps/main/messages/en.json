@@ -445,7 +445,33 @@
       "cashWalletHelp": "Your own top-ups, used to pay ride commissions on regular (non-sponsored) rides.",
       "sponsoredEarningsHeading": "Sponsored Earnings",
       "sponsoredEarningsHelp": "What you've earned from sponsored-group rides. This is the only balance you can withdraw.",
-      "sponsoredEarningsBalance": "Available to withdraw"
+      "sponsoredEarningsBalance": "Available to withdraw",
+      "loyaltyPointsHeading": "Loyalty Points",
+      "loyaltyPointsHelp": "Earn points from every ride and redeem them for free car maintenance or vouchers.",
+      "viewLoyaltyPoints": "View Points"
+    },
+    "loyalty": {
+      "title": "Loyalty Points",
+      "loadFailed": "Failed to load loyalty points.",
+      "balance": "{points} points",
+      "redeemHeading": "Redeem",
+      "redeemCarMaintenance": "Redeem {points} points for free car maintenance",
+      "redeemVoucher": "Redeem {points} points for {title}",
+      "redeeming": "Redeeming…",
+      "redeemFulfilled": "Redeemed! Your reward is ready.",
+      "redeemPending": "Redemption submitted — an admin will review it shortly.",
+      "redeemFailed": "Redemption failed. Please try again.",
+      "insufficientPoints": "Not enough points yet",
+      "transactionHistory": "Transaction History",
+      "noTransactions": "No point transactions yet.",
+      "showMore": "Show more",
+      "loading": "Loading…",
+      "reasons": {
+        "ride_completed_earn": "Ride earnings",
+        "redemption_spend": "Redeemed reward",
+        "redemption_refund": "Redemption refunded",
+        "ride_reversal_clawback": "Points reversed"
+      }
     },
     "walletWithdraw": {
       "heading": "Request Withdrawal",
@@ -1142,8 +1168,9 @@
     "dayToday": "TODAY",
     "dayTomorrow": "TOMORROW",
     "carMaintenanceSavingsTitle": "Savings for Your Car",
-    "carMaintenanceSavingsBody": "Every ride, a small share goes toward free car maintenance. Reach {threshold} to earn it.",
-    "carMaintenanceSavingsProgress": "{current} of {threshold}"
+    "carMaintenanceSavingsBody": "Every ride, a share of the distance fee earns you loyalty points. Reach {threshold} points to redeem free car maintenance.",
+    "carMaintenanceSavingsProgress": "{current} of {threshold} points",
+    "viewLoyaltyPoints": "View my points"
   },
   "upcomingTripCard": {
     "confirmed": "CONFIRMED",

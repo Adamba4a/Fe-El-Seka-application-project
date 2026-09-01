@@ -92,6 +92,19 @@ export default function WalletPage() {
         </div>
       </section>
 
+      <section className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-body-sm font-semibold text-content-primary">{t("loyaltyPointsHeading")}</h2>
+          <Link
+            href="/wallet/loyalty"
+            className="rounded-xl border border-border-default px-4 py-2 text-body-sm font-semibold text-content-primary hover:bg-surface-bg transition-colors"
+          >
+            {t("viewLoyaltyPoints")}
+          </Link>
+        </div>
+        <p className="text-caption text-content-muted">{t("loyaltyPointsHelp")}</p>
+      </section>
+
       <section>
         <h2 className="text-body-sm font-semibold text-content-primary mb-3">
           {t("transactionHistory")}

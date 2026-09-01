@@ -9,9 +9,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.admin.car_maintenance_router import router as admin_car_maintenance_router
 from app.api.admin.dashboard_router import router as admin_dashboard_router
 from app.api.admin.financial_router import router as admin_financial_router
+from app.api.admin.loyalty_router import router as admin_loyalty_router
 from app.api.admin.moderation_router import router as admin_moderation_router
 from app.api.admin.rides_router import router as admin_rides_router
 from app.api.admin.sponsored_groups_router import router as admin_sponsored_groups_router
@@ -255,9 +255,9 @@ app.include_router(
     tags=["admin-sponsored-groups"],
 )
 app.include_router(
-    admin_car_maintenance_router,
-    prefix="/api/admin/car-maintenance-rewards",
-    tags=["admin-car-maintenance"],
+    admin_loyalty_router,
+    prefix="/api/admin/loyalty",
+    tags=["admin-loyalty"],
 )
 app.include_router(
     admin_moderation_router,

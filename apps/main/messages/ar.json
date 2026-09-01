@@ -445,7 +445,33 @@
       "cashWalletHelp": "رصيدك الخاص المضاف بنفسك، يُستخدم لدفع عمولات الرحلات العادية (غير المرعية).",
       "sponsoredEarningsHeading": "أرباح الرعاية",
       "sponsoredEarningsHelp": "ما ربحته من رحلات المجموعات المرعية. هذا هو الرصيد الوحيد الذي يمكنك سحبه.",
-      "sponsoredEarningsBalance": "متاح للسحب"
+      "sponsoredEarningsBalance": "متاح للسحب",
+      "loyaltyPointsHeading": "نقاط الولاء",
+      "loyaltyPointsHelp": "اكسب نقاطًا من كل رحلة واستبدلها بصيانة مجانية لسيارتك أو قسائم.",
+      "viewLoyaltyPoints": "عرض النقاط"
+    },
+    "loyalty": {
+      "title": "نقاط الولاء",
+      "loadFailed": "فشل تحميل نقاط الولاء.",
+      "balance": "{points} نقطة",
+      "redeemHeading": "استبدال",
+      "redeemCarMaintenance": "استبدل {points} نقطة بصيانة مجانية للسيارة",
+      "redeemVoucher": "استبدل {points} نقطة بـ {title}",
+      "redeeming": "جارٍ الاستبدال…",
+      "redeemFulfilled": "تم الاستبدال! مكافأتك جاهزة.",
+      "redeemPending": "تم إرسال طلب الاستبدال — سيراجعه المسؤول قريبًا.",
+      "redeemFailed": "فشل الاستبدال. حاول مرة أخرى.",
+      "insufficientPoints": "لا توجد نقاط كافية بعد",
+      "transactionHistory": "سجل المعاملات",
+      "noTransactions": "لا توجد معاملات نقاط بعد.",
+      "showMore": "عرض المزيد",
+      "loading": "جارٍ التحميل…",
+      "reasons": {
+        "ride_completed_earn": "أرباح الرحلة",
+        "redemption_spend": "استبدال مكافأة",
+        "redemption_refund": "استرداد استبدال",
+        "ride_reversal_clawback": "استرجاع نقاط"
+      }
     },
     "walletWithdraw": {
       "heading": "طلب سحب",
@@ -1142,8 +1168,9 @@
     "dayToday": "اليوم",
     "dayTomorrow": "غدًا",
     "carMaintenanceSavingsTitle": "مدخرات صيانة سيارتك",
-    "carMaintenanceSavingsBody": "من كل رحلة، يذهب جزء صغير نحو صيانة مجانية لسيارتك. اجمع {threshold} لتحصل عليها.",
-    "carMaintenanceSavingsProgress": "{current} من {threshold}"
+    "carMaintenanceSavingsBody": "من كل رحلة، يمنحك جزء من رسوم المسافة نقاط ولاء. اجمع {threshold} نقطة لتحصل على صيانة مجانية لسيارتك.",
+    "carMaintenanceSavingsProgress": "{current} من {threshold} نقطة",
+    "viewLoyaltyPoints": "عرض نقاطي"
   },
   "upcomingTripCard": {
     "confirmed": "مؤكد",

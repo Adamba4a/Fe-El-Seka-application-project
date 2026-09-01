@@ -42,6 +42,13 @@ export interface LoyaltyCatalogResponse {
   items: LoyaltyCatalogEntry[];
 }
 
+export interface LoyaltyRedeemResult {
+  redemption_request_id: string;
+  status: "fulfilled" | "pending";
+  points_spent: number;
+  balance_after: number;
+}
+
 export async function getLoyaltyBalance(token: string): Promise<LoyaltyBalance> {
   const res = await fetch(`${base}/api/v1/loyalty/balance`, {
     headers: authHeaders(token),
@@ -62,6 +69,19 @@ export async function getLoyaltyTransactions(token: string, page = 1): Promise<L
 
 export async function getLoyaltyCatalog(token: string): Promise<LoyaltyCatalogResponse> {
   const res = await fetch(`${base}/api/v1/loyalty/catalog`, {
+    headers: authHeaders(token),
+  });
+  const json = await res.json();
+  if (!res.ok) throw json;
+  return json;
+}
+
+export async function redeemLoyaltyCatalogEntry(
+  token: string,
+  catalogEntryId: string
+): Promise<LoyaltyRedeemResult> {
+  const res = await fetch(`${base}/api/v1/loyalty/catalog/${catalogEntryId}/redeem`, {
+    method: "POST",
     headers: authHeaders(token),
   });
   const json = await res.json();

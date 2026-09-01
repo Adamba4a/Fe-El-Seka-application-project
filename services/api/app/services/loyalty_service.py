@@ -255,48 +255,58 @@ async def redeem_catalog_entry(
     conn, user_id: uuid.UUID, role: Role, catalog_entry_id: uuid.UUID
 ) -> dict:
     """Redeem a voucher or car_maintenance catalog entry. free_ride/discount are rejected
-    here — they redeem inline at booking creation via redeem_for_booking(). FR-011."""
-    account = await get_account_with_lock(conn, user_id, role)
-    entry = await conn.fetchrow(
-        "SELECT id, type, point_cost, fulfillment_mode, active FROM loyalty_reward_catalog "
-        "WHERE id = $1 FOR UPDATE",
-        catalog_entry_id,
-    )
-    if entry is None or not entry["active"]:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Catalog entry not found"})
-    if entry["type"] in ("free_ride", "discount"):
-        raise HTTPException(
-            status_code=409,
-            detail={"error": "invalid_redemption_type", "message": "Use booking creation to redeem this reward"},
-        )
-    if account["balance"] < entry["point_cost"]:
-        raise HTTPException(status_code=409, detail={"error": "insufficient_points", "message": "Not enough points"})
+    here — they redeem inline at booking creation via redeem_for_booking(). FR-011.
 
-    status = "fulfilled" if entry["fulfillment_mode"] == "instant" else "pending"
-    fulfilled_at = datetime.now(timezone.utc) if status == "fulfilled" else None
-    request = await conn.fetchrow(
-        """
-        INSERT INTO loyalty_redemption_requests
-            (account_id, catalog_entry_id, points_spent, fulfillment_mode, status, fulfilled_at)
-        VALUES ($1, $2, $3, $4::loyalty_fulfillment_mode, $5::loyalty_redemption_status, $6)
-        RETURNING id, status
-        """,
-        account["id"],
-        entry["id"],
-        entry["point_cost"],
-        entry["fulfillment_mode"],
-        status,
-        fulfilled_at,
-    )
-    tx = await _record_transaction(
-        conn, account["id"], -entry["point_cost"], "redemption_spend", redemption_request_id=request["id"]
-    )
-    return {
-        "redemption_request_id": request["id"],
-        "status": request["status"],
-        "points_spent": entry["point_cost"],
-        "balance_after": tx["balance_after"],
-    }
+    Self-wraps in a transaction (mirroring fulfill_request/reject_request) since it is a
+    top-level entry point called directly by the router, not nested inside a larger
+    transaction the way award_*_points/reverse_points are — the FOR UPDATE lock on the
+    account row is otherwise released after each statement, allowing concurrent redeems
+    to double-spend (NFR-002).
+    """
+    async with conn.transaction():
+        account = await get_account_with_lock(conn, user_id, role)
+        entry = await conn.fetchrow(
+            "SELECT id, type, point_cost, fulfillment_mode, active FROM loyalty_reward_catalog "
+            "WHERE id = $1 FOR UPDATE",
+            catalog_entry_id,
+        )
+        if entry is None or not entry["active"]:
+            raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Catalog entry not found"})
+        if entry["type"] in ("free_ride", "discount"):
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "invalid_redemption_type", "message": "Use booking creation to redeem this reward"},
+            )
+        if account["balance"] < entry["point_cost"]:
+            raise HTTPException(
+                status_code=409, detail={"error": "insufficient_points", "message": "Not enough points"}
+            )
+
+        status = "fulfilled" if entry["fulfillment_mode"] == "instant" else "pending"
+        fulfilled_at = datetime.now(timezone.utc) if status == "fulfilled" else None
+        request = await conn.fetchrow(
+            """
+            INSERT INTO loyalty_redemption_requests
+                (account_id, catalog_entry_id, points_spent, fulfillment_mode, status, fulfilled_at)
+            VALUES ($1, $2, $3, $4::loyalty_fulfillment_mode, $5::loyalty_redemption_status, $6)
+            RETURNING id, status
+            """,
+            account["id"],
+            entry["id"],
+            entry["point_cost"],
+            entry["fulfillment_mode"],
+            status,
+            fulfilled_at,
+        )
+        tx = await _record_transaction(
+            conn, account["id"], -entry["point_cost"], "redemption_spend", redemption_request_id=request["id"]
+        )
+        return {
+            "redemption_request_id": request["id"],
+            "status": request["status"],
+            "points_spent": entry["point_cost"],
+            "balance_after": tx["balance_after"],
+        }
 
 
 # ─────────────────────────────────────────────────────────────────────────────

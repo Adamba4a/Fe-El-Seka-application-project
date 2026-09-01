@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useSession } from "@/lib/auth/hooks";
 import { getMe } from "@/lib/api/profiles";
 import { listRides, listRideBookings } from "@/lib/api/rides";
-import { getWallet } from "@/lib/api/wallet";
+import { getLoyaltyBalance, getLoyaltyCatalog } from "@/lib/api/loyalty";
 import { formatCurrency, computeNetEarningsPerSeat } from "@fe-el-seka/shared";
 import type { Ride, Profile, Locale } from "@fe-el-seka/shared";
 import { StatsCard } from "@/components/driver/StatsCard";
@@ -62,8 +62,8 @@ export function DriverDashboard() {
   const [todayCount, setTodayCount] = useState(0);
   const [earnings, setEarnings] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
-  const [carMaintenanceSavings, setCarMaintenanceSavings] = useState(0);
-  const [carMaintenanceThreshold, setCarMaintenanceThreshold] = useState(3000);
+  const [loyaltyBalance, setLoyaltyBalance] = useState(0);
+  const [carMaintenancePointCost, setCarMaintenancePointCost] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -72,16 +72,18 @@ export function DriverDashboard() {
 
     (async () => {
       try {
-        const [me, scheduled, completed, wallet] = await Promise.all([
+        const [me, scheduled, completed, loyaltyBalanceRes, loyaltyCatalog] = await Promise.all([
           getMe(token),
           listRides(token, { status: "scheduled", page_size: 50 }),
           listRides(token, { status: "completed", page_size: 50 }),
-          getWallet(token),
+          getLoyaltyBalance(token),
+          getLoyaltyCatalog(token),
         ]);
 
         setProfile(me);
-        setCarMaintenanceSavings(parseFloat(wallet.car_maintenance_savings_egp));
-        setCarMaintenanceThreshold(parseFloat(wallet.car_maintenance_threshold_egp));
+        setLoyaltyBalance(loyaltyBalanceRes.balance);
+        const carMaintenanceEntry = loyaltyCatalog.items.find((i) => i.type === "car_maintenance");
+        setCarMaintenancePointCost(carMaintenanceEntry?.point_cost ?? null);
         setCompletedCount(completed.total);
         // Net of platform commission (20% of fuel cost + the flat safety-margin fee) —
         // the per-km distance fee is left in since it's saved toward the driver's car-
@@ -144,24 +146,33 @@ export function DriverDashboard() {
           </div>
 
           <div className="mt-6 bg-dash-surface rounded-2xl p-5 border border-dash-border">
-            <p className="font-bold text-dash-navy">{t("carMaintenanceSavingsTitle")}</p>
-            <p className="text-sm text-dash-text-muted mt-1">
-              {t("carMaintenanceSavingsBody", { threshold: formatCurrency(carMaintenanceThreshold, locale) })}
-            </p>
-            <div className="mt-3 h-3 w-full rounded-full bg-dash-border overflow-hidden">
-              <div
-                className="h-full rounded-full bg-dash-primary transition-all"
-                style={{
-                  width: `${Math.min(100, (carMaintenanceSavings / carMaintenanceThreshold) * 100)}%`,
-                }}
-              />
+            <div className="flex items-center justify-between">
+              <p className="font-bold text-dash-navy">{t("carMaintenanceSavingsTitle")}</p>
+              <Link href="/wallet/loyalty" className="text-xs font-semibold text-dash-primary">
+                {t("viewLoyaltyPoints")}
+              </Link>
             </div>
-            <p className="text-sm font-medium text-dash-navy mt-2">
-              {t("carMaintenanceSavingsProgress", {
-                current: formatCurrency(carMaintenanceSavings, locale),
-                threshold: formatCurrency(carMaintenanceThreshold, locale),
-              })}
-            </p>
+            {carMaintenancePointCost != null && (
+              <>
+                <p className="text-sm text-dash-text-muted mt-1">
+                  {t("carMaintenanceSavingsBody", { threshold: carMaintenancePointCost })}
+                </p>
+                <div className="mt-3 h-3 w-full rounded-full bg-dash-border overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-dash-primary transition-all"
+                    style={{
+                      width: `${Math.min(100, (loyaltyBalance / carMaintenancePointCost) * 100)}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-sm font-medium text-dash-navy mt-2">
+                  {t("carMaintenanceSavingsProgress", {
+                    current: loyaltyBalance,
+                    threshold: carMaintenancePointCost,
+                  })}
+                </p>
+              </>
+            )}
           </div>
 
           <h2 className="text-xl font-bold text-dash-navy mt-8 mb-3">{t("upcomingTrips")}</h2>

@@ -5,7 +5,7 @@ from decimal import Decimal
 
 import pytest
 
-from app.services import car_maintenance_service, commission_service, wallet_service
+from app.services import commission_service, loyalty_service, wallet_service
 
 # ── commission scales with driver markup (Spec 023, Phase 7 / FR-011) ───────
 
@@ -38,13 +38,13 @@ def captured_ledger_entries(monkeypatch):
     async def _fake_decrement_balance(conn, wallet_id, amount):
         return None
 
-    async def _fake_accumulate(conn, driver_id, wallet_id, distance_fee_amount):
+    async def _fake_award_driver_points(conn, driver_id, wallet_id, distance_fee_amount):
         return None
 
     monkeypatch.setattr(wallet_service, "get_wallet_with_lock", _fake_get_wallet_with_lock)
     monkeypatch.setattr(wallet_service, "insert_ledger_entry", _fake_insert_ledger_entry)
     monkeypatch.setattr(wallet_service, "decrement_balance", _fake_decrement_balance)
-    monkeypatch.setattr(car_maintenance_service, "accumulate_and_maybe_grant", _fake_accumulate)
+    monkeypatch.setattr(loyalty_service, "award_driver_points", _fake_award_driver_points)
     return entries
 
 

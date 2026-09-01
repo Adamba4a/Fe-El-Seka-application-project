@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 
 from app.core.database import get_pool
 from app.dependencies.roles import get_current_driver
-from app.services import car_maintenance_service, wallet_service
+from app.services import wallet_service
 
 router = APIRouter()
 
@@ -31,7 +31,6 @@ async def get_my_wallet(
     reserved = Decimal(str(wallet["reserved_egp"]))
     available = balance - reserved
     sponsored_earnings = Decimal(str(wallet["sponsored_earnings_egp"]))
-    car_maintenance_savings = Decimal(str(wallet["car_maintenance_savings_egp"]))
     total_pages = max(1, (total + _PER_PAGE - 1) // _PER_PAGE)
 
     return {
@@ -39,8 +38,6 @@ async def get_my_wallet(
         "reserved_egp": str(reserved),
         "available_egp": str(available),
         "sponsored_earnings_egp": str(sponsored_earnings),
-        "car_maintenance_savings_egp": str(car_maintenance_savings),
-        "car_maintenance_threshold_egp": str(car_maintenance_service.CAR_MAINTENANCE_THRESHOLD_EGP),
         "entries": [
             {
                 "id": str(e["id"]),
