@@ -315,8 +315,8 @@ export function RideForm({
             }`}
           >
             <span
-              className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                isRecurring ? "translate-x-5 rtl:-translate-x-5" : "translate-x-0.5"
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                isRecurring ? "translate-x-5 rtl:-translate-x-5" : "translate-x-0"
               }`}
             />
           </button>
