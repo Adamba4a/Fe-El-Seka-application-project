@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import uuid
+from datetime import datetime
 from typing import Optional
 
 import firebase_admin
@@ -112,15 +113,57 @@ _DEFAULT_TEMPLATE: dict[str, tuple[str, str]] = {
     "ar": ("Triplyy", "لديك إشعار جديد."),
 }
 
-def _select_template(event_type: str, locale: str | None) -> tuple[str, str]:
+_WEEKDAY_NAMES: dict[str, list[str]] = {
+    # index 0 = Monday, matching datetime.weekday()
+    "en": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    "ar": ["الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"],
+}
+_MONTH_NAMES: dict[str, list[str]] = {
+    "en": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    "ar": [
+        "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+        "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
+    ],
+}
+
+
+def _format_day_label(iso_datetime: str | None, locale: str) -> str:
+    """Render an ISO datetime as a short day label, e.g. "Thu, Sep 3" (or the
+    Arabic equivalent). Returns "" if the datetime is missing/unparseable so
+    callers can fall back to a day-agnostic message.
+    """
+    if not iso_datetime:
+        return ""
+    try:
+        dt = datetime.fromisoformat(iso_datetime)
+    except ValueError:
+        return ""
+    weekday = _WEEKDAY_NAMES.get(locale, _WEEKDAY_NAMES["en"])[dt.weekday()]
+    month = _MONTH_NAMES.get(locale, _MONTH_NAMES["en"])[dt.month - 1]
+    if locale == "ar":
+        return f"{weekday} {dt.day} {month}"
+    return f"{weekday}, {month} {dt.day}"
+
+
+def _select_template(
+    event_type: str, locale: str | None, data_payload: dict | None = None
+) -> tuple[str, str]:
     """Resolve (title, body) for an event_type/locale pair, defaulting to English.
 
-    Extracted as a pure function (mirrors this module's convention of pure
-    helpers being unit-testable without a DB/Firebase connection) so the
-    NULL-preference fallback is testable in isolation.
+    For "booking_received", appends the ride's day (from data_payload's
+    departure_datetime) to the body so a driver with multiple recurring-ride
+    instances can tell which day the new booking is for.
     """
     resolved_locale = locale or "en"
-    return _NOTIFICATION_TEMPLATES.get(event_type, _DEFAULT_TEMPLATE)[resolved_locale]
+    title, body = _NOTIFICATION_TEMPLATES.get(event_type, _DEFAULT_TEMPLATE)[resolved_locale]
+
+    if event_type == "booking_received" and data_payload:
+        day = _format_day_label(data_payload.get("departure_datetime"), resolved_locale)
+        if day:
+            body = body.rstrip(".")
+            body = f"{body} يوم {day}." if resolved_locale == "ar" else f"{body} on {day}."
+
+    return title, body
 
 
 # FCM error codes that mark a token as permanently invalid (should be deregistered)
@@ -187,7 +230,7 @@ async def send_push_notifications(
     )
     locale = profile_row["language_preference"] if profile_row else None
 
-    title, body = _select_template(event_type, locale)
+    title, body = _select_template(event_type, locale, data_payload)
 
     multicast_msg = messaging.MulticastMessage(
         tokens=tokens,

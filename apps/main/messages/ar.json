@@ -557,6 +557,7 @@
       "saveFailed": "فشل حفظ التغييرات.",
       "editSuccessPrefix": "تم تحديث {count} رحلة قادمة.",
       "instancesHeading": "الرحلات القادمة",
+      "instancesHint": "يتم عرض أيام هذا الأسبوع فقط. تظهر رحلات الأسبوع القادم هنا بعد انطلاق رحلات هذا الأسبوع.",
       "noInstancesYet": "لم يتم إنشاء رحلات قادمة بعد.",
       "endSeriesButton": "إنهاء السلسلة",
       "endSeriesConfirmTitle": "هل تريد إنهاء هذه السلسلة المتكررة؟",

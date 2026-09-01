@@ -323,12 +323,15 @@ export default function RecurringRideDetailPage() {
 
       <div className="bg-surface-card border border-border-default rounded-2xl p-5 space-y-4">
         <h2 className="font-semibold text-content-primary">{t("instancesHeading")}</h2>
+        {instances.length > 0 && (
+          <p className="text-caption text-content-muted">{t("instancesHint")}</p>
+        )}
         {instances.length === 0 ? (
           <p className="text-body-sm text-content-muted">{t("noInstancesYet")}</p>
         ) : (
           <div className="space-y-3">
             {instances.map((ride) => (
-              <RideCard key={ride.id} ride={ride} href={`/rides/${ride.id}/manage`} />
+              <RideCard key={ride.id} ride={ride} href={`/rides/${ride.id}/bookings`} />
             ))}
           </div>
         )}

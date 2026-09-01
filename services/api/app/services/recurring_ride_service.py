@@ -214,21 +214,43 @@ async def get_definition(
     async with pool.acquire() as conn:
         definition = await _fetch_own_definition(conn, definition_id, driver_id)
 
-        instance_rows = await conn.fetch(
-            f"SELECT {ride_service._RIDE_COLS} FROM rides "
-            f"WHERE recurring_ride_definition_id = $1 ORDER BY departure_datetime ASC",
+        upcoming_count = await conn.fetchval(
+            """
+            SELECT count(*) FROM rides
+            WHERE recurring_ride_definition_id = $1
+              AND status = 'scheduled'
+              AND departure_datetime > now()
+            """,
             definition_id,
         )
 
-    now = _now()
-    upcoming_count = sum(
-        1
-        for r in instance_rows
-        if r["status"] == "scheduled" and r["departure_datetime"] > now
-    )
+        # Only surface the nearest calendar week (Sun-Sat) of upcoming
+        # instances so the driver isn't shown a wall of near-identical day
+        # cards stretching weeks into the future — mirrors the same
+        # week-bucket rollover used for the passenger-facing day picker.
+        # Once every instance in the current bucket departs, it drops out
+        # of the `upcoming` CTE and the next fetch naturally reveals the
+        # following week's instances.
+        instance_rows = await conn.fetch(
+            f"""
+            WITH upcoming AS (
+                SELECT {ride_service._RIDE_COLS},
+                       date_trunc('day', departure_datetime)
+                           - (EXTRACT(DOW FROM departure_datetime) * interval '1 day') AS week_bucket
+                FROM rides
+                WHERE recurring_ride_definition_id = $1
+                  AND status = 'scheduled'
+                  AND departure_datetime > now()
+            )
+            SELECT * FROM upcoming
+            WHERE week_bucket = (SELECT min(week_bucket) FROM upcoming)
+            ORDER BY departure_datetime ASC
+            """,
+            definition_id,
+        )
 
     return RecurringRideDefinitionDetailResponse(
-        definition=_to_definition_response(definition, upcoming_instance_count=upcoming_count),
+        definition=_to_definition_response(definition, upcoming_instance_count=upcoming_count or 0),
         instances=[ride_service._to_response(dict(r)) for r in instance_rows],
     )
 

@@ -557,6 +557,7 @@
       "saveFailed": "Failed to save changes.",
       "editSuccessPrefix": "Updated {count} upcoming ride(s).",
       "instancesHeading": "Upcoming Rides",
+      "instancesHint": "Showing this week's days. Next week's rides appear here once this week's have departed.",
       "noInstancesYet": "No upcoming rides generated yet.",
       "endSeriesButton": "End Series",
       "endSeriesConfirmTitle": "End this recurring series?",
