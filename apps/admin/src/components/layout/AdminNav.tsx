@@ -14,7 +14,8 @@ const LINKS = [
   { href: "/wallet-topup", label: "Wallet Top-Ups" },
   { href: "/sponsored-groups", label: "Sponsored Groups" },
   { href: "/withdrawal-requests", label: "Withdrawal Requests" },
-  { href: "/loyalty/queue", label: "Loyalty" },
+  { href: "/loyalty/queue", label: "Loyalty Queue" },
+  { href: "/loyalty/catalog", label: "Loyalty Catalog" },
   { href: "/vehicles", label: "Vehicles" },
 ];
 

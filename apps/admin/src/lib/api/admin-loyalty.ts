@@ -59,3 +59,82 @@ export async function reject(
   if (!res.ok) throw await res.json();
   return res.json();
 }
+
+export interface AdminLoyaltyCatalogEntry {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  audience: "passenger" | "driver" | "both";
+  point_cost: number;
+  fulfillment_mode: "instant" | "manual";
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminLoyaltyCatalogListResponse {
+  items: AdminLoyaltyCatalogEntry[];
+}
+
+export interface AdminLoyaltyCatalogCreateInput {
+  title: string;
+  description: string;
+  audience: "passenger" | "driver" | "both";
+  point_cost: number;
+  fulfillment_mode: "instant" | "manual";
+}
+
+export interface AdminLoyaltyCatalogUpdateInput {
+  title?: string;
+  description?: string;
+  point_cost?: number;
+  fulfillment_mode?: "instant" | "manual";
+  active?: boolean;
+  loyalty_free_ride_max_fare_egp?: string;
+  loyalty_discount_percentage?: number;
+}
+
+export async function getCatalog(token: string): Promise<AdminLoyaltyCatalogListResponse> {
+  const res = await fetch(`${base}/api/admin/loyalty/catalog`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await res.json();
+  return res.json();
+}
+
+export async function createVoucher(
+  token: string,
+  input: AdminLoyaltyCatalogCreateInput
+): Promise<AdminLoyaltyCatalogEntry> {
+  const res = await fetch(`${base}/api/admin/loyalty/catalog`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw await res.json();
+  return res.json();
+}
+
+export async function updateCatalogEntry(
+  token: string,
+  id: string,
+  input: AdminLoyaltyCatalogUpdateInput
+): Promise<AdminLoyaltyCatalogEntry> {
+  const res = await fetch(`${base}/api/admin/loyalty/catalog/${id}`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw await res.json();
+  return res.json();
+}
+
+export async function retireCatalogEntry(token: string, id: string): Promise<AdminLoyaltyCatalogEntry> {
+  const res = await fetch(`${base}/api/admin/loyalty/catalog/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await res.json();
+  return res.json();
+}

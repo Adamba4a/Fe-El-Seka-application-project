@@ -507,14 +507,172 @@ async def reject_request(conn, redemption_request_id: uuid.UUID, admin_id: uuid.
             {"redemption_request_id": str(redemption_request_id), "reason": reason},
         )
 
-    audit_service.append_log(
-        str(admin_id), "rejected", str(account["user_id"]),
-        reason=reason, redemption_request_id=str(redemption_request_id),
-    )
-
     return {
         "id": updated["id"],
         "status": updated["status"],
         "fulfilled_by": updated["fulfilled_by"],
         "fulfilled_at": updated["fulfilled_at"],
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Admin-facing: catalog CRUD (FR-008/FR-008a)
+# ─────────────────────────────────────────────────────────────────────────────
+
+_SYSTEM_TYPES = ("free_ride", "discount", "car_maintenance")
+_SYSTEM_POINT_COST_SETTING_KEY = {
+    "free_ride": "loyalty_free_ride_point_cost",
+    "discount": "loyalty_discount_point_cost",
+    "car_maintenance": "loyalty_car_maintenance_point_cost",
+}
+_CATALOG_ADMIN_COLS = (
+    "id, type, title, description, audience, point_cost, fulfillment_mode, active, created_at, updated_at"
+)
+
+
+async def list_admin_catalog(conn) -> list[dict]:
+    rows = await conn.fetch(
+        f"SELECT {_CATALOG_ADMIN_COLS} FROM loyalty_reward_catalog ORDER BY type ASC, created_at ASC"
+    )
+    return [dict(r) for r in rows]
+
+
+async def create_voucher(
+    conn,
+    admin_id: uuid.UUID,
+    title: str,
+    description: str,
+    audience: str,
+    point_cost: int,
+    fulfillment_mode: str,
+) -> dict:
+    row = await conn.fetchrow(
+        f"""
+        INSERT INTO loyalty_reward_catalog
+            (type, title, description, audience, point_cost, fulfillment_mode, created_by)
+        VALUES ('voucher'::loyalty_reward_type, $1, $2, $3::loyalty_audience, $4,
+                $5::loyalty_fulfillment_mode, $6)
+        RETURNING {_CATALOG_ADMIN_COLS}
+        """,
+        title,
+        description,
+        audience,
+        point_cost,
+        fulfillment_mode,
+        admin_id,
+    )
+    return dict(row)
+
+
+async def update_catalog_entry(conn, catalog_entry_id: uuid.UUID, update: dict) -> dict:
+    """Full field edits for `voucher` rows; for the 3 system entries, restricts edits to
+    `point_cost` (mirrored into the paired `platform_settings` key) plus — for `free_ride`
+    — `loyalty_free_ride_max_fare_egp` and — for `discount` — `loyalty_discount_percentage`
+    (FR-008a, research.md Decision 3).
+    """
+    async with conn.transaction():
+        entry = await conn.fetchrow(
+            "SELECT id, type FROM loyalty_reward_catalog WHERE id = $1 FOR UPDATE", catalog_entry_id
+        )
+        if entry is None:
+            raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Catalog entry not found"})
+
+        is_system = entry["type"] in _SYSTEM_TYPES
+        max_fare = update.get("loyalty_free_ride_max_fare_egp")
+        discount_pct = update.get("loyalty_discount_percentage")
+
+        if is_system:
+            disallowed = [
+                field
+                for field in ("title", "description", "fulfillment_mode", "active")
+                if update.get(field) is not None
+            ]
+            if disallowed:
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "error": "invalid_field_for_system_entry",
+                        "message": f"Cannot edit {', '.join(disallowed)} on a system catalog entry",
+                    },
+                )
+            if max_fare is not None and entry["type"] != "free_ride":
+                raise HTTPException(
+                    status_code=409,
+                    detail={"error": "invalid_field_for_type", "message": "loyalty_free_ride_max_fare_egp only applies to free_ride"},
+                )
+            if discount_pct is not None and entry["type"] != "discount":
+                raise HTTPException(
+                    status_code=409,
+                    detail={"error": "invalid_field_for_type", "message": "loyalty_discount_percentage only applies to discount"},
+                )
+        elif max_fare is not None or discount_pct is not None:
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "invalid_field_for_type", "message": "Setting fields only apply to system entries"},
+            )
+
+        set_clauses = []
+        params: list = []
+
+        def add_set(column: str, value, cast: str = "") -> None:
+            params.append(value)
+            set_clauses.append(f"{column} = ${len(params)}{cast}")
+
+        if update.get("title") is not None:
+            add_set("title", update["title"])
+        if update.get("description") is not None:
+            add_set("description", update["description"])
+        if update.get("point_cost") is not None:
+            add_set("point_cost", update["point_cost"])
+        if update.get("fulfillment_mode") is not None:
+            add_set("fulfillment_mode", update["fulfillment_mode"], "::loyalty_fulfillment_mode")
+        if update.get("active") is not None:
+            add_set("active", update["active"])
+
+        if set_clauses:
+            set_clauses.append("updated_at = now()")
+            params.append(catalog_entry_id)
+            await conn.execute(
+                f"UPDATE loyalty_reward_catalog SET {', '.join(set_clauses)} WHERE id = ${len(params)}",
+                *params,
+            )
+
+        if is_system and update.get("point_cost") is not None:
+            await conn.execute(
+                "UPDATE platform_settings SET value = $2 WHERE key = $1",
+                _SYSTEM_POINT_COST_SETTING_KEY[entry["type"]],
+                str(update["point_cost"]),
+            )
+        if max_fare is not None:
+            await conn.execute(
+                "UPDATE platform_settings SET value = $2 WHERE key = 'loyalty_free_ride_max_fare_egp'",
+                str(max_fare),
+            )
+        if discount_pct is not None:
+            await conn.execute(
+                "UPDATE platform_settings SET value = $2 WHERE key = 'loyalty_discount_percentage'",
+                str(discount_pct),
+            )
+
+        row = await conn.fetchrow(
+            f"SELECT {_CATALOG_ADMIN_COLS} FROM loyalty_reward_catalog WHERE id = $1", catalog_entry_id
+        )
+        return dict(row)
+
+
+async def retire_catalog_entry(conn, catalog_entry_id: uuid.UUID) -> dict:
+    """Soft-retire: `active=false`. In-flight redemptions still resolve (FR edge case)."""
+    existing = await conn.fetchrow("SELECT type FROM loyalty_reward_catalog WHERE id = $1", catalog_entry_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Catalog entry not found"})
+    if existing["type"] in _SYSTEM_TYPES:
+        raise HTTPException(
+            status_code=409,
+            detail={"error": "conflict", "message": "System reward types cannot be retired"},
+        )
+    row = await conn.fetchrow(
+        f"UPDATE loyalty_reward_catalog SET active = false, updated_at = now() "
+        f"WHERE id = $1 RETURNING {_CATALOG_ADMIN_COLS}",
+        catalog_entry_id,
+    )
+    return dict(row)
