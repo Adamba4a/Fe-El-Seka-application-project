@@ -5,7 +5,7 @@ import time
 import uuid
 from decimal import ROUND_HALF_UP, Decimal
 
-from app.services import car_maintenance_service, wallet_service
+from app.services import loyalty_service, wallet_service
 from app.services.pricing_service import FARE_SPLIT_SEATS
 
 logger = logging.getLogger(__name__)
@@ -147,10 +147,10 @@ async def deduct_commission(
         total_deducted += commission_amount
         total_distance_fee += distance_fee_amount
 
-    # The distance-fee share of what was just debited funds the driver's free
-    # car-maintenance savings counter (100% platform revenue, credited back as a
-    # driver benefit once CAR_MAINTENANCE_THRESHOLD_EGP is reached).
-    await car_maintenance_service.accumulate_and_maybe_grant(
+    # The distance-fee share of what was just debited funds the driver's loyalty
+    # points balance (100% platform revenue, credited back as a driver benefit —
+    # see loyalty_service.award_driver_points, Spec 028).
+    await loyalty_service.award_driver_points(
         conn, driver_id, wallet_id, total_distance_fee
     )
 

@@ -286,6 +286,14 @@
       "seatsLeft": "{count} مقعد متبقي",
       "seatsCount": "{count} مقعد",
       "premiumFeeIncludedNote": "تُطبَّق الرسوم المميزة على كل يوم مختار.",
+      "loyaltyRedemption": {
+        "heading": "استخدم نقاطك",
+        "yourBalance": "رصيدك: {points} نقطة",
+        "none": "لا توجد مكافآت متاحة حاليًا.",
+        "notAvailableForMultiDay": "يمكن استبدال النقاط في حجز يوم واحد فقط.",
+        "locked": "تحتاج {points} نقطة إضافية",
+        "pointCost": "{points} نقطة"
+      },
       "weekdayShort": {
         "0": "أحد",
         "1": "اثنين",
@@ -301,6 +309,8 @@
         "somethingWrong": "حدث خطأ ما.",
         "duplicateBooking": "لديك بالفعل حجز لهذه الرحلة.",
         "noSeats": "لا توجد مقاعد متاحة — امتلأت هذه الرحلة للتو.",
+        "insufficientPoints": "ليس لديك نقاط كافية لهذه المكافأة.",
+        "loyaltyConflict": "لا يمكن الجمع بين النقاط ورحلة جماعية مدعومة.",
         "bookingFailed": "فشل الحجز. يرجى المحاولة مرة أخرى.",
         "networkBooking": "خطأ في الشبكة — يرجى المحاولة مرة أخرى.",
         "partialBookingFailure": "تم حجز {succeeded} من أصل {total} يوم. الأيام المتبقية كانت ممتلئة أو محجوزة بالفعل."
@@ -331,6 +341,7 @@
     },
     "bookings": {
       "title": "حجوزاتي",
+      "myPoints": "نقاطي",
       "tabAll": "الكل",
       "tabActive": "نشطة",
       "tabPast": "سابقة",
@@ -340,6 +351,21 @@
       "noBookingsAll": "لم تقم بأي حجوزات بعد.",
       "loadFailed": "فشل تحميل الحجوزات",
       "tryAgain": "أعد المحاولة"
+    },
+    "loyalty": {
+      "title": "نقاطي",
+      "balance": "{points} نقطة",
+      "transactionHistory": "السجل",
+      "noTransactions": "لا يوجد نشاط نقاط بعد.",
+      "loading": "جارٍ التحميل…",
+      "loadFailed": "فشل تحميل نقاطك.",
+      "reasons": {
+        "ride_completed_earn": "اكتملت الرحلة",
+        "redemption_spend": "تم الاستبدال",
+        "redemption_refund": "تم استرداد الاستبدال",
+        "ride_reversal_clawback": "تم عكس النقاط"
+      },
+      "showMore": "عرض المزيد"
     },
     "bookingDetail": {
       "title": "تفاصيل الحجز",

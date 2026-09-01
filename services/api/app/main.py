@@ -28,6 +28,7 @@ from app.api.groups.router import router as groups_router
 from app.api.health import router as health_router
 from app.api.internal.revocation_router import router as internal_router
 from app.api.internal.route_intelligence_router import router as route_intelligence_router
+from app.api.loyalty.loyalty_router import router as loyalty_router
 from app.api.org_access.router import router as org_access_router
 from app.api.profiles.router import router as profiles_router
 from app.api.ratings.router import router as ratings_router
@@ -287,4 +288,5 @@ app.include_router(routes_router, prefix="/api/routes", tags=["routes"])
 app.include_router(geocode_router, prefix="/api/geocode", tags=["geocode"])
 app.include_router(groups_router, prefix="/api/groups", tags=["groups"])
 app.include_router(org_access_router, prefix="/api/v1/org-access", tags=["org-access"])
+app.include_router(loyalty_router, prefix="/api/v1/loyalty", tags=["loyalty"])
 app.include_router(route_intelligence_router, prefix="/internal/route-intelligence", tags=["internal"])

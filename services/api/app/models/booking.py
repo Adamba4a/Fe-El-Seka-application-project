@@ -24,6 +24,8 @@ class BookingCreateRequest(BaseModel):
     premium_pickup_fee: Optional[float] = None
     premium_dropoff_fee: Optional[float] = None
     seats: int = Field(1, ge=1, le=8)
+    # Spec 028: inline free_ride/discount loyalty redemption applied at booking time.
+    loyalty_redemption_catalog_entry_id: Optional[UUID] = None
 
 
 class BookingCancelRequest(BaseModel):

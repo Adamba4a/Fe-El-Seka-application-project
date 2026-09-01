@@ -16,6 +16,7 @@ import { formatCurrency } from "@fe-el-seka/shared";
 import type { Locale } from "@fe-el-seka/shared";
 import { fromIsoWeekday } from "@/lib/weekdays";
 import { listRecurringInstancesForRide, type RecurringInstanceOption } from "@/lib/api/recurring-rides";
+import { getLoyaltyBalance, getLoyaltyCatalog, type LoyaltyCatalogEntry } from "@/lib/api/loyalty";
 
 const RideDetailMap = dynamic(
   () => import("@/components/bookings/RideDetailMap").then((m) => ({ default: m.RideDetailMap })),
@@ -263,6 +264,9 @@ export default function PassengerRideDetailPage() {
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [siblingInstances, setSiblingInstances] = useState<RecurringInstanceOption[]>([]);
   const [extraSeats, setExtraSeats] = useState<Record<string, number>>({});
+  const [loyaltyCatalog, setLoyaltyCatalog] = useState<LoyaltyCatalogEntry[]>([]);
+  const [loyaltyBalance, setLoyaltyBalance] = useState<number | null>(null);
+  const [selectedRedemptionId, setSelectedRedemptionId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -325,6 +329,26 @@ export default function PassengerRideDetailPage() {
     }
     loadSiblings();
   }, [id, detail?.ride.recurring_ride_definition_id]);
+
+  useEffect(() => {
+    async function loadLoyalty() {
+      if (!detail || detail.ride.is_sponsored) return;
+      try {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const [catalog, balance] = await Promise.all([
+          getLoyaltyCatalog(session.access_token),
+          getLoyaltyBalance(session.access_token),
+        ]);
+        setLoyaltyCatalog(catalog.items.filter((i) => i.type === "free_ride" || i.type === "discount"));
+        setLoyaltyBalance(balance.balance);
+      } catch {
+        // Non-critical: the redemption picker just stays hidden if this fails.
+      }
+    }
+    loadLoyalty();
+  }, [detail]);
 
   if (loading) {
     return (
@@ -540,7 +564,8 @@ export default function PassengerRideDetailPage() {
 
       const postBooking = async (
         rideId: string,
-        seats: number
+        seats: number,
+        loyaltyRedemptionCatalogEntryId: string | null
       ): Promise<{ res: Response; json: { booking_id?: string; detail?: unknown; error?: string; message?: string } }> => {
         const res = await fetch(`${env.apiUrl}/api/v1/bookings`, {
           method: "POST",
@@ -557,20 +582,32 @@ export default function PassengerRideDetailPage() {
             premium_pickup_fee: pickupFee,
             premium_dropoff_fee: dropoffFee,
             seats,
+            loyalty_redemption_catalog_entry_id: loyaltyRedemptionCatalogEntryId,
           }),
         });
         const json = await res.json();
         return { res, json };
       };
 
+      // Points redemption only applies to the single main-day booking — not
+      // to extra recurring days, which are separate bookings on separate rides.
+      const extraDayCount = Object.keys(extraSeats).length;
       const targets = [
-        { rideId: detail.ride.id, seats: clampedSeatCount },
-        ...Object.entries(extraSeats).map(([rideId, seats]) => ({ rideId, seats })),
+        {
+          rideId: detail.ride.id,
+          seats: clampedSeatCount,
+          loyaltyRedemptionCatalogEntryId: extraDayCount === 0 ? selectedRedemptionId : null,
+        },
+        ...Object.entries(extraSeats).map(([rideId, seats]) => ({
+          rideId,
+          seats,
+          loyaltyRedemptionCatalogEntryId: null as string | null,
+        })),
       ];
 
       const outcomes: Awaited<ReturnType<typeof postBooking>>[] = [];
       for (const target of targets) {
-        outcomes.push(await postBooking(target.rideId, target.seats));
+        outcomes.push(await postBooking(target.rideId, target.seats, target.loyaltyRedemptionCatalogEntryId));
       }
 
       const succeeded = outcomes.filter((o) => o.res.status === 201);
@@ -590,6 +627,10 @@ export default function PassengerRideDetailPage() {
           setBookingError(
             err?.error === "duplicate_booking"
               ? t("errors.duplicateBooking")
+              : err?.error === "insufficient_points"
+              ? t("errors.insufficientPoints")
+              : err?.error === "loyalty_redemption_conflict"
+              ? t("errors.loyaltyConflict")
               : t("errors.noSeats")
           );
         } else {
@@ -900,6 +941,57 @@ export default function PassengerRideDetailPage() {
               <span>{formatCurrency(Number(totalPrice), locale)}</span>
             </div>
           </div>
+
+          {!ride.is_sponsored && selectedExtraCount === 0 && (
+            <div className="border-t border-border-default pt-3 space-y-2">
+              <p className="text-sm font-medium text-content-primary">
+                {t("loyaltyRedemption.heading")}
+              </p>
+              {loyaltyBalance !== null && (
+                <p className="text-xs text-content-muted">
+                  {t("loyaltyRedemption.yourBalance", { points: loyaltyBalance })}
+                </p>
+              )}
+              {loyaltyCatalog.length === 0 ? (
+                <p className="text-xs text-content-muted">{t("loyaltyRedemption.none")}</p>
+              ) : (
+                <div className="space-y-2">
+                  {loyaltyCatalog.map((entry) => {
+                    const locked = loyaltyBalance === null || loyaltyBalance < entry.point_cost;
+                    const selected = selectedRedemptionId === entry.id;
+                    return (
+                      <button
+                        key={entry.id}
+                        type="button"
+                        disabled={locked}
+                        onClick={() => setSelectedRedemptionId(selected ? null : entry.id)}
+                        className={`w-full flex items-center justify-between p-3 rounded-xl border text-sm text-start transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                          selected
+                            ? "border-brand-primary bg-brand-primary/5"
+                            : "border-border-default bg-surface-card"
+                        }`}
+                      >
+                        <span>
+                          <span className="block font-medium text-content-primary">{entry.title}</span>
+                          <span className="block text-xs text-content-muted">{entry.description}</span>
+                        </span>
+                        <span className="shrink-0 text-xs font-semibold text-content-secondary ms-2">
+                          {locked
+                            ? t("loyaltyRedemption.locked", { points: entry.point_cost - (loyaltyBalance ?? 0) })
+                            : t("loyaltyRedemption.pointCost", { points: entry.point_cost })}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+          {!ride.is_sponsored && selectedExtraCount > 0 && (
+            <p className="text-xs text-content-muted border-t border-border-default pt-3">
+              {t("loyaltyRedemption.notAvailableForMultiDay")}
+            </p>
+          )}
 
           {bookingError && (
             <p className="text-sm text-content-destructive">{bookingError}</p>

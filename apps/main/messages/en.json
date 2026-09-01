@@ -286,6 +286,14 @@
       "seatsLeft": "{count} seats left",
       "seatsCount": "{count} seat(s)",
       "premiumFeeIncludedNote": "Premium fee applies to each selected day.",
+      "loyaltyRedemption": {
+        "heading": "Use your points",
+        "yourBalance": "Your balance: {points} pts",
+        "none": "No rewards available right now.",
+        "notAvailableForMultiDay": "Points can only be redeemed on a single-day booking.",
+        "locked": "Need {points} more pts",
+        "pointCost": "{points} pts"
+      },
       "weekdayShort": {
         "0": "Sun",
         "1": "Mon",
@@ -301,6 +309,8 @@
         "somethingWrong": "Something went wrong.",
         "duplicateBooking": "You already have a booking for this ride.",
         "noSeats": "No seats available — this ride just filled up.",
+        "insufficientPoints": "You don't have enough points for that reward.",
+        "loyaltyConflict": "Points can't be combined with a sponsored-group ride.",
         "bookingFailed": "Booking failed. Please try again.",
         "networkBooking": "Network error — please try again.",
         "partialBookingFailure": "{succeeded} of {total} day(s) booked. The rest were full or already booked."
@@ -331,6 +341,7 @@
     },
     "bookings": {
       "title": "My Bookings",
+      "myPoints": "My Points",
       "tabAll": "All",
       "tabActive": "Active",
       "tabPast": "Past",
@@ -340,6 +351,21 @@
       "noBookingsAll": "You haven't made any bookings yet.",
       "loadFailed": "Failed to load bookings",
       "tryAgain": "Try again"
+    },
+    "loyalty": {
+      "title": "My Points",
+      "balance": "{points} pts",
+      "transactionHistory": "History",
+      "noTransactions": "No point activity yet.",
+      "loading": "Loading…",
+      "loadFailed": "Failed to load your points.",
+      "reasons": {
+        "ride_completed_earn": "Ride completed",
+        "redemption_spend": "Redeemed",
+        "redemption_refund": "Redemption refunded",
+        "ride_reversal_clawback": "Points reversed"
+      },
+      "showMore": "Show more"
     },
     "bookingDetail": {
       "title": "Booking Details",

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { createClient } from "@/lib/supabase/client";
 import { useSession } from "@/lib/auth/hooks";
@@ -104,7 +105,15 @@ export default function PassengerBookingsPage() {
 
   return (
     <div className="max-w-md mx-auto py-2 space-y-5">
-      <h1 className="text-3xl font-bold text-dash-navy">{t("title")}</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-3xl font-bold text-dash-navy">{t("title")}</h1>
+        <Link
+          href="/loyalty"
+          className="rounded-xl border border-border-default px-3 py-2 text-xs font-semibold text-content-primary hover:bg-surface-bg transition-colors shrink-0"
+        >
+          {t("myPoints")}
+        </Link>
+      </div>
 
       {/* Tab bar */}
       <div className="flex border-b border-dash-border">

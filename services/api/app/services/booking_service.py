@@ -4,7 +4,7 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import ROUND_FLOOR, ROUND_HALF_UP, Decimal
 from typing import Any, Optional
 
 import asyncpg
@@ -82,8 +82,11 @@ async def create_booking(
     premium_pickup_fee: Optional[float],
     premium_dropoff_fee: Optional[float],
     seats: int = 1,
+    loyalty_redemption_catalog_entry_id: Optional[uuid.UUID] = None,
 ) -> dict:
     """Atomically reserve `seats` seats and create a pending booking. Must be called with a pool conn."""
+    from app.services import loyalty_service
+
     async with conn.transaction():
         # 1. Lock the ride row to prevent concurrent seat races
         ride = await conn.fetchrow(
@@ -205,6 +208,24 @@ async def create_booking(
         do_fee = Decimal(str(premium_dropoff_fee)) if premium_dropoff and premium_dropoff_fee else Decimal("0")
         total = per_seat * seats + pu_fee + do_fee
 
+        # 3a. Inline free_ride/discount loyalty redemption (Spec 028, FR-004/FR-005).
+        # Must run before the booking row is inserted (it deducts points and needs the
+        # final fare), and can't combine with a sponsored-group discount (FR-005a).
+        loyalty_redemption = None
+        if loyalty_redemption_catalog_entry_id is not None:
+            if payment_source == "SPONSORED":
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "error": "loyalty_redemption_conflict",
+                        "message": "Loyalty redemption cannot be combined with a sponsored-group ride.",
+                    },
+                )
+            loyalty_redemption = await loyalty_service.redeem_for_booking(
+                conn, passenger_id, loyalty_redemption_catalog_entry_id, ride_id, total
+            )
+            total = loyalty_redemption["fare_after_discount_egp"]
+
         # 4. Insert booking — unique index raises UniqueViolation on duplicate active booking
         try:
             row = await conn.fetchrow(
@@ -242,6 +263,12 @@ async def create_booking(
 
         booking = dict(row)
         booking_id = booking["id"]
+
+        if loyalty_redemption is not None:
+            await loyalty_service.attach_booking_to_redemption(
+                conn, loyalty_redemption["redemption_request_id"], booking_id
+            )
+        booking["loyalty_redemption"] = loyalty_redemption
 
         # 5. Audit log
         await _insert_audit_log(conn, booking_id, "created", passenger_id, "passenger", None, "pending")
@@ -298,7 +325,7 @@ async def _settle_sponsored_booking(
     premium-pickup fallback path (which also confirms a booking directly). Must be
     called from within the caller's transaction, with the booking row already locked.
     """
-    from app.services import car_maintenance_service, wallet_service
+    from app.services import loyalty_service, wallet_service
     from app.services.commission_service import compute_per_seat_commission
 
     total_seat_price = Decimal(str(per_seat_price)) * seats
@@ -344,7 +371,7 @@ async def _settle_sponsored_booking(
         booking_id=booking_id,
         note="Sponsored group booking settlement",
     )
-    await car_maintenance_service.accumulate_and_maybe_grant(
+    await loyalty_service.award_driver_points(
         conn, driver_id, driver_wallet["id"], distance_fee_amount
     )
 
@@ -666,7 +693,7 @@ async def cancel_booking(
         # price the passenger locked in (per_seat_price), which is exactly what was
         # credited at settlement time — not the ride's current (possibly since-edited) price.
         if row["payment_source"] == "SPONSORED" and row["status"] == "confirmed":
-            from app.services import wallet_service
+            from app.services import loyalty_service, wallet_service
             from app.services.commission_service import compute_per_seat_commission
 
             total_seat_price = Decimal(str(row["per_seat_price"])) * row["seats"]
@@ -707,9 +734,23 @@ async def cancel_booking(
                 booking_id=booking_id,
                 note="Sponsored group booking cancellation reversal",
             )
+            # Mirror the fractional-carry pool reversal (award_driver_points may have
+            # cashed part of this contribution into points already — GREATEST(...,0)
+            # in decrement_car_maintenance_savings protects the pool floor). Separately
+            # claw back whole points via reverse_points: since a single booking's
+            # distance fee is almost always < 1 EGP, this is 0 in the common case (no
+            # point was ever minted from this booking alone) and a conservative
+            # (never-over-claws) floor otherwise — the driver keeps any point that
+            # required pooling with other bookings' fractional remainders.
             await wallet_service.decrement_car_maintenance_savings(
                 conn, driver_wallet["id"], distance_fee_amount
             )
+            points_to_reverse = int(distance_fee_amount.to_integral_value(rounding=ROUND_FLOOR))
+            if points_to_reverse > 0:
+                await loyalty_service.reverse_points(
+                    conn, row["driver_id"], points_to_reverse,
+                    ride_id=row["ride_id"], booking_id=booking_id,
+                )
 
         await conn.execute(
             "UPDATE rides SET booked_seats = GREATEST(booked_seats - $2, 0) WHERE id = $1",
@@ -1020,19 +1061,27 @@ async def booking_expiry_loop() -> None:
 
 async def complete_ride_bookings(conn, ride_id: uuid.UUID) -> int:
     """Transition all confirmed bookings for a ride to completed. Idempotent."""
+    from app.services import loyalty_service
+
     rows = await conn.fetch(
         """
         UPDATE bookings b
         SET status = 'completed'
         FROM rides r
         WHERE b.ride_id = $1 AND b.status = 'confirmed' AND r.id = b.ride_id
-        RETURNING b.id, b.passenger_id, r.driver_id
+        RETURNING b.id, b.passenger_id, b.total_price, r.driver_id
         """,
         ride_id,
     )
     for row in rows:
         await _insert_audit_log(
             conn, row["id"], "completed", None, "system", "confirmed", "completed"
+        )
+        # FR-001 (Spec 028): passengers earn loyalty points on completed bookings,
+        # proportional to what they actually paid (already net of any inline
+        # free_ride/discount redemption applied at booking creation).
+        await loyalty_service.award_passenger_points(
+            conn, row["passenger_id"], row["id"], ride_id, Decimal(str(row["total_price"]))
         )
         await match_logging_service.record_outcome(
             conn, ride_id, row["passenger_id"], "completed", {"booking_id": str(row["id"])},

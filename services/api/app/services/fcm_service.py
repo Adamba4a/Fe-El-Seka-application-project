@@ -104,6 +104,22 @@ _NOTIFICATION_TEMPLATES: dict[str, dict[str, tuple[str, str]]] = {
         "en": ("Verification Not Approved", "Your identity verification was not approved. Open the app for details."),
         "ar": ("لم تتم الموافقة على التحقق", "لم تتم الموافقة على التحقق من هويتك. افتح التطبيق للتفاصيل."),
     },
+    "loyalty_points_earned": {
+        "en": ("Points Earned", "You've earned loyalty points. Open the app to see your balance."),
+        "ar": ("تم اكتساب نقاط", "لقد حصلت على نقاط ولاء. افتح التطبيق لرؤية رصيدك."),
+    },
+    "loyalty_redemption_fulfilled": {
+        "en": ("Reward Fulfilled", "Your loyalty points redemption has been fulfilled."),
+        "ar": ("تم صرف المكافأة", "تم صرف طلب استبدال نقاط الولاء الخاص بك."),
+    },
+    "loyalty_redemption_rejected": {
+        "en": ("Redemption Not Approved", "Your loyalty points redemption was not approved. Your points were refunded."),
+        "ar": ("لم تتم الموافقة على الاستبدال", "لم تتم الموافقة على استبدال نقاط الولاء الخاص بك. تم رد نقاطك."),
+    },
+    "loyalty_threshold_reached": {
+        "en": ("Reward Unlocked!", "You've earned enough loyalty points to redeem a reward."),
+        "ar": ("تم فتح مكافأة!", "لقد حصلت على نقاط ولاء كافية لاستبدال مكافأة."),
+    },
 }
 
 # Locale-aware fallback for event types with no entry above (mirrors the FR-011
