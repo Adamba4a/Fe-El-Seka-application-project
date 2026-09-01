@@ -598,12 +598,18 @@ async def update_catalog_entry(conn, catalog_entry_id: uuid.UUID, update: dict) 
             if max_fare is not None and entry["type"] != "free_ride":
                 raise HTTPException(
                     status_code=409,
-                    detail={"error": "invalid_field_for_type", "message": "loyalty_free_ride_max_fare_egp only applies to free_ride"},
+                    detail={
+                        "error": "invalid_field_for_type",
+                        "message": "loyalty_free_ride_max_fare_egp only applies to free_ride",
+                    },
                 )
             if discount_pct is not None and entry["type"] != "discount":
                 raise HTTPException(
                     status_code=409,
-                    detail={"error": "invalid_field_for_type", "message": "loyalty_discount_percentage only applies to discount"},
+                    detail={
+                        "error": "invalid_field_for_type",
+                        "message": "loyalty_discount_percentage only applies to discount",
+                    },
                 )
         elif max_fare is not None or discount_pct is not None:
             raise HTTPException(

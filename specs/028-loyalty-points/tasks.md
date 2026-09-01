@@ -134,11 +134,11 @@ Per plan.md Project Structure: `services/api/app/{models,services,api}` (FastAPI
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T038 [P] Verify RLS policies on all 4 new tables (owner-read on accounts/transactions/redemption_requests, public-read on active catalog entries) via the Supabase dashboard or a direct SQL check, per `data-model.md`.
+- [X] T038 [P] Verify RLS policies on all 4 new tables (owner-read on accounts/transactions/redemption_requests, public-read on active catalog entries) via the Supabase dashboard or a direct SQL check, per `data-model.md`.
 - [ ] T039 Run the full `quickstart.md` validation suite (all 8 scenarios) end-to-end against the local stack in one pass.
-- [ ] T040 Confirm CI checks (typecheck/build/lint) pass for `services/api`, `apps/main`, and `apps/admin` changes.
-- [ ] T041 [P] Add all new user-facing strings (loyalty balance/history/catalog/redeem UI in both apps, admin catalog+queue screens) to the message catalog (`en.json`/`ar.json`) and republish via `services/api/scripts/publish_message_catalog.py` before considering the UI text live.
-- [ ] T042 Confirm no remaining references to `car_maintenance_service`/`car_maintenance_router` exist anywhere in `services/api` (grep check) after T025's removal.
+- [X] T040 Confirm CI checks (typecheck/build/lint) pass for `services/api`, `apps/main`, and `apps/admin` changes.
+- [X] T041 [P] Add all new user-facing strings (loyalty balance/history/catalog/redeem UI in both apps, admin catalog+queue screens) to the message catalog (`en.json`/`ar.json`) and republish via `services/api/scripts/publish_message_catalog.py` before considering the UI text live.
+- [X] T042 Confirm no remaining references to `car_maintenance_service`/`car_maintenance_router` exist anywhere in `services/api` (grep check) after T025's removal.
 
 ---
 
