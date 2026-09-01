@@ -396,7 +396,9 @@
       "postFirstRide": "Post your first ride",
       "seatsAvailableCount": "{available}/{total} seats available",
       "perSeatSuffix": "/seat",
-      "sponsoredByGroup": "Sponsored · {groupName}"
+      "sponsoredByGroup": "Sponsored · {groupName}",
+      "recurringUpcomingCount": "{count} upcoming day(s)",
+      "recurringNextDeparture": "Next: {date}"
     },
     "editRide": {
       "loadFailed": "Failed to load ride.",
@@ -522,6 +524,7 @@
       "heading": "Recurring Rides",
       "newRecurringRide": "+ New Recurring Ride",
       "manageLink": "Recurring Rides",
+      "seriesBadge": "Recurring",
       "loadFailed": "Failed to load recurring rides.",
       "emptyTitle": "No recurring rides yet",
       "emptyBody": "Post a recurring ride to automatically generate rides on a weekly schedule",

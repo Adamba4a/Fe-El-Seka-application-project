@@ -396,7 +396,9 @@
       "postFirstRide": "انشر رحلتك الأولى",
       "seatsAvailableCount": "{available}/{total} مقاعد متاحة",
       "perSeatSuffix": "/مقعد",
-      "sponsoredByGroup": "برعاية · {groupName}"
+      "sponsoredByGroup": "برعاية · {groupName}",
+      "recurringUpcomingCount": "{count} يوم قادم",
+      "recurringNextDeparture": "التالي: {date}"
     },
     "editRide": {
       "loadFailed": "فشل تحميل الرحلة.",
@@ -522,6 +524,7 @@
       "heading": "الرحلات المتكررة",
       "newRecurringRide": "+ رحلة متكررة جديدة",
       "manageLink": "الرحلات المتكررة",
+      "seriesBadge": "متكررة",
       "loadFailed": "فشل تحميل الرحلات المتكررة.",
       "emptyTitle": "لا توجد رحلات متكررة بعد",
       "emptyBody": "انشر رحلة متكررة لإنشاء رحلات تلقائيًا حسب جدول أسبوعي",
