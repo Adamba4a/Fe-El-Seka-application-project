@@ -454,12 +454,15 @@
       "addBalance": "إضافة رصيد",
       "requestWithdrawal": "طلب سحب",
       "transactionHistory": "سجل المعاملات",
+      "viewHistory": "عرض السجل",
       "noTransactions": "لا توجد معاملات بعد. أضف رصيدًا لبدء نشر الرحلات.",
       "cashWalletHeading": "المحفظة النقدية",
       "cashWalletHelp": "رصيدك الخاص المضاف بنفسك، يُستخدم لدفع عمولات الرحلات العادية (غير المرعية).",
       "cashBackHeading": "كاش باك",
-      "cashBackHelp": "ما ربحته من رحلات المجموعات المرعية ومن حصة رسوم المسافة في عمولة كل رحلة. هذا هو الرصيد الوحيد الذي يمكنك سحبه.",
-      "cashBackBalance": "متاح للسحب"
+      "cashBackHelp": "ما ربحته من رحلات المجموعات المرعية ومن حصة رسوم المسافة في عمولة كل رحلة. يصل أولاً كنقاط — استبدل النقاط بنقود قابلة للسحب في أي وقت تريد.",
+      "cashBackPointsLabel": "نقاط الكاش باك",
+      "cashBackBalance": "متاح للسحب",
+      "redeemPoints": "استبدال النقاط"
     },
     "walletWithdraw": {
       "heading": "طلب سحب",
@@ -494,6 +497,22 @@
           "REJECTED": "مرفوض"
         },
         "rejectionReasonPrefix": "السبب: {reason}"
+      }
+    },
+    "cashBackRedeem": {
+      "heading": "استبدال النقاط",
+      "instructions": "حوّل نقاط الكاش باك الخاصة بك إلى نقود قابلة للسحب — نقطة واحدة = جنيه واحد. أدخل عدد النقاط التي تريد استبدالها.",
+      "amountLabel": "النقاط المراد استبدالها",
+      "amountPlaceholder": "مثال: 100.00",
+      "submit": "استبدال",
+      "submitting": "جارٍ الاستبدال…",
+      "backToWallet": "العودة إلى المحفظة",
+      "successHeading": "تم الاستبدال!",
+      "successBody": "تم تحويل نقاطك إلى نقود قابلة للسحب.",
+      "errors": {
+        "validation_error": "يرجى التحقق من المبلغ والمحاولة مرة أخرى.",
+        "insufficient_points": "هذا المبلغ يتجاوز نقاط الكاش باك المتاحة لديك.",
+        "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
       }
     },
     "walletTopup": {
@@ -1220,6 +1239,7 @@
     "cashBackCredit": "كاش باك مكتسب",
     "cashBackReversal": "عكس كاش باك",
     "pointsDiscountReimbursement": "استرداد نقاط الراكب",
+    "cashBackRedeemed": "استبدال نقاط بنقود",
     "justNow": "الآن",
     "minutesAgo": "منذ {minutes} د",
     "hoursAgo": "منذ {hours} س",

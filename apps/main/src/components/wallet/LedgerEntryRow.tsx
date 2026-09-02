@@ -43,14 +43,16 @@ export function LedgerEntryRow({ entry }: Props) {
     CASH_BACK_CREDIT: t("cashBackCredit"),
     CASH_BACK_REVERSAL: t("cashBackReversal"),
     POINTS_DISCOUNT_REIMBURSEMENT: t("pointsDiscountReimbursement"),
+    CASH_BACK_REDEEMED: t("cashBackRedeemed"),
   };
+  const isRedeemed = entry.type === "CASH_BACK_REDEEMED";
   const isCredit =
     entry.type === "ADMIN_CREDIT" ||
     entry.type === "SPONSORED_RIDE_CREDIT" ||
     entry.type === "CASH_BACK_CREDIT" ||
     entry.type === "POINTS_DISCOUNT_REIMBURSEMENT";
-  const amountColor = isCredit ? "text-green-600" : "text-red-600";
-  const sign = isCredit ? "+" : "−";
+  const amountColor = isRedeemed ? "text-content-muted" : isCredit ? "text-green-600" : "text-red-600";
+  const sign = isRedeemed ? "→" : isCredit ? "+" : "−";
 
   return (
     <div className="flex items-center justify-between py-3 border-b border-border-default last:border-0">

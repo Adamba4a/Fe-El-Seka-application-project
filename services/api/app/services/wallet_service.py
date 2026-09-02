@@ -6,6 +6,8 @@ import uuid
 from decimal import Decimal
 from typing import Optional
 
+from fastapi import HTTPException
+
 logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -14,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 _WALLET_COLS = (
     "id, driver_id, balance_egp, reserved_egp, sponsored_earnings_egp, "
-    "car_maintenance_savings_egp, created_at, updated_at"
+    "cash_back_points_egp, car_maintenance_savings_egp, created_at, updated_at"
 )
 
 
@@ -94,7 +96,9 @@ async def decrement_reserved(conn, wallet_id: uuid.UUID, amount: Decimal) -> Non
 async def increment_sponsored_earnings(conn, wallet_id: uuid.UUID, amount: Decimal) -> None:
     """Credit sponsored_earnings_egp — the ONLY pool withdrawal requests may draw from.
     Kept separate from balance_egp so a driver can never withdraw self-funded top-ups
-    (including the promotional free-ride credit)."""
+    (including the promotional free-ride credit). Only touched by redeem_cash_back_points
+    and withdrawal approval — all Cash Back earning events credit cash_back_points_egp
+    instead (see increment_cash_back_points)."""
     await conn.execute(
         "UPDATE driver_wallets SET sponsored_earnings_egp = sponsored_earnings_egp + $2, "
         "updated_at = now() WHERE id = $1",
@@ -112,6 +116,66 @@ async def decrement_sponsored_earnings(conn, wallet_id: uuid.UUID, amount: Decim
         wallet_id,
         amount,
     )
+
+
+async def increment_cash_back_points(conn, wallet_id: uuid.UUID, amount: Decimal) -> None:
+    """Credit cash_back_points_egp (1 pt = 1 EGP) — every Cash Back earning event
+    (sponsored ride settlement, distance-fee share, points-discount reimbursement)
+    lands here first. Not withdrawable until redeemed into sponsored_earnings_egp
+    via redeem_cash_back_points."""
+    await conn.execute(
+        "UPDATE driver_wallets SET cash_back_points_egp = cash_back_points_egp + $2, "
+        "updated_at = now() WHERE id = $1",
+        wallet_id,
+        amount,
+    )
+
+
+async def decrement_cash_back_points(conn, wallet_id: uuid.UUID, amount: Decimal) -> None:
+    """Subtract amount from cash_back_points_egp. GREATEST(..., 0) guards the DB CHECK
+    constraint — a driver may have already redeemed some of the points being clawed
+    back on a booking-cancellation reversal."""
+    await conn.execute(
+        "UPDATE driver_wallets SET cash_back_points_egp = GREATEST(cash_back_points_egp - $2, 0), "
+        "updated_at = now() WHERE id = $1",
+        wallet_id,
+        amount,
+    )
+
+
+async def redeem_cash_back_points(conn, driver_id: uuid.UUID, amount: Decimal) -> dict:
+    """Move `amount` from cash_back_points_egp into the withdrawable sponsored_earnings_egp
+    pool, logging a single CASH_BACK_REDEEMED ledger entry. Must be called outside any
+    caller-held transaction — opens its own so the wallet lock scope stays minimal."""
+    async with conn.transaction():
+        wallet = await get_wallet_with_lock(conn, driver_id)
+        available = Decimal(str(wallet["cash_back_points_egp"]))
+        if amount <= 0:
+            raise HTTPException(
+                status_code=422,
+                detail={"error": "validation_error", "message": "amount must be greater than 0.00"},
+            )
+        if amount > available:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "insufficient_points",
+                    "message": "amount exceeds your available Cash Back points balance",
+                },
+            )
+        await decrement_cash_back_points(conn, wallet["id"], amount)
+        await increment_sponsored_earnings(conn, wallet["id"], amount)
+        entry = await insert_ledger_entry(
+            conn,
+            wallet["id"],
+            driver_id,
+            "CASH_BACK_REDEEMED",
+            amount,
+            note="Redeemed Cash Back points to withdrawable cash",
+        )
+        entry["cash_back_points_egp"] = available - amount
+        entry["sponsored_earnings_egp"] = Decimal(str(wallet["sponsored_earnings_egp"])) + amount
+    return entry
 
 
 # ─────────────────────────────────────────────────────────────────────────────

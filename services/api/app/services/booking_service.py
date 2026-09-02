@@ -409,7 +409,7 @@ async def _settle_sponsored_booking(
     )
 
     driver_wallet = await wallet_service.get_wallet_with_lock(conn, driver_id)
-    await wallet_service.increment_sponsored_earnings(conn, driver_wallet["id"], net_credit)
+    await wallet_service.increment_cash_back_points(conn, driver_wallet["id"], net_credit)
     await wallet_service.insert_ledger_entry(
         conn,
         driver_wallet["id"],
@@ -420,12 +420,12 @@ async def _settle_sponsored_booking(
         booking_id=booking_id,
         note="Sponsored group booking settlement",
     )
-    # 100% platform revenue, credited straight back to the driver as withdrawable
-    # Cash Back (replaces the old loyalty-points/car-maintenance-savings mechanic
-    # — post-Spec-028 item 1). Mirrors commission_service.deduct_commission's cash
-    # rides call, but sponsored bookings settle here at confirmation, not completion.
+    # 100% platform revenue, credited straight back to the driver as Cash Back points
+    # (replaces the old loyalty-points/car-maintenance-savings mechanic — post-Spec-028
+    # item 1). Mirrors commission_service.deduct_commission's cash rides call, but
+    # sponsored bookings settle here at confirmation, not completion.
     if distance_fee_amount > Decimal("0.00"):
-        await wallet_service.increment_sponsored_earnings(conn, driver_wallet["id"], distance_fee_amount)
+        await wallet_service.increment_cash_back_points(conn, driver_wallet["id"], distance_fee_amount)
         await wallet_service.insert_ledger_entry(
             conn,
             driver_wallet["id"],
@@ -802,7 +802,7 @@ async def cancel_booking(
                 row["group_id"], total_seat_price,
             )
             driver_wallet = await wallet_service.get_wallet_with_lock(conn, row["driver_id"])
-            await wallet_service.decrement_sponsored_earnings(conn, driver_wallet["id"], net_credit)
+            await wallet_service.decrement_cash_back_points(conn, driver_wallet["id"], net_credit)
             await wallet_service.insert_ledger_entry(
                 conn,
                 driver_wallet["id"],
@@ -815,11 +815,11 @@ async def cancel_booking(
             )
             # Reverse the Cash Back credit _settle_sponsored_booking paid out separately
             # from net_credit above (see its CASH_BACK_CREDIT ledger entry) — GREATEST(...,0)
-            # in decrement_sponsored_earnings guards against a driver having already
-            # withdrawn some of it (the driver keeps any already-approved withdrawal;
-            # the pool floor just can't go negative).
+            # in decrement_cash_back_points guards against a driver having already
+            # redeemed (and possibly withdrawn) some of it — the driver keeps any
+            # already-redeemed points; the pool floor just can't go negative.
             if distance_fee_amount > Decimal("0.00"):
-                await wallet_service.decrement_sponsored_earnings(
+                await wallet_service.decrement_cash_back_points(
                     conn, driver_wallet["id"], distance_fee_amount
                 )
                 await wallet_service.insert_ledger_entry(

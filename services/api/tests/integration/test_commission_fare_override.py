@@ -38,7 +38,7 @@ def captured_ledger_entries(monkeypatch):
     async def _fake_decrement_balance(conn, wallet_id, amount):
         return None
 
-    async def _fake_increment_sponsored_earnings(conn, wallet_id, amount):
+    async def _fake_increment_cash_back_points(conn, wallet_id, amount):
         return None
 
     async def _fake_award_passenger_points(conn, passenger_id, booking_id, ride_id, commission_egp):
@@ -47,7 +47,7 @@ def captured_ledger_entries(monkeypatch):
     monkeypatch.setattr(wallet_service, "get_wallet_with_lock", _fake_get_wallet_with_lock)
     monkeypatch.setattr(wallet_service, "insert_ledger_entry", _fake_insert_ledger_entry)
     monkeypatch.setattr(wallet_service, "decrement_balance", _fake_decrement_balance)
-    monkeypatch.setattr(wallet_service, "increment_sponsored_earnings", _fake_increment_sponsored_earnings)
+    monkeypatch.setattr(wallet_service, "increment_cash_back_points", _fake_increment_cash_back_points)
     monkeypatch.setattr(loyalty_service, "award_passenger_points", _fake_award_passenger_points)
     return entries
 

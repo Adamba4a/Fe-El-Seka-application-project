@@ -34,6 +34,7 @@ async def get_driver_wallet(
     reserved = Decimal(str(wallet["reserved_egp"]))
     available = balance - reserved
     sponsored_earnings = Decimal(str(wallet["sponsored_earnings_egp"]))
+    cash_back_points = Decimal(str(wallet["cash_back_points_egp"]))
     total_pages = max(1, (total + _PER_PAGE - 1) // _PER_PAGE)
 
     return {
@@ -43,6 +44,7 @@ async def get_driver_wallet(
         "reserved_egp": str(reserved),
         "available_egp": str(available),
         "sponsored_earnings_egp": str(sponsored_earnings),
+        "cash_back_points_egp": str(cash_back_points),
         "entries": [
             {
                 "id": str(e["id"]),

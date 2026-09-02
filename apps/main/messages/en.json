@@ -454,12 +454,15 @@
       "addBalance": "Add Balance",
       "requestWithdrawal": "Request Withdrawal",
       "transactionHistory": "Transaction History",
+      "viewHistory": "View History",
       "noTransactions": "No transactions yet. Add balance to start posting rides.",
       "cashWalletHeading": "Cash Wallet",
       "cashWalletHelp": "Your own top-ups, used to pay ride commissions on regular (non-sponsored) rides.",
       "cashBackHeading": "Cash Back",
-      "cashBackHelp": "What you've earned back from sponsored-group rides and the distance-fee share of every ride's commission. This is the only balance you can withdraw.",
-      "cashBackBalance": "Available to withdraw"
+      "cashBackHelp": "What you've earned back from sponsored-group rides and the distance-fee share of every ride's commission. It lands as points first — redeem points into withdrawable cash whenever you like.",
+      "cashBackPointsLabel": "Cash Back Points",
+      "cashBackBalance": "Available to withdraw",
+      "redeemPoints": "Redeem Points"
     },
     "walletWithdraw": {
       "heading": "Request Withdrawal",
@@ -494,6 +497,22 @@
           "REJECTED": "Rejected"
         },
         "rejectionReasonPrefix": "Reason: {reason}"
+      }
+    },
+    "cashBackRedeem": {
+      "heading": "Redeem Points",
+      "instructions": "Convert your Cash Back points into withdrawable cash — 1 point = 1 EGP. Enter how many points to redeem.",
+      "amountLabel": "Points to redeem",
+      "amountPlaceholder": "e.g. 100.00",
+      "submit": "Redeem",
+      "submitting": "Redeeming…",
+      "backToWallet": "Back to Wallet",
+      "successHeading": "Redeemed!",
+      "successBody": "Your points have been converted to withdrawable cash.",
+      "errors": {
+        "validation_error": "Please check the amount and try again.",
+        "insufficient_points": "This amount exceeds your available Cash Back points.",
+        "generic": "Something went wrong. Please try again."
       }
     },
     "walletTopup": {
@@ -1220,6 +1239,7 @@
     "cashBackCredit": "Cash Back Earned",
     "cashBackReversal": "Cash Back Reversal",
     "pointsDiscountReimbursement": "Passenger Points Reimbursement",
+    "cashBackRedeemed": "Points Redeemed to Cash",
     "justNow": "Just now",
     "minutesAgo": "{minutes}m ago",
     "hoursAgo": "{hours}h ago",

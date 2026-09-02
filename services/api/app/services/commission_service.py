@@ -40,8 +40,8 @@ def compute_per_seat_commission(
 
     2026-09-02 pricing revision: the 20% commission rate now applies to (fuel_cost + distance_fee)
     instead of fuel_cost alone, and distance_fee itself is still taken from the driver in full —
-    unchanged from before, since 100% of it is credited straight back as driver cash-back (see
-    deduct_commission's call into wallet_service.increment_sponsored_earnings below). This keeps
+    unchanged from before, since 100% of it is credited straight back as driver Cash Back points (see
+    deduct_commission's call into wallet_service.increment_cash_back_points below). This keeps
     the driver's net commission-debit exactly equal to what pricing_service now quotes the
     passenger (fuel_cost stays the driver's untouched cash share; everything else — distance_fee
     plus the new (fuel+distance)*20% markup — is commission). safety_margin_egp is still added for
@@ -78,7 +78,7 @@ async def deduct_commission(
 
     The platform keeps 20% of (fuel_cost + distance_fee) as commission, plus the full
     distance_fee itself (100% platform revenue, credited straight back to the driver as
-    withdrawable Cash Back — see the increment_sponsored_earnings call below) and any legacy
+    Cash Back points — see the increment_cash_back_points call below) and any legacy
     flat safety margin from rides created before the 2026-09-02 pricing revision. When the
     driver has set a final price above the system fair price (Spec 023), the platform also
     takes 20% of that per-seat markup, so commission revenue scales with what the driver
@@ -175,7 +175,7 @@ async def deduct_commission(
             else Decimal("0")
         )
         if points_discount > Decimal("0.00"):
-            await wallet_service.increment_sponsored_earnings(conn, wallet_id, points_discount)
+            await wallet_service.increment_cash_back_points(conn, wallet_id, points_discount)
             await wallet_service.insert_ledger_entry(
                 conn,
                 wallet_id=wallet_id,
@@ -191,7 +191,7 @@ async def deduct_commission(
     # credited straight back to the driver as withdrawable Cash Back (replaces the
     # old loyalty-points/car-maintenance-savings mechanic — post-Spec-028 item 1).
     if total_distance_fee > Decimal("0.00"):
-        await wallet_service.increment_sponsored_earnings(conn, wallet_id, total_distance_fee)
+        await wallet_service.increment_cash_back_points(conn, wallet_id, total_distance_fee)
         await wallet_service.insert_ledger_entry(
             conn,
             wallet_id=wallet_id,

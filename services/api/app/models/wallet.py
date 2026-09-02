@@ -16,6 +16,10 @@ class LedgerEntryType(str, Enum):
     SPONSORED_RIDE_CREDIT = "SPONSORED_RIDE_CREDIT"
     SPONSORED_RIDE_REVERSAL = "SPONSORED_RIDE_REVERSAL"
     WITHDRAWAL_DEBIT = "WITHDRAWAL_DEBIT"
+    CASH_BACK_CREDIT = "CASH_BACK_CREDIT"
+    CASH_BACK_REVERSAL = "CASH_BACK_REVERSAL"
+    POINTS_DISCOUNT_REIMBURSEMENT = "POINTS_DISCOUNT_REIMBURSEMENT"
+    CASH_BACK_REDEEMED = "CASH_BACK_REDEEMED"
 
 
 # ── Response schemas ─────────────────────────────────────────────────────────
@@ -44,8 +48,30 @@ class WalletPageResponse(BaseModel):
     reserved_egp: str
     available_egp: str
     sponsored_earnings_egp: str
+    cash_back_points_egp: str
     entries: list[LedgerEntryResponse]
     pagination: PaginationMeta
+
+
+# ── Cash Back redeem schemas ─────────────────────────────────────────────────
+
+class CashBackRedeemRequest(BaseModel):
+    amount_egp: Decimal
+
+    @field_validator("amount_egp")
+    @classmethod
+    def amount_must_be_positive(cls, v: Decimal) -> Decimal:
+        if v <= 0:
+            raise ValueError("amount_egp must be greater than 0.00 EGP")
+        return v
+
+
+class CashBackRedeemResponse(BaseModel):
+    id: UUID
+    amount_egp: str
+    cash_back_points_egp: str
+    sponsored_earnings_egp: str
+    created_at: datetime
 
 
 # ── Admin request / response schemas ─────────────────────────────────────────
