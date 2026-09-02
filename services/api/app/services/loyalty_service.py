@@ -145,17 +145,18 @@ async def award_passenger_points(
     passenger_id: uuid.UUID,
     booking_id: uuid.UUID,
     ride_id: uuid.UUID,
-    fare_paid_egp: Decimal,
+    commission_egp: Decimal,
 ) -> None:
-    """Credit floor(fare_paid_egp * loyalty_passenger_earn_points_per_egp_fare) points.
+    """Credit floor(commission_egp / 4) points — 1 point per 4 EGP of platform commission
+    collected on this booking.
 
-    MUST be called inside the same transaction as the booking completion update
-    (booking_service.complete_ride_bookings), per booking. FR-001.
+    Split by payment source and called once per booking: for CASH bookings from
+    commission_service.deduct_commission() at ride completion, for SPONSORED bookings
+    from booking_service._settle_sponsored_booking() at booking confirmation.
     """
-    if fare_paid_egp <= Decimal("0"):
+    if commission_egp <= Decimal("0"):
         return
-    rate = Decimal(await _get_setting(conn, "loyalty_passenger_earn_points_per_egp_fare"))
-    points = int((fare_paid_egp * rate).to_integral_value(rounding=ROUND_FLOOR))
+    points = int((commission_egp / Decimal("4")).to_integral_value(rounding=ROUND_FLOOR))
     if points <= 0:
         return
     account = await get_account_with_lock(conn, passenger_id, "passenger")
@@ -167,6 +168,52 @@ async def award_passenger_points(
         passenger_id,
         "loyalty_points_earned",
         {"points": points, "ride_id": str(ride_id), "booking_id": str(booking_id)},
+    )
+
+
+async def reverse_passenger_points(
+    conn,
+    passenger_id: uuid.UUID,
+    booking_id: uuid.UUID,
+    ride_id: uuid.UUID,
+    commission_egp: Decimal,
+) -> None:
+    """Claw back points earned on a SPONSORED booking that was confirmed (earning points)
+    then later cancelled. Floors the reversal at the account's current balance — the
+    passenger may have already spent some of the earned points — so balance can never go
+    negative. Mirrors the driver Cash Back reversal in booking_service.cancel_booking().
+    """
+    if commission_egp <= Decimal("0"):
+        return
+    points = int((commission_egp / Decimal("4")).to_integral_value(rounding=ROUND_FLOOR))
+    if points <= 0:
+        return
+    account = await get_account_with_lock(conn, passenger_id, "passenger")
+    reversal = -min(points, account["balance"])
+    if reversal == 0:
+        return
+    await _record_transaction(
+        conn, account["id"], reversal, "ride_reversal_clawback", ride_id=ride_id, booking_id=booking_id
+    )
+
+
+async def refund_booking_points(
+    conn,
+    passenger_id: uuid.UUID,
+    booking_id: uuid.UUID,
+    ride_id: uuid.UUID,
+    points: int,
+) -> None:
+    """Refund points spent via redeem_points_for_discount() on a booking that was
+    cancelled/rejected/expired before completion. The discount never reached the driver
+    (reimbursement only happens at ride completion — see commission_service.deduct_commission),
+    so no driver-wallet reversal is needed here, only the points refund.
+    """
+    if points <= 0:
+        return
+    account = await get_account_with_lock(conn, passenger_id, "passenger")
+    await _record_transaction(
+        conn, account["id"], points, "redemption_refund", ride_id=ride_id, booking_id=booking_id
     )
 
 
@@ -324,6 +371,45 @@ async def attach_booking_to_redemption(conn, redemption_request_id: uuid.UUID, b
     await conn.execute(
         "UPDATE loyalty_points_transactions SET booking_id = $2 WHERE redemption_request_id = $1",
         redemption_request_id,
+        booking_id,
+    )
+
+
+async def redeem_points_for_discount(
+    conn,
+    passenger_id: uuid.UUID,
+    ride_id: uuid.UUID,
+    points_to_redeem: int,
+    max_discount_egp: Decimal,
+) -> Optional[dict]:
+    """Spend up to points_to_redeem points (1 point = 1 EGP) as a flexible fare discount,
+    capped at max_discount_egp (the fuel-cost portion of the fare — never the full fare)
+    and the passenger's current balance. MUST be called inside the same transaction as
+    booking creation, before the bookings row is inserted (booking_id is unknown yet —
+    call attach_points_redemption_to_booking() once it is). Returns None if nothing was
+    redeemed (points_to_redeem <= 0, cap resolves to 0, or balance is 0).
+    """
+    if points_to_redeem <= 0 or max_discount_egp <= Decimal("0"):
+        return None
+    account = await get_account_with_lock(conn, passenger_id, "passenger")
+    capped_by_fare = int(max_discount_egp.to_integral_value(rounding=ROUND_FLOOR))
+    points_spent = min(points_to_redeem, capped_by_fare, account["balance"])
+    if points_spent <= 0:
+        return None
+    transaction = await _record_transaction(
+        conn, account["id"], -points_spent, "redemption_spend", ride_id=ride_id,
+    )
+    return {
+        "transaction_id": transaction["id"],
+        "points_spent": points_spent,
+        "discount_egp": Decimal(points_spent),
+    }
+
+
+async def attach_points_redemption_to_booking(conn, transaction_id: uuid.UUID, booking_id: uuid.UUID) -> None:
+    await conn.execute(
+        "UPDATE loyalty_points_transactions SET booking_id = $2 WHERE id = $1",
+        transaction_id,
         booking_id,
     )
 

@@ -909,7 +909,7 @@ async def complete_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideRespons
             # `seats` is required here — deduct_commission() charges per seat, not per
             # booking row, since a single booking can reserve more than one seat.
             confirmed_bookings = await conn.fetch(
-                "SELECT id, passenger_id, seats, payment_source FROM bookings "
+                "SELECT id, passenger_id, seats, payment_source, points_discount_egp FROM bookings "
                 "WHERE ride_id = $1 AND status = 'confirmed'",
                 ride_id,
             )

@@ -5,7 +5,7 @@ import time
 import uuid
 from decimal import ROUND_HALF_UP, Decimal
 
-from app.services import wallet_service
+from app.services import loyalty_service, wallet_service
 from app.services.pricing_service import FARE_SPLIT_SEATS
 
 logger = logging.getLogger(__name__)
@@ -117,11 +117,17 @@ async def deduct_commission(
     wallet = await wallet_service.get_wallet_with_lock(conn, driver_id)
     wallet_id = wallet["id"]
 
+    has_points_discount = any(
+        Decimal(str(b["points_discount_egp"])) > Decimal("0.00")
+        for b in confirmed_bookings
+        if b.get("points_discount_egp") is not None
+    )
     if not confirmed_bookings or (
         fuel_cost == Decimal("0")
         and distance_fee == Decimal("0")
         and safety_margin == Decimal("0")
         and markup_commission_per_seat == Decimal("0")
+        and not has_points_discount
     ):
         logger.info(
             "wallet_write operation=COMMISSION_DEBIT driver_id=%s ride_id=%s "
@@ -158,6 +164,28 @@ async def deduct_commission(
         await wallet_service.decrement_balance(conn, wallet_id, commission_amount)
         total_deducted += commission_amount
         total_distance_fee += distance_fee_amount
+
+        await loyalty_service.award_passenger_points(
+            conn, booking["passenger_id"], booking["id"], ride_id, commission_amount
+        )
+
+        points_discount = (
+            Decimal(str(booking["points_discount_egp"]))
+            if booking.get("points_discount_egp") is not None
+            else Decimal("0")
+        )
+        if points_discount > Decimal("0.00"):
+            await wallet_service.increment_sponsored_earnings(conn, wallet_id, points_discount)
+            await wallet_service.insert_ledger_entry(
+                conn,
+                wallet_id=wallet_id,
+                driver_id=driver_id,
+                entry_type="POINTS_DISCOUNT_REIMBURSEMENT",
+                amount=points_discount,
+                ride_id=ride_id,
+                booking_id=booking["id"],
+                note="Reimbursement for passenger pay-with-points discount",
+            )
 
     # The distance-fee share of what was just debited is 100% platform revenue,
     # credited straight back to the driver as withdrawable Cash Back (replaces the

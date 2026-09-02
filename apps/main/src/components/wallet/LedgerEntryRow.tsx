@@ -42,11 +42,13 @@ export function LedgerEntryRow({ entry }: Props) {
     WITHDRAWAL_DEBIT: t("withdrawal"),
     CASH_BACK_CREDIT: t("cashBackCredit"),
     CASH_BACK_REVERSAL: t("cashBackReversal"),
+    POINTS_DISCOUNT_REIMBURSEMENT: t("pointsDiscountReimbursement"),
   };
   const isCredit =
     entry.type === "ADMIN_CREDIT" ||
     entry.type === "SPONSORED_RIDE_CREDIT" ||
-    entry.type === "CASH_BACK_CREDIT";
+    entry.type === "CASH_BACK_CREDIT" ||
+    entry.type === "POINTS_DISCOUNT_REIMBURSEMENT";
   const amountColor = isCredit ? "text-green-600" : "text-red-600";
   const sign = isCredit ? "+" : "−";
 
@@ -63,7 +65,8 @@ export function LedgerEntryRow({ entry }: Props) {
               entry.type === "SPONSORED_RIDE_CREDIT" ||
               entry.type === "SPONSORED_RIDE_REVERSAL" ||
               entry.type === "CASH_BACK_CREDIT" ||
-              entry.type === "CASH_BACK_REVERSAL") && (
+              entry.type === "CASH_BACK_REVERSAL" ||
+              entry.type === "POINTS_DISCOUNT_REIMBURSEMENT") && (
             <Link
               href={`/rides/${entry.ride_id}/manage`}
               className="text-brand-primary underline"

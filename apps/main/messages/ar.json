@@ -294,6 +294,12 @@
         "locked": "تحتاج {points} نقطة إضافية",
         "pointCost": "{points} نقطة"
       },
+      "payWithPoints": {
+        "heading": "ادفع جزءًا من الأجرة بنقاطك",
+        "subtitle": "النقطة الواحدة = ١ ج.م، حتى {max} نقطة لهذه الرحلة",
+        "pointsAndDiscount": "{points} نقطة (−{discount})",
+        "discountLineLabel": "خصم النقاط"
+      },
       "weekdayShort": {
         "0": "أحد",
         "1": "اثنين",
@@ -1024,7 +1030,8 @@
     "dropoffDetour": "انحراف النزول: +{fee} ج.م",
     "defaultDriverName": "سائق",
     "defaultPassengerName": "راكب",
-    "viewProfile": "عرض الملف الشخصي"
+    "viewProfile": "عرض الملف الشخصي",
+    "pointsDiscountNote": "دفع الراكب {amount} بنقاط الولاء"
   },
   "featuredRides": {
     "heading": "رحلات مميزة",
@@ -1212,6 +1219,7 @@
     "withdrawal": "سحب",
     "cashBackCredit": "كاش باك مكتسب",
     "cashBackReversal": "عكس كاش باك",
+    "pointsDiscountReimbursement": "استرداد نقاط الراكب",
     "justNow": "الآن",
     "minutesAgo": "منذ {minutes} د",
     "hoursAgo": "منذ {hours} س",

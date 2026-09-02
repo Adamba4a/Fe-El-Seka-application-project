@@ -5,7 +5,7 @@ from decimal import Decimal
 
 import pytest
 
-from app.services import commission_service, wallet_service
+from app.services import commission_service, loyalty_service, wallet_service
 
 # ── commission scales with driver markup (Spec 023, Phase 7 / FR-011) ───────
 
@@ -41,10 +41,14 @@ def captured_ledger_entries(monkeypatch):
     async def _fake_increment_sponsored_earnings(conn, wallet_id, amount):
         return None
 
+    async def _fake_award_passenger_points(conn, passenger_id, booking_id, ride_id, commission_egp):
+        return None
+
     monkeypatch.setattr(wallet_service, "get_wallet_with_lock", _fake_get_wallet_with_lock)
     monkeypatch.setattr(wallet_service, "insert_ledger_entry", _fake_insert_ledger_entry)
     monkeypatch.setattr(wallet_service, "decrement_balance", _fake_decrement_balance)
     monkeypatch.setattr(wallet_service, "increment_sponsored_earnings", _fake_increment_sponsored_earnings)
+    monkeypatch.setattr(loyalty_service, "award_passenger_points", _fake_award_passenger_points)
     return entries
 
 
@@ -55,7 +59,7 @@ class TestDeductCommissionWithMarkup:
         # markup = (65.00 - 50.00) * 0.20 = 3.00 per seat
         # per_seat_commission = 6.012 + 3.00 = 9.012 -> commission for 1 seat = 9.01 (ROUND_HALF_UP)
         ride = _ride_row()
-        booking = {"id": uuid.uuid4(), "seats": 1}
+        booking = {"id": uuid.uuid4(), "passenger_id": uuid.uuid4(), "seats": 1}
 
         await commission_service.deduct_commission(conn=None, ride=ride, confirmed_bookings=[booking])
 
@@ -70,7 +74,7 @@ class TestDeductCommissionWithMarkup:
 
     async def test_commission_scales_with_seats(self, captured_ledger_entries):
         ride = _ride_row()
-        booking = {"id": uuid.uuid4(), "seats": 2}
+        booking = {"id": uuid.uuid4(), "passenger_id": uuid.uuid4(), "seats": 2}
 
         await commission_service.deduct_commission(conn=None, ride=ride, confirmed_bookings=[booking])
 
@@ -84,7 +88,7 @@ class TestDeductCommissionWithMarkup:
 
     async def test_no_markup_matches_pre_existing_cost_basis_commission(self, captured_ledger_entries):
         ride = _ride_row(price_per_seat="50.00", fair_price_per_seat="50.00")
-        booking = {"id": uuid.uuid4(), "seats": 1}
+        booking = {"id": uuid.uuid4(), "passenger_id": uuid.uuid4(), "seats": 1}
 
         await commission_service.deduct_commission(conn=None, ride=ride, confirmed_bookings=[booking])
 

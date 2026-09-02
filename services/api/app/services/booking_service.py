@@ -13,6 +13,7 @@ from fastapi import HTTPException
 from app.core.database import get_pool
 from app.services import match_logging_service, ride_service
 from app.services.notification_service import enqueue_booking_notification
+from app.services.pricing_service import FARE_SPLIT_SEATS
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +84,7 @@ async def create_booking(
     premium_dropoff_fee: Optional[float],
     seats: int = 1,
     loyalty_redemption_catalog_entry_id: Optional[uuid.UUID] = None,
+    points_to_redeem: Optional[int] = None,
 ) -> dict:
     """Atomically reserve `seats` seats and create a pending booking. Must be called with a pool conn."""
     from app.services import loyalty_service
@@ -221,10 +223,46 @@ async def create_booking(
                         "message": "Loyalty redemption cannot be combined with a sponsored-group ride.",
                     },
                 )
+            if points_to_redeem:
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "error": "loyalty_redemption_conflict",
+                        "message": "Cannot combine a catalog reward with a pay-with-points discount.",
+                    },
+                )
             loyalty_redemption = await loyalty_service.redeem_for_booking(
                 conn, passenger_id, loyalty_redemption_catalog_entry_id, ride_id, total
             )
             total = loyalty_redemption["fare_after_discount_egp"]
+
+        # 3b. Flexible "pay with points" (1 point = 1 EGP), capped at the fuel-cost portion
+        # of the fare — never the full fare — so the driver's net-of-commission take is
+        # always covered by cash, with only the (100% platform-margin) fuel-cost share
+        # ever discounted away. Not combinable with a sponsored-group ride (no cash fare
+        # exists to discount) or with a catalog redemption (handled above).
+        points_redemption = None
+        if points_to_redeem:
+            if payment_source == "SPONSORED":
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "error": "loyalty_redemption_conflict",
+                        "message": "Points redemption cannot be combined with a sponsored-group ride.",
+                    },
+                )
+            fuel_cost_egp = (
+                Decimal(str(ride["fuel_cost_egp"])) if ride.get("fuel_cost_egp") is not None else Decimal("0")
+            )
+            max_discount = min((fuel_cost_egp / FARE_SPLIT_SEATS) * seats, total)
+            points_redemption = await loyalty_service.redeem_points_for_discount(
+                conn, passenger_id, ride_id, points_to_redeem, max_discount
+            )
+            if points_redemption is not None:
+                total = total - points_redemption["discount_egp"]
+
+        points_redeemed = points_redemption["points_spent"] if points_redemption else 0
+        points_discount_egp = points_redemption["discount_egp"] if points_redemption else Decimal("0")
 
         # 4. Insert booking — unique index raises UniqueViolation on duplicate active booking
         try:
@@ -234,15 +272,17 @@ async def create_booking(
                     ride_id, passenger_id, per_seat_price, total_price, seats,
                     passenger_pickup_point, passenger_dropoff_point,
                     premium_pickup_requested, premium_dropoff_requested,
-                    premium_pickup_fee, premium_dropoff_fee, payment_source
+                    premium_pickup_fee, premium_dropoff_fee, payment_source,
+                    points_redeemed, points_discount_egp
                 ) VALUES (
                     $1, $2, $3, $4, $5,
                     ST_SetSRID(ST_MakePoint($6, $7), 4326),
                     ST_SetSRID(ST_MakePoint($8, $9), 4326),
-                    $10, $11, $12, $13, $14
+                    $10, $11, $12, $13, $14, $15, $16
                 ) RETURNING id, status, per_seat_price, total_price, seats,
                            premium_pickup_requested, premium_dropoff_requested,
-                           premium_pickup_fee, premium_dropoff_fee, created_at
+                           premium_pickup_fee, premium_dropoff_fee, points_redeemed,
+                           points_discount_egp, created_at
                 """,
                 ride_id, passenger_id, per_seat, total, seats,
                 boarding_lng, boarding_lat,      # MakePoint(lng, lat)
@@ -251,6 +291,8 @@ async def create_booking(
                 pu_fee if premium_pickup else None,
                 do_fee if premium_dropoff else None,
                 payment_source,
+                points_redeemed,
+                points_discount_egp,
             )
         except asyncpg.UniqueViolationError:
             raise HTTPException(
@@ -269,6 +311,12 @@ async def create_booking(
                 conn, loyalty_redemption["redemption_request_id"], booking_id
             )
         booking["loyalty_redemption"] = loyalty_redemption
+
+        if points_redemption is not None:
+            await loyalty_service.attach_points_redemption_to_booking(
+                conn, points_redemption["transaction_id"], booking_id
+            )
+        booking["points_redemption"] = points_redemption
 
         # 5. Audit log
         await _insert_audit_log(conn, booking_id, "created", passenger_id, "passenger", None, "pending")
@@ -312,6 +360,7 @@ async def _settle_sponsored_booking(
     booking_id: uuid.UUID,
     ride_id: uuid.UUID,
     driver_id: uuid.UUID,
+    passenger_id: uuid.UUID,
     group_id: uuid.UUID,
     per_seat_price,
     seats: int,
@@ -325,7 +374,7 @@ async def _settle_sponsored_booking(
     premium-pickup fallback path (which also confirms a booking directly). Must be
     called from within the caller's transaction, with the booking row already locked.
     """
-    from app.services import wallet_service
+    from app.services import loyalty_service, wallet_service
     from app.services.commission_service import compute_per_seat_commission
 
     total_seat_price = Decimal(str(per_seat_price)) * seats
@@ -388,6 +437,11 @@ async def _settle_sponsored_booking(
             note="Cash back (distance fee share of sponsored booking commission)",
         )
 
+    # Sponsored bookings earn passenger points at confirmation, not completion — this
+    # is the sponsored-side counterpart of commission_service.deduct_commission's
+    # per-booking award for CASH bookings (post-Spec-028 item 3).
+    await loyalty_service.award_passenger_points(conn, passenger_id, booking_id, ride_id, commission_for_booking)
+
 
 async def confirm_booking(
     conn,
@@ -432,6 +486,7 @@ async def confirm_booking(
                 booking_id=booking_id,
                 ride_id=ride_id,
                 driver_id=driver_id,
+                passenger_id=row["passenger_id"],
                 group_id=row["group_id"],
                 per_seat_price=row["per_seat_price"],
                 seats=row["seats"],
@@ -500,6 +555,7 @@ async def reject_booking(
             """
             SELECT b.id, b.status, b.ride_id, b.passenger_id, b.seats,
                    b.premium_pickup_requested, b.per_seat_price, b.payment_source,
+                   b.points_redeemed,
                    r.departure_datetime, r.group_id, r.fuel_cost_egp, r.distance_fee_egp,
                    r.safety_margin_egp, r.fair_price_per_seat
             FROM bookings b
@@ -540,6 +596,7 @@ async def reject_booking(
                         booking_id=booking_id,
                         ride_id=ride_id,
                         driver_id=driver_id,
+                        passenger_id=row["passenger_id"],
                         group_id=row["group_id"],
                         per_seat_price=row["per_seat_price"],
                         seats=row["seats"],
@@ -597,6 +654,14 @@ async def reject_booking(
             ride_id,
             row["seats"],
         )
+
+        if row["points_redeemed"]:
+            from app.services import loyalty_service
+
+            await loyalty_service.refund_booking_points(
+                conn, row["passenger_id"], booking_id, ride_id, row["points_redeemed"]
+            )
+
         updated = await conn.fetchrow(
             """
             UPDATE bookings
@@ -654,6 +719,7 @@ async def cancel_booking(
         row = await conn.fetchrow(
             """
             SELECT b.id, b.status, b.ride_id, b.passenger_id, b.seats, b.payment_source, b.per_seat_price,
+                   b.points_redeemed,
                    r.driver_id, r.departure_datetime, r.group_id, r.price_per_seat, r.total_seats,
                    r.fuel_cost_egp, r.distance_fee_egp, r.safety_margin_egp, r.fair_price_per_seat
             FROM bookings b
@@ -706,7 +772,7 @@ async def cancel_booking(
         # price the passenger locked in (per_seat_price), which is exactly what was
         # credited at settlement time — not the ride's current (possibly since-edited) price.
         if row["payment_source"] == "SPONSORED" and row["status"] == "confirmed":
-            from app.services import wallet_service
+            from app.services import loyalty_service, wallet_service
             from app.services.commission_service import compute_per_seat_commission
 
             total_seat_price = Decimal(str(row["per_seat_price"])) * row["seats"]
@@ -766,6 +832,19 @@ async def cancel_booking(
                     booking_id=booking_id,
                     note="Cash back reversal (sponsored booking cancelled after confirmation)",
                 )
+
+            # Claw back the points this sponsored booking earned at confirmation time
+            # (see _settle_sponsored_booking) — mirrors the Cash Back reversal above.
+            await loyalty_service.reverse_passenger_points(
+                conn, row["passenger_id"], booking_id, row["ride_id"], commission_for_booking
+            )
+
+        if row["points_redeemed"]:
+            from app.services import loyalty_service
+
+            await loyalty_service.refund_booking_points(
+                conn, row["passenger_id"], booking_id, row["ride_id"], row["points_redeemed"]
+            )
 
         await conn.execute(
             "UPDATE rides SET booked_seats = GREATEST(booked_seats - $2, 0) WHERE id = $1",
@@ -980,7 +1059,7 @@ async def expire_one_pending_booking(conn, booking_id: uuid.UUID) -> bool:
     """
     locked = await conn.fetchrow(
         """
-        SELECT b.id, b.passenger_id, b.ride_id, b.seats, r.departure_datetime
+        SELECT b.id, b.passenger_id, b.ride_id, b.seats, b.points_redeemed, r.departure_datetime
         FROM bookings b
         JOIN rides r ON r.id = b.ride_id
         WHERE b.id = $1 AND b.status = 'pending'
@@ -1008,6 +1087,13 @@ async def expire_one_pending_booking(conn, booking_id: uuid.UUID) -> bool:
         locked["ride_id"],
         locked["seats"],
     )
+
+    if locked["points_redeemed"]:
+        from app.services import loyalty_service
+
+        await loyalty_service.refund_booking_points(
+            conn, locked["passenger_id"], locked["id"], locked["ride_id"], locked["points_redeemed"]
+        )
 
     await _insert_audit_log(
         conn, locked["id"], "expired", None, "system", "pending", "cancelled"
@@ -1075,9 +1161,14 @@ async def booking_expiry_loop() -> None:
 
 
 async def complete_ride_bookings(conn, ride_id: uuid.UUID) -> int:
-    """Transition all confirmed bookings for a ride to completed. Idempotent."""
-    from app.services import loyalty_service
+    """Transition all confirmed bookings for a ride to completed. Idempotent.
 
+    Passenger loyalty points are NOT awarded here — post-Spec-028 item 3 splits earning
+    by payment source: CASH bookings earn in commission_service.deduct_commission() at
+    this same completion step (called separately by ride_service.complete_ride right
+    after this function), SPONSORED bookings already earned at booking confirmation
+    (booking_service._settle_sponsored_booking).
+    """
     rows = await conn.fetch(
         """
         UPDATE bookings b
@@ -1091,12 +1182,6 @@ async def complete_ride_bookings(conn, ride_id: uuid.UUID) -> int:
     for row in rows:
         await _insert_audit_log(
             conn, row["id"], "completed", None, "system", "confirmed", "completed"
-        )
-        # FR-001 (Spec 028): passengers earn loyalty points on completed bookings,
-        # proportional to what they actually paid (already net of any inline
-        # free_ride/discount redemption applied at booking creation).
-        await loyalty_service.award_passenger_points(
-            conn, row["passenger_id"], row["id"], ride_id, Decimal(str(row["total_price"]))
         )
         await match_logging_service.record_outcome(
             conn, ride_id, row["passenger_id"], "completed", {"booking_id": str(row["id"])},

@@ -294,6 +294,12 @@
         "locked": "Need {points} more pts",
         "pointCost": "{points} pts"
       },
+      "payWithPoints": {
+        "heading": "Pay part of your fare with points",
+        "subtitle": "1 point = EGP 1, up to {max} pts on this ride",
+        "pointsAndDiscount": "{points} pts (−{discount})",
+        "discountLineLabel": "Points discount"
+      },
       "weekdayShort": {
         "0": "Sun",
         "1": "Mon",
@@ -1024,7 +1030,8 @@
     "dropoffDetour": "Dropoff detour: +EGP {fee}",
     "defaultDriverName": "Driver",
     "defaultPassengerName": "Passenger",
-    "viewProfile": "View Profile"
+    "viewProfile": "View Profile",
+    "pointsDiscountNote": "Passenger paid {amount} with loyalty points"
   },
   "featuredRides": {
     "heading": "Featured Rides",
@@ -1212,6 +1219,7 @@
     "withdrawal": "Withdrawal",
     "cashBackCredit": "Cash Back Earned",
     "cashBackReversal": "Cash Back Reversal",
+    "pointsDiscountReimbursement": "Passenger Points Reimbursement",
     "justNow": "Just now",
     "minutesAgo": "{minutes}m ago",
     "hoursAgo": "{hours}h ago",

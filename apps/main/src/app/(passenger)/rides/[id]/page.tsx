@@ -12,7 +12,7 @@ import { RatingBadge } from "@/components/ui/RatingBadge";
 import { VerificationRequiredModal } from "@/components/verification/VerificationRequiredModal";
 import Link from "next/link";
 import { env } from "@/lib/env";
-import { formatCurrency } from "@fe-el-seka/shared";
+import { formatCurrency, FARE_SPLIT_SEATS } from "@fe-el-seka/shared";
 import type { Locale } from "@fe-el-seka/shared";
 import { fromIsoWeekday } from "@/lib/weekdays";
 import { listRecurringInstancesForRide, type RecurringInstanceOption } from "@/lib/api/recurring-rides";
@@ -57,6 +57,7 @@ interface RideDetail {
   departure_datetime: string;
   available_seats: number;
   per_seat_price: string;
+  fuel_cost_egp: number | null;
   route_geometry: object | null;
   route_distance_km: number;
   route_duration_minutes: number;
@@ -267,6 +268,7 @@ export default function PassengerRideDetailPage() {
   const [loyaltyCatalog, setLoyaltyCatalog] = useState<LoyaltyCatalogEntry[]>([]);
   const [loyaltyBalance, setLoyaltyBalance] = useState<number | null>(null);
   const [selectedRedemptionId, setSelectedRedemptionId] = useState<string | null>(null);
+  const [pointsToRedeem, setPointsToRedeem] = useState(0);
 
   useEffect(() => {
     async function load() {
@@ -522,9 +524,17 @@ export default function PassengerRideDetailPage() {
     if (!inst) return sum;
     return sum + parseFloat(inst.per_seat_price) * seats + premiumFee;
   }, 0);
-  const totalPrice = (parseFloat(ride.per_seat_price) * clampedSeatCount + premiumFee + extraTotal).toFixed(2);
+  const totalPriceBeforePoints = parseFloat(ride.per_seat_price) * clampedSeatCount + premiumFee + extraTotal;
+  const maxPointsDiscountEgp = Math.min(
+    ((ride.fuel_cost_egp ?? 0) / FARE_SPLIT_SEATS) * clampedSeatCount,
+    totalPriceBeforePoints
+  );
+  const maxPointsRedeemable = Math.max(0, Math.min(loyaltyBalance ?? 0, Math.floor(maxPointsDiscountEgp)));
+  const clampedPointsToRedeem = Math.min(pointsToRedeem, maxPointsRedeemable);
+  const totalPrice = (totalPriceBeforePoints - clampedPointsToRedeem).toFixed(2);
   const noSeats = ride.available_seats === 0;
   const selectedExtraCount = Object.keys(extraSeats).length;
+  const pointsRedemptionAvailable = !ride.is_sponsored && selectedExtraCount === 0 && !selectedRedemptionId;
 
   const handleBook = () => {
     setBookingError(null);
@@ -565,7 +575,8 @@ export default function PassengerRideDetailPage() {
       const postBooking = async (
         rideId: string,
         seats: number,
-        loyaltyRedemptionCatalogEntryId: string | null
+        loyaltyRedemptionCatalogEntryId: string | null,
+        pointsToRedeemForTarget: number | null
       ): Promise<{ res: Response; json: { booking_id?: string; detail?: unknown; error?: string; message?: string } }> => {
         const res = await fetch(`${env.apiUrl}/api/v1/bookings`, {
           method: "POST",
@@ -583,13 +594,14 @@ export default function PassengerRideDetailPage() {
             premium_dropoff_fee: dropoffFee,
             seats,
             loyalty_redemption_catalog_entry_id: loyaltyRedemptionCatalogEntryId,
+            points_to_redeem: pointsToRedeemForTarget,
           }),
         });
         const json = await res.json();
         return { res, json };
       };
 
-      // Points redemption only applies to the single main-day booking — not
+      // Points/catalog redemption only applies to the single main-day booking — not
       // to extra recurring days, which are separate bookings on separate rides.
       const extraDayCount = Object.keys(extraSeats).length;
       const targets = [
@@ -597,17 +609,21 @@ export default function PassengerRideDetailPage() {
           rideId: detail.ride.id,
           seats: clampedSeatCount,
           loyaltyRedemptionCatalogEntryId: extraDayCount === 0 ? selectedRedemptionId : null,
+          pointsToRedeem: extraDayCount === 0 && clampedPointsToRedeem > 0 ? clampedPointsToRedeem : null,
         },
         ...Object.entries(extraSeats).map(([rideId, seats]) => ({
           rideId,
           seats,
           loyaltyRedemptionCatalogEntryId: null as string | null,
+          pointsToRedeem: null as number | null,
         })),
       ];
 
       const outcomes: Awaited<ReturnType<typeof postBooking>>[] = [];
       for (const target of targets) {
-        outcomes.push(await postBooking(target.rideId, target.seats, target.loyaltyRedemptionCatalogEntryId));
+        outcomes.push(
+          await postBooking(target.rideId, target.seats, target.loyaltyRedemptionCatalogEntryId, target.pointsToRedeem)
+        );
       }
 
       const succeeded = outcomes.filter((o) => o.res.status === 201);
@@ -936,6 +952,14 @@ export default function PassengerRideDetailPage() {
             {premiumFee > 0 && (
               <p className="text-xs text-amber-700">{t("premiumFeeIncludedNote")}</p>
             )}
+            {clampedPointsToRedeem > 0 && (
+              <div className="flex justify-between text-content-secondary">
+                <span>{t("payWithPoints.discountLineLabel")}</span>
+                <span className="font-medium text-green-600">
+                  −{formatCurrency(clampedPointsToRedeem, locale)}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between font-semibold text-content-primary pt-1 border-t border-border-default">
               <span>{t("total")}</span>
               <span>{formatCurrency(Number(totalPrice), locale)}</span>
@@ -964,7 +988,10 @@ export default function PassengerRideDetailPage() {
                         key={entry.id}
                         type="button"
                         disabled={locked}
-                        onClick={() => setSelectedRedemptionId(selected ? null : entry.id)}
+                        onClick={() => {
+                          setSelectedRedemptionId(selected ? null : entry.id);
+                          setPointsToRedeem(0);
+                        }}
                         className={`w-full flex items-center justify-between p-3 rounded-xl border text-sm text-start transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                           selected
                             ? "border-brand-primary bg-brand-primary/5"
@@ -991,6 +1018,41 @@ export default function PassengerRideDetailPage() {
             <p className="text-xs text-content-muted border-t border-border-default pt-3">
               {t("loyaltyRedemption.notAvailableForMultiDay")}
             </p>
+          )}
+
+          {pointsRedemptionAvailable && maxPointsRedeemable > 0 && (
+            <div className="border-t border-border-default pt-3 space-y-2">
+              <p className="text-sm font-medium text-content-primary">
+                {t("payWithPoints.heading")}
+              </p>
+              <p className="text-xs text-content-muted">
+                {t("payWithPoints.subtitle", { max: maxPointsRedeemable })}
+              </p>
+              <div className="flex items-center justify-between rounded-xl border border-border-default bg-surface-card p-3">
+                <button
+                  type="button"
+                  onClick={() => setPointsToRedeem((p) => Math.max(0, Math.min(p, maxPointsRedeemable) - 1))}
+                  disabled={clampedPointsToRedeem === 0}
+                  className="h-8 w-8 rounded-full border border-border-default text-content-primary disabled:opacity-40"
+                >
+                  −
+                </button>
+                <span className="text-sm font-semibold text-content-primary">
+                  {t("payWithPoints.pointsAndDiscount", {
+                    points: clampedPointsToRedeem,
+                    discount: formatCurrency(clampedPointsToRedeem, locale),
+                  })}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPointsToRedeem((p) => Math.min(maxPointsRedeemable, Math.min(p, maxPointsRedeemable) + 1))}
+                  disabled={clampedPointsToRedeem >= maxPointsRedeemable}
+                  className="h-8 w-8 rounded-full border border-border-default text-content-primary disabled:opacity-40"
+                >
+                  +
+                </button>
+              </div>
+            </div>
           )}
 
           {bookingError && (

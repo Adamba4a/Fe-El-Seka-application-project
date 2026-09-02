@@ -500,7 +500,7 @@ async def get_ride_passenger_detail(
             """
             SELECT
                 r.id, r.status, r.driver_id, r.departure_datetime,
-                r.available_seats, r.price_per_seat,
+                r.available_seats, r.price_per_seat, r.fuel_cost_egp,
                 r.route_distance_km, r.route_duration_minutes,
                 ST_AsText(r.route_geometry)    AS route_geometry_wkt,
                 ST_AsGeoJSON(r.route_geometry) AS route_geometry_geojson,
@@ -645,6 +645,7 @@ async def get_ride_passenger_detail(
             "departure_datetime": ride["departure_datetime"].isoformat(),
             "available_seats": ride["available_seats"],
             "per_seat_price": f"{float(ride['price_per_seat']):.2f}",
+            "fuel_cost_egp": float(ride["fuel_cost_egp"]) if ride["fuel_cost_egp"] is not None else None,
             "route_geometry": route_geojson,
             "route_distance_km": float(ride["route_distance_km"] or 0),
             "route_duration_minutes": duration_min,
@@ -794,6 +795,7 @@ async def list_ride_bookings(
                 b.premium_pickup_fee,
                 b.premium_dropoff_requested,
                 b.premium_dropoff_fee,
+                b.points_discount_egp,
                 b.created_at,
                 ST_Y(b.passenger_pickup_point::geometry)  AS boarding_lat,
                 ST_X(b.passenger_pickup_point::geometry)  AS boarding_lng,
@@ -842,6 +844,9 @@ async def list_ride_bookings(
             premium_dropoff_requested=r["premium_dropoff_requested"],
             premium_dropoff_fee=(
                 f"{float(r['premium_dropoff_fee']):.2f}" if r["premium_dropoff_fee"] is not None else None
+            ),
+            points_discount_egp=(
+                f"{float(r['points_discount_egp']):.2f}" if float(r["points_discount_egp"] or 0) > 0 else None
             ),
             created_at=r["created_at"],
         )

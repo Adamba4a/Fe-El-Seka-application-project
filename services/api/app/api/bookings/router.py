@@ -50,9 +50,11 @@ async def book_ride(
             premium_dropoff_fee=body.premium_dropoff_fee,
             seats=body.seats,
             loyalty_redemption_catalog_entry_id=body.loyalty_redemption_catalog_entry_id,
+            points_to_redeem=body.points_to_redeem,
         )
 
     loyalty_redemption = booking.get("loyalty_redemption")
+    points_redemption = booking.get("points_redemption")
 
     return JSONResponse(
         status_code=201,
@@ -79,6 +81,14 @@ async def book_ride(
                     "fare_after_discount_egp": str(loyalty_redemption["fare_after_discount_egp"]),
                 }
                 if loyalty_redemption is not None
+                else None
+            ),
+            "points_redemption": (
+                {
+                    "points_spent": points_redemption["points_spent"],
+                    "discount_egp": str(points_redemption["discount_egp"]),
+                }
+                if points_redemption is not None
                 else None
             ),
         },
