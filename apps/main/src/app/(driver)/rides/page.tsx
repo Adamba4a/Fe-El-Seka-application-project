@@ -79,15 +79,15 @@ function buildRideListItems(rides: Ride[]): RideListItem[] {
     items.push({ type: "group", definitionId, rides: groupRides });
   }
 
-  const earliest = (item: RideListItem) =>
+  const newest = (item: RideListItem) =>
     item.type === "single"
-      ? item.ride.departure_datetime
+      ? item.ride.created_at
       : item.rides.reduce(
-          (min, r) => (r.departure_datetime < min ? r.departure_datetime : min),
-          item.rides[0].departure_datetime
+          (max, r) => (r.created_at > max ? r.created_at : max),
+          item.rides[0].created_at
         );
 
-  return items.sort((a, b) => earliest(a).localeCompare(earliest(b)));
+  return items.sort((a, b) => newest(b).localeCompare(newest(a)));
 }
 
 export default function MyRidesPage() {

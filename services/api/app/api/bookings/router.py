@@ -121,7 +121,7 @@ async def list_bookings(
             JOIN rides r ON r.id = b.ride_id
             JOIN profiles p ON p.id = r.driver_id
             {where}
-            ORDER BY r.departure_datetime DESC
+            ORDER BY b.created_at DESC
             LIMIT {page_size} OFFSET {offset}
             """,
             *params,
