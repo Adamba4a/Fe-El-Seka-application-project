@@ -50,10 +50,10 @@ def captured_ledger_entries(monkeypatch):
 
 class TestDeductCommissionWithMarkup:
     async def test_commission_includes_markup_term(self, captured_ledger_entries):
-        # fuel_cost=17.12, distance_fee=3.00, safety_margin=5.00, total_seats=2
-        # cost-basis per_seat = (17.12*0.20 + 3.00 + 5.00) / 2 = (3.424 + 8.00) / 2 = 5.712
+        # fuel_cost=17.12, distance_fee=3.00, safety_margin=5.00 (legacy ride), total_seats=2
+        # cost-basis per_seat = (3.00 + 5.00 + (17.12 + 3.00) * 0.20) / 2 = (8.00 + 4.024) / 2 = 6.012
         # markup = (65.00 - 50.00) * 0.20 = 3.00 per seat
-        # per_seat_commission = 5.712 + 3.00 = 8.712 -> commission for 1 seat = 8.71 (ROUND_HALF_UP)
+        # per_seat_commission = 6.012 + 3.00 = 9.012 -> commission for 1 seat = 9.01 (ROUND_HALF_UP)
         ride = _ride_row()
         booking = {"id": uuid.uuid4(), "seats": 1}
 
@@ -62,7 +62,7 @@ class TestDeductCommissionWithMarkup:
         assert len(captured_ledger_entries) == 1
         entry = captured_ledger_entries[0]
         assert entry["entry_type"] == "COMMISSION_DEBIT"
-        assert entry["amount"] == Decimal("8.71")
+        assert entry["amount"] == Decimal("9.01")
 
     async def test_commission_scales_with_seats(self, captured_ledger_entries):
         ride = _ride_row()
@@ -71,8 +71,8 @@ class TestDeductCommissionWithMarkup:
         await commission_service.deduct_commission(conn=None, ride=ride, confirmed_bookings=[booking])
 
         entry = captured_ledger_entries[0]
-        # per_seat_commission (5.712 + 3.00 = 8.712) * 2 seats = 17.424 -> 17.42 (ROUND_HALF_UP)
-        assert entry["amount"] == Decimal("17.42")
+        # per_seat_commission (6.012 + 3.00 = 9.012) * 2 seats = 18.024 -> 18.02 (ROUND_HALF_UP)
+        assert entry["amount"] == Decimal("18.02")
 
     async def test_no_markup_matches_pre_existing_cost_basis_commission(self, captured_ledger_entries):
         ride = _ride_row(price_per_seat="50.00", fair_price_per_seat="50.00")
@@ -81,4 +81,4 @@ class TestDeductCommissionWithMarkup:
         await commission_service.deduct_commission(conn=None, ride=ride, confirmed_bookings=[booking])
 
         entry = captured_ledger_entries[0]
-        assert entry["amount"] == Decimal("5.71")
+        assert entry["amount"] == Decimal("6.01")

@@ -37,10 +37,20 @@ def compute_per_seat_commission(
     This is the single source of truth reused by deduct_commission() below (cash rides, at ride
     completion) and by booking_service.py's sponsored-ride settlement/reversal (which duplicate
     this shape because sponsored rides settle at booking time instead of completion).
+
+    2026-09-02 pricing revision: the 20% commission rate now applies to (fuel_cost + distance_fee)
+    instead of fuel_cost alone, and distance_fee itself is still taken from the driver in full —
+    unchanged from before, since 100% of it is credited straight back as driver cash-back (see
+    deduct_commission's call into wallet_service.increment_sponsored_earnings below). This keeps
+    the driver's net commission-debit exactly equal to what pricing_service now quotes the
+    passenger (fuel_cost stays the driver's untouched cash share; everything else — distance_fee
+    plus the new (fuel+distance)*20% markup — is commission). safety_margin_egp is still added for
+    rides created before this revision (their price_per_seat baked in a nonzero safety margin);
+    it is always 0.00 for rides created after it, per pricing_service._calc_fee_from_distance.
     """
     markup_commission_per_seat = max(Decimal("0.00"), price_per_seat - fair_price_per_seat) * COMMISSION_RATE
     per_seat_commission = (
-        fuel_cost_egp * COMMISSION_RATE + distance_fee_egp + safety_margin_egp
+        distance_fee_egp + safety_margin_egp + (fuel_cost_egp + distance_fee_egp) * COMMISSION_RATE
     ) / FARE_SPLIT_SEATS + markup_commission_per_seat
     per_seat_distance_fee = distance_fee_egp / FARE_SPLIT_SEATS
     return per_seat_commission, per_seat_distance_fee
@@ -60,17 +70,18 @@ async def deduct_commission(
     Commission is charged per seat, not per booking row — a single booking can reserve
     more than one seat (see the multi-seat booking feature), and each of those seats
     must be charged its share:
-        per_seat = (fuel_cost_egp * 0.20 + distance_fee_egp + safety_margin_egp) / FARE_SPLIT_SEATS
+        per_seat = (distance_fee_egp + safety_margin_egp + (fuel_cost_egp + distance_fee_egp) * 0.20) / FARE_SPLIT_SEATS
                    + (price_per_seat - fair_price_per_seat) * 0.20
         commission for a booking = ROUND(per_seat * booking.seats, 2)
     See compute_per_seat_commission() above for why the divisor is the fixed FARE_SPLIT_SEATS
     constant and not the ride's actual total_seats.
 
-    The platform keeps the 20% fuel-cost commission plus the flat safety margin and the
-    per-km distance fee in full — both are platform revenue, not a driver buffer. When the
-    driver has set a final price above the system fair price (Spec 023), the platform also
-    takes 20% of that per-seat markup, so commission revenue scales with what the driver
-    actually charges (FR-011).
+    The platform keeps 20% of (fuel_cost + distance_fee) as commission, plus the full
+    distance_fee itself (100% platform revenue, credited straight back to the driver as
+    cash-back — see the increment_sponsored_earnings call below) and any legacy flat safety
+    margin from rides created before the 2026-09-02 pricing revision. When the driver has set
+    a final price above the system fair price (Spec 023), the platform also takes 20% of that
+    per-seat markup, so commission revenue scales with what the driver actually charges (FR-011).
 
     Does NOT release the CommissionReservation — the caller (complete_ride) must call
     release_reservation() separately after this function returns.
