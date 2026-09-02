@@ -75,7 +75,7 @@ export default function WalletPage() {
 
       <section className="space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-body-sm font-semibold text-content-primary">{t("sponsoredEarningsHeading")}</h2>
+          <h2 className="text-body-sm font-semibold text-content-primary">{t("cashBackHeading")}</h2>
           <Link
             href="/wallet/withdraw"
             className="rounded-xl border border-border-default px-4 py-2 text-body-sm font-semibold text-content-primary hover:bg-surface-bg transition-colors"
@@ -83,26 +83,13 @@ export default function WalletPage() {
             {t("requestWithdrawal")}
           </Link>
         </div>
-        <p className="text-caption text-content-muted">{t("sponsoredEarningsHelp")}</p>
+        <p className="text-caption text-content-muted">{t("cashBackHelp")}</p>
         <div className="bg-surface-card rounded-2xl p-5 border border-border-default text-center">
-          <p className="text-body-sm text-content-muted mb-1">{t("sponsoredEarningsBalance")}</p>
+          <p className="text-body-sm text-content-muted mb-1">{t("cashBackBalance")}</p>
           <p className="text-3xl font-bold text-brand-primary">
             {formatEgp(wallet.sponsored_earnings_egp, locale)}
           </p>
         </div>
-      </section>
-
-      <section className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-body-sm font-semibold text-content-primary">{t("loyaltyPointsHeading")}</h2>
-          <Link
-            href="/wallet/loyalty"
-            className="rounded-xl border border-border-default px-4 py-2 text-body-sm font-semibold text-content-primary hover:bg-surface-bg transition-colors"
-          >
-            {t("viewLoyaltyPoints")}
-          </Link>
-        </div>
-        <p className="text-caption text-content-muted">{t("loyaltyPointsHelp")}</p>
       </section>
 
       <section>

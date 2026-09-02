@@ -285,10 +285,10 @@ class TestCreateRideCommissionReservation:
             final_price_per_seat=60.0,
         )
 
-        # cost-basis: 17.0*0.20 + 3.0 + 5.0 = 11.40
-        # markup: (60.00 - 50.00) * 2 seats * 0.20 = 4.00
+        # cost-basis per seat: (3.0 + 5.0 + (17.0 + 3.0) * 0.20) / 2 = 6.00; * 2 seats = 12.00
+        # markup: (60.00 - 50.00) * 0.20 = 2.00 per seat; * 2 seats = 4.00
         assert len(reserved_amounts) == 1
-        assert reserved_amounts[0] == Decimal("15.40")
+        assert reserved_amounts[0] == Decimal("16.00")
 
     async def test_reservation_matches_cost_basis_when_no_markup(self, monkeypatch):
         row = _ride_row(price_per_seat="50.00", fair_price_per_seat="50.00", total_seats=2)
@@ -319,4 +319,5 @@ class TestCreateRideCommissionReservation:
             fair_price_per_seat=50.0,
         )
 
-        assert reserved_amounts[0] == Decimal("11.40")
+        # cost-basis per seat: (3.0 + 5.0 + (17.0 + 3.0) * 0.20) / 2 = 6.00; * 2 seats = 12.00
+        assert reserved_amounts[0] == Decimal("12.00")

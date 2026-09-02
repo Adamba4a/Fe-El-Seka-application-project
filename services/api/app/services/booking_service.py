@@ -4,7 +4,7 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
-from decimal import ROUND_FLOOR, ROUND_HALF_UP, Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Optional
 
 import asyncpg
@@ -325,7 +325,7 @@ async def _settle_sponsored_booking(
     premium-pickup fallback path (which also confirms a booking directly). Must be
     called from within the caller's transaction, with the booking row already locked.
     """
-    from app.services import loyalty_service, wallet_service
+    from app.services import wallet_service
     from app.services.commission_service import compute_per_seat_commission
 
     total_seat_price = Decimal(str(per_seat_price)) * seats
@@ -371,9 +371,22 @@ async def _settle_sponsored_booking(
         booking_id=booking_id,
         note="Sponsored group booking settlement",
     )
-    await loyalty_service.award_driver_points(
-        conn, driver_id, driver_wallet["id"], distance_fee_amount
-    )
+    # 100% platform revenue, credited straight back to the driver as withdrawable
+    # Cash Back (replaces the old loyalty-points/car-maintenance-savings mechanic
+    # — post-Spec-028 item 1). Mirrors commission_service.deduct_commission's cash
+    # rides call, but sponsored bookings settle here at confirmation, not completion.
+    if distance_fee_amount > Decimal("0.00"):
+        await wallet_service.increment_sponsored_earnings(conn, driver_wallet["id"], distance_fee_amount)
+        await wallet_service.insert_ledger_entry(
+            conn,
+            driver_wallet["id"],
+            driver_id,
+            "CASH_BACK_CREDIT",
+            distance_fee_amount,
+            ride_id=ride_id,
+            booking_id=booking_id,
+            note="Cash back (distance fee share of sponsored booking commission)",
+        )
 
 
 async def confirm_booking(
@@ -693,7 +706,7 @@ async def cancel_booking(
         # price the passenger locked in (per_seat_price), which is exactly what was
         # credited at settlement time — not the ride's current (possibly since-edited) price.
         if row["payment_source"] == "SPONSORED" and row["status"] == "confirmed":
-            from app.services import loyalty_service, wallet_service
+            from app.services import wallet_service
             from app.services.commission_service import compute_per_seat_commission
 
             total_seat_price = Decimal(str(row["per_seat_price"])) * row["seats"]
@@ -734,22 +747,24 @@ async def cancel_booking(
                 booking_id=booking_id,
                 note="Sponsored group booking cancellation reversal",
             )
-            # Mirror the fractional-carry pool reversal (award_driver_points may have
-            # cashed part of this contribution into points already — GREATEST(...,0)
-            # in decrement_car_maintenance_savings protects the pool floor). Separately
-            # claw back whole points via reverse_points: since a single booking's
-            # distance fee is almost always < 1 EGP, this is 0 in the common case (no
-            # point was ever minted from this booking alone) and a conservative
-            # (never-over-claws) floor otherwise — the driver keeps any point that
-            # required pooling with other bookings' fractional remainders.
-            await wallet_service.decrement_car_maintenance_savings(
-                conn, driver_wallet["id"], distance_fee_amount
-            )
-            points_to_reverse = int(distance_fee_amount.to_integral_value(rounding=ROUND_FLOOR))
-            if points_to_reverse > 0:
-                await loyalty_service.reverse_points(
-                    conn, row["driver_id"], points_to_reverse,
-                    ride_id=row["ride_id"], booking_id=booking_id,
+            # Reverse the Cash Back credit _settle_sponsored_booking paid out separately
+            # from net_credit above (see its CASH_BACK_CREDIT ledger entry) — GREATEST(...,0)
+            # in decrement_sponsored_earnings guards against a driver having already
+            # withdrawn some of it (the driver keeps any already-approved withdrawal;
+            # the pool floor just can't go negative).
+            if distance_fee_amount > Decimal("0.00"):
+                await wallet_service.decrement_sponsored_earnings(
+                    conn, driver_wallet["id"], distance_fee_amount
+                )
+                await wallet_service.insert_ledger_entry(
+                    conn,
+                    driver_wallet["id"],
+                    row["driver_id"],
+                    "CASH_BACK_REVERSAL",
+                    distance_fee_amount,
+                    ride_id=row["ride_id"],
+                    booking_id=booking_id,
+                    note="Cash back reversal (sponsored booking cancelled after confirmation)",
                 )
 
         await conn.execute(

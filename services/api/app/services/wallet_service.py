@@ -114,45 +114,6 @@ async def decrement_sponsored_earnings(conn, wallet_id: uuid.UUID, amount: Decim
     )
 
 
-async def increment_car_maintenance_savings(conn, wallet_id: uuid.UUID, amount: Decimal) -> Decimal:
-    """Add amount to car_maintenance_savings_egp and return the new total.
-
-    Used by commission_service to accumulate each booking's distance-fee share toward
-    the free car-maintenance threshold (CAR_MAINTENANCE_THRESHOLD_EGP).
-    """
-    row = await conn.fetchrow(
-        """
-        UPDATE driver_wallets
-        SET car_maintenance_savings_egp = car_maintenance_savings_egp + $2, updated_at = now()
-        WHERE id = $1
-        RETURNING car_maintenance_savings_egp
-        """,
-        wallet_id,
-        amount,
-    )
-    return Decimal(str(row["car_maintenance_savings_egp"]))
-
-
-async def reset_car_maintenance_savings(conn, wallet_id: uuid.UUID) -> None:
-    """Reset car_maintenance_savings_egp to 0.00 after a reward is earned."""
-    await conn.execute(
-        "UPDATE driver_wallets SET car_maintenance_savings_egp = 0.00, updated_at = now() WHERE id = $1",
-        wallet_id,
-    )
-
-
-async def decrement_car_maintenance_savings(conn, wallet_id: uuid.UUID, amount: Decimal) -> None:
-    """Subtract amount from car_maintenance_savings_egp. GREATEST(..., 0) guards against a
-    sponsored booking's distance fee being clawed back after a threshold reward already reset
-    the counter — the driver keeps the already-granted reward, the counter just can't go negative."""
-    await conn.execute(
-        "UPDATE driver_wallets SET car_maintenance_savings_egp = GREATEST(car_maintenance_savings_egp - $2, 0), "
-        "updated_at = now() WHERE id = $1",
-        wallet_id,
-        amount,
-    )
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Ledger
 # ─────────────────────────────────────────────────────────────────────────────

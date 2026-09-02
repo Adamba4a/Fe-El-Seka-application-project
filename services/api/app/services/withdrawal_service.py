@@ -11,6 +11,11 @@ from app.services import audit_service, wallet_service
 # wallet_topup_service uses for the mirror-image column.
 _MAX_AMOUNT_EGP = Decimal("9999999999.99")
 
+# Cash Back must accumulate to this threshold before any withdrawal is allowed
+# (post-Spec-028 item 1 — mirrors the retired CAR_MAINTENANCE_THRESHOLD_EGP mechanic,
+# now applied to real withdrawable EGP instead of loyalty points).
+_MIN_WITHDRAWABLE_BALANCE_EGP = Decimal("1000.00")
+
 _DRIVER_PAGE_SIZE = 20
 _ADMIN_PAGE_SIZE = 20
 
@@ -59,6 +64,18 @@ async def submit_request(
         )
 
     available = await _available_balance(conn, driver_id)
+    if available < _MIN_WITHDRAWABLE_BALANCE_EGP:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "below_minimum_threshold",
+                "message": (
+                    f"You need at least {_MIN_WITHDRAWABLE_BALANCE_EGP} EGP in Cash Back "
+                    "before you can withdraw."
+                ),
+                "minimum_egp": str(_MIN_WITHDRAWABLE_BALANCE_EGP),
+            },
+        )
     if amount_egp > available:
         raise HTTPException(
             status_code=422,

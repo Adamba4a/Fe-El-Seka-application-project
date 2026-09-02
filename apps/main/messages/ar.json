@@ -451,40 +451,13 @@
       "noTransactions": "لا توجد معاملات بعد. أضف رصيدًا لبدء نشر الرحلات.",
       "cashWalletHeading": "المحفظة النقدية",
       "cashWalletHelp": "رصيدك الخاص المضاف بنفسك، يُستخدم لدفع عمولات الرحلات العادية (غير المرعية).",
-      "sponsoredEarningsHeading": "أرباح الرعاية",
-      "sponsoredEarningsHelp": "ما ربحته من رحلات المجموعات المرعية. هذا هو الرصيد الوحيد الذي يمكنك سحبه.",
-      "sponsoredEarningsBalance": "متاح للسحب",
-      "loyaltyPointsHeading": "نقاط الولاء",
-      "loyaltyPointsHelp": "اكسب نقاطًا من كل رحلة واستبدلها بصيانة مجانية لسيارتك أو قسائم.",
-      "viewLoyaltyPoints": "عرض النقاط"
-    },
-    "loyalty": {
-      "title": "نقاط الولاء",
-      "loadFailed": "فشل تحميل نقاط الولاء.",
-      "balance": "{points} نقطة",
-      "redeemHeading": "استبدال النقاط",
-      "redeemCarMaintenance": "استبدل {points} نقطة بصيانة مجانية للسيارة",
-      "redeemVoucher": "استبدل {points} نقطة بـ {title}",
-      "redeeming": "جارٍ الاستبدال…",
-      "redeemFulfilled": "تم الاستبدال! مكافأتك جاهزة.",
-      "redeemPending": "تم إرسال طلب الاستبدال — سيراجعه المسؤول قريبًا.",
-      "redeemFailed": "فشل الاستبدال. حاول مرة أخرى.",
-      "insufficientPoints": "لا توجد نقاط كافية بعد",
-      "noVouchers": "لا توجد قسائم متاحة حاليًا.",
-      "transactionHistory": "سجل المعاملات",
-      "noTransactions": "لا توجد معاملات نقاط بعد.",
-      "showMore": "عرض المزيد",
-      "loading": "جارٍ التحميل…",
-      "reasons": {
-        "ride_completed_earn": "أرباح الرحلة",
-        "redemption_spend": "استبدال مكافأة",
-        "redemption_refund": "استرداد استبدال",
-        "ride_reversal_clawback": "استرجاع نقاط"
-      }
+      "cashBackHeading": "كاش باك",
+      "cashBackHelp": "ما ربحته من رحلات المجموعات المرعية ومن حصة رسوم المسافة في عمولة كل رحلة. هذا هو الرصيد الوحيد الذي يمكنك سحبه.",
+      "cashBackBalance": "متاح للسحب"
     },
     "walletWithdraw": {
       "heading": "طلب سحب",
-      "instructions": "اسحب من أرباح الرعاية الخاصة بك — الأموال التي ربحتها من رحلات المجموعات المرعية. أدخل المبلغ والرقم الذي نرسل إليه المبلغ؛ سيقوم أحد المسؤولين بالمراجعة وإرسال المبلغ يدويًا.",
+      "instructions": "اسحب من الكاش باك الخاص بك — الأموال التي ربحتها من عمولات الرحلات ورحلات المجموعات المرعية. أدخل المبلغ والرقم الذي نرسل إليه المبلغ؛ سيقوم أحد المسؤولين بالمراجعة وإرسال المبلغ يدويًا.",
       "amountLabel": "المبلغ (جنيه)",
       "amountPlaceholder": "مثال: 100.00",
       "payoutReferenceLabel": "رقم الاستلام",
@@ -497,8 +470,9 @@
       "pendingBody": "نقوم بمراجعة طلب السحب الخاص بك. عادةً ما يستغرق ذلك وقتًا قصيرًا.",
       "errors": {
         "validation_error": "يرجى التحقق من المبلغ ورقم الاستلام والمحاولة مرة أخرى.",
-        "insufficient_balance": "هذا المبلغ يتجاوز أرباح الرعاية المتاحة لديك.",
+        "insufficient_balance": "هذا المبلغ يتجاوز الكاش باك المتاح لديك.",
         "pending_request_exists": "لديك بالفعل طلب سحب قيد المراجعة.",
+        "below_minimum_threshold": "تحتاج إلى 1000 جنيه على الأقل من الكاش باك قبل أن تتمكن من السحب.",
         "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
       },
       "history": {
@@ -1176,10 +1150,9 @@
     "postRideAriaLabel": "نشر رحلة جديدة",
     "dayToday": "اليوم",
     "dayTomorrow": "غدًا",
-    "carMaintenanceSavingsTitle": "مدخرات صيانة سيارتك",
-    "carMaintenanceSavingsBody": "من كل رحلة، يمنحك جزء من رسوم المسافة نقاط ولاء. اجمع {threshold} نقطة لتحصل على صيانة مجانية لسيارتك.",
-    "carMaintenanceSavingsProgress": "{current} من {threshold} نقطة",
-    "viewLoyaltyPoints": "عرض نقاطي"
+    "cashBackTitle": "كاش باك",
+    "cashBackBody": "يتم رد جزء من عمولة كل رحلة إليك مباشرة ككاش باك قابل للسحب.",
+    "viewCashBack": "عرض المحفظة"
   },
   "upcomingTripCard": {
     "confirmed": "مؤكد",
@@ -1237,6 +1210,8 @@
     "sponsoredRideCredit": "أرباح رحلة مموّلة",
     "sponsoredRideReversal": "عكس رحلة مموّلة",
     "withdrawal": "سحب",
+    "cashBackCredit": "كاش باك مكتسب",
+    "cashBackReversal": "عكس كاش باك",
     "justNow": "الآن",
     "minutesAgo": "منذ {minutes} د",
     "hoursAgo": "منذ {hours} س",

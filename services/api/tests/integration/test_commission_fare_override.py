@@ -5,7 +5,7 @@ from decimal import Decimal
 
 import pytest
 
-from app.services import commission_service, loyalty_service, wallet_service
+from app.services import commission_service, wallet_service
 
 # ── commission scales with driver markup (Spec 023, Phase 7 / FR-011) ───────
 
@@ -38,13 +38,13 @@ def captured_ledger_entries(monkeypatch):
     async def _fake_decrement_balance(conn, wallet_id, amount):
         return None
 
-    async def _fake_award_driver_points(conn, driver_id, wallet_id, distance_fee_amount):
+    async def _fake_increment_sponsored_earnings(conn, wallet_id, amount):
         return None
 
     monkeypatch.setattr(wallet_service, "get_wallet_with_lock", _fake_get_wallet_with_lock)
     monkeypatch.setattr(wallet_service, "insert_ledger_entry", _fake_insert_ledger_entry)
     monkeypatch.setattr(wallet_service, "decrement_balance", _fake_decrement_balance)
-    monkeypatch.setattr(loyalty_service, "award_driver_points", _fake_award_driver_points)
+    monkeypatch.setattr(wallet_service, "increment_sponsored_earnings", _fake_increment_sponsored_earnings)
     return entries
 
 
@@ -59,10 +59,14 @@ class TestDeductCommissionWithMarkup:
 
         await commission_service.deduct_commission(conn=None, ride=ride, confirmed_bookings=[booking])
 
-        assert len(captured_ledger_entries) == 1
+        assert len(captured_ledger_entries) == 2
         entry = captured_ledger_entries[0]
         assert entry["entry_type"] == "COMMISSION_DEBIT"
         assert entry["amount"] == Decimal("9.01")
+        # distance_fee_egp=3.00 / FARE_SPLIT_SEATS=2 * 1 seat = 1.50, credited back as Cash Back
+        cash_back = captured_ledger_entries[1]
+        assert cash_back["entry_type"] == "CASH_BACK_CREDIT"
+        assert cash_back["amount"] == Decimal("1.50")
 
     async def test_commission_scales_with_seats(self, captured_ledger_entries):
         ride = _ride_row()
@@ -73,6 +77,10 @@ class TestDeductCommissionWithMarkup:
         entry = captured_ledger_entries[0]
         # per_seat_commission (6.012 + 3.00 = 9.012) * 2 seats = 18.024 -> 18.02 (ROUND_HALF_UP)
         assert entry["amount"] == Decimal("18.02")
+        cash_back = captured_ledger_entries[1]
+        assert cash_back["entry_type"] == "CASH_BACK_CREDIT"
+        # distance_fee_egp=3.00 / 2 * 2 seats = 3.00
+        assert cash_back["amount"] == Decimal("3.00")
 
     async def test_no_markup_matches_pre_existing_cost_basis_commission(self, captured_ledger_entries):
         ride = _ride_row(price_per_seat="50.00", fair_price_per_seat="50.00")
@@ -82,3 +90,6 @@ class TestDeductCommissionWithMarkup:
 
         entry = captured_ledger_entries[0]
         assert entry["amount"] == Decimal("6.01")
+        cash_back = captured_ledger_entries[1]
+        assert cash_back["entry_type"] == "CASH_BACK_CREDIT"
+        assert cash_back["amount"] == Decimal("1.50")

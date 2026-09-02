@@ -32,7 +32,12 @@ export default function WalletWithdrawPage() {
       setSubmitted(true);
     } catch (err: unknown) {
       const e = err as { error?: string; message?: string };
-      const knownErrors = ["validation_error", "insufficient_balance", "pending_request_exists"];
+      const knownErrors = [
+        "validation_error",
+        "insufficient_balance",
+        "pending_request_exists",
+        "below_minimum_threshold",
+      ];
       if (e?.error && knownErrors.includes(e.error)) {
         setSubmitError(t(`errors.${e.error}`));
       } else {

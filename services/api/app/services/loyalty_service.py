@@ -7,7 +7,7 @@ from typing import Literal, Optional
 
 from fastapi import HTTPException
 
-from app.services import audit_service, wallet_service
+from app.services import audit_service
 
 Role = Literal["passenger", "driver"]
 
@@ -80,7 +80,7 @@ async def _record_transaction(
     the same transaction. Positive delta = earn/refund, negative = redeem/reversal.
     Relies on the loyalty_points_accounts.balance >= 0 CHECK constraint as a last-resort
     guard — callers that can go negative (redemption spend, reversal) MUST pre-validate
-    or floor the delta themselves (see redeem_catalog_entry / reverse_points).
+    or floor the delta themselves (see redeem_catalog_entry).
     """
     updated = await conn.fetchrow(
         "UPDATE loyalty_points_accounts SET balance = balance + $2, updated_at = now() "
@@ -170,75 +170,15 @@ async def award_passenger_points(
     )
 
 
-async def award_driver_points(
-    conn,
-    driver_id: uuid.UUID,
-    wallet_id: uuid.UUID,
-    distance_fee_amount: Decimal,
-) -> None:
-    """Replaces car_maintenance_service.accumulate_and_maybe_grant(). Credits 1 point per
-    whole EGP of accumulated distance fee (research.md Decision 6, 1:1 with the retired
-    CAR_MAINTENANCE_THRESHOLD_EGP mechanism).
-
-    driver_wallets.car_maintenance_savings_egp is reused purely as a fractional-EGP carry
-    buffer (NOT a user-facing balance anymore — loyalty_points_accounts is): each call adds
-    distance_fee_amount to it, then "cashes out" every whole EGP crossed as 1 point,
-    leaving the sub-EGP remainder for the next ride. This preserves the exact precision the
-    old car-maintenance mechanism had; flooring distance_fee_amount per-ride instead (most
-    rides fund < 1 EGP of distance fee) would silently lose most of a driver's earnings.
-
-    MUST be called inside the same transaction as the wallet debit, with the wallet row
-    already locked via wallet_service.get_wallet_with_lock() (commission_service.deduct_commission
-    and booking_service._settle_sponsored_booking both do this before calling here).
-    """
-    if distance_fee_amount <= Decimal("0"):
-        return
-
-    new_total = await wallet_service.increment_car_maintenance_savings(
-        conn, wallet_id, distance_fee_amount
-    )
-    points = int(new_total.to_integral_value(rounding=ROUND_FLOOR))
-    if points <= 0:
-        return
-
-    await wallet_service.decrement_car_maintenance_savings(conn, wallet_id, Decimal(points))
-    account = await get_account_with_lock(conn, driver_id, "driver")
-    await _record_transaction(conn, account["id"], points, "ride_completed_earn")
-
-
-async def reverse_points(
-    conn,
-    driver_id: uuid.UUID,
-    points: int,
-    *,
-    ride_id: Optional[uuid.UUID] = None,
-    booking_id: Optional[uuid.UUID] = None,
-) -> None:
-    """Claw back up to `points` driver points, floored at the account's current balance
-    (never negative). FR-014.
-
-    Used when a sponsored booking that already settled (credited driver points at
-    confirmation time, see booking_service._settle_sponsored_booking) is cancelled before
-    the ride completes — booking_service.cancel_booking's sponsored-reversal branch calls
-    this instead of decrementing driver_wallets directly, since driver points now live in
-    loyalty_points_accounts, not car_maintenance_savings_egp.
-    """
-    if points <= 0:
-        return
-    account = await get_account_with_lock(conn, driver_id, "driver")
-    clawback = min(points, account["balance"])
-    if clawback <= 0:
-        return
-    await _record_transaction(
-        conn, account["id"], -clawback, "ride_reversal_clawback", ride_id=ride_id, booking_id=booking_id
-    )
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Redemption — catalog browse + generic redeem (voucher / car_maintenance)
 # ─────────────────────────────────────────────────────────────────────────────
 
 async def list_catalog(conn, role: Role) -> list[dict]:
+    """Drivers have no reward catalog — Cash Back replaced driver loyalty points
+    entirely (post-Spec-028 item 1); their catalog is always empty."""
+    if role == "driver":
+        return []
     rows = await conn.fetch(
         """
         SELECT id, type, title, description, point_cost, fulfillment_mode
@@ -259,10 +199,12 @@ async def redeem_catalog_entry(
 
     Self-wraps in a transaction (mirroring fulfill_request/reject_request) since it is a
     top-level entry point called directly by the router, not nested inside a larger
-    transaction the way award_*_points/reverse_points are — the FOR UPDATE lock on the
+    transaction the way award_passenger_points is — the FOR UPDATE lock on the
     account row is otherwise released after each statement, allowing concurrent redeems
     to double-spend (NFR-002).
     """
+    if role == "driver":
+        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Catalog entry not found"})
     async with conn.transaction():
         account = await get_account_with_lock(conn, user_id, role)
         entry = await conn.fetchrow(

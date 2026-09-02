@@ -5,7 +5,7 @@ import time
 import uuid
 from decimal import ROUND_HALF_UP, Decimal
 
-from app.services import loyalty_service, wallet_service
+from app.services import wallet_service
 from app.services.pricing_service import FARE_SPLIT_SEATS
 
 logger = logging.getLogger(__name__)
@@ -78,10 +78,11 @@ async def deduct_commission(
 
     The platform keeps 20% of (fuel_cost + distance_fee) as commission, plus the full
     distance_fee itself (100% platform revenue, credited straight back to the driver as
-    cash-back — see the increment_sponsored_earnings call below) and any legacy flat safety
-    margin from rides created before the 2026-09-02 pricing revision. When the driver has set
-    a final price above the system fair price (Spec 023), the platform also takes 20% of that
-    per-seat markup, so commission revenue scales with what the driver actually charges (FR-011).
+    withdrawable Cash Back — see the increment_sponsored_earnings call below) and any legacy
+    flat safety margin from rides created before the 2026-09-02 pricing revision. When the
+    driver has set a final price above the system fair price (Spec 023), the platform also
+    takes 20% of that per-seat markup, so commission revenue scales with what the driver
+    actually charges (FR-011).
 
     Does NOT release the CommissionReservation — the caller (complete_ride) must call
     release_reservation() separately after this function returns.
@@ -158,12 +159,20 @@ async def deduct_commission(
         total_deducted += commission_amount
         total_distance_fee += distance_fee_amount
 
-    # The distance-fee share of what was just debited funds the driver's loyalty
-    # points balance (100% platform revenue, credited back as a driver benefit —
-    # see loyalty_service.award_driver_points, Spec 028).
-    await loyalty_service.award_driver_points(
-        conn, driver_id, wallet_id, total_distance_fee
-    )
+    # The distance-fee share of what was just debited is 100% platform revenue,
+    # credited straight back to the driver as withdrawable Cash Back (replaces the
+    # old loyalty-points/car-maintenance-savings mechanic — post-Spec-028 item 1).
+    if total_distance_fee > Decimal("0.00"):
+        await wallet_service.increment_sponsored_earnings(conn, wallet_id, total_distance_fee)
+        await wallet_service.insert_ledger_entry(
+            conn,
+            wallet_id=wallet_id,
+            driver_id=driver_id,
+            entry_type="CASH_BACK_CREDIT",
+            amount=total_distance_fee,
+            ride_id=ride_id,
+            note="Cash back (distance fee share of commission)",
+        )
 
     logger.info(
         "wallet_write operation=COMMISSION_DEBIT driver_id=%s ride_id=%s "

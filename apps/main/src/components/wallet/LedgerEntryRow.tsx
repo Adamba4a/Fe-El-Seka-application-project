@@ -40,8 +40,13 @@ export function LedgerEntryRow({ entry }: Props) {
     SPONSORED_RIDE_CREDIT: t("sponsoredRideCredit"),
     SPONSORED_RIDE_REVERSAL: t("sponsoredRideReversal"),
     WITHDRAWAL_DEBIT: t("withdrawal"),
+    CASH_BACK_CREDIT: t("cashBackCredit"),
+    CASH_BACK_REVERSAL: t("cashBackReversal"),
   };
-  const isCredit = entry.type === "ADMIN_CREDIT" || entry.type === "SPONSORED_RIDE_CREDIT";
+  const isCredit =
+    entry.type === "ADMIN_CREDIT" ||
+    entry.type === "SPONSORED_RIDE_CREDIT" ||
+    entry.type === "CASH_BACK_CREDIT";
   const amountColor = isCredit ? "text-green-600" : "text-red-600";
   const sign = isCredit ? "+" : "−";
 
@@ -53,7 +58,12 @@ export function LedgerEntryRow({ entry }: Props) {
         </p>
         <div className="flex items-center gap-2 text-xs text-content-muted">
           <span>{relativeTime(entry.created_at, locale, t)}</span>
-          {entry.ride_id && (entry.type === "COMMISSION_DEBIT" || entry.type === "SPONSORED_RIDE_CREDIT" || entry.type === "SPONSORED_RIDE_REVERSAL") && (
+          {entry.ride_id &&
+            (entry.type === "COMMISSION_DEBIT" ||
+              entry.type === "SPONSORED_RIDE_CREDIT" ||
+              entry.type === "SPONSORED_RIDE_REVERSAL" ||
+              entry.type === "CASH_BACK_CREDIT" ||
+              entry.type === "CASH_BACK_REVERSAL") && (
             <Link
               href={`/rides/${entry.ride_id}/manage`}
               className="text-brand-primary underline"

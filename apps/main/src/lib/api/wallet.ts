@@ -16,7 +16,9 @@ export interface LedgerEntry {
     | "ADMIN_DEBIT"
     | "SPONSORED_RIDE_CREDIT"
     | "SPONSORED_RIDE_REVERSAL"
-    | "WITHDRAWAL_DEBIT";
+    | "WITHDRAWAL_DEBIT"
+    | "CASH_BACK_CREDIT"
+    | "CASH_BACK_REVERSAL";
   amount_egp: string;
   ride_id: string | null;
   booking_id: string | null;
