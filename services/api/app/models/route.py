@@ -58,6 +58,7 @@ class RideCandidate(BaseModel):
     driver_dest_lng: Optional[float] = None
     group_id: Optional[UUID] = None
     group_name: Optional[str] = None
+    recurring_ride_definition_id: Optional[UUID] = None
 
 
 class CandidateSearchRequest(BaseModel):

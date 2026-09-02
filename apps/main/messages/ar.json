@@ -287,12 +287,7 @@
       "seatsCount": "{count} مقعد",
       "premiumFeeIncludedNote": "تُطبَّق الرسوم المميزة على كل يوم مختار.",
       "loyaltyRedemption": {
-        "heading": "استخدم نقاطك",
-        "yourBalance": "رصيدك: {points} نقطة",
-        "none": "لا توجد مكافآت متاحة حاليًا.",
-        "notAvailableForMultiDay": "يمكن استبدال النقاط في حجز يوم واحد فقط.",
-        "locked": "تحتاج {points} نقطة إضافية",
-        "pointCost": "{points} نقطة"
+        "notAvailableForMultiDay": "يمكن استبدال النقاط في حجز يوم واحد فقط."
       },
       "payWithPoints": {
         "heading": "ادفع جزءًا من الأجرة بنقاطك",
@@ -461,6 +456,7 @@
       "cashBackHeading": "كاش باك",
       "cashBackHelp": "ما ربحته من رحلات المجموعات المرعية ومن حصة رسوم المسافة في عمولة كل رحلة. يصل أولاً كنقاط — استبدل النقاط بنقود قابلة للسحب في أي وقت تريد.",
       "cashBackPointsLabel": "نقاط الكاش باك",
+      "cashBackPointsValue": "{points} نقطة",
       "cashBackBalance": "متاح للسحب",
       "redeemPoints": "استبدال النقاط"
     },
@@ -1067,7 +1063,9 @@
     "walkToPickup": "مشي {meters} متر إلى نقطة الصعود",
     "defaultDriverName": "سائق",
     "book": "احجز",
-    "groupRide": "مجموعة: {name}"
+    "groupRide": "مجموعة: {name}",
+    "recurringBadge": "رحلة متكررة",
+    "recurringDatesAvailable": "{count} تواريخ متاحة"
   },
   "matchScoreBadge": {
     "matchPercent": "تطابق {score}%"
@@ -1177,7 +1175,8 @@
     "dayToday": "اليوم",
     "dayTomorrow": "غدًا",
     "cashBackTitle": "كاش باك",
-    "cashBackBody": "يتم رد جزء من عمولة كل رحلة إليك مباشرة ككاش باك قابل للسحب.",
+    "cashBackBody": "يتم رد جزء من عمولة كل رحلة إليك كنقاط كاش باك — استبدلها بنقود قابلة للسحب في أي وقت.",
+    "cashBackPoints": "{points} نقطة",
     "viewCashBack": "عرض المحفظة"
   },
   "upcomingTripCard": {

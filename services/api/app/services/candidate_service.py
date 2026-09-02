@@ -70,7 +70,8 @@ async def _stage1_query(
                 ST_X(rides.destination_coordinates::geometry) AS destination_lng,
                 ST_AsText(rides.route_geometry)               AS route_geometry_wkt,
                 rides.group_id,
-                g.name AS group_name
+                g.name AS group_name,
+                rides.recurring_ride_definition_id
             FROM rides
             LEFT JOIN groups g ON g.id = rides.group_id
             WHERE
@@ -186,6 +187,7 @@ async def generate_candidates(
             driver_dest_lng=float(ride["destination_lng"]),
             group_id=ride["group_id"],
             group_name=ride["group_name"],
+            recurring_ride_definition_id=ride["recurring_ride_definition_id"],
         )
 
         if compat.is_compatible:

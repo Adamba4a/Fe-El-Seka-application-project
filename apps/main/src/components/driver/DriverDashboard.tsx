@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useSession } from "@/lib/auth/hooks";
 import { getMe } from "@/lib/api/profiles";
 import { listRides, listRideBookings } from "@/lib/api/rides";
-import { getWallet, formatEgp } from "@/lib/api/wallet";
+import { getWallet } from "@/lib/api/wallet";
 import { formatCurrency, computeNetEarningsPerSeat } from "@fe-el-seka/shared";
 import type { Ride, Profile, Locale } from "@fe-el-seka/shared";
 import { StatsCard } from "@/components/driver/StatsCard";
@@ -62,7 +62,7 @@ export function DriverDashboard() {
   const [todayCount, setTodayCount] = useState(0);
   const [earnings, setEarnings] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
-  const [cashBackEgp, setCashBackEgp] = useState("0.00");
+  const [cashBackPoints, setCashBackPoints] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export function DriverDashboard() {
         ]);
 
         setProfile(me);
-        setCashBackEgp(wallet.sponsored_earnings_egp);
+        setCashBackPoints(Math.floor(parseFloat(wallet.cash_back_points_egp)));
         setCompletedCount(completed.total);
         // Net of platform commission (20% of fuel cost + the flat safety-margin fee) —
         // the per-km distance fee is left in since it's saved toward the driver's car-
@@ -149,7 +149,7 @@ export function DriverDashboard() {
               </Link>
             </div>
             <p className="text-sm text-dash-text-muted mt-1">{t("cashBackBody")}</p>
-            <p className="text-2xl font-bold text-dash-navy mt-2">{formatEgp(cashBackEgp, locale)}</p>
+            <p className="text-2xl font-bold text-dash-navy mt-2">{t("cashBackPoints", { points: cashBackPoints })}</p>
           </div>
 
           <h2 className="text-xl font-bold text-dash-navy mt-8 mb-3">{t("upcomingTrips")}</h2>

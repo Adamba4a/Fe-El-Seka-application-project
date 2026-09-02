@@ -16,7 +16,7 @@ import { formatCurrency, FARE_SPLIT_SEATS } from "@fe-el-seka/shared";
 import type { Locale } from "@fe-el-seka/shared";
 import { fromIsoWeekday } from "@/lib/weekdays";
 import { listRecurringInstancesForRide, type RecurringInstanceOption } from "@/lib/api/recurring-rides";
-import { getLoyaltyBalance, getLoyaltyCatalog, type LoyaltyCatalogEntry } from "@/lib/api/loyalty";
+import { getLoyaltyBalance } from "@/lib/api/loyalty";
 
 const RideDetailMap = dynamic(
   () => import("@/components/bookings/RideDetailMap").then((m) => ({ default: m.RideDetailMap })),
@@ -265,9 +265,7 @@ export default function PassengerRideDetailPage() {
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [siblingInstances, setSiblingInstances] = useState<RecurringInstanceOption[]>([]);
   const [extraSeats, setExtraSeats] = useState<Record<string, number>>({});
-  const [loyaltyCatalog, setLoyaltyCatalog] = useState<LoyaltyCatalogEntry[]>([]);
   const [loyaltyBalance, setLoyaltyBalance] = useState<number | null>(null);
-  const [selectedRedemptionId, setSelectedRedemptionId] = useState<string | null>(null);
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
 
   useEffect(() => {
@@ -339,14 +337,10 @@ export default function PassengerRideDetailPage() {
         const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
-        const [catalog, balance] = await Promise.all([
-          getLoyaltyCatalog(session.access_token),
-          getLoyaltyBalance(session.access_token),
-        ]);
-        setLoyaltyCatalog(catalog.items.filter((i) => i.type === "free_ride" || i.type === "discount"));
+        const balance = await getLoyaltyBalance(session.access_token);
         setLoyaltyBalance(balance.balance);
       } catch {
-        // Non-critical: the redemption picker just stays hidden if this fails.
+        // Non-critical: the points stepper just stays hidden if this fails.
       }
     }
     loadLoyalty();
@@ -534,7 +528,7 @@ export default function PassengerRideDetailPage() {
   const totalPrice = (totalPriceBeforePoints - clampedPointsToRedeem).toFixed(2);
   const noSeats = ride.available_seats === 0;
   const selectedExtraCount = Object.keys(extraSeats).length;
-  const pointsRedemptionAvailable = !ride.is_sponsored && selectedExtraCount === 0 && !selectedRedemptionId;
+  const pointsRedemptionAvailable = !ride.is_sponsored && selectedExtraCount === 0;
 
   const handleBook = () => {
     setBookingError(null);
@@ -601,14 +595,14 @@ export default function PassengerRideDetailPage() {
         return { res, json };
       };
 
-      // Points/catalog redemption only applies to the single main-day booking — not
+      // Points redemption only applies to the single main-day booking — not
       // to extra recurring days, which are separate bookings on separate rides.
       const extraDayCount = Object.keys(extraSeats).length;
       const targets = [
         {
           rideId: detail.ride.id,
           seats: clampedSeatCount,
-          loyaltyRedemptionCatalogEntryId: extraDayCount === 0 ? selectedRedemptionId : null,
+          loyaltyRedemptionCatalogEntryId: null as string | null,
           pointsToRedeem: extraDayCount === 0 && clampedPointsToRedeem > 0 ? clampedPointsToRedeem : null,
         },
         ...Object.entries(extraSeats).map(([rideId, seats]) => ({
@@ -966,54 +960,6 @@ export default function PassengerRideDetailPage() {
             </div>
           </div>
 
-          {!ride.is_sponsored && selectedExtraCount === 0 && (
-            <div className="border-t border-border-default pt-3 space-y-2">
-              <p className="text-sm font-medium text-content-primary">
-                {t("loyaltyRedemption.heading")}
-              </p>
-              {loyaltyBalance !== null && (
-                <p className="text-xs text-content-muted">
-                  {t("loyaltyRedemption.yourBalance", { points: loyaltyBalance })}
-                </p>
-              )}
-              {loyaltyCatalog.length === 0 ? (
-                <p className="text-xs text-content-muted">{t("loyaltyRedemption.none")}</p>
-              ) : (
-                <div className="space-y-2">
-                  {loyaltyCatalog.map((entry) => {
-                    const locked = loyaltyBalance === null || loyaltyBalance < entry.point_cost;
-                    const selected = selectedRedemptionId === entry.id;
-                    return (
-                      <button
-                        key={entry.id}
-                        type="button"
-                        disabled={locked}
-                        onClick={() => {
-                          setSelectedRedemptionId(selected ? null : entry.id);
-                          setPointsToRedeem(0);
-                        }}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl border text-sm text-start transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                          selected
-                            ? "border-brand-primary bg-brand-primary/5"
-                            : "border-border-default bg-surface-card"
-                        }`}
-                      >
-                        <span>
-                          <span className="block font-medium text-content-primary">{entry.title}</span>
-                          <span className="block text-xs text-content-muted">{entry.description}</span>
-                        </span>
-                        <span className="shrink-0 text-xs font-semibold text-content-secondary ms-2">
-                          {locked
-                            ? t("loyaltyRedemption.locked", { points: entry.point_cost - (loyaltyBalance ?? 0) })
-                            : t("loyaltyRedemption.pointCost", { points: entry.point_cost })}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
           {!ride.is_sponsored && selectedExtraCount > 0 && (
             <p className="text-xs text-content-muted border-t border-border-default pt-3">
               {t("loyaltyRedemption.notAvailableForMultiDay")}
@@ -1028,29 +974,29 @@ export default function PassengerRideDetailPage() {
               <p className="text-xs text-content-muted">
                 {t("payWithPoints.subtitle", { max: maxPointsRedeemable })}
               </p>
-              <div className="flex items-center justify-between rounded-xl border border-border-default bg-surface-card p-3">
-                <button
-                  type="button"
-                  onClick={() => setPointsToRedeem((p) => Math.max(0, Math.min(p, maxPointsRedeemable) - 1))}
-                  disabled={clampedPointsToRedeem === 0}
-                  className="h-8 w-8 rounded-full border border-border-default text-content-primary disabled:opacity-40"
-                >
-                  −
-                </button>
-                <span className="text-sm font-semibold text-content-primary">
-                  {t("payWithPoints.pointsAndDiscount", {
-                    points: clampedPointsToRedeem,
-                    discount: formatCurrency(clampedPointsToRedeem, locale),
-                  })}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setPointsToRedeem((p) => Math.min(maxPointsRedeemable, Math.min(p, maxPointsRedeemable) + 1))}
-                  disabled={clampedPointsToRedeem >= maxPointsRedeemable}
-                  className="h-8 w-8 rounded-full border border-border-default text-content-primary disabled:opacity-40"
-                >
-                  +
-                </button>
+              <div className="rounded-xl border border-border-default bg-surface-card p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-content-primary">
+                    {t("payWithPoints.pointsAndDiscount", {
+                      points: clampedPointsToRedeem,
+                      discount: formatCurrency(clampedPointsToRedeem, locale),
+                    })}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={maxPointsRedeemable}
+                  step={1}
+                  value={clampedPointsToRedeem}
+                  onChange={(e) => setPointsToRedeem(Number(e.target.value))}
+                  className="w-full accent-brand-primary"
+                  aria-label={t("payWithPoints.heading")}
+                />
+                <div className="flex items-center justify-between text-xs text-content-muted">
+                  <span>0</span>
+                  <span>{maxPointsRedeemable}</span>
+                </div>
               </div>
             </div>
           )}

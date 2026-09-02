@@ -287,12 +287,7 @@
       "seatsCount": "{count} seat(s)",
       "premiumFeeIncludedNote": "Premium fee applies to each selected day.",
       "loyaltyRedemption": {
-        "heading": "Use your points",
-        "yourBalance": "Your balance: {points} pts",
-        "none": "No rewards available right now.",
-        "notAvailableForMultiDay": "Points can only be redeemed on a single-day booking.",
-        "locked": "Need {points} more pts",
-        "pointCost": "{points} pts"
+        "notAvailableForMultiDay": "Points can only be redeemed on a single-day booking."
       },
       "payWithPoints": {
         "heading": "Pay part of your fare with points",
@@ -461,6 +456,7 @@
       "cashBackHeading": "Cash Back",
       "cashBackHelp": "What you've earned back from sponsored-group rides and the distance-fee share of every ride's commission. It lands as points first — redeem points into withdrawable cash whenever you like.",
       "cashBackPointsLabel": "Cash Back Points",
+      "cashBackPointsValue": "{points} pts",
       "cashBackBalance": "Available to withdraw",
       "redeemPoints": "Redeem Points"
     },
@@ -1067,7 +1063,9 @@
     "walkToPickup": "{meters}m walk to pickup",
     "defaultDriverName": "Driver",
     "book": "Book",
-    "groupRide": "Group: {name}"
+    "groupRide": "Group: {name}",
+    "recurringBadge": "Recurring Ride",
+    "recurringDatesAvailable": "{count} dates available"
   },
   "matchScoreBadge": {
     "matchPercent": "{score}% match"
@@ -1177,7 +1175,8 @@
     "dayToday": "TODAY",
     "dayTomorrow": "TOMORROW",
     "cashBackTitle": "Cash Back",
-    "cashBackBody": "A share of every ride's commission is credited straight back to you as withdrawable Cash Back.",
+    "cashBackBody": "A share of every ride's commission is credited back to you as Cash Back points — redeem them into withdrawable cash anytime.",
+    "cashBackPoints": "{points} pts",
     "viewCashBack": "View wallet"
   },
   "upcomingTripCard": {

@@ -79,7 +79,7 @@ export default function WalletPage() {
           <div className="bg-surface-card rounded-2xl p-4 border border-border-default text-center space-y-2">
             <p className="text-body-sm text-content-muted">{t("cashBackPointsLabel")}</p>
             <p className="text-2xl font-bold text-content-primary">
-              {formatEgp(wallet.cash_back_points_egp, locale)}
+              {t("cashBackPointsValue", { points: Math.floor(parseFloat(wallet.cash_back_points_egp)) })}
             </p>
             <Link
               href="/wallet/cash-back/redeem"

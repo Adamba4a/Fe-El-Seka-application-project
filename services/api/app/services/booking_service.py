@@ -332,6 +332,12 @@ async def create_booking(
             passenger_id,
             {"ride_id": str(ride_id), "booking_id": str(booking_id)},
         )
+        await enqueue_booking_notification(
+            conn,
+            "booking_requested",
+            driver_id,
+            {"ride_id": str(ride_id), "booking_id": str(booking_id)},
+        )
 
         passenger_profile = await conn.fetchrow(
             "SELECT display_name FROM profiles WHERE id = $1",

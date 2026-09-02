@@ -367,6 +367,9 @@ async def search_rides(
             "compatibility": _shape_compatibility(c.compatibility),
             "group_id": str(c.group_id) if c.group_id else None,
             "group_name": c.group_name,
+            "recurring_ride_definition_id": (
+                str(c.recurring_ride_definition_id) if c.recurring_ride_definition_id else None
+            ),
         })
 
     search_ctx = match_logging_service.SearchContext(
