@@ -390,12 +390,15 @@ async def _settle_sponsored_booking(
     fair_price_per_seat = Decimal(str(fair_price_per_seat))
     price_per_seat = Decimal(str(per_seat_price))
 
-    per_seat_commission, per_seat_distance_fee = compute_per_seat_commission(
+    per_seat_commission, per_seat_distance_fee, per_seat_true_commission = compute_per_seat_commission(
         fuel_cost_egp, distance_fee_egp, safety_margin_egp, price_per_seat, fair_price_per_seat
     )
     commission_for_booking = (per_seat_commission * seats).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     net_credit = total_seat_price - commission_for_booking
     distance_fee_amount = (per_seat_distance_fee * seats).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    true_commission_for_booking = (per_seat_true_commission * seats).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
 
     group_row = await conn.fetchrow(
         "SELECT id, funded_balance_egp FROM groups WHERE id = $1 FOR UPDATE",
@@ -446,7 +449,9 @@ async def _settle_sponsored_booking(
     # Sponsored bookings earn passenger points at confirmation, not completion — this
     # is the sponsored-side counterpart of commission_service.deduct_commission's
     # per-booking award for CASH bookings (post-Spec-028 item 3).
-    await loyalty_service.award_passenger_points(conn, passenger_id, booking_id, ride_id, commission_for_booking)
+    await loyalty_service.award_passenger_points(
+        conn, passenger_id, booking_id, ride_id, true_commission_for_booking
+    )
 
 
 async def confirm_booking(
@@ -788,7 +793,7 @@ async def cancel_booking(
             fair_price_per_seat = Decimal(str(row["fair_price_per_seat"]))
             price_per_seat = Decimal(str(row["per_seat_price"]))
 
-            per_seat_commission, per_seat_distance_fee = compute_per_seat_commission(
+            per_seat_commission, per_seat_distance_fee, per_seat_true_commission = compute_per_seat_commission(
                 fuel_cost_egp, distance_fee_egp, safety_margin_egp, price_per_seat, fair_price_per_seat
             )
             commission_for_booking = (per_seat_commission * row["seats"]).quantize(
@@ -799,6 +804,10 @@ async def cancel_booking(
             # cancelled sponsored booking doesn't leave phantom progress toward the
             # car-maintenance reward (see create_booking's SPONSORED branch).
             distance_fee_amount = (per_seat_distance_fee * row["seats"]).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+            # Must match exactly what _settle_sponsored_booking awarded at confirmation time.
+            true_commission_for_booking = (per_seat_true_commission * row["seats"]).quantize(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
 
@@ -842,7 +851,7 @@ async def cancel_booking(
             # Claw back the points this sponsored booking earned at confirmation time
             # (see _settle_sponsored_booking) — mirrors the Cash Back reversal above.
             await loyalty_service.reverse_passenger_points(
-                conn, row["passenger_id"], booking_id, row["ride_id"], commission_for_booking
+                conn, row["passenger_id"], booking_id, row["ride_id"], true_commission_for_booking
             )
 
         if row["points_redeemed"]:

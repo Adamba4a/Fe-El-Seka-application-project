@@ -300,7 +300,7 @@ async def create_ride(
                 # compute_per_seat_commission's docstring) — scale by total_seats so the
                 # reservation actually covers what deduct_commission can charge, instead of
                 # under-reserving on any ride whose total_seats != FARE_SPLIT_SEATS.
-                per_seat_commission, _ = compute_per_seat_commission(
+                per_seat_commission, _, _ = compute_per_seat_commission(
                     Decimal(str(fuel_cost_egp)),
                     Decimal(str(distance_fee_egp)),
                     Decimal(str(safety_margin_egp)),
@@ -668,7 +668,7 @@ async def edit_ride(
                         else Decimal("0")
                     )
 
-                per_seat_commission, _ = compute_per_seat_commission(
+                per_seat_commission, _, _ = compute_per_seat_commission(
                     fuel_cost, distance_fee, safety_margin, final_price_per_seat, fair_price
                 )
                 new_max_commission = (per_seat_commission * final_total_seats).quantize(
