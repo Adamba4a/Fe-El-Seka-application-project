@@ -22,6 +22,7 @@ export interface FinancialReport {
   sponsored_commission_collected_egp: string;
   sponsored_commission_by_group: SponsoredGroupCommission[];
   distance_fee_passthrough_egp: string;
+  points_discount_reimbursement_egp: string;
   admin_credits_egp: string;
   admin_debits_egp: string;
   net_revenue_egp: string;

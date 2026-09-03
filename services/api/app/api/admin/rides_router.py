@@ -29,12 +29,17 @@ def _markup_fields(price_per_seat, fair_price_per_seat) -> dict:
 
 # Net commission actually realized on a ride — NOT a simple 20% of price_per_seat.
 # COMMISSION_DEBIT (cash bookings) and the SPONSORED_RIDE_CREDIT gap (sponsored
-# bookings) are both gross figures that still include the ride's distance_fee, which
-# isn't platform revenue: it's credited straight back to the driver in the same
-# transaction as a CASH_BACK_CREDIT entry (see commission_service.deduct_commission
-# and booking_service._settle_sponsored_booking). Subtracting every CASH_BACK_CREDIT
-# tied to this ride turns the gross debit into the platform's true take. Zero for a
-# ride with no settled (completed/sponsored-confirmed) bookings yet.
+# bookings) are both gross figures that still include two components that never stay
+# with the platform, both credited straight back to the driver in the same
+# transaction as the debit:
+#   - CASH_BACK_CREDIT: the ride's distance_fee share (see
+#     commission_service.deduct_commission / booking_service._settle_sponsored_booking)
+#   - POINTS_DISCOUNT_REIMBURSEMENT: reimburses the driver for a passenger's
+#     pay-with-points fare discount (cash rides only — commission_service.py). This
+#     is a real cost incurred when the discount is redeemed, even though the points
+#     were earned (and their cost budgeted for) on other, earlier rides.
+# Subtracting both turns the gross debit into the platform's true take on THIS ride.
+# Zero for a ride with no settled (completed/sponsored-confirmed) bookings yet.
 # Correlated on r.id — embed directly into a SELECT list against a query whose FROM
 # includes "rides r".
 _NET_COMMISSION_SUBQUERY_SQL = """(
@@ -42,6 +47,7 @@ _NET_COMMISSION_SUBQUERY_SQL = """(
         COALESCE(SUM(l.amount_egp) FILTER (WHERE l.type = 'COMMISSION_DEBIT'), 0)
         + COALESCE(SUM(b.total_price - l.amount_egp) FILTER (WHERE l.type = 'SPONSORED_RIDE_CREDIT'), 0)
         - COALESCE(SUM(l.amount_egp) FILTER (WHERE l.type = 'CASH_BACK_CREDIT'), 0)
+        - COALESCE(SUM(l.amount_egp) FILTER (WHERE l.type = 'POINTS_DISCOUNT_REIMBURSEMENT'), 0)
     FROM driver_ledger_entries l
     LEFT JOIN bookings b ON b.id = l.booking_id AND l.type = 'SPONSORED_RIDE_CREDIT'
     WHERE l.ride_id = r.id

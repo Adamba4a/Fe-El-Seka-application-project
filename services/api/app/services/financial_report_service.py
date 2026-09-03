@@ -8,7 +8,9 @@ from typing import AsyncIterator
 
 from app.utils.period import get_trend_granularity
 
-_LEDGER_TYPES = ("COMMISSION_DEBIT", "CASH_BACK_CREDIT", "ADMIN_CREDIT", "ADMIN_DEBIT")
+_LEDGER_TYPES = (
+    "COMMISSION_DEBIT", "CASH_BACK_CREDIT", "POINTS_DISCOUNT_REIMBURSEMENT", "ADMIN_CREDIT", "ADMIN_DEBIT",
+)
 
 
 def _range_bounds(start: date, end: date) -> tuple[datetime, datetime]:
@@ -83,7 +85,24 @@ async def get_report(conn, start: date, end: date) -> dict:
     distance_fee_passthrough_cash = Decimal(str(distance_fee_passthrough_cash))
     distance_fee_passthrough_sponsored = Decimal(str(distance_fee_passthrough_sponsored))
 
-    commission = totals["COMMISSION_DEBIT"] - distance_fee_passthrough_cash
+    # POINTS_DISCOUNT_REIMBURSEMENT (cash rides only — commission_service.py, never
+    # written for sponsored bookings) pays the driver back for a passenger's
+    # pay-with-points fare discount out of COMMISSION_DEBIT, same as CASH_BACK_CREDIT
+    # above: gross commission debited, then a slice of it immediately paid back out.
+    # It's a real cost incurred at redemption time even though the points themselves
+    # were earned (and their cost budgeted for) on other, earlier rides.
+    points_discount_reimbursement = await conn.fetchval(
+        """
+        SELECT COALESCE(SUM(amount_egp), 0) FROM driver_ledger_entries
+        WHERE type = 'POINTS_DISCOUNT_REIMBURSEMENT'
+          AND created_at >= $1 AND created_at < $2
+        """,
+        start_dt,
+        end_dt,
+    )
+    points_discount_reimbursement = Decimal(str(points_discount_reimbursement))
+
+    commission = totals["COMMISSION_DEBIT"] - distance_fee_passthrough_cash - points_discount_reimbursement
 
     # Sponsored-ride commission never touches the driver's own balance (there's
     # no cash the driver held to debit) — it's the gap between what the group's
@@ -148,18 +167,20 @@ async def get_report(conn, start: date, end: date) -> dict:
     bucket_starts = [b[1] for b in buckets]
     bucket_ends = [b[2] for b in buckets]
 
-    # Net out the same cash-ride distance-fee passthrough as `commission` above, per
-    # bucket, so the trend line matches the top-level figure instead of the gross debit.
+    # Net out the same cash-ride distance-fee passthrough and points-discount
+    # reimbursement as `commission` above, per bucket, so the trend line matches the
+    # top-level figure instead of the gross debit.
     trend_rows = await conn.fetch(
         """
         SELECT b.bucket_label,
                COALESCE(SUM(l.amount_egp) FILTER (WHERE l.type = 'COMMISSION_DEBIT'), 0)
                    - COALESCE(SUM(l.amount_egp) FILTER (WHERE l.type = 'CASH_BACK_CREDIT' AND l.booking_id IS NULL), 0)
+                   - COALESCE(SUM(l.amount_egp) FILTER (WHERE l.type = 'POINTS_DISCOUNT_REIMBURSEMENT'), 0)
                    AS value
         FROM unnest($1::text[], $2::timestamptz[], $3::timestamptz[])
             AS b(bucket_label, bucket_start, bucket_end)
         LEFT JOIN driver_ledger_entries l
-            ON l.type IN ('COMMISSION_DEBIT', 'CASH_BACK_CREDIT')
+            ON l.type IN ('COMMISSION_DEBIT', 'CASH_BACK_CREDIT', 'POINTS_DISCOUNT_REIMBURSEMENT')
             AND l.created_at >= b.bucket_start AND l.created_at < b.bucket_end
         GROUP BY b.bucket_label
         """,
@@ -179,6 +200,7 @@ async def get_report(conn, start: date, end: date) -> dict:
         "sponsored_commission_collected_egp": str(sponsored_commission),
         "sponsored_commission_by_group": sponsored_commission_by_group,
         "distance_fee_passthrough_egp": str(distance_fee_passthrough_total),
+        "points_discount_reimbursement_egp": str(points_discount_reimbursement),
         "admin_credits_egp": str(credits),
         "admin_debits_egp": str(debits),
         "net_revenue_egp": str(net_revenue),
@@ -235,7 +257,8 @@ async def stream_report_csv(conn, start: date, end: date) -> AsyncIterator[str]:
 
     yield _csv_row(
         "start", "end", "commission_collected_egp", "sponsored_commission_collected_egp",
-        "distance_fee_passthrough_egp", "admin_credits_egp", "admin_debits_egp", "net_revenue_egp",
+        "distance_fee_passthrough_egp", "points_discount_reimbursement_egp",
+        "admin_credits_egp", "admin_debits_egp", "net_revenue_egp",
     )
     yield _csv_row(
         report["range"]["start"],
@@ -243,6 +266,7 @@ async def stream_report_csv(conn, start: date, end: date) -> AsyncIterator[str]:
         report["commission_collected_egp"],
         report["sponsored_commission_collected_egp"],
         report["distance_fee_passthrough_egp"],
+        report["points_discount_reimbursement_egp"],
         report["admin_credits_egp"],
         report["admin_debits_egp"],
         report["net_revenue_egp"],

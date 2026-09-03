@@ -129,7 +129,7 @@ export default function FinancialPage() {
 
       {report && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
             <div className="border rounded-lg p-5">
               <p className="text-3xl font-bold">{report.commission_collected_egp} EGP</p>
               <p className="text-sm text-gray-500 mt-1">Net commission (cash rides)</p>
@@ -141,6 +141,10 @@ export default function FinancialPage() {
             <div className="border rounded-lg p-5">
               <p className="text-3xl font-bold text-gray-400">{report.distance_fee_passthrough_egp} EGP</p>
               <p className="text-sm text-gray-500 mt-1">Distance fee (returned to drivers as Cash Back — not revenue)</p>
+            </div>
+            <div className="border rounded-lg p-5">
+              <p className="text-3xl font-bold text-gray-400">{report.points_discount_reimbursement_egp} EGP</p>
+              <p className="text-sm text-gray-500 mt-1">Points-discount reimbursements (paid to drivers — not revenue)</p>
             </div>
             <div className="border rounded-lg p-5">
               <p className="text-3xl font-bold">{report.admin_credits_egp} EGP</p>
