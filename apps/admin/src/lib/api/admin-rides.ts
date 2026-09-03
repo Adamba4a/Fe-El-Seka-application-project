@@ -12,6 +12,7 @@ export interface RideListItem {
   booked_seats: number;
   available_seats: number;
   price_per_seat: string;
+  net_commission_egp: string;
   created_at: string;
   driver_id: string;
   driver_display_name: string;
@@ -44,6 +45,7 @@ export interface RideDetail {
   booked_seats: number;
   available_seats: number;
   price_per_seat: string;
+  net_commission_egp: string;
   notes: string | null;
   cancellation_reason: string | null;
   cancellation_source: string | null;

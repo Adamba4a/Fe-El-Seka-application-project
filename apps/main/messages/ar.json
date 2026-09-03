@@ -286,6 +286,15 @@
       "seatsLeft": "{count} مقعد متبقي",
       "seatsCount": "{count} مقعد",
       "premiumFeeIncludedNote": "تُطبَّق الرسوم المميزة على كل يوم مختار.",
+      "loyaltyRedemption": {
+        "notAvailableForMultiDay": "يمكن استبدال النقاط في حجز يوم واحد فقط."
+      },
+      "payWithPoints": {
+        "heading": "ادفع جزءًا من الأجرة بنقاطك",
+        "subtitle": "النقطة الواحدة = ١ ج.م، حتى {max} نقطة لهذه الرحلة",
+        "pointsAndDiscount": "{points} نقطة (−{discount})",
+        "discountLineLabel": "خصم النقاط"
+      },
       "weekdayShort": {
         "0": "أحد",
         "1": "اثنين",
@@ -301,6 +310,8 @@
         "somethingWrong": "حدث خطأ ما.",
         "duplicateBooking": "لديك بالفعل حجز لهذه الرحلة.",
         "noSeats": "لا توجد مقاعد متاحة — امتلأت هذه الرحلة للتو.",
+        "insufficientPoints": "ليس لديك نقاط كافية لهذه المكافأة.",
+        "loyaltyConflict": "لا يمكن الجمع بين النقاط ورحلة جماعية مدعومة.",
         "bookingFailed": "فشل الحجز. يرجى المحاولة مرة أخرى.",
         "networkBooking": "خطأ في الشبكة — يرجى المحاولة مرة أخرى.",
         "partialBookingFailure": "تم حجز {succeeded} من أصل {total} يوم. الأيام المتبقية كانت ممتلئة أو محجوزة بالفعل."
@@ -331,6 +342,7 @@
     },
     "bookings": {
       "title": "حجوزاتي",
+      "myPoints": "نقاطي",
       "tabAll": "الكل",
       "tabActive": "نشطة",
       "tabPast": "سابقة",
@@ -340,6 +352,29 @@
       "noBookingsAll": "لم تقم بأي حجوزات بعد.",
       "loadFailed": "فشل تحميل الحجوزات",
       "tryAgain": "أعد المحاولة"
+    },
+    "loyalty": {
+      "title": "نقاطي",
+      "balance": "{points} نقطة",
+      "transactionHistory": "السجل",
+      "noTransactions": "لا يوجد نشاط نقاط بعد.",
+      "loading": "جارٍ التحميل…",
+      "loadFailed": "فشل تحميل نقاطك.",
+      "reasons": {
+        "ride_completed_earn": "اكتملت الرحلة",
+        "redemption_spend": "تم الاستبدال",
+        "redemption_refund": "تم استرداد الاستبدال",
+        "ride_reversal_clawback": "تم عكس النقاط"
+      },
+      "showMore": "عرض المزيد",
+      "redeemHeading": "استبدال النقاط",
+      "redeemVoucher": "استبدل {points} نقطة بـ {title}",
+      "redeeming": "جارٍ الاستبدال…",
+      "redeemFulfilled": "تم الاستبدال! مكافأتك جاهزة.",
+      "redeemPending": "تم إرسال طلب الاستبدال — سيراجعه المسؤول قريبًا.",
+      "redeemFailed": "فشل الاستبدال. حاول مرة أخرى.",
+      "insufficientPoints": "لا توجد نقاط كافية بعد",
+      "noVouchers": "لا توجد قسائم متاحة حاليًا."
     },
     "bookingDetail": {
       "title": "تفاصيل الحجز",
@@ -414,16 +449,20 @@
       "addBalance": "إضافة رصيد",
       "requestWithdrawal": "طلب سحب",
       "transactionHistory": "سجل المعاملات",
+      "viewHistory": "عرض السجل",
       "noTransactions": "لا توجد معاملات بعد. أضف رصيدًا لبدء نشر الرحلات.",
       "cashWalletHeading": "المحفظة النقدية",
       "cashWalletHelp": "رصيدك الخاص المضاف بنفسك، يُستخدم لدفع عمولات الرحلات العادية (غير المرعية).",
-      "sponsoredEarningsHeading": "أرباح الرعاية",
-      "sponsoredEarningsHelp": "ما ربحته من رحلات المجموعات المرعية. هذا هو الرصيد الوحيد الذي يمكنك سحبه.",
-      "sponsoredEarningsBalance": "متاح للسحب"
+      "cashBackHeading": "كاش باك",
+      "cashBackHelp": "ما ربحته من رحلات المجموعات المرعية ومن حصة رسوم المسافة في عمولة كل رحلة. يصل أولاً كنقاط — استبدل النقاط بنقود قابلة للسحب في أي وقت تريد.",
+      "cashBackPointsLabel": "نقاط الكاش باك",
+      "cashBackPointsValue": "{points} نقطة",
+      "cashBackBalance": "متاح للسحب",
+      "redeemPoints": "استبدال النقاط"
     },
     "walletWithdraw": {
       "heading": "طلب سحب",
-      "instructions": "اسحب من أرباح الرعاية الخاصة بك — الأموال التي ربحتها من رحلات المجموعات المرعية. أدخل المبلغ والرقم الذي نرسل إليه المبلغ؛ سيقوم أحد المسؤولين بالمراجعة وإرسال المبلغ يدويًا.",
+      "instructions": "اسحب من الكاش باك الخاص بك — الأموال التي ربحتها من عمولات الرحلات ورحلات المجموعات المرعية. أدخل المبلغ والرقم الذي نرسل إليه المبلغ؛ سيقوم أحد المسؤولين بالمراجعة وإرسال المبلغ يدويًا.",
       "amountLabel": "المبلغ (جنيه)",
       "amountPlaceholder": "مثال: 100.00",
       "payoutReferenceLabel": "رقم الاستلام",
@@ -436,8 +475,9 @@
       "pendingBody": "نقوم بمراجعة طلب السحب الخاص بك. عادةً ما يستغرق ذلك وقتًا قصيرًا.",
       "errors": {
         "validation_error": "يرجى التحقق من المبلغ ورقم الاستلام والمحاولة مرة أخرى.",
-        "insufficient_balance": "هذا المبلغ يتجاوز أرباح الرعاية المتاحة لديك.",
+        "insufficient_balance": "هذا المبلغ يتجاوز الكاش باك المتاح لديك.",
         "pending_request_exists": "لديك بالفعل طلب سحب قيد المراجعة.",
+        "below_minimum_threshold": "تحتاج إلى 1000 جنيه على الأقل من الكاش باك قبل أن تتمكن من السحب.",
         "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
       },
       "history": {
@@ -453,6 +493,22 @@
           "REJECTED": "مرفوض"
         },
         "rejectionReasonPrefix": "السبب: {reason}"
+      }
+    },
+    "cashBackRedeem": {
+      "heading": "استبدال النقاط",
+      "instructions": "حوّل نقاط الكاش باك الخاصة بك إلى نقود قابلة للسحب — نقطة واحدة = جنيه واحد. أدخل عدد النقاط التي تريد استبدالها.",
+      "amountLabel": "النقاط المراد استبدالها",
+      "amountPlaceholder": "مثال: 100.00",
+      "submit": "استبدال",
+      "submitting": "جارٍ الاستبدال…",
+      "backToWallet": "العودة إلى المحفظة",
+      "successHeading": "تم الاستبدال!",
+      "successBody": "تم تحويل نقاطك إلى نقود قابلة للسحب.",
+      "errors": {
+        "validation_error": "يرجى التحقق من المبلغ والمحاولة مرة أخرى.",
+        "insufficient_points": "هذا المبلغ يتجاوز نقاط الكاش باك المتاحة لديك.",
+        "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
       }
     },
     "walletTopup": {
@@ -989,7 +1045,8 @@
     "dropoffDetour": "انحراف النزول: +{fee} ج.م",
     "defaultDriverName": "سائق",
     "defaultPassengerName": "راكب",
-    "viewProfile": "عرض الملف الشخصي"
+    "viewProfile": "عرض الملف الشخصي",
+    "pointsDiscountNote": "دفع الراكب {amount} بنقاط الولاء"
   },
   "featuredRides": {
     "heading": "رحلات مميزة",
@@ -1006,7 +1063,9 @@
     "walkToPickup": "مشي {meters} متر إلى نقطة الصعود",
     "defaultDriverName": "سائق",
     "book": "احجز",
-    "groupRide": "مجموعة: {name}"
+    "groupRide": "مجموعة: {name}",
+    "recurringBadge": "رحلة متكررة",
+    "recurringDatesAvailable": "{count} تواريخ متاحة"
   },
   "matchScoreBadge": {
     "matchPercent": "تطابق {score}%"
@@ -1115,9 +1174,10 @@
     "postRideAriaLabel": "نشر رحلة جديدة",
     "dayToday": "اليوم",
     "dayTomorrow": "غدًا",
-    "carMaintenanceSavingsTitle": "مدخرات صيانة سيارتك",
-    "carMaintenanceSavingsBody": "من كل رحلة، يذهب جزء صغير نحو صيانة مجانية لسيارتك. اجمع {threshold} لتحصل عليها.",
-    "carMaintenanceSavingsProgress": "{current} من {threshold}"
+    "cashBackTitle": "كاش باك",
+    "cashBackBody": "يتم رد جزء من عمولة كل رحلة إليك كنقاط كاش باك — استبدلها بنقود قابلة للسحب في أي وقت.",
+    "cashBackPoints": "{points} نقطة",
+    "viewCashBack": "عرض المحفظة"
   },
   "upcomingTripCard": {
     "confirmed": "مؤكد",
@@ -1139,7 +1199,11 @@
     "noActiveBookingsTitle": "لا توجد حجوزات نشطة",
     "noActiveBookingsBody": "ستظهر هنا الرحلات التي تنضم إليها.",
     "dayToday": "اليوم",
-    "dayTomorrow": "غدًا"
+    "dayTomorrow": "غدًا",
+    "loyaltyPointsTitle": "نقاطي",
+    "loyaltyPointsBalance": "{points} نقطة",
+    "loyaltyPointsBody": "اكسب نقاطًا من كل رحلة واستبدلها برحلات مجانية أو خصومات أو قسائم.",
+    "viewLoyaltyPoints": "عرض النقاط"
   },
   "availableRideCard": {
     "verifiedDriver": "سائق موثّق",
@@ -1171,6 +1235,10 @@
     "sponsoredRideCredit": "أرباح رحلة مموّلة",
     "sponsoredRideReversal": "عكس رحلة مموّلة",
     "withdrawal": "سحب",
+    "cashBackCredit": "كاش باك مكتسب",
+    "cashBackReversal": "عكس كاش باك",
+    "pointsDiscountReimbursement": "استرداد نقاط الراكب",
+    "cashBackRedeemed": "استبدال نقاط بنقود",
     "justNow": "الآن",
     "minutesAgo": "منذ {minutes} د",
     "hoursAgo": "منذ {hours} س",

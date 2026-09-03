@@ -15,6 +15,7 @@ import type {
 } from "@fe-el-seka/shared";
 import { getFareEstimate } from "@/lib/api/pricing";
 import { toIsoWeekday } from "@/lib/weekdays";
+import { localTimeToUtcTime } from "@/lib/api/recurring-rides";
 
 const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const; // 0 = Sunday .. 6 = Saturday
 
@@ -180,7 +181,7 @@ export function RideForm({
         vehicle_id: vehicleId!,
         origin: origin!,
         destination: destination!,
-        departure_time: recurringTime,
+        departure_time: localTimeToUtcTime(recurringTime),
         weekdays: recurringWeekdays.map(toIsoWeekday),
         total_seats: totalSeats,
         price_per_seat: selectedPrice!,

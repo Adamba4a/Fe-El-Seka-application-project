@@ -3,11 +3,12 @@ from __future__ import annotations
 import uuid
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 
 from app.core.database import get_pool
 from app.dependencies.roles import get_current_driver
-from app.services import car_maintenance_service, wallet_service
+from app.models.wallet import CashBackRedeemRequest, CashBackRedeemResponse
+from app.services import wallet_service
 
 router = APIRouter()
 
@@ -31,7 +32,7 @@ async def get_my_wallet(
     reserved = Decimal(str(wallet["reserved_egp"]))
     available = balance - reserved
     sponsored_earnings = Decimal(str(wallet["sponsored_earnings_egp"]))
-    car_maintenance_savings = Decimal(str(wallet["car_maintenance_savings_egp"]))
+    cash_back_points = Decimal(str(wallet["cash_back_points_egp"]))
     total_pages = max(1, (total + _PER_PAGE - 1) // _PER_PAGE)
 
     return {
@@ -39,8 +40,7 @@ async def get_my_wallet(
         "reserved_egp": str(reserved),
         "available_egp": str(available),
         "sponsored_earnings_egp": str(sponsored_earnings),
-        "car_maintenance_savings_egp": str(car_maintenance_savings),
-        "car_maintenance_threshold_egp": str(car_maintenance_service.CAR_MAINTENANCE_THRESHOLD_EGP),
+        "cash_back_points_egp": str(cash_back_points),
         "entries": [
             {
                 "id": str(e["id"]),
@@ -60,4 +60,28 @@ async def get_my_wallet(
             "total_entries": total,
             "total_pages": total_pages,
         },
+    }
+
+
+@router.post(
+    "/wallet/cash-back/redeem",
+    response_model=CashBackRedeemResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def redeem_cash_back(
+    body: CashBackRedeemRequest,
+    driver: dict = Depends(get_current_driver),
+) -> dict:
+    """Move points from cash_back_points_egp into the withdrawable sponsored_earnings_egp pool."""
+    driver_id = uuid.UUID(str(driver["id"]))
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        entry = await wallet_service.redeem_cash_back_points(conn, driver_id, body.amount_egp)
+
+    return {
+        "id": entry["id"],
+        "amount_egp": str(entry["amount_egp"]),
+        "cash_back_points_egp": str(entry["cash_back_points_egp"]),
+        "sponsored_earnings_egp": str(entry["sponsored_earnings_egp"]),
+        "created_at": entry["created_at"],
     }

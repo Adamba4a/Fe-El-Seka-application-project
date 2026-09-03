@@ -42,6 +42,7 @@ interface DriverBooking {
   premium_pickup_fee?: string | null;
   premium_dropoff_requested?: boolean;
   premium_dropoff_fee?: string | null;
+  points_discount_egp?: string | null;
 }
 
 interface PassengerVariantProps {
@@ -203,6 +204,12 @@ export function BookingCard(props: BookingCardProps) {
             {booking.premium_dropoff_requested && (
               <p>{t("dropoffDetour", { fee: booking.premium_dropoff_fee ?? "—" })}</p>
             )}
+          </div>
+        )}
+
+        {booking.points_discount_egp && Number(booking.points_discount_egp) > 0 && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 p-2 text-xs text-amber-800">
+            <p>{t("pointsDiscountNote", { amount: formatCurrency(Number(booking.points_discount_egp), locale) })}</p>
           </div>
         )}
 

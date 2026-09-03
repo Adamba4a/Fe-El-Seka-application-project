@@ -10,6 +10,24 @@ import { env } from "../env";
 
 const base = env.apiUrl;
 
+// The backend stores `departure_time` as a UTC time-of-day, combined with each
+// instance's calendar date at generation time (no per-driver timezone on the
+// definition). The driver picks a time in their own browser's local timezone,
+// so we convert local HH:MM <-> UTC HH:MM here rather than in the backend.
+export function localTimeToUtcTime(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  const now = new Date();
+  const local = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
+  return `${String(local.getUTCHours()).padStart(2, "0")}:${String(local.getUTCMinutes()).padStart(2, "0")}`;
+}
+
+export function utcTimeToLocalTime(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  const now = new Date();
+  const utc = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0));
+  return `${String(utc.getHours()).padStart(2, "0")}:${String(utc.getMinutes()).padStart(2, "0")}`;
+}
+
 function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 }

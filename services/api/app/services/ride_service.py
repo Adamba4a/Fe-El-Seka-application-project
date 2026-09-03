@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
@@ -20,6 +21,8 @@ from app.models.ride import (
     RideResponse,
 )
 from app.services.pricing_service import calculate_fare, calculate_max_price
+
+logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Custom exceptions
@@ -211,6 +214,14 @@ async def create_ride(
     )
     max_price_dec = Decimal(str(calculate_max_price(fair_price_per_seat)))
     if price_per_seat < fair_price_dec or price_per_seat > max_price_dec:
+        logger.warning(json.dumps({
+            "event": "price_override_rejected",
+            "context": "create_ride",
+            "driver_id": str(driver_id),
+            "fair_price_per_seat": str(fair_price_dec),
+            "max_price_per_seat": str(max_price_dec),
+            "requested_price_per_seat": str(price_per_seat),
+        }))
         raise RideServiceError(
             "price_out_of_band",
             f"Price must be between {fair_price_dec:.2f} and {max_price_dec:.2f} EGP per seat.",
@@ -300,7 +311,7 @@ async def create_ride(
                 # compute_per_seat_commission's docstring) — scale by total_seats so the
                 # reservation actually covers what deduct_commission can charge, instead of
                 # under-reserving on any ride whose total_seats != FARE_SPLIT_SEATS.
-                per_seat_commission, _ = compute_per_seat_commission(
+                per_seat_commission, _, _ = compute_per_seat_commission(
                     Decimal(str(fuel_cost_egp)),
                     Decimal(str(distance_fee_egp)),
                     Decimal(str(safety_margin_egp)),
@@ -605,6 +616,15 @@ async def edit_ride(
             if payload.final_price_per_seat is not None:
                 new_price = Decimal(str(payload.final_price_per_seat))
                 if new_price < fair_price or new_price > max_price:
+                    logger.warning(json.dumps({
+                        "event": "price_override_rejected",
+                        "context": "edit_ride",
+                        "ride_id": str(ride_id),
+                        "driver_id": str(driver_id),
+                        "fair_price_per_seat": str(fair_price),
+                        "max_price_per_seat": str(max_price),
+                        "requested_price_per_seat": str(new_price),
+                    }))
                     raise RideServiceError(
                         "price_out_of_band",
                         f"Price must be between {fair_price:.2f} and {max_price:.2f} EGP per seat.",
@@ -668,7 +688,7 @@ async def edit_ride(
                         else Decimal("0")
                     )
 
-                per_seat_commission, _ = compute_per_seat_commission(
+                per_seat_commission, _, _ = compute_per_seat_commission(
                     fuel_cost, distance_fee, safety_margin, final_price_per_seat, fair_price
                 )
                 new_max_commission = (per_seat_commission * final_total_seats).quantize(
@@ -909,7 +929,7 @@ async def complete_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideRespons
             # `seats` is required here — deduct_commission() charges per seat, not per
             # booking row, since a single booking can reserve more than one seat.
             confirmed_bookings = await conn.fetch(
-                "SELECT id, passenger_id, seats, payment_source FROM bookings "
+                "SELECT id, passenger_id, seats, payment_source, points_discount_egp FROM bookings "
                 "WHERE ride_id = $1 AND status = 'confirmed'",
                 ride_id,
             )

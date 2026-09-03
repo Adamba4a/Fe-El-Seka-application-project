@@ -52,6 +52,7 @@ interface DriverBooking {
   premium_pickup_fee?: string | null;
   premium_dropoff_requested?: boolean;
   premium_dropoff_fee?: string | null;
+  points_discount_egp?: string | null;
 }
 
 async function apiFetch(path: string, options?: RequestInit) {

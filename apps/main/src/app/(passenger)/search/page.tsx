@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
@@ -33,6 +33,34 @@ interface StoredSearch {
   searchMeta: { origin: SearchLocation; destination: SearchLocation; departure_at: string };
 }
 
+// Each future instance of a recurring ride passes candidate matching separately,
+// so the same series can otherwise appear as several near-identical cards. Collapse
+// them into one representative card (the highest-ranked instance, since results
+// are already sorted by relevance) — the passenger picks the day on the ride
+// detail page, which already has a day-picker for recurring rides.
+function groupRecurringCandidates(candidates: RideCandidate[]): RideCandidate[] {
+  const indexByDefinition = new Map<string, number>();
+  const grouped: RideCandidate[] = [];
+  for (const c of candidates) {
+    const defId = c.recurring_ride_definition_id;
+    if (!defId) {
+      grouped.push(c);
+      continue;
+    }
+    const existingIndex = indexByDefinition.get(defId);
+    if (existingIndex === undefined) {
+      indexByDefinition.set(defId, grouped.length);
+      grouped.push({ ...c, recurring_dates_count: 1 });
+    } else {
+      grouped[existingIndex] = {
+        ...grouped[existingIndex],
+        recurring_dates_count: (grouped[existingIndex].recurring_dates_count ?? 1) + 1,
+      };
+    }
+  }
+  return grouped;
+}
+
 function toSearchLocation(loc?: Location, bbox?: SearchBbox | null): SearchLocation | undefined {
   if (!loc) return undefined;
   return { lat: loc.coordinates.lat, lng: loc.coordinates.lng, address: loc.address, bbox };
@@ -54,6 +82,8 @@ export default function SearchPage() {
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const groupedCandidates = useMemo(() => groupRecurringCandidates(candidates), [candidates]);
 
   const [sheetOpen, setSheetOpen] = useState(true);
   const [origin, setOrigin] = useState<Location | undefined>();
@@ -294,7 +324,7 @@ export default function SearchPage() {
               </button>
               <div className="flex-1 flex items-center justify-between">
                 <p className="text-sm text-dash-text-muted">
-                  {t("ridesFound", { count: candidates.length })}
+                  {t("ridesFound", { count: groupedCandidates.length })}
                 </p>
                 <button
                   type="button"
@@ -306,7 +336,7 @@ export default function SearchPage() {
               </div>
             </div>
 
-            {candidates.length === 0 ? (
+            {groupedCandidates.length === 0 ? (
               <div className="py-12 text-center space-y-2">
                 <p className="text-dash-navy font-medium">{t("noRidesFoundTitle")}</p>
                 <p className="text-sm text-dash-text-muted">
@@ -315,7 +345,7 @@ export default function SearchPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {candidates.map((c) => (
+                {groupedCandidates.map((c) => (
                   <RideCard key={c.ride_id} candidate={c} onClick={handleCardClick} />
                 ))}
               </div>

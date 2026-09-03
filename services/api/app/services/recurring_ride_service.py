@@ -567,7 +567,7 @@ async def _generate_one_instance(definition: dict, dep: datetime) -> bool:
                 )
                 return False
 
-            per_seat_commission, _ = compute_per_seat_commission(
+            per_seat_commission, _, _ = compute_per_seat_commission(
                 Decimal(str(fare.fuel_cost_egp)), Decimal(str(fare.distance_fee_egp)),
                 Decimal(str(fare.safety_margin_egp)), price_per_seat, fair_price_dec,
             )

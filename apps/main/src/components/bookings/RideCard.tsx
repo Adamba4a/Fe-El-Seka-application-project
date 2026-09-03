@@ -22,6 +22,8 @@ export interface RideCandidate {
   match_score_pct: number | null;
   group_id?: string | null;
   group_name?: string | null;
+  recurring_ride_definition_id?: string | null;
+  recurring_dates_count?: number;
   compatibility: {
     overlap_percentage: number;
     pickup_walk_meters: number;
@@ -149,6 +151,17 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
         {candidate.group_name && (
           <span className="inline-block text-xs font-semibold bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">
             {t("groupRide", { name: candidate.group_name })}
+          </span>
+        )}
+
+        {candidate.recurring_ride_definition_id && (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full">
+            {t("recurringBadge")}
+            {candidate.recurring_dates_count && candidate.recurring_dates_count > 1 && (
+              <span className="font-normal">
+                · {t("recurringDatesAvailable", { count: candidate.recurring_dates_count })}
+              </span>
+            )}
           </span>
         )}
 

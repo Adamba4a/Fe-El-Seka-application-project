@@ -6,7 +6,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { getWallet, formatEgp, type WalletResponse } from "@/lib/api/wallet";
 import { WalletBalanceCard } from "@/components/wallet/WalletBalanceCard";
-import { LedgerEntryList } from "@/components/wallet/LedgerEntryList";
 import type { Locale } from "@fe-el-seka/shared";
 
 const supabase = createClient();
@@ -74,39 +73,55 @@ export default function WalletPage() {
       </section>
 
       <section className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-body-sm font-semibold text-content-primary">{t("sponsoredEarningsHeading")}</h2>
-          <Link
-            href="/wallet/withdraw"
-            className="rounded-xl border border-border-default px-4 py-2 text-body-sm font-semibold text-content-primary hover:bg-surface-bg transition-colors"
-          >
-            {t("requestWithdrawal")}
-          </Link>
-        </div>
-        <p className="text-caption text-content-muted">{t("sponsoredEarningsHelp")}</p>
-        <div className="bg-surface-card rounded-2xl p-5 border border-border-default text-center">
-          <p className="text-body-sm text-content-muted mb-1">{t("sponsoredEarningsBalance")}</p>
-          <p className="text-3xl font-bold text-brand-primary">
-            {formatEgp(wallet.sponsored_earnings_egp, locale)}
-          </p>
+        <h2 className="text-body-sm font-semibold text-content-primary">{t("cashBackHeading")}</h2>
+        <p className="text-caption text-content-muted">{t("cashBackHelp")}</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-surface-card rounded-2xl p-4 border border-border-default text-center space-y-2">
+            <p className="text-body-sm text-content-muted">{t("cashBackPointsLabel")}</p>
+            <p className="text-2xl font-bold text-content-primary">
+              {t("cashBackPointsValue", { points: Math.floor(parseFloat(wallet.cash_back_points_egp)) })}
+            </p>
+            <Link
+              href="/wallet/cash-back/redeem"
+              className="inline-block text-body-sm text-brand-primary font-semibold hover:underline"
+            >
+              {t("redeemPoints")}
+            </Link>
+          </div>
+          <div className="bg-surface-card rounded-2xl p-4 border border-border-default text-center space-y-2">
+            <p className="text-body-sm text-content-muted">{t("cashBackBalance")}</p>
+            <p className="text-2xl font-bold text-brand-primary">
+              {formatEgp(wallet.sponsored_earnings_egp, locale)}
+            </p>
+            <Link
+              href="/wallet/withdraw"
+              className="inline-block text-body-sm text-content-primary font-semibold hover:underline"
+            >
+              {t("requestWithdrawal")}
+            </Link>
+          </div>
         </div>
       </section>
 
       <section>
-        <h2 className="text-body-sm font-semibold text-content-primary mb-3">
-          {t("transactionHistory")}
-        </h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-body-sm font-semibold text-content-primary">
+            {t("transactionHistory")}
+          </h2>
+          {!isEmpty && (
+            <Link
+              href="/wallet/history"
+              className="text-body-sm text-brand-primary font-medium hover:underline whitespace-nowrap"
+            >
+              {t("viewHistory")}
+            </Link>
+          )}
+        </div>
 
-        {isEmpty ? (
-          <p className="text-body-sm text-content-muted">
+        {isEmpty && (
+          <p className="text-body-sm text-content-muted mt-3">
             {t("noTransactions")}
           </p>
-        ) : (
-          <LedgerEntryList
-            initialEntries={wallet.entries}
-            initialTotalPages={wallet.pagination.total_pages}
-            getToken={getToken}
-          />
         )}
       </section>
     </div>

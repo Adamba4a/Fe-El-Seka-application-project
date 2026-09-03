@@ -9,9 +9,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.admin.car_maintenance_router import router as admin_car_maintenance_router
 from app.api.admin.dashboard_router import router as admin_dashboard_router
 from app.api.admin.financial_router import router as admin_financial_router
+from app.api.admin.loyalty_router import router as admin_loyalty_router
 from app.api.admin.moderation_router import router as admin_moderation_router
 from app.api.admin.rides_router import router as admin_rides_router
 from app.api.admin.sponsored_groups_router import router as admin_sponsored_groups_router
@@ -28,6 +28,7 @@ from app.api.groups.router import router as groups_router
 from app.api.health import router as health_router
 from app.api.internal.revocation_router import router as internal_router
 from app.api.internal.route_intelligence_router import router as route_intelligence_router
+from app.api.loyalty.loyalty_router import router as loyalty_router
 from app.api.org_access.router import router as org_access_router
 from app.api.profiles.router import router as profiles_router
 from app.api.ratings.router import router as ratings_router
@@ -257,9 +258,9 @@ app.include_router(
     tags=["admin-sponsored-groups"],
 )
 app.include_router(
-    admin_car_maintenance_router,
-    prefix="/api/admin/car-maintenance-rewards",
-    tags=["admin-car-maintenance"],
+    admin_loyalty_router,
+    prefix="/api/admin/loyalty",
+    tags=["admin-loyalty"],
 )
 app.include_router(
     admin_moderation_router,
@@ -290,4 +291,5 @@ app.include_router(routes_router, prefix="/api/routes", tags=["routes"])
 app.include_router(geocode_router, prefix="/api/geocode", tags=["geocode"])
 app.include_router(groups_router, prefix="/api/groups", tags=["groups"])
 app.include_router(org_access_router, prefix="/api/v1/org-access", tags=["org-access"])
+app.include_router(loyalty_router, prefix="/api/v1/loyalty", tags=["loyalty"])
 app.include_router(route_intelligence_router, prefix="/internal/route-intelligence", tags=["internal"])

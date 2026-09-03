@@ -49,7 +49,12 @@ async def book_ride(
             premium_pickup_fee=body.premium_pickup_fee,
             premium_dropoff_fee=body.premium_dropoff_fee,
             seats=body.seats,
+            loyalty_redemption_catalog_entry_id=body.loyalty_redemption_catalog_entry_id,
+            points_to_redeem=body.points_to_redeem,
         )
+
+    loyalty_redemption = booking.get("loyalty_redemption")
+    points_redemption = booking.get("points_redemption")
 
     return JSONResponse(
         status_code=201,
@@ -69,6 +74,23 @@ async def book_ride(
                 str(booking["premium_dropoff_fee"]) if booking["premium_dropoff_fee"] is not None else None
             ),
             "created_at": booking["created_at"].isoformat(),
+            "loyalty_redemption": (
+                {
+                    "redemption_request_id": str(loyalty_redemption["redemption_request_id"]),
+                    "points_spent": loyalty_redemption["points_spent"],
+                    "fare_after_discount_egp": str(loyalty_redemption["fare_after_discount_egp"]),
+                }
+                if loyalty_redemption is not None
+                else None
+            ),
+            "points_redemption": (
+                {
+                    "points_spent": points_redemption["points_spent"],
+                    "discount_egp": str(points_redemption["discount_egp"]),
+                }
+                if points_redemption is not None
+                else None
+            ),
         },
     )
 
@@ -109,7 +131,7 @@ async def list_bookings(
             JOIN rides r ON r.id = b.ride_id
             JOIN profiles p ON p.id = r.driver_id
             {where}
-            ORDER BY r.departure_datetime DESC
+            ORDER BY b.created_at DESC
             LIMIT {page_size} OFFSET {offset}
             """,
             *params,

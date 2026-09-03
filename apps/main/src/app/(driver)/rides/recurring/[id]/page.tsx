@@ -5,7 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
-import { getRecurringDefinition, editRecurringDefinition, endRecurringDefinition } from "@/lib/api/recurring-rides";
+import {
+  getRecurringDefinition,
+  editRecurringDefinition,
+  endRecurringDefinition,
+  localTimeToUtcTime,
+  utcTimeToLocalTime,
+} from "@/lib/api/recurring-rides";
 import { RideCard } from "@/components/rides/RideCard";
 import { BottomSheet, Spinner } from "@/components";
 import { formatCurrency } from "@fe-el-seka/shared";
@@ -49,7 +55,7 @@ export default function RecurringRideDetailPage() {
       const res = await getRecurringDefinition(session.access_token, id);
       setDefinition(res.definition);
       setInstances(res.instances);
-      setEditTime(res.definition.departure_time.substring(0, 5));
+      setEditTime(utcTimeToLocalTime(res.definition.departure_time.substring(0, 5)));
       setEditWeekdays(res.definition.weekdays.map(fromIsoWeekday));
       setEditSeats(res.definition.total_seats);
       setEditPrice(Number(res.definition.price_per_seat));
@@ -75,7 +81,7 @@ export default function RecurringRideDetailPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push("/login"); return; }
       const res = await editRecurringDefinition(session.access_token, id, {
-        departure_time: editTime,
+        departure_time: localTimeToUtcTime(editTime),
         weekdays: editWeekdays.map(toIsoWeekday),
         total_seats: editSeats,
         price_per_seat: editPrice,
@@ -188,7 +194,7 @@ export default function RecurringRideDetailPage() {
           <>
             <div className="grid grid-cols-3 gap-4 pt-2 border-t border-border-default">
               <div className="text-center">
-                <p className="text-lg font-bold text-content-primary">{definition.departure_time.substring(0, 5)}</p>
+                <p className="text-lg font-bold text-content-primary">{utcTimeToLocalTime(definition.departure_time.substring(0, 5))}</p>
                 <p className="text-caption text-content-muted">{t("timeLabel")}</p>
               </div>
               <div className="text-center">
@@ -297,7 +303,7 @@ export default function RecurringRideDetailPage() {
                 onClick={() => {
                   setIsEditing(false);
                   setSaveError(null);
-                  setEditTime(definition.departure_time.substring(0, 5));
+                  setEditTime(utcTimeToLocalTime(definition.departure_time.substring(0, 5)));
                   setEditWeekdays(definition.weekdays.map(fromIsoWeekday));
                   setEditSeats(definition.total_seats);
                   setEditPrice(Number(definition.price_per_seat));

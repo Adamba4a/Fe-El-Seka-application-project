@@ -24,6 +24,11 @@ class BookingCreateRequest(BaseModel):
     premium_pickup_fee: Optional[float] = None
     premium_dropoff_fee: Optional[float] = None
     seats: int = Field(1, ge=1, le=8)
+    # Spec 028: inline free_ride/discount loyalty redemption applied at booking time.
+    loyalty_redemption_catalog_entry_id: Optional[UUID] = None
+    # Post-Spec-028 item 3: flexible "pay with points" (1 point = 1 EGP), capped server-side
+    # at the fuel-cost portion of the fare. Mutually exclusive with a catalog redemption.
+    points_to_redeem: Optional[int] = Field(None, ge=1)
 
 
 class BookingCancelRequest(BaseModel):
@@ -101,6 +106,7 @@ class DriverBookingItem(BaseModel):
     premium_pickup_fee: Optional[str]
     premium_dropoff_requested: bool
     premium_dropoff_fee: Optional[str]
+    points_discount_egp: Optional[str] = None
     created_at: datetime
 
 

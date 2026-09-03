@@ -226,18 +226,18 @@ class TestReservationSync:
             monkeypatch,
             row,
             updated_row={**row, "price_per_seat": "60.00"},
-            reservation_row={"reserved_amount_egp": "11.40"},
-            wallet_row={"id": uuid.uuid4(), "balance_egp": "1000.00", "reserved_egp": "11.40"},
+            reservation_row={"reserved_amount_egp": "12.00"},
+            wallet_row={"id": uuid.uuid4(), "balance_egp": "1000.00", "reserved_egp": "12.00"},
             final_price_per_seat=60.0,
         )
         assert ride.price_per_seat == "60.00"
 
-        # cost-basis 11.40 + markup (60.00-50.00)*2*0.20 = 4.00 -> new reservation 15.40
+        # cost-basis 12.00 + markup (60.00-50.00)*0.20*2 seats = 4.00 -> new reservation 16.00
         reservation_updates = [
             (q, a) for q, a in conn.execute_calls if "UPDATE commission_reservations" in q
         ]
         assert len(reservation_updates) == 1
-        assert reservation_updates[0][1][1] == Decimal("15.40")
+        assert reservation_updates[0][1][1] == Decimal("16.00")
 
         reserved_increments = [
             (q, a) for q, a in conn.execute_calls if "reserved_egp = reserved_egp +" in q
@@ -251,18 +251,18 @@ class TestReservationSync:
             monkeypatch,
             row,
             updated_row={**row, "price_per_seat": "50.00"},
-            reservation_row={"reserved_amount_egp": "17.40"},
-            wallet_row={"id": uuid.uuid4(), "balance_egp": "1000.00", "reserved_egp": "17.40"},
+            reservation_row={"reserved_amount_egp": "18.00"},
+            wallet_row={"id": uuid.uuid4(), "balance_egp": "1000.00", "reserved_egp": "18.00"},
             final_price_per_seat=50.0,
         )
         assert ride.price_per_seat == "50.00"
 
-        # markup drops to 0 -> new reservation 11.40, delta = -6.00
+        # markup drops to 0 -> new reservation 12.00 (cost-basis only)
         reservation_updates = [
             (q, a) for q, a in conn.execute_calls if "UPDATE commission_reservations" in q
         ]
         assert len(reservation_updates) == 1
-        assert reservation_updates[0][1][1] == Decimal("11.40")
+        assert reservation_updates[0][1][1] == Decimal("12.00")
 
         reserved_decrements = [
             (q, a) for q, a in conn.execute_calls if "reserved_egp = GREATEST" in q

@@ -12,10 +12,11 @@ import { RatingBadge } from "@/components/ui/RatingBadge";
 import { VerificationRequiredModal } from "@/components/verification/VerificationRequiredModal";
 import Link from "next/link";
 import { env } from "@/lib/env";
-import { formatCurrency } from "@fe-el-seka/shared";
+import { formatCurrency, FARE_SPLIT_SEATS } from "@fe-el-seka/shared";
 import type { Locale } from "@fe-el-seka/shared";
 import { fromIsoWeekday } from "@/lib/weekdays";
 import { listRecurringInstancesForRide, type RecurringInstanceOption } from "@/lib/api/recurring-rides";
+import { getLoyaltyBalance } from "@/lib/api/loyalty";
 
 const RideDetailMap = dynamic(
   () => import("@/components/bookings/RideDetailMap").then((m) => ({ default: m.RideDetailMap })),
@@ -56,6 +57,7 @@ interface RideDetail {
   departure_datetime: string;
   available_seats: number;
   per_seat_price: string;
+  fuel_cost_egp: number | null;
   route_geometry: object | null;
   route_distance_km: number;
   route_duration_minutes: number;
@@ -263,6 +265,8 @@ export default function PassengerRideDetailPage() {
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [siblingInstances, setSiblingInstances] = useState<RecurringInstanceOption[]>([]);
   const [extraSeats, setExtraSeats] = useState<Record<string, number>>({});
+  const [loyaltyBalance, setLoyaltyBalance] = useState<number | null>(null);
+  const [pointsToRedeem, setPointsToRedeem] = useState(0);
 
   useEffect(() => {
     async function load() {
@@ -325,6 +329,22 @@ export default function PassengerRideDetailPage() {
     }
     loadSiblings();
   }, [id, detail?.ride.recurring_ride_definition_id]);
+
+  useEffect(() => {
+    async function loadLoyalty() {
+      if (!detail || detail.ride.is_sponsored) return;
+      try {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const balance = await getLoyaltyBalance(session.access_token);
+        setLoyaltyBalance(balance.balance);
+      } catch {
+        // Non-critical: the points stepper just stays hidden if this fails.
+      }
+    }
+    loadLoyalty();
+  }, [detail]);
 
   if (loading) {
     return (
@@ -498,9 +518,17 @@ export default function PassengerRideDetailPage() {
     if (!inst) return sum;
     return sum + parseFloat(inst.per_seat_price) * seats + premiumFee;
   }, 0);
-  const totalPrice = (parseFloat(ride.per_seat_price) * clampedSeatCount + premiumFee + extraTotal).toFixed(2);
+  const totalPriceBeforePoints = parseFloat(ride.per_seat_price) * clampedSeatCount + premiumFee + extraTotal;
+  const maxPointsDiscountEgp = Math.min(
+    ((ride.fuel_cost_egp ?? 0) / FARE_SPLIT_SEATS) * clampedSeatCount,
+    totalPriceBeforePoints
+  );
+  const maxPointsRedeemable = Math.max(0, Math.min(loyaltyBalance ?? 0, Math.floor(maxPointsDiscountEgp)));
+  const clampedPointsToRedeem = Math.min(pointsToRedeem, maxPointsRedeemable);
+  const totalPrice = (totalPriceBeforePoints - clampedPointsToRedeem).toFixed(2);
   const noSeats = ride.available_seats === 0;
   const selectedExtraCount = Object.keys(extraSeats).length;
+  const pointsRedemptionAvailable = !ride.is_sponsored && selectedExtraCount === 0;
 
   const handleBook = () => {
     setBookingError(null);
@@ -540,7 +568,9 @@ export default function PassengerRideDetailPage() {
 
       const postBooking = async (
         rideId: string,
-        seats: number
+        seats: number,
+        loyaltyRedemptionCatalogEntryId: string | null,
+        pointsToRedeemForTarget: number | null
       ): Promise<{ res: Response; json: { booking_id?: string; detail?: unknown; error?: string; message?: string } }> => {
         const res = await fetch(`${env.apiUrl}/api/v1/bookings`, {
           method: "POST",
@@ -557,20 +587,37 @@ export default function PassengerRideDetailPage() {
             premium_pickup_fee: pickupFee,
             premium_dropoff_fee: dropoffFee,
             seats,
+            loyalty_redemption_catalog_entry_id: loyaltyRedemptionCatalogEntryId,
+            points_to_redeem: pointsToRedeemForTarget,
           }),
         });
         const json = await res.json();
         return { res, json };
       };
 
+      // Points redemption only applies to the single main-day booking — not
+      // to extra recurring days, which are separate bookings on separate rides.
+      const extraDayCount = Object.keys(extraSeats).length;
       const targets = [
-        { rideId: detail.ride.id, seats: clampedSeatCount },
-        ...Object.entries(extraSeats).map(([rideId, seats]) => ({ rideId, seats })),
+        {
+          rideId: detail.ride.id,
+          seats: clampedSeatCount,
+          loyaltyRedemptionCatalogEntryId: null as string | null,
+          pointsToRedeem: extraDayCount === 0 && clampedPointsToRedeem > 0 ? clampedPointsToRedeem : null,
+        },
+        ...Object.entries(extraSeats).map(([rideId, seats]) => ({
+          rideId,
+          seats,
+          loyaltyRedemptionCatalogEntryId: null as string | null,
+          pointsToRedeem: null as number | null,
+        })),
       ];
 
       const outcomes: Awaited<ReturnType<typeof postBooking>>[] = [];
       for (const target of targets) {
-        outcomes.push(await postBooking(target.rideId, target.seats));
+        outcomes.push(
+          await postBooking(target.rideId, target.seats, target.loyaltyRedemptionCatalogEntryId, target.pointsToRedeem)
+        );
       }
 
       const succeeded = outcomes.filter((o) => o.res.status === 201);
@@ -590,6 +637,10 @@ export default function PassengerRideDetailPage() {
           setBookingError(
             err?.error === "duplicate_booking"
               ? t("errors.duplicateBooking")
+              : err?.error === "insufficient_points"
+              ? t("errors.insufficientPoints")
+              : err?.error === "loyalty_redemption_conflict"
+              ? t("errors.loyaltyConflict")
               : t("errors.noSeats")
           );
         } else {
@@ -895,11 +946,60 @@ export default function PassengerRideDetailPage() {
             {premiumFee > 0 && (
               <p className="text-xs text-amber-700">{t("premiumFeeIncludedNote")}</p>
             )}
+            {clampedPointsToRedeem > 0 && (
+              <div className="flex justify-between text-content-secondary">
+                <span>{t("payWithPoints.discountLineLabel")}</span>
+                <span className="font-medium text-green-600">
+                  −{formatCurrency(clampedPointsToRedeem, locale)}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between font-semibold text-content-primary pt-1 border-t border-border-default">
               <span>{t("total")}</span>
               <span>{formatCurrency(Number(totalPrice), locale)}</span>
             </div>
           </div>
+
+          {!ride.is_sponsored && selectedExtraCount > 0 && (
+            <p className="text-xs text-content-muted border-t border-border-default pt-3">
+              {t("loyaltyRedemption.notAvailableForMultiDay")}
+            </p>
+          )}
+
+          {pointsRedemptionAvailable && maxPointsRedeemable > 0 && (
+            <div className="border-t border-border-default pt-3 space-y-2">
+              <p className="text-sm font-medium text-content-primary">
+                {t("payWithPoints.heading")}
+              </p>
+              <p className="text-xs text-content-muted">
+                {t("payWithPoints.subtitle", { max: maxPointsRedeemable })}
+              </p>
+              <div className="rounded-xl border border-border-default bg-surface-card p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-content-primary">
+                    {t("payWithPoints.pointsAndDiscount", {
+                      points: clampedPointsToRedeem,
+                      discount: formatCurrency(clampedPointsToRedeem, locale),
+                    })}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={maxPointsRedeemable}
+                  step={1}
+                  value={clampedPointsToRedeem}
+                  onChange={(e) => setPointsToRedeem(Number(e.target.value))}
+                  className="w-full accent-brand-primary"
+                  aria-label={t("payWithPoints.heading")}
+                />
+                <div className="flex items-center justify-between text-xs text-content-muted">
+                  <span>0</span>
+                  <span>{maxPointsRedeemable}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {bookingError && (
             <p className="text-sm text-content-destructive">{bookingError}</p>

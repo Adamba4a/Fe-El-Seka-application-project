@@ -85,23 +85,29 @@ def get_pricing_config() -> dict[str, Any]:
 def _calc_fee_from_distance(
     distance_km: float, seat_count: int, split_by: int | None = None
 ) -> dict[str, float]:
+    """Safety margin removed (2026-09-02 pricing revision): platform commission is now
+    20% of (fuel_cost + distance_fee) instead of 20% of fuel_cost alone, with no flat
+    safety-margin fee added on top. safety_margin_egp is kept in the returned dict
+    (always 0.0) so downstream consumers (FareEstimateResponse, rides table column,
+    commission_service — which still adds it for pre-revision in-flight rides) don't
+    need to change shape.
+    """
     config = get_pricing_config()
     fuel_price = float(config["fuel_price_per_litre"])
-    safety = float(config["safety_margin"])
     distance_rate = float(config["distance_rate_per_km"])
 
     fuel_cost = (distance_km / FUEL_EFFICIENCY_KM_PER_L) * fuel_price
-    commission = fuel_cost * PLATFORM_COMMISSION_RATE
     distance_fee = distance_km * distance_rate
+    commission = (fuel_cost + distance_fee) * PLATFORM_COMMISSION_RATE
     divisor = split_by if split_by is not None else seat_count
-    per_seat = round((fuel_cost + commission + distance_fee + safety) / divisor)
+    per_seat = round((fuel_cost + distance_fee + commission) / divisor)
     total = per_seat * seat_count
 
     return {
         "fuel_cost_egp": round(fuel_cost, 2),
         "platform_commission_egp": round(commission, 2),
         "distance_fee_egp": round(distance_fee, 2),
-        "safety_margin_egp": round(safety, 2),
+        "safety_margin_egp": 0.0,
         "per_seat_price_egp": float(per_seat),
         "total_collected_egp": float(total),
     }

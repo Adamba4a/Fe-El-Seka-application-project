@@ -5,7 +5,7 @@ import time
 import uuid
 from decimal import ROUND_HALF_UP, Decimal
 
-from app.services import car_maintenance_service, wallet_service
+from app.services import loyalty_service, wallet_service
 from app.services.pricing_service import FARE_SPLIT_SEATS
 
 logger = logging.getLogger(__name__)
@@ -21,8 +21,9 @@ def compute_per_seat_commission(
     safety_margin_egp: Decimal,
     price_per_seat: Decimal,
     fair_price_per_seat: Decimal,
-) -> tuple[Decimal, Decimal]:
-    """Return (per_seat_commission, per_seat_distance_fee) for one booked seat.
+) -> tuple[Decimal, Decimal, Decimal]:
+    """Return (per_seat_commission, per_seat_distance_fee, per_seat_true_commission)
+    for one booked seat.
 
     Split across FARE_SPLIT_SEATS — the SAME fixed divisor pricing_service.calculate_fare()
     uses to quote price_per_seat — rather than the ride's actual total_seats. price_per_seat
@@ -37,13 +38,35 @@ def compute_per_seat_commission(
     This is the single source of truth reused by deduct_commission() below (cash rides, at ride
     completion) and by booking_service.py's sponsored-ride settlement/reversal (which duplicate
     this shape because sponsored rides settle at booking time instead of completion).
+
+    2026-09-02 pricing revision: the 20% commission rate now applies to (fuel_cost + distance_fee)
+    instead of fuel_cost alone, and distance_fee itself is still taken from the driver in full —
+    unchanged from before, since 100% of it is credited straight back as driver Cash Back points (see
+    deduct_commission's call into wallet_service.increment_cash_back_points below). This keeps
+    the driver's net commission-debit exactly equal to what pricing_service now quotes the
+    passenger (fuel_cost stays the driver's untouched cash share; everything else — distance_fee
+    plus the new (fuel+distance)*20% markup — is commission). safety_margin_egp is still added for
+    rides created before this revision (their price_per_seat baked in a nonzero safety margin);
+    it is always 0.00 for rides created after it, per pricing_service._calc_fee_from_distance.
+
+    2026-09-03 correction: per_seat_commission (above) is what the driver is actually debited —
+    it includes distance_fee because that amount is immediately credited straight back to the
+    driver as Cash Back, so it must round-trip through the debit for the ledger to balance. But
+    it is NOT the platform's real take, so it must not be the basis for passenger points-earned
+    (loyalty_service.award_passenger_points/reverse_passenger_points expect true platform
+    commission — see that function's docstring). per_seat_true_commission is the platform's
+    actual cut: (fuel_cost + distance_fee) * 20%, plus the same markup share as above; it
+    deliberately excludes distance_fee_egp and safety_margin_egp, both of which are pass-through
+    amounts (Cash Back / legacy quote artifact), not platform revenue.
     """
     markup_commission_per_seat = max(Decimal("0.00"), price_per_seat - fair_price_per_seat) * COMMISSION_RATE
+    true_commission_base = (fuel_cost_egp + distance_fee_egp) * COMMISSION_RATE
     per_seat_commission = (
-        fuel_cost_egp * COMMISSION_RATE + distance_fee_egp + safety_margin_egp
+        distance_fee_egp + safety_margin_egp + true_commission_base
     ) / FARE_SPLIT_SEATS + markup_commission_per_seat
     per_seat_distance_fee = distance_fee_egp / FARE_SPLIT_SEATS
-    return per_seat_commission, per_seat_distance_fee
+    per_seat_true_commission = true_commission_base / FARE_SPLIT_SEATS + markup_commission_per_seat
+    return per_seat_commission, per_seat_distance_fee, per_seat_true_commission
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -60,14 +83,19 @@ async def deduct_commission(
     Commission is charged per seat, not per booking row — a single booking can reserve
     more than one seat (see the multi-seat booking feature), and each of those seats
     must be charged its share:
-        per_seat = (fuel_cost_egp * 0.20 + distance_fee_egp + safety_margin_egp) / FARE_SPLIT_SEATS
+        per_seat = (distance_fee_egp + safety_margin_egp + (fuel_cost_egp + distance_fee_egp) * 0.20) / FARE_SPLIT_SEATS
                    + (price_per_seat - fair_price_per_seat) * 0.20
         commission for a booking = ROUND(per_seat * booking.seats, 2)
     See compute_per_seat_commission() above for why the divisor is the fixed FARE_SPLIT_SEATS
-    constant and not the ride's actual total_seats.
+    constant and not the ride's actual total_seats. Passenger points-earned use a SEPARATE,
+    smaller "true commission" figure — (fuel_cost_egp + distance_fee_egp) * 0.20 (plus the same
+    markup share) — since distance_fee is pass-through Cash Back, not platform revenue; see
+    per_seat_true_commission in compute_per_seat_commission().
 
-    The platform keeps the 20% fuel-cost commission plus the flat safety margin and the
-    per-km distance fee in full — both are platform revenue, not a driver buffer. When the
+    The platform keeps 20% of (fuel_cost + distance_fee) as commission, plus the full
+    distance_fee itself (100% platform revenue, credited straight back to the driver as
+    Cash Back points — see the increment_cash_back_points call below) and any legacy
+    flat safety margin from rides created before the 2026-09-02 pricing revision. When the
     driver has set a final price above the system fair price (Spec 023), the platform also
     takes 20% of that per-seat markup, so commission revenue scales with what the driver
     actually charges (FR-011).
@@ -105,11 +133,17 @@ async def deduct_commission(
     wallet = await wallet_service.get_wallet_with_lock(conn, driver_id)
     wallet_id = wallet["id"]
 
+    has_points_discount = any(
+        Decimal(str(b["points_discount_egp"])) > Decimal("0.00")
+        for b in confirmed_bookings
+        if b.get("points_discount_egp") is not None
+    )
     if not confirmed_bookings or (
         fuel_cost == Decimal("0")
         and distance_fee == Decimal("0")
         and safety_margin == Decimal("0")
         and markup_commission_per_seat == Decimal("0")
+        and not has_points_discount
     ):
         logger.info(
             "wallet_write operation=COMMISSION_DEBIT driver_id=%s ride_id=%s "
@@ -119,7 +153,7 @@ async def deduct_commission(
         )
         return
 
-    per_seat_commission, per_seat_distance_fee = compute_per_seat_commission(
+    per_seat_commission, per_seat_distance_fee, per_seat_true_commission = compute_per_seat_commission(
         fuel_cost, distance_fee, safety_margin, price_per_seat, fair_price_per_seat
     )
 
@@ -131,6 +165,9 @@ async def deduct_commission(
             Decimal("0.01"), rounding=ROUND_HALF_UP
         )
         distance_fee_amount = (per_seat_distance_fee * seats).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        true_commission_amount = (per_seat_true_commission * seats).quantize(
             Decimal("0.01"), rounding=ROUND_HALF_UP
         )
         await wallet_service.insert_ledger_entry(
@@ -147,12 +184,42 @@ async def deduct_commission(
         total_deducted += commission_amount
         total_distance_fee += distance_fee_amount
 
-    # The distance-fee share of what was just debited funds the driver's free
-    # car-maintenance savings counter (100% platform revenue, credited back as a
-    # driver benefit once CAR_MAINTENANCE_THRESHOLD_EGP is reached).
-    await car_maintenance_service.accumulate_and_maybe_grant(
-        conn, driver_id, wallet_id, total_distance_fee
-    )
+        await loyalty_service.award_passenger_points(
+            conn, booking["passenger_id"], booking["id"], ride_id, true_commission_amount
+        )
+
+        points_discount = (
+            Decimal(str(booking["points_discount_egp"]))
+            if booking.get("points_discount_egp") is not None
+            else Decimal("0")
+        )
+        if points_discount > Decimal("0.00"):
+            await wallet_service.increment_cash_back_points(conn, wallet_id, points_discount)
+            await wallet_service.insert_ledger_entry(
+                conn,
+                wallet_id=wallet_id,
+                driver_id=driver_id,
+                entry_type="POINTS_DISCOUNT_REIMBURSEMENT",
+                amount=points_discount,
+                ride_id=ride_id,
+                booking_id=booking["id"],
+                note="Reimbursement for passenger pay-with-points discount",
+            )
+
+    # The distance-fee share of what was just debited is 100% platform revenue,
+    # credited straight back to the driver as withdrawable Cash Back (replaces the
+    # old loyalty-points/car-maintenance-savings mechanic — post-Spec-028 item 1).
+    if total_distance_fee > Decimal("0.00"):
+        await wallet_service.increment_cash_back_points(conn, wallet_id, total_distance_fee)
+        await wallet_service.insert_ledger_entry(
+            conn,
+            wallet_id=wallet_id,
+            driver_id=driver_id,
+            entry_type="CASH_BACK_CREDIT",
+            amount=total_distance_fee,
+            ride_id=ride_id,
+            note="Cash back (distance fee share of commission)",
+        )
 
     logger.info(
         "wallet_write operation=COMMISSION_DEBIT driver_id=%s ride_id=%s "

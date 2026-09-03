@@ -16,6 +16,7 @@ async function getToken(): Promise<string> {
 export default function WalletWithdrawPage() {
   const router = useRouter();
   const t = useTranslations("driver.walletWithdraw");
+  const tc = useTranslations("common");
   const [amount, setAmount] = useState("");
   const [payoutReference, setPayoutReference] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -32,7 +33,12 @@ export default function WalletWithdrawPage() {
       setSubmitted(true);
     } catch (err: unknown) {
       const e = err as { error?: string; message?: string };
-      const knownErrors = ["validation_error", "insufficient_balance", "pending_request_exists"];
+      const knownErrors = [
+        "validation_error",
+        "insufficient_balance",
+        "pending_request_exists",
+        "below_minimum_threshold",
+      ];
       if (e?.error && knownErrors.includes(e.error)) {
         setSubmitError(t(`errors.${e.error}`));
       } else {
@@ -60,10 +66,20 @@ export default function WalletWithdrawPage() {
 
   return (
     <div className="p-4 space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-h2 text-content-primary">{t("heading")}</h1>
-          <p className="text-body-sm text-content-muted mt-1">{t("instructions")}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            aria-label={tc("back")}
+            className="mt-1 text-content-muted hover:text-content-secondary text-lg"
+          >
+            <span className="inline-block rtl:rotate-180">←</span>
+          </button>
+          <div>
+            <h1 className="text-h2 text-content-primary">{t("heading")}</h1>
+            <p className="text-body-sm text-content-muted mt-1">{t("instructions")}</p>
+          </div>
         </div>
         <button
           onClick={() => router.push("/wallet/withdraw/history")}

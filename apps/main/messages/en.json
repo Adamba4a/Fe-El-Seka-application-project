@@ -286,6 +286,15 @@
       "seatsLeft": "{count} seats left",
       "seatsCount": "{count} seat(s)",
       "premiumFeeIncludedNote": "Premium fee applies to each selected day.",
+      "loyaltyRedemption": {
+        "notAvailableForMultiDay": "Points can only be redeemed on a single-day booking."
+      },
+      "payWithPoints": {
+        "heading": "Pay part of your fare with points",
+        "subtitle": "1 point = EGP 1, up to {max} pts on this ride",
+        "pointsAndDiscount": "{points} pts (−{discount})",
+        "discountLineLabel": "Points discount"
+      },
       "weekdayShort": {
         "0": "Sun",
         "1": "Mon",
@@ -301,6 +310,8 @@
         "somethingWrong": "Something went wrong.",
         "duplicateBooking": "You already have a booking for this ride.",
         "noSeats": "No seats available — this ride just filled up.",
+        "insufficientPoints": "You don't have enough points for that reward.",
+        "loyaltyConflict": "Points can't be combined with a sponsored-group ride.",
         "bookingFailed": "Booking failed. Please try again.",
         "networkBooking": "Network error — please try again.",
         "partialBookingFailure": "{succeeded} of {total} day(s) booked. The rest were full or already booked."
@@ -331,6 +342,7 @@
     },
     "bookings": {
       "title": "My Bookings",
+      "myPoints": "My Points",
       "tabAll": "All",
       "tabActive": "Active",
       "tabPast": "Past",
@@ -340,6 +352,29 @@
       "noBookingsAll": "You haven't made any bookings yet.",
       "loadFailed": "Failed to load bookings",
       "tryAgain": "Try again"
+    },
+    "loyalty": {
+      "title": "My Points",
+      "balance": "{points} pts",
+      "transactionHistory": "History",
+      "noTransactions": "No point activity yet.",
+      "loading": "Loading…",
+      "loadFailed": "Failed to load your points.",
+      "reasons": {
+        "ride_completed_earn": "Ride completed",
+        "redemption_spend": "Redeemed",
+        "redemption_refund": "Redemption refunded",
+        "ride_reversal_clawback": "Points reversed"
+      },
+      "showMore": "Show more",
+      "redeemHeading": "Redeem Points",
+      "redeemVoucher": "Redeem {points} points for {title}",
+      "redeeming": "Redeeming…",
+      "redeemFulfilled": "Redeemed! Your reward is ready.",
+      "redeemPending": "Redemption submitted — an admin will review it shortly.",
+      "redeemFailed": "Redemption failed. Please try again.",
+      "insufficientPoints": "Not enough points yet",
+      "noVouchers": "No vouchers available right now."
     },
     "bookingDetail": {
       "title": "Booking Details",
@@ -414,16 +449,20 @@
       "addBalance": "Add Balance",
       "requestWithdrawal": "Request Withdrawal",
       "transactionHistory": "Transaction History",
+      "viewHistory": "View History",
       "noTransactions": "No transactions yet. Add balance to start posting rides.",
       "cashWalletHeading": "Cash Wallet",
       "cashWalletHelp": "Your own top-ups, used to pay ride commissions on regular (non-sponsored) rides.",
-      "sponsoredEarningsHeading": "Sponsored Earnings",
-      "sponsoredEarningsHelp": "What you've earned from sponsored-group rides. This is the only balance you can withdraw.",
-      "sponsoredEarningsBalance": "Available to withdraw"
+      "cashBackHeading": "Cash Back",
+      "cashBackHelp": "What you've earned back from sponsored-group rides and the distance-fee share of every ride's commission. It lands as points first — redeem points into withdrawable cash whenever you like.",
+      "cashBackPointsLabel": "Cash Back Points",
+      "cashBackPointsValue": "{points} pts",
+      "cashBackBalance": "Available to withdraw",
+      "redeemPoints": "Redeem Points"
     },
     "walletWithdraw": {
       "heading": "Request Withdrawal",
-      "instructions": "Withdraw from your sponsored earnings — money you've made from sponsored-group rides. Enter the amount and where we should send it; an admin will review and send the payout manually.",
+      "instructions": "Withdraw from your Cash Back — money you've earned back from ride commissions and sponsored-group rides. Enter the amount and where we should send it; an admin will review and send the payout manually.",
       "amountLabel": "Amount (EGP)",
       "amountPlaceholder": "e.g. 100.00",
       "payoutReferenceLabel": "Payout Number",
@@ -436,8 +475,9 @@
       "pendingBody": "We're reviewing your withdrawal request. This usually takes a short while.",
       "errors": {
         "validation_error": "Please check the amount and payout number and try again.",
-        "insufficient_balance": "This amount exceeds your available sponsored earnings.",
+        "insufficient_balance": "This amount exceeds your available Cash Back.",
         "pending_request_exists": "You already have a withdrawal request awaiting review.",
+        "below_minimum_threshold": "You need at least 1000 EGP in Cash Back before you can withdraw.",
         "generic": "Something went wrong. Please try again."
       },
       "history": {
@@ -453,6 +493,22 @@
           "REJECTED": "Rejected"
         },
         "rejectionReasonPrefix": "Reason: {reason}"
+      }
+    },
+    "cashBackRedeem": {
+      "heading": "Redeem Points",
+      "instructions": "Convert your Cash Back points into withdrawable cash — 1 point = 1 EGP. Enter how many points to redeem.",
+      "amountLabel": "Points to redeem",
+      "amountPlaceholder": "e.g. 100.00",
+      "submit": "Redeem",
+      "submitting": "Redeeming…",
+      "backToWallet": "Back to Wallet",
+      "successHeading": "Redeemed!",
+      "successBody": "Your points have been converted to withdrawable cash.",
+      "errors": {
+        "validation_error": "Please check the amount and try again.",
+        "insufficient_points": "This amount exceeds your available Cash Back points.",
+        "generic": "Something went wrong. Please try again."
       }
     },
     "walletTopup": {
@@ -989,7 +1045,8 @@
     "dropoffDetour": "Dropoff detour: +EGP {fee}",
     "defaultDriverName": "Driver",
     "defaultPassengerName": "Passenger",
-    "viewProfile": "View Profile"
+    "viewProfile": "View Profile",
+    "pointsDiscountNote": "Passenger paid {amount} with loyalty points"
   },
   "featuredRides": {
     "heading": "Featured Rides",
@@ -1006,7 +1063,9 @@
     "walkToPickup": "{meters}m walk to pickup",
     "defaultDriverName": "Driver",
     "book": "Book",
-    "groupRide": "Group: {name}"
+    "groupRide": "Group: {name}",
+    "recurringBadge": "Recurring Ride",
+    "recurringDatesAvailable": "{count} dates available"
   },
   "matchScoreBadge": {
     "matchPercent": "{score}% match"
@@ -1115,9 +1174,10 @@
     "postRideAriaLabel": "Post a new ride",
     "dayToday": "TODAY",
     "dayTomorrow": "TOMORROW",
-    "carMaintenanceSavingsTitle": "Savings for Your Car",
-    "carMaintenanceSavingsBody": "Every ride, a small share goes toward free car maintenance. Reach {threshold} to earn it.",
-    "carMaintenanceSavingsProgress": "{current} of {threshold}"
+    "cashBackTitle": "Cash Back",
+    "cashBackBody": "A share of every ride's commission is credited back to you as Cash Back points — redeem them into withdrawable cash anytime.",
+    "cashBackPoints": "{points} pts",
+    "viewCashBack": "View wallet"
   },
   "upcomingTripCard": {
     "confirmed": "CONFIRMED",
@@ -1139,7 +1199,11 @@
     "noActiveBookingsTitle": "No active bookings",
     "noActiveBookingsBody": "Rides you join will show up here.",
     "dayToday": "TODAY",
-    "dayTomorrow": "TOMORROW"
+    "dayTomorrow": "TOMORROW",
+    "loyaltyPointsTitle": "My Points",
+    "loyaltyPointsBalance": "{points} pts",
+    "loyaltyPointsBody": "Earn points from every ride and redeem them for free rides, discounts, or vouchers.",
+    "viewLoyaltyPoints": "View Points"
   },
   "availableRideCard": {
     "verifiedDriver": "Verified driver",
@@ -1171,6 +1235,10 @@
     "sponsoredRideCredit": "Sponsored Ride Earnings",
     "sponsoredRideReversal": "Sponsored Ride Reversal",
     "withdrawal": "Withdrawal",
+    "cashBackCredit": "Cash Back Earned",
+    "cashBackReversal": "Cash Back Reversal",
+    "pointsDiscountReimbursement": "Passenger Points Reimbursement",
+    "cashBackRedeemed": "Points Redeemed to Cash",
     "justNow": "Just now",
     "minutesAgo": "{minutes}m ago",
     "hoursAgo": "{hours}h ago",

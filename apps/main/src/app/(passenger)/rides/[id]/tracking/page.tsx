@@ -14,6 +14,7 @@ const supabase = createClient();
 
 export default function TrackingPage() {
   const t = useTranslations("passenger.tracking");
+  const tc = useTranslations("common");
   const { id: rideId } = useParams<{ id: string }>();
   const router = useRouter();
   const session = useSession();
@@ -94,8 +95,20 @@ export default function TrackingPage() {
 
   if (accessDenied) {
     return (
-      <div className="flex items-center justify-center h-screen text-content-secondary">
-        {t("accessDenied")}
+      <div className="flex flex-col h-screen">
+        <div className="flex items-start p-4">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            aria-label={tc("back")}
+            className="text-content-muted hover:text-content-secondary text-lg"
+          >
+            <span className="inline-block rtl:rotate-180">←</span>
+          </button>
+        </div>
+        <div className="flex-1 flex items-center justify-center text-content-secondary">
+          {t("accessDenied")}
+        </div>
       </div>
     );
   }
@@ -110,6 +123,15 @@ export default function TrackingPage() {
 
       <div className="flex-1 relative">
         <LiveTrackingMap location={location} isStale={isStale} />
+
+        <button
+          type="button"
+          onClick={() => router.back()}
+          aria-label={tc("back")}
+          className="absolute top-4 start-4 z-20 h-10 w-10 flex items-center justify-center rounded-full bg-surface-card shadow-lg text-content-primary text-lg"
+        >
+          <span className="inline-block rtl:rotate-180">←</span>
+        </button>
 
         {/* Overlay while waiting for first location fix */}
         {!location && !locationError && (

@@ -65,6 +65,7 @@ export interface RideBookingItem {
   status: "pending" | "confirmed" | "cancelled" | "completed";
   per_seat_price: string;
   total_price: string;
+  points_discount_egp?: string | null;
 }
 
 export async function listRideBookings(

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
-import { listRecurringDefinitions } from "@/lib/api/recurring-rides";
+import { listRecurringDefinitions, utcTimeToLocalTime } from "@/lib/api/recurring-rides";
 import { formatCurrency } from "@fe-el-seka/shared";
 import type { RecurringRideDefinition, Locale } from "@fe-el-seka/shared";
 import { fromIsoWeekday } from "@/lib/weekdays";
@@ -93,7 +93,7 @@ export default function RecurringRidesPage() {
                 </div>
                 <div className="flex items-center justify-between text-xs text-content-muted">
                   <span>
-                    {def.departure_time.substring(0, 5)} ·{" "}
+                    {utcTimeToLocalTime(def.departure_time.substring(0, 5))} ·{" "}
                     {def.weekdays.map((d) => t(`weekdayShort.${fromIsoWeekday(d)}`)).join(", ")}
                   </span>
                   <span className="font-medium text-content-secondary">

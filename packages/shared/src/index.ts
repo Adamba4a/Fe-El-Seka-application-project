@@ -26,7 +26,7 @@ export type {
   RecurringRideDefinitionDetailResponse,
   RecurringRideDefinitionUpdateResponse,
 } from "./types/rides";
-export { formatPhone, formatDate, formatCurrency, computeNetEarningsPerSeat } from "./utils";
+export { formatPhone, formatDate, formatCurrency, computeNetEarningsPerSeat, FARE_SPLIT_SEATS } from "./utils";
 
 export type {
   OtpRequest,
