@@ -28,7 +28,11 @@ function RecurringGroupCard({ definitionId, rides }: { definitionId: string; rid
   const t = useTranslations("driver.rides");
   const tRecurring = useTranslations("driver.recurring");
   const locale = useLocale() as Locale;
-  const next = [...rides].sort((a, b) => a.departure_datetime.localeCompare(b.departure_datetime))[0];
+  const now = new Date().toISOString();
+  const upcoming = rides
+    .filter((r) => r.status === "scheduled" && r.departure_datetime > now)
+    .sort((a, b) => a.departure_datetime.localeCompare(b.departure_datetime));
+  const next = upcoming[0] ?? [...rides].sort((a, b) => a.departure_datetime.localeCompare(b.departure_datetime))[0];
 
   return (
     <Link href={`/rides/recurring/${definitionId}`} className="block">
@@ -51,7 +55,7 @@ function RecurringGroupCard({ definitionId, rides }: { definitionId: string; rid
           </span>
         </div>
 
-        <div className="text-xs text-content-muted">{t("recurringUpcomingCount", { count: rides.length })}</div>
+        <div className="text-xs text-content-muted">{t("recurringUpcomingCount", { count: upcoming.length })}</div>
       </div>
     </Link>
   );
