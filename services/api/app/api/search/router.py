@@ -283,14 +283,26 @@ async def search_rides(
         )
 
     all_candidates = list(result.standard) + list(result.premium) + list(result.nearby)
+    departure_at = body.desired_departure_at or datetime.now(timezone.utc)
 
     if not all_candidates:
+        background_tasks.add_task(
+            match_logging_service.persist_match_events,
+            match_logging_service.SearchContext(
+                passenger_id=uuid.UUID(str(_profile["id"])),
+                origin_lat=body.origin.lat,
+                origin_lng=body.origin.lng,
+                destination_lat=body.destination.lat,
+                destination_lng=body.destination.lng,
+                desired_departure_at=departure_at,
+                ai_available=False,
+            ),
+            [], {}, False, None,
+        )
         return JSONResponse({"candidates": [], "total": 0, "no_rides_found": True, "ai_ranking_active": False})
 
     driver_ids = list({c.driver_id for c in all_candidates})
     profiles = await _fetch_driver_profiles(driver_ids)
-
-    departure_at = body.desired_departure_at or datetime.now(timezone.utc)
 
     ai_active = False
     score_map: dict[str, int] = {}

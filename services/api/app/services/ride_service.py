@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
@@ -20,6 +21,8 @@ from app.models.ride import (
     RideResponse,
 )
 from app.services.pricing_service import calculate_fare, calculate_max_price
+
+logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Custom exceptions
@@ -211,6 +214,14 @@ async def create_ride(
     )
     max_price_dec = Decimal(str(calculate_max_price(fair_price_per_seat)))
     if price_per_seat < fair_price_dec or price_per_seat > max_price_dec:
+        logger.warning(json.dumps({
+            "event": "price_override_rejected",
+            "context": "create_ride",
+            "driver_id": str(driver_id),
+            "fair_price_per_seat": str(fair_price_dec),
+            "max_price_per_seat": str(max_price_dec),
+            "requested_price_per_seat": str(price_per_seat),
+        }))
         raise RideServiceError(
             "price_out_of_band",
             f"Price must be between {fair_price_dec:.2f} and {max_price_dec:.2f} EGP per seat.",
@@ -605,6 +616,15 @@ async def edit_ride(
             if payload.final_price_per_seat is not None:
                 new_price = Decimal(str(payload.final_price_per_seat))
                 if new_price < fair_price or new_price > max_price:
+                    logger.warning(json.dumps({
+                        "event": "price_override_rejected",
+                        "context": "edit_ride",
+                        "ride_id": str(ride_id),
+                        "driver_id": str(driver_id),
+                        "fair_price_per_seat": str(fair_price),
+                        "max_price_per_seat": str(max_price),
+                        "requested_price_per_seat": str(new_price),
+                    }))
                     raise RideServiceError(
                         "price_out_of_band",
                         f"Price must be between {fair_price:.2f} and {max_price:.2f} EGP per seat.",

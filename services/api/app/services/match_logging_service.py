@@ -54,19 +54,22 @@ async def persist_match_events(
     shadow_model_version: Optional[str] = None,
     served_variant: str = "champion",
 ) -> None:
-    """Fire-and-forget entry point: persist one search_sessions row and one
-    match_events row per shown candidate. Called via FastAPI BackgroundTasks
-    from the search request path — must never raise, since the search
-    response has already been (or is about to be) sent regardless of this
-    task's outcome (NFR-001). `explored_ride_id`, if set, marks the single
-    candidate (already reordered to rank 1 by ranking_config_service) whose
-    row should be flagged exploration_selected. `shadow_map`/
-    `shadow_model_version`/`served_variant` (T030) record the continuous
-    learning pipeline's shadow-scoring and rollout-variant state for this
-    search — shadow_map may be populated even when served_variant stays
-    'champion' (shadow burn-in logs scores without serving them)."""
-    if not ranked_candidates:
-        return
+    """Fire-and-forget entry point: persist one search_sessions row, plus one
+    match_events row per shown candidate when there are any. Called via
+    FastAPI BackgroundTasks from the search request path — must never raise,
+    since the search response has already been (or is about to be) sent
+    regardless of this task's outcome (NFR-001). `explored_ride_id`, if set,
+    marks the single candidate (already reordered to rank 1 by
+    ranking_config_service) whose row should be flagged exploration_selected.
+    `shadow_map`/`shadow_model_version`/`served_variant` (T030) record the
+    continuous learning pipeline's shadow-scoring and rollout-variant state
+    for this search — shadow_map may be populated even when served_variant
+    stays 'champion' (shadow burn-in logs scores without serving them).
+
+    A zero-candidate search still writes its search_sessions row (no
+    match_events follow): that row is the only record of unmet demand — a
+    route nothing served — and was previously dropped entirely by an early
+    return here, silently discarding real demand-forecasting signal."""
     shadow_map = shadow_map or {}
     try:
         pool = get_pool()
@@ -116,19 +119,20 @@ async def persist_match_events(
                         served_variant if ai_scored else "champion",
                     ))
 
-                await conn.executemany(
-                    """
-                    INSERT INTO match_events
-                        (search_id, passenger_id, candidate_ride_id, feature_vector,
-                         predicted_score, rank_position, exploration_selected,
-                         ai_scored, model_version, shadow_score, shadow_model_version,
-                         served_variant)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-                    """,
-                    rows,
-                )
+                if rows:
+                    await conn.executemany(
+                        """
+                        INSERT INTO match_events
+                            (search_id, passenger_id, candidate_ride_id, feature_vector,
+                             predicted_score, rank_position, exploration_selected,
+                             ai_scored, model_version, shadow_score, shadow_model_version,
+                             served_variant)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                        """,
+                        rows,
+                    )
         logger.info(json.dumps({
-            "event": "match_events_persisted",
+            "event": "match_events_persisted" if ranked_candidates else "search_session_persisted_no_candidates",
             "search_id": str(search_id),
             "candidate_count": len(ranked_candidates),
             "ai_scored": ai_scored,
