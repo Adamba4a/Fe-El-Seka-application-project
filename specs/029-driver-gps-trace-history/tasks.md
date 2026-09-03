@@ -85,7 +85,7 @@ idempotent (NFR-003) — both user stories now work together end-to-end.
 **Purpose**: Final validation across both stories.
 
 - [X] T009 Run quickstart.md Scenarios 1–5 end-to-end against the local stack (not just per-story spot checks) and confirm all pass — validated directly against the local Postgres container (see implementation notes below); all 5 pass.
-- [ ] T010 [P] Update `docs/implementation-roadmap.md`'s "2026-09-03 Data-Collection Audit" entry for gap #1 — **BLOCKED**: that section does not exist on `main` (this branch's base); it exists only on the unmerged `028-loyalty-points` branch. Deferred until 028 merges to main, to avoid fabricating/duplicating roadmap content this branch doesn't have.
+- [X] T010 [P] Update `docs/implementation-roadmap.md`'s "2026-09-03 Data-Collection Audit" entry for gap #1 — unblocked by merging `028-loyalty-points` into `main` (which brought the audit section onto this branch); gap #1 now marked closed by this feature.
 
 ---
 
