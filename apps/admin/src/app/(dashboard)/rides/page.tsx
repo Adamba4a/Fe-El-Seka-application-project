@@ -155,6 +155,7 @@ export default function RidesPage() {
             <th className="py-2 pr-4 font-medium">Departure</th>
             <th className="py-2 pr-4 font-medium">Seats</th>
             <th className="py-2 pr-4 font-medium">Price</th>
+            <th className="py-2 pr-4 font-medium">Net commission</th>
             <th className="py-2 pr-4 font-medium">Status</th>
             <th className="py-2 pr-4 font-medium">Featured</th>
             <th className="py-2 font-medium"></th>
@@ -172,6 +173,7 @@ export default function RidesPage() {
               </td>
               <td className="py-2 pr-4">{r.booked_seats}/{r.total_seats}</td>
               <td className="py-2 pr-4">{r.price_per_seat} EGP</td>
+              <td className="py-2 pr-4">{r.net_commission_egp} EGP</td>
               <td className="py-2 pr-4">
                 <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${STATUS_STYLES[r.status]}`}>
                   {r.status.replace(/_/g, " ")}
@@ -203,7 +205,7 @@ export default function RidesPage() {
           ))}
           {!loading && items.length === 0 && (
             <tr>
-              <td colSpan={8} className="py-8 text-center text-gray-400">No rides found</td>
+              <td colSpan={9} className="py-8 text-center text-gray-400">No rides found</td>
             </tr>
           )}
         </tbody>

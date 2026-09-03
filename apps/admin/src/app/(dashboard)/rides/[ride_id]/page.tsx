@@ -95,6 +95,8 @@ export default function RideDetailPage({ params }: { params: { ride_id: string }
           <dd>{ride.booked_seats} booked / {ride.total_seats} total ({ride.available_seats} available)</dd>
           <dt className="text-gray-500">Price per seat</dt>
           <dd>{ride.price_per_seat} EGP</dd>
+          <dt className="text-gray-500">Net commission</dt>
+          <dd>{ride.net_commission_egp} EGP</dd>
           {ride.notes && (
             <>
               <dt className="text-gray-500">Notes</dt>

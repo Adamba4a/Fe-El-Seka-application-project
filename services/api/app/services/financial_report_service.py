@@ -8,7 +8,7 @@ from typing import AsyncIterator
 
 from app.utils.period import get_trend_granularity
 
-_LEDGER_TYPES = ("COMMISSION_DEBIT", "ADMIN_CREDIT", "ADMIN_DEBIT")
+_LEDGER_TYPES = ("COMMISSION_DEBIT", "CASH_BACK_CREDIT", "ADMIN_CREDIT", "ADMIN_DEBIT")
 
 
 def _range_bounds(start: date, end: date) -> tuple[datetime, datetime]:
@@ -48,17 +48,51 @@ async def get_report(conn, start: date, end: date) -> dict:
     for row in sums:
         totals[row["type"]] = Decimal(str(row["total"]))
 
-    commission = totals["COMMISSION_DEBIT"]
     credits = totals["ADMIN_CREDIT"]
     debits = totals["ADMIN_DEBIT"]
+
+    # COMMISSION_DEBIT (cash rides) and the SPONSORED_RIDE_CREDIT gap (below) are both
+    # GROSS figures: they still contain the ride's distance_fee, which is not platform
+    # revenue — it is credited straight back to the driver as CASH_BACK_CREDIT in the
+    # same transaction (see commission_service.deduct_commission and
+    # booking_service._settle_sponsored_booking's "100% platform revenue, credited
+    # straight back to the driver" comments). Subtracting that passthrough here is what
+    # turns "amount debited from the driver's wallet" into the platform's true take.
+    # CASH_BACK_CREDIT has exactly two writers (see the two note strings below) and both
+    # ONLY carry the distance-fee share of commission, so summing it is safe here —
+    # nothing else has ever written this ledger type. The two writers are told apart by
+    # booking_id: the cash-ride writer never sets it, the sponsored writer always does.
+    distance_fee_passthrough_cash = await conn.fetchval(
+        """
+        SELECT COALESCE(SUM(amount_egp), 0) FROM driver_ledger_entries
+        WHERE type = 'CASH_BACK_CREDIT' AND booking_id IS NULL
+          AND created_at >= $1 AND created_at < $2
+        """,
+        start_dt,
+        end_dt,
+    )
+    distance_fee_passthrough_sponsored = await conn.fetchval(
+        """
+        SELECT COALESCE(SUM(amount_egp), 0) FROM driver_ledger_entries
+        WHERE type = 'CASH_BACK_CREDIT' AND booking_id IS NOT NULL
+          AND created_at >= $1 AND created_at < $2
+        """,
+        start_dt,
+        end_dt,
+    )
+    distance_fee_passthrough_cash = Decimal(str(distance_fee_passthrough_cash))
+    distance_fee_passthrough_sponsored = Decimal(str(distance_fee_passthrough_sponsored))
+
+    commission = totals["COMMISSION_DEBIT"] - distance_fee_passthrough_cash
 
     # Sponsored-ride commission never touches the driver's own balance (there's
     # no cash the driver held to debit) — it's the gap between what the group's
     # funded balance is debited (bookings.total_price) and what the driver is
     # credited (the SPONSORED_RIDE_CREDIT entry), so it must be computed here
     # rather than summed directly out of driver_ledger_entries like the other
-    # ledger-type totals above.
-    sponsored_commission = await conn.fetchval(
+    # ledger-type totals above. This gap is also gross (see distance-fee note
+    # above), so the per-group query below subtracts each group's passthrough too.
+    sponsored_commission_gross = await conn.fetchval(
         """
         SELECT COALESCE(SUM(b.total_price - l.amount_egp), 0)
         FROM driver_ledger_entries l
@@ -68,20 +102,29 @@ async def get_report(conn, start: date, end: date) -> dict:
         start_dt,
         end_dt,
     )
-    sponsored_commission = Decimal(str(sponsored_commission))
+    sponsored_commission = Decimal(str(sponsored_commission_gross)) - distance_fee_passthrough_sponsored
 
     sponsored_commission_by_group_rows = await conn.fetch(
         """
         SELECT g.id AS group_id, g.name AS group_name,
-               COALESCE(SUM(b.total_price - l.amount_egp), 0) AS commission_egp,
+               COALESCE(SUM(b.total_price - l.amount_egp), 0) AS gross_commission_egp,
+               COALESCE(cb.distance_fee_passthrough, 0) AS distance_fee_passthrough,
                COUNT(*) AS rides
         FROM driver_ledger_entries l
         JOIN bookings b ON b.id = l.booking_id
         JOIN rides r ON r.id = l.ride_id
         JOIN groups g ON g.id = r.group_id
+        LEFT JOIN (
+            SELECT r2.group_id, SUM(l2.amount_egp) AS distance_fee_passthrough
+            FROM driver_ledger_entries l2
+            JOIN rides r2 ON r2.id = l2.ride_id
+            WHERE l2.type = 'CASH_BACK_CREDIT' AND l2.booking_id IS NOT NULL
+              AND l2.created_at >= $1 AND l2.created_at < $2
+            GROUP BY r2.group_id
+        ) cb ON cb.group_id = g.id
         WHERE l.type = 'SPONSORED_RIDE_CREDIT' AND l.created_at >= $1 AND l.created_at < $2
-        GROUP BY g.id, g.name
-        ORDER BY commission_egp DESC
+        GROUP BY g.id, g.name, cb.distance_fee_passthrough
+        ORDER BY gross_commission_egp - COALESCE(cb.distance_fee_passthrough, 0) DESC
         """,
         start_dt,
         end_dt,
@@ -90,12 +133,13 @@ async def get_report(conn, start: date, end: date) -> dict:
         {
             "group_id": str(r["group_id"]),
             "group_name": r["group_name"],
-            "commission_egp": str(r["commission_egp"]),
+            "commission_egp": str(Decimal(str(r["gross_commission_egp"])) - Decimal(str(r["distance_fee_passthrough"]))),
             "rides": r["rides"],
         }
         for r in sponsored_commission_by_group_rows
     ]
 
+    distance_fee_passthrough_total = distance_fee_passthrough_cash + distance_fee_passthrough_sponsored
     net_revenue = commission + sponsored_commission - debits
 
     granularity = get_trend_granularity(start, end)
@@ -104,13 +148,18 @@ async def get_report(conn, start: date, end: date) -> dict:
     bucket_starts = [b[1] for b in buckets]
     bucket_ends = [b[2] for b in buckets]
 
+    # Net out the same cash-ride distance-fee passthrough as `commission` above, per
+    # bucket, so the trend line matches the top-level figure instead of the gross debit.
     trend_rows = await conn.fetch(
         """
-        SELECT b.bucket_label, COALESCE(SUM(l.amount_egp), 0) AS value
+        SELECT b.bucket_label,
+               COALESCE(SUM(l.amount_egp) FILTER (WHERE l.type = 'COMMISSION_DEBIT'), 0)
+                   - COALESCE(SUM(l.amount_egp) FILTER (WHERE l.type = 'CASH_BACK_CREDIT' AND l.booking_id IS NULL), 0)
+                   AS value
         FROM unnest($1::text[], $2::timestamptz[], $3::timestamptz[])
             AS b(bucket_label, bucket_start, bucket_end)
         LEFT JOIN driver_ledger_entries l
-            ON l.type = 'COMMISSION_DEBIT'
+            ON l.type IN ('COMMISSION_DEBIT', 'CASH_BACK_CREDIT')
             AND l.created_at >= b.bucket_start AND l.created_at < b.bucket_end
         GROUP BY b.bucket_label
         """,
@@ -129,6 +178,7 @@ async def get_report(conn, start: date, end: date) -> dict:
         "commission_collected_egp": str(commission),
         "sponsored_commission_collected_egp": str(sponsored_commission),
         "sponsored_commission_by_group": sponsored_commission_by_group,
+        "distance_fee_passthrough_egp": str(distance_fee_passthrough_total),
         "admin_credits_egp": str(credits),
         "admin_debits_egp": str(debits),
         "net_revenue_egp": str(net_revenue),
@@ -185,13 +235,14 @@ async def stream_report_csv(conn, start: date, end: date) -> AsyncIterator[str]:
 
     yield _csv_row(
         "start", "end", "commission_collected_egp", "sponsored_commission_collected_egp",
-        "admin_credits_egp", "admin_debits_egp", "net_revenue_egp",
+        "distance_fee_passthrough_egp", "admin_credits_egp", "admin_debits_egp", "net_revenue_egp",
     )
     yield _csv_row(
         report["range"]["start"],
         report["range"]["end"],
         report["commission_collected_egp"],
         report["sponsored_commission_collected_egp"],
+        report["distance_fee_passthrough_egp"],
         report["admin_credits_egp"],
         report["admin_debits_egp"],
         report["net_revenue_egp"],

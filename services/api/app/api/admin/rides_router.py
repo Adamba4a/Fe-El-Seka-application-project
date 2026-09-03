@@ -27,6 +27,27 @@ def _markup_fields(price_per_seat, fair_price_per_seat) -> dict:
     }
 
 
+# Net commission actually realized on a ride — NOT a simple 20% of price_per_seat.
+# COMMISSION_DEBIT (cash bookings) and the SPONSORED_RIDE_CREDIT gap (sponsored
+# bookings) are both gross figures that still include the ride's distance_fee, which
+# isn't platform revenue: it's credited straight back to the driver in the same
+# transaction as a CASH_BACK_CREDIT entry (see commission_service.deduct_commission
+# and booking_service._settle_sponsored_booking). Subtracting every CASH_BACK_CREDIT
+# tied to this ride turns the gross debit into the platform's true take. Zero for a
+# ride with no settled (completed/sponsored-confirmed) bookings yet.
+# Correlated on r.id — embed directly into a SELECT list against a query whose FROM
+# includes "rides r".
+_NET_COMMISSION_SUBQUERY_SQL = """(
+    SELECT
+        COALESCE(SUM(l.amount_egp) FILTER (WHERE l.type = 'COMMISSION_DEBIT'), 0)
+        + COALESCE(SUM(b.total_price - l.amount_egp) FILTER (WHERE l.type = 'SPONSORED_RIDE_CREDIT'), 0)
+        - COALESCE(SUM(l.amount_egp) FILTER (WHERE l.type = 'CASH_BACK_CREDIT'), 0)
+    FROM driver_ledger_entries l
+    LEFT JOIN bookings b ON b.id = l.booking_id AND l.type = 'SPONSORED_RIDE_CREDIT'
+    WHERE l.ride_id = r.id
+)"""
+
+
 @router.get("/")
 async def list_rides(
     status: str | None = Query(None),
@@ -96,7 +117,8 @@ async def list_rides(
                 r.total_seats, r.booked_seats, r.available_seats,
                 r.price_per_seat, r.fair_price_per_seat, r.created_at,
                 r.driver_id, p.display_name AS driver_display_name,
-                r.is_featured, r.featured_at, fb.display_name AS featured_by_display_name
+                r.is_featured, r.featured_at, fb.display_name AS featured_by_display_name,
+                {_NET_COMMISSION_SUBQUERY_SQL} AS net_commission_egp
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
             LEFT JOIN profiles fb ON fb.id = r.featured_by
@@ -119,6 +141,7 @@ async def list_rides(
             "available_seats": r["available_seats"],
             "price_per_seat": str(r["price_per_seat"]),
             **_markup_fields(r["price_per_seat"], r["fair_price_per_seat"]),
+            "net_commission_egp": str(r["net_commission_egp"]),
             "created_at": r["created_at"].isoformat(),
             "driver_id": str(r["driver_id"]),
             "driver_display_name": r["driver_display_name"] or "",
@@ -139,7 +162,7 @@ async def get_ride_detail(
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            """
+            f"""
             SELECT
                 r.id, r.status, r.departure_datetime,
                 r.origin_address, r.destination_address,
@@ -150,7 +173,8 @@ async def get_ride_detail(
                 r.driver_id, p.display_name AS driver_display_name, p.email AS driver_email,
                 p.rating_avg AS driver_rating_avg, p.rating_count AS driver_rating_count,
                 v.plate_number, v.make, v.model, v.color,
-                r.is_featured, r.featured_at, fb.display_name AS featured_by_display_name
+                r.is_featured, r.featured_at, fb.display_name AS featured_by_display_name,
+                {_NET_COMMISSION_SUBQUERY_SQL} AS net_commission_egp
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
             JOIN vehicles v ON v.id = r.vehicle_id
@@ -189,6 +213,7 @@ async def get_ride_detail(
             "available_seats": ride["available_seats"],
             "price_per_seat": str(ride["price_per_seat"]),
             **_markup_fields(ride["price_per_seat"], ride["fair_price_per_seat"]),
+            "net_commission_egp": str(ride["net_commission_egp"]),
             "notes": ride["notes"],
             "cancellation_reason": ride["cancellation_reason"],
             "cancellation_source": ride["cancellation_source"],
