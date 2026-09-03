@@ -52,6 +52,7 @@ from app.services.continuous_learning_config_service import (
 )
 from app.services.driver_reminder_service import driver_reminder_loop
 from app.services.fcm_service import initialize_fcm
+from app.services.location_history_service import location_history_retention_loop
 from app.services.model_lifecycle_service import init_rollout_cache, rollout_cache_refresh_loop
 from app.services.model_monitoring_service import model_monitoring_loop
 from app.services.moderation_service import init_moderation_config, moderation_config_refresh_loop
@@ -95,7 +96,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     retraining_scheduler_task = asyncio.create_task(retraining_scheduler_loop())
     model_monitoring_task = asyncio.create_task(model_monitoring_loop())
     recurring_generation_task = asyncio.create_task(recurring_ride_generation_loop())
+    location_history_retention_task = asyncio.create_task(location_history_retention_loop())
     yield
+    location_history_retention_task.cancel()
     recurring_generation_task.cancel()
     model_monitoring_task.cancel()
     retraining_scheduler_task.cancel()

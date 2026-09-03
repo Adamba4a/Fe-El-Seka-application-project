@@ -31,6 +31,7 @@ from app.models.ride import (
 from app.models.route import GeoPoint
 from app.services import (
     booking_service,
+    location_history_service,
     location_service,
     ride_service,
     route_service,
@@ -278,6 +279,15 @@ async def update_driver_location(
                 ride_id, driver_id, exc.code, (time.monotonic() - t0) * 1000,
             )
             return _location_error_response(exc)
+    asyncio.create_task(
+        location_history_service.record_ping(
+            ride_id=ride_id,
+            driver_id=driver_id,
+            lat=payload.lat,
+            lng=payload.lng,
+            recorded_at=payload.client_timestamp,
+        )
+    )
     logger.info(
         "POST /rides/%s/location | driver_id=%s lat=%.5f lng=%.5f bearing=%s | duration_ms=%.1f",
         ride_id, driver_id, payload.lat, payload.lng, payload.bearing,

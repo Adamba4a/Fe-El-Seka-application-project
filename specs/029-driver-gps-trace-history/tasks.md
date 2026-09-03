@@ -22,8 +22,8 @@ ship as a standalone MVP before US2's retention job is added.
 
 **Purpose**: Create the new table this entire feature is built on.
 
-- [ ] T001 Create migration `supabase/migrations/20260903000001_driver_gps_trace_history.sql`: `driver_location_history` table (`id` UUID PK `gen_random_uuid()`, `ride_id` UUID NOT NULL FK→`rides(id)` ON DELETE CASCADE, `driver_id` UUID NOT NULL FK→`profiles(id)` ON DELETE CASCADE, `location` `geometry(Point,4326)` NOT NULL, `recorded_at` TIMESTAMPTZ NOT NULL, `created_at` TIMESTAMPTZ NOT NULL DEFAULT NOW()); indexes on `(ride_id, recorded_at)` and `(recorded_at)`; `ALTER TABLE driver_location_history ENABLE ROW LEVEL SECURITY;` with no policies (service-role only, per data-model.md)
-- [ ] T002 Apply the migration locally (`supabase db reset` or `supabase migration up`) and confirm `driver_location_history` exists with the expected columns/indexes/RLS via `psql`/Supabase Studio
+- [X] T001 Create migration `supabase/migrations/20260903000001_driver_gps_trace_history.sql`: `driver_location_history` table (`id` UUID PK `gen_random_uuid()`, `ride_id` UUID NOT NULL FK→`rides(id)` ON DELETE CASCADE, `driver_id` UUID NOT NULL FK→`profiles(id)` ON DELETE CASCADE, `location` `geometry(Point,4326)` NOT NULL, `recorded_at` TIMESTAMPTZ NOT NULL, `created_at` TIMESTAMPTZ NOT NULL DEFAULT NOW()); indexes on `(ride_id, recorded_at)` and `(recorded_at)`; `ALTER TABLE driver_location_history ENABLE ROW LEVEL SECURITY;` with no policies (service-role only, per data-model.md)
+- [X] T002 Apply the migration locally (`supabase db reset` or `supabase migration up`) and confirm `driver_location_history` exists with the expected columns/indexes/RLS via `psql`/Supabase Studio
 
 **Checkpoint**: Table exists locally, ready for the service layer.
 
@@ -35,7 +35,7 @@ ship as a standalone MVP before US2's retention job is added.
 
 **⚠️ CRITICAL**: Must be complete before Phase 3 or Phase 4 begin.
 
-- [ ] T003 Create `services/api/app/services/location_history_service.py` with module logger and imports (`asyncpg`, `uuid`, `datetime`, `asyncio`, `logging`), mirroring the header shape of `services/api/app/services/retraining_scheduler_service.py` and `match_logging_service.py` — no functions yet, just the module scaffold both stories below extend.
+- [X] T003 Create `services/api/app/services/location_history_service.py` with module logger and imports (`asyncpg`, `uuid`, `datetime`, `asyncio`, `logging`), mirroring the header shape of `services/api/app/services/retraining_scheduler_service.py` and `match_logging_service.py` — no functions yet, just the module scaffold both stories below extend.
 
 **Checkpoint**: Service module exists — US1 and US2 implementation tasks can proceed.
 
@@ -53,8 +53,8 @@ Scenario 1).
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Implement `record_ping(pool, ride_id: uuid.UUID, driver_id: uuid.UUID, lat: float, lng: float, recorded_at: datetime) -> None` in `services/api/app/services/location_history_service.py`: acquires its own connection from the pool, runs a single `INSERT INTO driver_location_history (ride_id, driver_id, location, recorded_at) VALUES ($1, $2, ST_SetSRID(ST_MakePoint($4,$3),4326), $5)`, wraps the whole body in try/except that only logs on failure (never raises) — mirrors `match_logging_service.persist_match_events` exactly (research.md R2)
-- [ ] T005 [US1] In `services/api/app/api/rides/router.py`'s `update_driver_location` handler, after `location_service.upsert_location(...)` succeeds inside the `async with pool.acquire() as conn:` block, add `asyncio.create_task(location_history_service.record_ping(pool, ride_id, driver_id, payload.lat, payload.lng, payload.client_timestamp))` using the pool (not the request's `conn`, which closes when the `async with` block exits) — not awaited, so the response returns immediately; add the corresponding `from app.services import location_history_service` import and confirm `import asyncio` is present
+- [X] T004 [US1] Implement `record_ping(pool, ride_id: uuid.UUID, driver_id: uuid.UUID, lat: float, lng: float, recorded_at: datetime) -> None` in `services/api/app/services/location_history_service.py`: acquires its own connection from the pool, runs a single `INSERT INTO driver_location_history (ride_id, driver_id, location, recorded_at) VALUES ($1, $2, ST_SetSRID(ST_MakePoint($4,$3),4326), $5)`, wraps the whole body in try/except that only logs on failure (never raises) — mirrors `match_logging_service.persist_match_events` exactly (research.md R2)
+- [X] T005 [US1] In `services/api/app/api/rides/router.py`'s `update_driver_location` handler, after `location_service.upsert_location(...)` succeeds inside the `async with pool.acquire() as conn:` block, add `asyncio.create_task(location_history_service.record_ping(pool, ride_id, driver_id, payload.lat, payload.lng, payload.client_timestamp))` using the pool (not the request's `conn`, which closes when the `async with` block exits) — not awaited, so the response returns immediately; add the corresponding `from app.services import location_history_service` import and confirm `import asyncio` is present
 
 **Checkpoint**: Run quickstart.md Scenarios 1–3 and 5 to confirm US1 works standalone — every ping is preserved, ordered, and non-blocking, with no change to the `POST /{ride_id}/location` response shape.
 
@@ -71,9 +71,9 @@ Test; quickstart.md Scenario 4).
 
 ### Implementation for User Story 2
 
-- [ ] T006 [US2] Implement `purge_expired(pool) -> int` in `services/api/app/services/location_history_service.py`: runs `DELETE FROM driver_location_history WHERE recorded_at < now() - interval '30 days'`, returns the deleted row count, wrapped in try/except that logs and returns `0` on failure (never raises) — depends on T003
-- [ ] T007 [US2] Implement `location_history_retention_loop(pool)` in `services/api/app/services/location_history_service.py`: `while True: try: deleted = await purge_expired(pool); log deleted count except Exception: log.exception(...); await asyncio.sleep(86400)` — mirrors `retraining_scheduler_service.retraining_scheduler_loop` exactly (research.md R3) — depends on T006
-- [ ] T008 [US2] In `services/api/app/main.py`'s `lifespan`, add `location_history_retention_task = asyncio.create_task(location_history_service.location_history_retention_loop(pool))` alongside the existing 12 background-loop registrations, and `location_history_retention_task.cancel()` in the shutdown sequence before `await close_pool()`; add the `from app.services.location_history_service import location_history_retention_loop` import — depends on T007
+- [X] T006 [US2] Implement `purge_expired(pool) -> int` in `services/api/app/services/location_history_service.py`: runs `DELETE FROM driver_location_history WHERE recorded_at < now() - interval '30 days'`, returns the deleted row count, wrapped in try/except that logs and returns `0` on failure (never raises) — depends on T003
+- [X] T007 [US2] Implement `location_history_retention_loop(pool)` in `services/api/app/services/location_history_service.py`: `while True: try: deleted = await purge_expired(pool); log deleted count except Exception: log.exception(...); await asyncio.sleep(86400)` — mirrors `retraining_scheduler_service.retraining_scheduler_loop` exactly (research.md R3) — depends on T006
+- [X] T008 [US2] In `services/api/app/main.py`'s `lifespan`, add `location_history_retention_task = asyncio.create_task(location_history_service.location_history_retention_loop(pool))` alongside the existing 12 background-loop registrations, and `location_history_retention_task.cancel()` in the shutdown sequence before `await close_pool()`; add the `from app.services.location_history_service import location_history_retention_loop` import — depends on T007
 
 **Checkpoint**: Run quickstart.md Scenario 4 to confirm the retention job purges correctly and is
 idempotent (NFR-003) — both user stories now work together end-to-end.
@@ -84,8 +84,8 @@ idempotent (NFR-003) — both user stories now work together end-to-end.
 
 **Purpose**: Final validation across both stories.
 
-- [ ] T009 Run quickstart.md Scenarios 1–5 end-to-end against the local stack (not just per-story spot checks) and confirm all pass
-- [ ] T010 [P] Update `docs/implementation-roadmap.md`'s "2026-09-03 Data-Collection Audit" entry for gap #1 to note it is closed by this feature
+- [X] T009 Run quickstart.md Scenarios 1–5 end-to-end against the local stack (not just per-story spot checks) and confirm all pass — validated directly against the local Postgres container (see implementation notes below); all 5 pass.
+- [ ] T010 [P] Update `docs/implementation-roadmap.md`'s "2026-09-03 Data-Collection Audit" entry for gap #1 — **BLOCKED**: that section does not exist on `main` (this branch's base); it exists only on the unmerged `028-loyalty-points` branch. Deferred until 028 merges to main, to avoid fabricating/duplicating roadmap content this branch doesn't have.
 
 ---
 
