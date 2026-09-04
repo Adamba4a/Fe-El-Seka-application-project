@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 
 from app.core.database import get_pool
@@ -31,6 +31,7 @@ from app.models.ride import (
 from app.models.route import GeoPoint
 from app.services import (
     booking_service,
+    fraud_signal_service,
     location_service,
     ride_service,
     route_service,
@@ -82,6 +83,8 @@ def _service_error_response(exc: RideServiceError) -> JSONResponse:
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_ride(
     payload: CreateRideRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
     profile: dict = Depends(get_current_driver),
     _org_verified: dict = Depends(require_org_verified),
 ):
@@ -140,6 +143,14 @@ async def create_ride(
         )
     except RideServiceError as exc:
         return _service_error_response(exc)
+
+    background_tasks.add_task(
+        fraud_signal_service.record_signal,
+        event_type="ride_posted",
+        user_id=driver_id,
+        device_id=request.headers.get("x-device-id"),
+        ip_address=request.client.host if request.client else None,
+    )
     return {"ride": ride.model_dump(mode="json")}
 
 

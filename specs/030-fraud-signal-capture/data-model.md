@@ -15,7 +15,7 @@ Mirrors the append-only posture of `driver_location_history` (029) and `match_ev
 | Column | Type | Notes |
 |---|---|---|
 | `id` | UUID PK | `gen_random_uuid()` |
-| `user_id` | UUID NULL | FK → `profiles(id)` ON DELETE SET NULL — nullable per spec Key Entities (pre-authentication events); ON DELETE SET NULL (not CASCADE) because this row's value as fraud/graph signal outlives the account it names (contrast with 029's `driver_location_history`, which is scoped to a ride and correctly cascades) |
+| `user_id` | UUID NULL | FK → `auth.users(id)` ON DELETE SET NULL — nullable per spec Key Entities (pre-authentication events); references `auth.users` rather than `profiles` because the `signup` event fires from `verify_otp` at the moment the auth user is created, before any `profiles` row exists (profile creation happens later, during onboarding) — a `profiles` FK would reject every signup signal; ON DELETE SET NULL (not CASCADE) because this row's value as fraud/graph signal outlives the account it names (contrast with 029's `driver_location_history`, which is scoped to a ride and correctly cascades) |
 | `event_type` | TEXT NOT NULL | One of `signup`, `login`, `ride_posted`, `booking_created` (FR-001) — plain `CHECK (event_type IN (...))` rather than a Postgres ENUM, since this table has no other place that constrains values (contrast with `admin_audit_logs.action_type`'s enum) |
 | `hashed_device_id` | TEXT NULL | HMAC-SHA256 hex digest (research.md R2); null when the client sent no `X-Device-Id` header (FR-002, Edge Cases) |
 | `hashed_ip` | TEXT NOT NULL | HMAC-SHA256 hex digest of `request.client.host` (research.md R3); always present — every HTTP request has a source IP |
@@ -37,7 +37,7 @@ an anomaly.
 ## Relationships
 
 ```
-profiles (user, nullable) ──< fraud_signals
+auth.users (user, nullable) ──< fraud_signals
 ```
 
 Independent of every other new-signal table this session (`driver_location_history`, 029) — no relationship exists

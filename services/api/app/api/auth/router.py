@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Request, status
+import uuid
+
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
 
 from app.dependencies.auth import get_current_user
 from app.models.auth import (
@@ -10,7 +12,7 @@ from app.models.auth import (
     SessionResponse,
     SetPasswordRequest,
 )
-from app.services import auth_service
+from app.services import auth_service, fraud_signal_service
 
 router = APIRouter()
 
@@ -22,14 +24,30 @@ def request_otp(body: OtpRequest) -> OtpSentResponse:
 
 
 @router.post("/verify-otp", response_model=SessionResponse)
-def verify_otp(body: OtpVerifyRequest) -> SessionResponse:
+def verify_otp(body: OtpVerifyRequest, request: Request, background_tasks: BackgroundTasks) -> SessionResponse:
     result = auth_service.verify_otp(body.email, body.otp)
+    background_tasks.add_task(
+        fraud_signal_service.record_signal,
+        event_type="signup",
+        user_id=uuid.UUID(result["user"]["id"]),
+        device_id=request.headers.get("x-device-id"),
+        ip_address=request.client.host if request.client else None,
+    )
     return result
 
 
 @router.post("/sign-in-with-password", response_model=SessionResponse)
-def sign_in_with_password(body: PasswordSignInRequest) -> SessionResponse:
+def sign_in_with_password(
+    body: PasswordSignInRequest, request: Request, background_tasks: BackgroundTasks
+) -> SessionResponse:
     result = auth_service.sign_in_with_password(body.email, body.password)
+    background_tasks.add_task(
+        fraud_signal_service.record_signal,
+        event_type="login",
+        user_id=uuid.UUID(result["user"]["id"]),
+        device_id=request.headers.get("x-device-id"),
+        ip_address=request.client.host if request.client else None,
+    )
     return result
 
 

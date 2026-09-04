@@ -24,9 +24,11 @@ stack, matching how prior specs (013, 029) in this repo were verified.
 
 ## Phase 1: Setup
 
-- [ ] T001 Create migration `supabase/migrations/20260903000002_fraud_signal_capture.sql`: `fraud_signals` table
-  per data-model.md — `id UUID PK DEFAULT gen_random_uuid()`, `user_id UUID NULL REFERENCES profiles(id) ON DELETE
-  SET NULL`, `event_type TEXT NOT NULL CHECK (event_type IN ('signup','login','ride_posted','booking_created'))`,
+- [X] T001 Create migration `supabase/migrations/20260903000002_fraud_signal_capture.sql`: `fraud_signals` table
+  per data-model.md — `id UUID PK DEFAULT gen_random_uuid()`, `user_id UUID NULL REFERENCES auth.users(id) ON
+  DELETE SET NULL` (references `auth.users`, not `profiles` — corrected during Phase 3 runtime review: the
+  `signup` event fires before any `profiles` row exists, so a `profiles` FK rejected every signup signal),
+  `event_type TEXT NOT NULL CHECK (event_type IN ('signup','login','ride_posted','booking_created'))`,
   `hashed_device_id TEXT NULL`, `hashed_ip TEXT NOT NULL`, `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`; indexes
   on `(hashed_device_id) WHERE hashed_device_id IS NOT NULL`, `(hashed_ip)`, `(user_id, created_at)`; `ALTER TABLE
   fraud_signals ENABLE ROW LEVEL SECURITY` with no public policies (service-role only, same posture as
@@ -38,14 +40,14 @@ stack, matching how prior specs (013, 029) in this repo were verified.
 
 **⚠️ CRITICAL**: Must complete before Phase 3.
 
-- [ ] T002 Add `fraud_signal_hmac_secret: str = ""` field to `Settings` in `services/api/app/core/config.py`,
+- [X] T002 Add `fraud_signal_hmac_secret: str = ""` field to `Settings` in `services/api/app/core/config.py`,
   alongside `internal_secret`/`webhook_secret` (same pattern, no Vault indirection per research.md R2).
-- [ ] T003 [P] Add `FRAUD_SIGNAL_HMAC_SECRET=generate_with__python_-c_"import secrets; print(secrets.token_hex(32))"`
+- [X] T003 [P] Add `FRAUD_SIGNAL_HMAC_SECRET=generate_with__python_-c_"import secrets; print(secrets.token_hex(32))"`
   line to `services/api/.env.example`, matching the existing `WEBHOOK_SECRET` line's format.
-- [ ] T004 [P] Generate a real secret (`python -c "import secrets; print(secrets.token_hex(32))"`) and set
+- [X] T004 [P] Generate a real secret (`python -c "import secrets; print(secrets.token_hex(32))"`) and set
   `FRAUD_SIGNAL_HMAC_SECRET=<value>` in the local (gitignored) `services/api/.env` so local dev/testing can exercise
   hashing end-to-end.
-- [ ] T005 Create `services/api/app/services/fraud_signal_service.py` with `async def record_signal(event_type: str,
+- [X] T005 Create `services/api/app/services/fraud_signal_service.py` with `async def record_signal(event_type: str,
   user_id: uuid.UUID | None, device_id: str | None, ip_address: str | None) -> None`: mirrors
   `match_logging_service.persist_match_events`'s shape — HMAC-SHA256 (stdlib `hmac`/`hashlib`, keyed by
   `settings.fraud_signal_hmac_secret`) each of `device_id` (only if not `None`, else leave `hashed_device_id` as
@@ -71,22 +73,24 @@ Scenarios 1-5).
 
 ### Backend
 
-- [ ] T006 [US1] In `services/api/app/api/auth/router.py`, extend `verify_otp`: add `request: Request` (already
+- [X] T006 [US1] In `services/api/app/api/auth/router.py`, extend `verify_otp`: add `request: Request` (already
   imported) and `background_tasks: BackgroundTasks` (add to the `fastapi` import) parameters; after
   `auth_service.verify_otp(...)` succeeds, call `background_tasks.add_task(fraud_signal_service.record_signal,
-  event_type="signup", user_id=uuid.UUID(result.user.id), device_id=request.headers.get("x-device-id"),
+  event_type="signup", user_id=uuid.UUID(result["user"]["id"]), device_id=request.headers.get("x-device-id"),
   ip_address=request.client.host if request.client else None)` before returning `result`. Import
-  `fraud_signal_service` from `app.services` and `uuid` from stdlib.
-- [ ] T007 [US1] In the same file, extend `sign_in_with_password` identically — `event_type="login"`, same
+  `fraud_signal_service` from `app.services` and `uuid` from stdlib. **Runtime review caught a bug**: `result` is a
+  plain `dict` (`auth_service.verify_otp` returns `dict`, not a `SessionResponse` object) — `result.user.id` raised
+  `AttributeError` on every signup; fixed to `result["user"]["id"]`.
+- [X] T007 [US1] In the same file, extend `sign_in_with_password` identically — `event_type="login"`, same
   `request`/`background_tasks` params, fired after `auth_service.sign_in_with_password(...)` succeeds, using
-  `result.user.id`.
-- [ ] T008 [P] [US1] In `services/api/app/api/rides/router.py`, extend `create_ride`: add `request: Request` and
+  `result["user"]["id"]` (same dict-not-object fix as T006).
+- [X] T008 [P] [US1] In `services/api/app/api/rides/router.py`, extend `create_ride`: add `request: Request` and
   `background_tasks: BackgroundTasks` params (add `Request`, `BackgroundTasks` to the `fastapi` import); after
   `ride_service.create_ride(...)` succeeds (before the final `return`), call
   `background_tasks.add_task(fraud_signal_service.record_signal, event_type="ride_posted", user_id=driver_id,
   device_id=request.headers.get("x-device-id"), ip_address=request.client.host if request.client else None)`.
   `driver_id` is already computed at the top of the handler. Import `fraud_signal_service` from `app.services`.
-- [ ] T009 [P] [US1] In `services/api/app/api/bookings/router.py`, extend `book_ride`: add `request: Request` and
+- [X] T009 [P] [US1] In `services/api/app/api/bookings/router.py`, extend `book_ride`: add `request: Request` and
   `background_tasks: BackgroundTasks` params (add `Request`, `BackgroundTasks` to the `fastapi` import); after
   `create_booking(...)` succeeds (before building the `JSONResponse`), call
   `background_tasks.add_task(fraud_signal_service.record_signal, event_type="booking_created",
@@ -96,18 +100,18 @@ Scenarios 1-5).
 
 ### Frontend (`apps/main`)
 
-- [ ] T010 [P] [US1] Create `apps/main/src/lib/device-id.ts` exporting `getDeviceId(): string | null` — on first
+- [X] T010 [P] [US1] Create `apps/main/src/lib/device-id.ts` exporting `getDeviceId(): string | null` — on first
   call, reads a UUID from `localStorage` key `triplyy_device_id`; if absent, generates one with
   `crypto.randomUUID()` and persists it; guarded with `typeof window === "undefined"` (SSR) and `try/catch`
   (private browsing / storage disabled) returning `null` in either case, per research.md R5/R7 ("stable per-install
   identifier", never blocks the request when unavailable).
-- [ ] T011 [US1] In `apps/main/src/lib/api/auth.ts`, attach `"X-Device-Id": getDeviceId() ?? ""` (omit the header
+- [X] T011 [US1] In `apps/main/src/lib/api/auth.ts`, attach `"X-Device-Id": getDeviceId() ?? ""` (omit the header
   key entirely when `null`, don't send an empty string — mirror existing conditional-header patterns in this repo)
   to the `fetch` calls inside `verifyOtp` and `signInWithPassword`. Import `getDeviceId` from `../device-id`.
   Depends on: T010.
-- [ ] T012 [P] [US1] In `apps/main/src/lib/api/rides.ts`, attach the same `X-Device-Id` header to the `fetch` call
+- [X] T012 [P] [US1] In `apps/main/src/lib/api/rides.ts`, attach the same `X-Device-Id` header to the `fetch` call
   inside `createRide`. Depends on: T010.
-- [ ] T013 [P] [US1] In `apps/main/src/app/(passenger)/rides/[id]/page.tsx`, attach the same `X-Device-Id` header
+- [X] T013 [P] [US1] In `apps/main/src/app/(passenger)/rides/[id]/page.tsx`, attach the same `X-Device-Id` header
   to the inline `postBooking` function's `fetch(...)` call (~line 575). Depends on: T010.
 
 **Checkpoint**: Run quickstart.md Scenarios 1-5 against the local stack — signup/login/ride-post/booking each

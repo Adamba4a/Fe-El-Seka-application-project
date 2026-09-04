@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     # from mobile clients to time out and fall back to raw coordinates.
     nominatim_user_agent: str = "TriplyyApp/1.0 (+https://triplyy.net)"
     internal_secret: str = ""
+    fraud_signal_hmac_secret: str = ""
     firebase_service_account_secret_name: str = "firebase_service_account"
     ai_service_url: str = "http://localhost:8001"
 
