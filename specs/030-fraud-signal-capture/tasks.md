@@ -129,15 +129,19 @@ on — this phase is verification of a property already built into US1's design 
 **Independent Test**: Break the signal-store write path and confirm the four instrumented endpoints still succeed
 normally (quickstart.md Scenario 6).
 
-- [ ] T014 [US2] Code-review `fraud_signal_service.record_signal` (T005) and all four call sites (T006-T009):
+- [X] T014 [US2] Code-review `fraud_signal_service.record_signal` (T005) and all four call sites (T006-T009):
   confirm the DB write is fully inside the `try/except`, confirm no handler `await`s the background task or
   otherwise blocks on its completion before returning its response (the `background_tasks.add_task(...)` call
   itself must be fire-and-forget, matching `match_logging_service.persist_match_events`'s call sites in
-  `search/router.py`).
-- [ ] T015 [US2] Manually execute quickstart.md Scenario 6 against the local stack: temporarily break the
+  `search/router.py`). Confirmed: all four sites call `background_tasks.add_task(...)` (never `await
+  record_signal(...)` directly), and `record_signal`'s entire body — including the `INSERT` — is wrapped in one
+  `try/except Exception`.
+- [X] T015 [US2] Manually execute quickstart.md Scenario 6 against the local stack: temporarily break the
   `fraud_signals` write path (e.g. rename the table), repeat a signup, confirm the request still returns 200/201
   normally with no `fraud_signals` row created and a `fraud_signal_persist_failure` line in the API logs; restore
-  the table afterward.
+  the table afterward. Confirmed: renamed the table, ran signup — API returned `200` with a full valid session,
+  logs showed `{"event": "fraud_signal_persist_failure", "event_type": "signup", "error": "relation
+  \"fraud_signals\" does not exist"}`, row count unaffected after restoring the table.
 
 **Checkpoint**: Both user stories verified independently.
 
@@ -145,8 +149,24 @@ normally (quickstart.md Scenario 6).
 
 ## Phase 5: Polish
 
-- [ ] T016 Run quickstart.md Scenarios 1, 2, 3, 4, 5, and 7 end-to-end against the local Docker stack (Scenario 6
-  covered by T015) and confirm all pass as documented.
+- [X] T016 Run quickstart.md Scenarios 1, 2, 3, 4, 5, and 7 end-to-end against the local Docker stack (Scenario 6
+  covered by T015) and confirm all pass as documented. Results:
+  - **Scenario 1** ✅ signup produced a row with non-null distinct `hashed_device_id`/`hashed_ip` and the correct
+    `user_id`.
+  - **Scenario 2** ✅ for `login` (full runtime pass); `ride_posted`/`booking_created` confirmed by code review only
+    — local dev has no OSRM instance configured, so `POST /api/v1/rides` 503s before reaching any application code
+    (pre-existing environment gap, unrelated to this feature); `create_ride`/`book_ride`'s `record_signal` call
+    sites were verified correct by inspection (same `user_id`-from-dict pattern as the working `login`/`signup`
+    sites, no attribute-access risk).
+  - **Scenario 3** ✅ two accounts signed up with the identical `X-Device-Id` produced identical `hashed_device_id`
+    (and `hashed_ip`) values.
+  - **Scenario 4** ✅ zero rows matched a `LIKE '%qa-raw-value-check%'` search across both hash columns.
+  - **Scenario 5** ✅ a signup with no `X-Device-Id` header succeeded normally with `hashed_device_id IS NULL` and
+    `hashed_ip` populated.
+  - **Scenario 7** ✅ confirmed by diff — the only changes to all three routers are added parameters, added
+    imports, and the inserted `background_tasks.add_task(...)` calls; no `return`/response-body statement changed,
+    so response shape is byte-identical with or without the new header, matching Scenario 6's live proof that the
+    normal response is unaffected even when signal persistence fails outright.
 
 ---
 
