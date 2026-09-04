@@ -10,6 +10,7 @@ import type {
 // price_per_seat is always present in the create response (system-assigned)
 export type CreateRideResponse = Ride;
 import { env } from "../env";
+import { getDeviceId } from "../device-id";
 
 const base = env.apiUrl;
 
@@ -29,9 +30,13 @@ function unwrapError(body: unknown): { error?: string; message?: string } {
 }
 
 export async function createRide(token: string, data: CreateRidePayload): Promise<Ride> {
+  const deviceId = getDeviceId();
   const res = await fetch(`${base}/api/v1/rides`, {
     method: "POST",
-    headers: authHeaders(token),
+    headers: {
+      ...authHeaders(token),
+      ...(deviceId ? { "X-Device-Id": deviceId } : {}),
+    },
     body: JSON.stringify(data),
   });
   const json = await res.json();

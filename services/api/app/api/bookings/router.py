@@ -4,7 +4,7 @@ import json
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, status
 from fastapi.responses import JSONResponse
 
 from app.core.database import get_pool
@@ -18,7 +18,7 @@ from app.models.booking import (
     BookingListItem,
     BookingListResponse,
 )
-from app.services import booking_service, storage_service
+from app.services import booking_service, fraud_signal_service, storage_service
 from app.services.booking_service import create_booking
 
 router = APIRouter()
@@ -29,6 +29,8 @@ router = APIRouter()
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def book_ride(
     body: BookingCreateRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
     profile: dict = Depends(get_current_passenger),
     _org_verified: dict = Depends(require_org_verified),
 ):
@@ -52,6 +54,14 @@ async def book_ride(
             loyalty_redemption_catalog_entry_id=body.loyalty_redemption_catalog_entry_id,
             points_to_redeem=body.points_to_redeem,
         )
+
+    background_tasks.add_task(
+        fraud_signal_service.record_signal,
+        event_type="booking_created",
+        user_id=passenger_id,
+        device_id=request.headers.get("x-device-id"),
+        ip_address=request.client.host if request.client else None,
+    )
 
     loyalty_redemption = booking.get("loyalty_redemption")
     points_redemption = booking.get("points_redemption")

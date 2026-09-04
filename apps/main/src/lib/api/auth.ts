@@ -1,5 +1,6 @@
 import type { SessionResponse } from "@fe-el-seka/shared";
 import { env } from "../env";
+import { getDeviceId } from "../device-id";
 
 const base = env.apiUrl;
 
@@ -34,9 +35,13 @@ export async function requestOtp(email: string): Promise<{ message: string; expi
 }
 
 export async function verifyOtp(email: string, otp: string): Promise<SessionResponse> {
+  const deviceId = getDeviceId();
   const res = await fetch(`${base}/api/auth/verify-otp`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(deviceId ? { "X-Device-Id": deviceId } : {}),
+    },
     body: JSON.stringify({ email, otp }),
   });
   if (!res.ok) throw await parseErrorResponse(res);
@@ -44,9 +49,13 @@ export async function verifyOtp(email: string, otp: string): Promise<SessionResp
 }
 
 export async function signInWithPassword(email: string, password: string): Promise<SessionResponse> {
+  const deviceId = getDeviceId();
   const res = await fetch(`${base}/api/auth/sign-in-with-password`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(deviceId ? { "X-Device-Id": deviceId } : {}),
+    },
     body: JSON.stringify({ email, password }),
   });
   if (!res.ok) throw await parseErrorResponse(res);

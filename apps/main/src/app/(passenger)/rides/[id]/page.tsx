@@ -12,6 +12,7 @@ import { RatingBadge } from "@/components/ui/RatingBadge";
 import { VerificationRequiredModal } from "@/components/verification/VerificationRequiredModal";
 import Link from "next/link";
 import { env } from "@/lib/env";
+import { getDeviceId } from "@/lib/device-id";
 import { formatCurrency, FARE_SPLIT_SEATS } from "@fe-el-seka/shared";
 import type { Locale } from "@fe-el-seka/shared";
 import { fromIsoWeekday } from "@/lib/weekdays";
@@ -572,11 +573,13 @@ export default function PassengerRideDetailPage() {
         loyaltyRedemptionCatalogEntryId: string | null,
         pointsToRedeemForTarget: number | null
       ): Promise<{ res: Response; json: { booking_id?: string; detail?: unknown; error?: string; message?: string } }> => {
+        const deviceId = getDeviceId();
         const res = await fetch(`${env.apiUrl}/api/v1/bookings`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${session.access_token}`,
             "Content-Type": "application/json",
+            ...(deviceId ? { "X-Device-Id": deviceId } : {}),
           },
           body: JSON.stringify({
             ride_id: rideId,
