@@ -58,7 +58,7 @@ async def find_candidates(
     try:
         try:
             return await candidate_service.generate_candidates(
-                body.origin, body.destination, body.departure_time
+                body.origin, body.destination
             )
         except RouteServiceUnavailableError:
             status_code = 503

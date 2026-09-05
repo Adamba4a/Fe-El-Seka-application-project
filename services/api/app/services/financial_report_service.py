@@ -143,7 +143,7 @@ async def get_report(conn, start: date, end: date) -> dict:
         ) cb ON cb.group_id = g.id
         WHERE l.type = 'SPONSORED_RIDE_CREDIT' AND l.created_at >= $1 AND l.created_at < $2
         GROUP BY g.id, g.name, cb.distance_fee_passthrough
-        ORDER BY gross_commission_egp - COALESCE(cb.distance_fee_passthrough, 0) DESC
+        ORDER BY COALESCE(SUM(b.total_price - l.amount_egp), 0) - COALESCE(cb.distance_fee_passthrough, 0) DESC
         """,
         start_dt,
         end_dt,

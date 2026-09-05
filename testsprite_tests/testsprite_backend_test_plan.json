@@ -1,0 +1,22 @@
+[
+  {
+    "id": "TC017",
+    "title": "post_api_admin_moderation_review_and_resolve_dismiss",
+    "description": "Verify that an admin can mark a report under review via POST /api/admin/moderation/reports/{id}/review returning 200, then resolve it with a dismiss action via POST /api/admin/moderation/reports/{id}/resolve returning 200."
+  },
+  {
+    "id": "TC018",
+    "title": "post_api_admin_moderation_review_resolve_suspend_and_reinstate",
+    "description": "Verify that an admin can mark a report under review, resolve it with a suspend action, and then reinstate the suspended user via POST /api/admin/moderation/users/{user_id}/reinstate, each returning 200."
+  },
+  {
+    "id": "TC019",
+    "title": "post_api_verification_submit_and_admin_approve",
+    "description": "Verify that a driver can submit identity verification documents via multipart POST /api/verification/submit (front_id, back_id, selfie files) returning 201, and an admin can approve it via POST /api/admin/verification/{id}/approve returning 200."
+  },
+  {
+    "id": "TC020",
+    "title": "post_api_verification_reject_lock_cycle_and_admin_unlock",
+    "description": "Verify that three consecutive verification submit+admin-reject cycles trigger a submission lock on the third rejection, and that an admin can then unlock the user via POST /api/admin/verification/users/{user_id}/unlock returning 200."
+  }
+]

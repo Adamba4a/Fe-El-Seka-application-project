@@ -357,3 +357,5 @@ cdk.out/
 tmp/
 temp/
 scratch/
+testsprite_tests/tmp/
+testsprite_tests/tmp/config.json
