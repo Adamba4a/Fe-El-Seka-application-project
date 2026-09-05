@@ -38,7 +38,12 @@ export default function RecurringRidesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
+        <div className="flex items-center gap-3">
+          <Link href="/rides" className="text-content-muted hover:text-content-secondary">
+            <span className="inline-block rtl:rotate-180">←</span>
+          </Link>
+          <h1 className="text-h3 text-content-primary">{t("heading")}</h1>
+        </div>
         <Link
           href="/rides/new"
           className="bg-dash-primary hover:opacity-90 text-content-inverse text-body-sm font-medium px-4 py-2 rounded-xl transition-opacity"

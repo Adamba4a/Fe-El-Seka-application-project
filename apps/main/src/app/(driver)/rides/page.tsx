@@ -24,14 +24,26 @@ function formatDate(iso: string, locale: Locale) {
 // one summary card here (deep-dive / per-day management lives on the
 // dedicated /rides/recurring/[id] page) instead of flooding this list with
 // a near-identical card per upcoming day.
+// Sun-Sat calendar week (UTC) a ride's departure falls into, expressed as that
+// week's Sunday at 00:00 UTC (ms since epoch) — mirrors the week_bucket the
+// backend computes for the definition-detail instance list, so the driver
+// only ever sees "remaining this week", not the full rolling generation window.
+function weekBucketOf(iso: string): number {
+  const d = new Date(iso);
+  const dayStart = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  return dayStart - d.getUTCDay() * 86_400_000;
+}
+
 function RecurringGroupCard({ definitionId, rides }: { definitionId: string; rides: Ride[] }) {
   const t = useTranslations("driver.rides");
   const tRecurring = useTranslations("driver.recurring");
   const locale = useLocale() as Locale;
   const now = new Date().toISOString();
-  const upcoming = rides
+  const upcomingAll = rides
     .filter((r) => r.status === "scheduled" && r.departure_datetime > now)
     .sort((a, b) => a.departure_datetime.localeCompare(b.departure_datetime));
+  const nearestBucket = upcomingAll.length > 0 ? weekBucketOf(upcomingAll[0].departure_datetime) : null;
+  const upcoming = nearestBucket === null ? [] : upcomingAll.filter((r) => weekBucketOf(r.departure_datetime) === nearestBucket);
   const next = upcoming[0] ?? [...rides].sort((a, b) => a.departure_datetime.localeCompare(b.departure_datetime))[0];
 
   return (

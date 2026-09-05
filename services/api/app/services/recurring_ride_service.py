@@ -484,8 +484,12 @@ async def end_definition(
 ) -> RecurringRideDefinitionResponse:
     """Stop future generation for this definition. Idempotent — ending an
     already-ended definition is a no-op that returns the current state.
-    Never mutates any existing `rides` row (FR-008): already-generated
-    instances, booked or not, are left exactly as they are."""
+    Never mutates any already-generated instance that has a confirmed
+    passenger booking (FR-008) — those keep running and are left for the
+    driver to complete or individually cancel. Any already-generated instance
+    with zero confirmed bookings is auto-cancelled here so its held commission
+    reservation is released back to the driver immediately, instead of sitting
+    reserved indefinitely for a ride the driver just said they won't run."""
     pool = get_pool()
     async with pool.acquire() as conn:
         definition = await _fetch_own_definition(conn, definition_id, driver_id)
@@ -501,6 +505,32 @@ async def end_definition(
             """,
             definition_id,
         )
+
+        unbooked_instances = await conn.fetch(
+            """
+            SELECT r.id FROM rides r
+            WHERE r.recurring_ride_definition_id = $1
+              AND r.status = 'scheduled'
+              AND r.departure_datetime > now()
+              AND NOT EXISTS (
+                  SELECT 1 FROM bookings b WHERE b.ride_id = r.id AND b.status = 'confirmed'
+              )
+            """,
+            definition_id,
+        )
+
+    for instance in unbooked_instances:
+        try:
+            await ride_service.cancel_ride(
+                instance["id"], driver_id,
+                reason="Recurring series ended by driver",
+                cancellation_source="system",
+            )
+        except ride_service.RideServiceError:
+            logger.exception(
+                "end_definition: failed to auto-cancel unbooked instance ride_id=%s definition_id=%s",
+                instance["id"], definition_id,
+            )
 
     return _to_definition_response(dict(row))
 
