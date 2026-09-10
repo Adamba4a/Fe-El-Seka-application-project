@@ -333,7 +333,9 @@
       "change": "تغيير",
       "confirm": "تأكيد",
       "tapMapToSetPickup": "📍 اضغط على الخريطة لتحديد نقطة الصعود",
-      "tapMapToSetDropoff": "📍 اضغط على الخريطة لتحديد نقطة النزول"
+      "tapMapToSetDropoff": "📍 اضغط على الخريطة لتحديد نقطة النزول",
+      "tapMapToExplore": "اضغط على الخريطة للاستكشاف أو افتح النموذج",
+      "backToForm": "← العودة إلى النموذج"
     },
     "tracking": {
       "loading": "جارٍ التحميل…",

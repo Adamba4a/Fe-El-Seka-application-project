@@ -82,17 +82,29 @@ export default function BookRidePage() {
     router.push(`/rides/${id}?${params}`);
   };
 
+  const handleBackToForm = () => {
+    setSheetOpen(true);
+    setSelecting(null);
+  };
+
   return (
     <>
       <div className="fixed inset-0 z-20">
         <RideMap onPinDrop={handlePinDrop} fullScreen />
       </div>
 
-      {!sheetOpen && selecting && (
-        <div className="fixed top-16 left-4 right-4 z-30 bg-surface-card border border-border-default rounded-xl px-4 py-3 shadow-sm">
+      {!sheetOpen && (
+        <div className="fixed top-16 left-4 right-4 z-30 bg-surface-card border border-border-default rounded-xl px-4 py-3 space-y-1.5 shadow-sm">
           <p className="text-label text-content-primary">
-            {selecting === "pickup" ? t("tapMapToSetPickup") : t("tapMapToSetDropoff")}
+            {selecting === "pickup"
+              ? t("tapMapToSetPickup")
+              : selecting === "dropoff"
+                ? t("tapMapToSetDropoff")
+                : t("tapMapToExplore")}
           </p>
+          <button type="button" onClick={handleBackToForm} className="text-body-sm text-brand-primary">
+            {t("backToForm")}
+          </button>
         </div>
       )}
 
