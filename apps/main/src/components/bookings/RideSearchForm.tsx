@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/Spinner";
-import { geocodeAddress, type SearchLocation, type SearchBbox } from "@/lib/geocode";
+import { loadGoogleMaps } from "@/lib/google-maps-loader";
+import type { SearchLocation, SearchBbox } from "@/lib/geocode";
 
 export type { SearchLocation, SearchBbox };
 
@@ -27,17 +28,84 @@ function toDatetimeLocalValue(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function placeToSearchLocation(place: google.maps.places.PlaceResult): SearchLocation | null {
+  const location = place.geometry?.location;
+  if (!location) return null;
+
+  const viewport = place.geometry?.viewport;
+  const bbox: SearchBbox | null = viewport
+    ? {
+        south: viewport.getSouthWest().lat(),
+        west: viewport.getSouthWest().lng(),
+        north: viewport.getNorthEast().lat(),
+        east: viewport.getNorthEast().lng(),
+      }
+    : null;
+
+  return {
+    lat: location.lat(),
+    lng: location.lng(),
+    address: place.formatted_address ?? `${location.lat().toFixed(5)}, ${location.lng().toFixed(5)}`,
+    bbox,
+  };
+}
+
 export function RideSearchForm({
   loading, onSearch, externalOrigin, externalDestination, onRequestOriginMap, onRequestDestinationMap,
 }: RideSearchFormProps) {
   const t = useTranslations("passenger.searchForm");
   const [originText, setOriginText] = useState("");
   const [destText, setDestText] = useState("");
+  const [originLocation, setOriginLocation] = useState<SearchLocation | null>(null);
+  const [destLocation, setDestLocation] = useState<SearchLocation | null>(null);
+  const originInputRef = useRef<HTMLInputElement>(null);
+  const destInputRef = useRef<HTMLInputElement>(null);
   const [departureLocal, setDepartureLocal] = useState(() => toDatetimeLocalValue(new Date()));
   const [error, setError] = useState<string | null>(null);
-  const [geocoding, setGeocoding] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Binds Places Autocomplete to the free-text fallback inputs (only rendered
+  // when the parent doesn't own pin-drop via onRequestOriginMap/DestinationMap).
+  useEffect(() => {
+    if (onRequestOriginMap || onRequestDestinationMap) return;
+    let cancelled = false;
+
+    loadGoogleMaps().then(() => {
+      if (cancelled) return;
+
+      if (originInputRef.current) {
+        const autocomplete = new google.maps.places.Autocomplete(originInputRef.current, {
+          componentRestrictions: { country: "eg" },
+          fields: ["geometry", "formatted_address"],
+        });
+        autocomplete.addListener("place_changed", () => {
+          const location = placeToSearchLocation(autocomplete.getPlace());
+          if (!location) return;
+          setOriginLocation(location);
+          setOriginText(location.address);
+        });
+      }
+
+      if (destInputRef.current) {
+        const autocomplete = new google.maps.places.Autocomplete(destInputRef.current, {
+          componentRestrictions: { country: "eg" },
+          fields: ["geometry", "formatted_address"],
+        });
+        autocomplete.addListener("place_changed", () => {
+          const location = placeToSearchLocation(autocomplete.getPlace());
+          if (!location) return;
+          setDestLocation(location);
+          setDestText(location.address);
+        });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -60,29 +128,21 @@ export function RideSearchForm({
 
     if (!originText.trim()) { setError(t("errors.originTextRequired")); return; }
     if (!destText.trim()) { setError(t("errors.destTextRequired")); return; }
+    if (!originLocation) { setError(t("errors.originNotFound")); return; }
+    if (!destLocation) { setError(t("errors.destNotFound")); return; }
 
-    setGeocoding(true);
-    try {
-      const [origin, dest] = await Promise.all([
-        geocodeAddress(originText.trim()),
-        geocodeAddress(destText.trim()),
-      ]);
-
-      if (!origin) { setError(t("errors.originNotFound")); return; }
-      if (!dest) { setError(t("errors.destNotFound")); return; }
-
-      if (Math.abs(origin.lat - dest.lat) < 1e-4 && Math.abs(origin.lng - dest.lng) < 1e-4) {
-        setError(t("errors.sameLocation"));
-        return;
-      }
-
-      onSearch(origin, dest, departureAt);
-    } finally {
-      setGeocoding(false);
+    if (
+      Math.abs(originLocation.lat - destLocation.lat) < 1e-4 &&
+      Math.abs(originLocation.lng - destLocation.lng) < 1e-4
+    ) {
+      setError(t("errors.sameLocation"));
+      return;
     }
+
+    onSearch(originLocation, destLocation, departureAt);
   };
 
-  const busy = loading || geocoding;
+  const busy = loading;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -110,10 +170,11 @@ export function RideSearchForm({
         <div className="space-y-1">
           <label className="block text-sm font-medium text-content-secondary">{t("fromLabel")}</label>
           <input
+            ref={originInputRef}
             type="text"
             placeholder={t("fromPlaceholder")}
             value={originText}
-            onChange={(e) => setOriginText(e.target.value)}
+            onChange={(e) => { setOriginText(e.target.value); setOriginLocation(null); }}
             className={inputClass}
             disabled={busy}
           />
@@ -144,10 +205,11 @@ export function RideSearchForm({
         <div className="space-y-1">
           <label className="block text-sm font-medium text-content-secondary">{t("toLabel")}</label>
           <input
+            ref={destInputRef}
             type="text"
             placeholder={t("toPlaceholder")}
             value={destText}
-            onChange={(e) => setDestText(e.target.value)}
+            onChange={(e) => { setDestText(e.target.value); setDestLocation(null); }}
             className={inputClass}
             disabled={busy}
           />

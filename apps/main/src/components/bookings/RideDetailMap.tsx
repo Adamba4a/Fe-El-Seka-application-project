@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { TILE_URL, TILE_ATTRIBUTION, TILE_MAX_ZOOM } from "../../lib/map-tiles";
+import { loadGoogleMaps } from "@/lib/google-maps-loader";
 
 export interface LatLng {
   lat: number;
@@ -17,6 +17,39 @@ interface RideDetailMapProps {
   destination: LatLng;
 }
 
+interface GeoJsonLineString {
+  type: "LineString";
+  coordinates: [number, number][]; // [lng, lat]
+}
+
+// Fully transparent base line + a repeated line-symbol along it — Google's
+// Polyline has no native dashArray, this is the standard workaround.
+function dashedLineOptions(path: LatLng[]): google.maps.PolylineOptions {
+  return {
+    path,
+    strokeColor: "#9ca3af",
+    strokeOpacity: 0,
+    icons: [
+      {
+        icon: { path: "M 0,-1 0,1", strokeOpacity: 0.8, strokeColor: "#9ca3af", scale: 3 },
+        offset: "0",
+        repeat: "10px",
+      },
+    ],
+  };
+}
+
+function circlePinOptions(color: string): google.maps.Symbol {
+  return {
+    path: google.maps.SymbolPath.CIRCLE,
+    scale: 7,
+    fillColor: color,
+    fillOpacity: 1,
+    strokeColor: "#fff",
+    strokeWeight: 2,
+  };
+}
+
 export function RideDetailMap({
   routeGeometry,
   boardingPoint,
@@ -26,100 +59,104 @@ export function RideDetailMap({
 }: RideDetailMapProps) {
   const t = useTranslations("map");
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<import("leaflet").Map | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const [mapError, setMapError] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     let mounted = true;
 
-    import("leaflet").then((leaflet) => {
-      if (!mounted || !containerRef.current || mapRef.current) return;
-      const L = leaflet.default ?? leaflet;
+    loadGoogleMaps()
+      .then(() => {
+        if (!mounted || !containerRef.current || mapRef.current) return;
 
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+        const center = boardingPoint ?? origin;
+        const map = new google.maps.Map(containerRef.current, {
+          center,
+          zoom: 13,
+          streetViewControl: false,
+          mapTypeControl: false,
+          fullscreenControl: false,
+        });
+        mapRef.current = map;
+
+        if (routeGeometry) {
+          const geometry = routeGeometry as GeoJsonLineString;
+          const path = geometry.coordinates.map(([lng, lat]) => ({ lat, lng }));
+          new google.maps.Polyline({
+            path,
+            strokeColor: "#2563eb",
+            strokeWeight: 4,
+            strokeOpacity: 0.85,
+            map,
+          });
+        }
+
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend(origin);
+        bounds.extend(destination);
+
+        if (boardingPoint) {
+          new google.maps.Polyline({
+            ...dashedLineOptions([origin, boardingPoint]),
+            map,
+          });
+
+          const boardingMarker = new google.maps.Marker({
+            position: boardingPoint,
+            map,
+            icon: circlePinOptions("#16a34a"),
+          });
+          const boardingInfo = new google.maps.InfoWindow({
+            content: t("boarding"),
+            disableAutoPan: true,
+          });
+          boardingMarker.addListener("mouseover", () => boardingInfo.open(map, boardingMarker));
+          boardingMarker.addListener("mouseout", () => boardingInfo.close());
+
+          bounds.extend(boardingPoint);
+        }
+
+        if (alightingPoint) {
+          new google.maps.Polyline({
+            ...dashedLineOptions([alightingPoint, destination]),
+            map,
+          });
+
+          const alightingMarker = new google.maps.Marker({
+            position: alightingPoint,
+            map,
+            icon: circlePinOptions("#dc2626"),
+          });
+          const alightingInfo = new google.maps.InfoWindow({
+            content: t("alighting"),
+            disableAutoPan: true,
+          });
+          alightingMarker.addListener("mouseover", () => alightingInfo.open(map, alightingMarker));
+          alightingMarker.addListener("mouseout", () => alightingInfo.close());
+
+          bounds.extend(alightingPoint);
+        }
+
+        map.fitBounds(bounds, { top: 24, right: 24, bottom: 24, left: 24 });
+      })
+      .catch(() => {
+        if (mounted) setMapError(true);
       });
-
-      // Centre on boarding point or origin as fallback
-      const center = boardingPoint ?? origin;
-      const map = L.map(containerRef.current!).setView([center.lat, center.lng], 13);
-      mapRef.current = map;
-
-      L.tileLayer(TILE_URL, {
-        attribution: TILE_ATTRIBUTION,
-        maxZoom: TILE_MAX_ZOOM,
-      }).addTo(map);
-
-      // Blue driver route polyline
-      if (routeGeometry) {
-        L.geoJSON(routeGeometry as GeoJSON.LineString, {
-          style: { color: "#2563eb", weight: 4, opacity: 0.85 },
-        }).addTo(map);
-      }
-
-      // Walk line: origin → boarding (dashed grey)
-      if (boardingPoint) {
-        L.polyline([[origin.lat, origin.lng], [boardingPoint.lat, boardingPoint.lng]], {
-          color: "#9ca3af",
-          weight: 2,
-          dashArray: "6 4",
-          opacity: 0.8,
-        }).addTo(map);
-
-        // Green boarding pin
-        const greenIcon = L.divIcon({
-          className: "",
-          html: '<div style="width:14px;height:14px;border-radius:50%;background:#16a34a;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)"></div>',
-          iconSize: [14, 14],
-          iconAnchor: [7, 7],
-        });
-        L.marker([boardingPoint.lat, boardingPoint.lng], { icon: greenIcon })
-          .bindTooltip(t("boarding"), { permanent: false })
-          .addTo(map);
-      }
-
-      // Walk line: alighting → destination (dashed grey)
-      if (alightingPoint) {
-        L.polyline([[alightingPoint.lat, alightingPoint.lng], [destination.lat, destination.lng]], {
-          color: "#9ca3af",
-          weight: 2,
-          dashArray: "6 4",
-          opacity: 0.8,
-        }).addTo(map);
-
-        // Red alighting pin
-        const redIcon = L.divIcon({
-          className: "",
-          html: '<div style="width:14px;height:14px;border-radius:50%;background:#dc2626;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)"></div>',
-          iconSize: [14, 14],
-          iconAnchor: [7, 7],
-        });
-        L.marker([alightingPoint.lat, alightingPoint.lng], { icon: redIcon })
-          .bindTooltip(t("alighting"), { permanent: false })
-          .addTo(map);
-      }
-
-      // Fit bounds to show everything
-      const points: [number, number][] = [
-        [origin.lat, origin.lng],
-        [destination.lat, destination.lng],
-      ];
-      if (boardingPoint) points.push([boardingPoint.lat, boardingPoint.lng]);
-      if (alightingPoint) points.push([alightingPoint.lat, alightingPoint.lng]);
-      map.fitBounds(L.latLngBounds(points), { padding: [24, 24] });
-    });
 
     return () => {
       mounted = false;
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
+      mapRef.current = null;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (mapError) {
+    return (
+      <div className="w-full h-56 rounded-xl border border-border-default flex items-center justify-center bg-surface-bg">
+        <p className="text-body-sm text-content-muted">{t("mapUnavailable")}</p>
+      </div>
+    );
+  }
 
   return (
     <div ref={containerRef} className="w-full h-56 rounded-xl border border-border-default z-0" />

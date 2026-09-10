@@ -1076,7 +1076,9 @@
   "map": {
     "gettingAddress": "جارٍ تحديد العنوان…",
     "boarding": "الصعود",
-    "alighting": "النزول"
+    "alighting": "النزول",
+    "mapUnavailable": "الخريطة غير متاحة",
+    "searchPlaceholder": "ابحث عن عنوان"
   },
   "rideStatus": {
     "scheduled": "مجدولة",

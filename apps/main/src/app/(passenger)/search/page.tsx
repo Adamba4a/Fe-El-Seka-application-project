@@ -258,7 +258,7 @@ export default function SearchPage() {
 
   return (
     <>
-      {/* Full-screen Leaflet map — always rendered behind the BottomSheet */}
+      {/* Full-screen map — always rendered behind the BottomSheet */}
       <div className="fixed inset-0 z-20">
         <RideMap onPinDrop={handlePinDrop} fullScreen />
       </div>

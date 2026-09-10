@@ -1076,7 +1076,9 @@
   "map": {
     "gettingAddress": "Getting address…",
     "boarding": "Boarding",
-    "alighting": "Alighting"
+    "alighting": "Alighting",
+    "mapUnavailable": "Map unavailable",
+    "searchPlaceholder": "Search for an address"
   },
   "rideStatus": {
     "scheduled": "Scheduled",

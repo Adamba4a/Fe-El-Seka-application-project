@@ -12,20 +12,19 @@
   "dependencies": {
     "@fe-el-seka/shared": "workspace:*",
     "@fe-el-seka/ui": "workspace:*",
+    "@googlemaps/js-api-loader": "^2.1.1",
     "@hookform/resolvers": "^5.4.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",
-    "leaflet": "^1.9.4",
     "next": "14.2.3",
     "next-intl": "^3.19.1",
     "react": "^18",
     "react-dom": "^18",
     "react-hook-form": "^7.79.0",
-    "react-leaflet": "^4.2.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/leaflet": "^1.9.14",
+    "@types/google.maps": "^3.66.2",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

@@ -2,6 +2,7 @@ const requiredEnvVars = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "NEXT_PUBLIC_API_URL",
+  "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY",
 ] as const;
 
 // Only validate server-side. In the browser, Next.js inlines NEXT_PUBLIC_* via
@@ -23,7 +24,5 @@ export const env = {
   // container directly without going through nginx. Falls back to the public
   // URL in local dev where BACKEND_INTERNAL_URL is not set.
   serverApiUrl: process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL!,
-  // Optional: raster tile provider key (see lib/map-tiles.ts). Missing in
-  // local dev is fine — falls back to OSM's raw tile server there.
-  mapTilerKey: process.env.NEXT_PUBLIC_MAPTILER_KEY,
+  googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
 } as const;

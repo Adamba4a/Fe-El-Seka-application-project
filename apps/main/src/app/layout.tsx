@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
-import "leaflet/dist/leaflet.css";
 import { directionForLocale, isLocale } from "@/lib/i18n/config";
 
 export const metadata: Metadata = {

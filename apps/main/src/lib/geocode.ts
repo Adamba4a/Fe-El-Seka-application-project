@@ -40,13 +40,6 @@ interface ReverseGeocodeResult {
   boundingbox?: [string, string, string, string]; // [south, north, west, east]
 }
 
-interface SearchResult {
-  lat: string;
-  lon: string;
-  display_name: string;
-  boundingbox?: [string, string, string, string];
-}
-
 function toBbox(boundingbox?: [string, string, string, string]): SearchBbox | null {
   if (!boundingbox) return null;
   return {
@@ -84,23 +77,6 @@ export async function reverseGeocodeAreaBbox(lat: number, lng: number): Promise<
     if (!res.ok) return null;
     const result: ReverseGeocodeResult = await res.json();
     return toBbox(result.boundingbox);
-  } catch {
-    return null;
-  }
-}
-
-export async function geocodeAddress(query: string): Promise<SearchLocation | null> {
-  try {
-    const params = new URLSearchParams({ q: query });
-    const res = await fetchWithTimeout(`${env.apiUrl}/api/geocode/search?${params}`, await authHeaders());
-    if (!res.ok) return null;
-    const result: SearchResult = await res.json();
-    return {
-      lat: parseFloat(result.lat),
-      lng: parseFloat(result.lon),
-      address: result.display_name,
-      bbox: toBbox(result.boundingbox),
-    };
   } catch {
     return null;
   }
