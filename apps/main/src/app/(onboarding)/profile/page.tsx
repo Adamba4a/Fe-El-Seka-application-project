@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { updateMe } from "@/lib/api/profiles";
+import { getMe, updateMe, uploadPhoto } from "@/lib/api/profiles";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
+import { ProfilePhotoUpload } from "@/components/profile/ProfilePhotoUpload";
 import type { Role } from "@fe-el-seka/shared";
 
 // All users are in Egypt, so the +2 country code is a fixed prefix shown
@@ -25,6 +26,8 @@ export default function ProfileOnboardingPage() {
   const [displayName, setDisplayName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     async function init() {
@@ -32,32 +35,35 @@ export default function ProfileOnboardingPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.replace("/login"); return; }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role, display_name, phone_number, date_of_birth, verification_status")
-        .eq("id", session.user.id)
-        .maybeSingle();
+      try {
+        const profile = await getMe(session.access_token);
 
-      if (!profile) { router.replace("/role-select"); return; }
+        if (profile.verification_status === "rejected") {
+          router.replace(profile.role === "driver" ? "/driver/verify-documents" : "/verify-id");
+          return;
+        }
 
-      if (profile.verification_status === "rejected") {
-        router.replace(profile.role === "driver" ? "/driver/verify-documents" : "/verify-id");
-        return;
+        setRole(profile.role as Role);
+        const savedName = profile.display_name === "New User" ? "" : (profile.display_name ?? "");
+        setDisplayName(savedName);
+        setPhoneNumber((profile.phone_number ?? "").replace(/^\+2/, ""));
+        setDateOfBirth(profile.date_of_birth ?? "");
+        setExistingPhotoUrl(profile.profile_photo_url ?? null);
+        setInitializing(false);
+      } catch (err: unknown) {
+        const e = err as { error?: string; message?: string };
+        if (e?.error === "not_found") { router.replace("/role-select"); return; }
+        setError(e?.message ?? t("errors.loadFailed"));
+        setInitializing(false);
       }
-
-      setRole(profile.role as Role);
-      const savedName = profile.display_name === "New User" ? "" : (profile.display_name ?? "");
-      setDisplayName(savedName);
-      setPhoneNumber((profile.phone_number ?? "").replace(/^\+2/, ""));
-      setDateOfBirth(profile.date_of_birth ?? "");
-      setInitializing(false);
     }
     init();
-  }, [router]);
+  }, [router, t]);
 
   const nameValid = displayName.trim().length >= 2;
   const phoneValid = LOCAL_PHONE_RE.test(phoneNumber.trim());
   const dobValid = dateOfBirth.trim().length > 0;
+  const photoValid = !!photo || !!existingPhotoUrl;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +79,10 @@ export default function ProfileOnboardingPage() {
       setError(t("errors.dobRequired"));
       return;
     }
+    if (!photoValid) {
+      setError(t("errors.photoRequired"));
+      return;
+    }
 
     setSubmitting(true);
     setError("");
@@ -82,6 +92,7 @@ export default function ProfileOnboardingPage() {
     if (!session) { router.replace("/login"); return; }
 
     try {
+      if (photo) await uploadPhoto(session.access_token, photo);
       await updateMe(session.access_token, {
         display_name: displayName.trim(),
         phone_number: `+2${phoneNumber.trim()}`,
@@ -116,7 +127,18 @@ export default function ProfileOnboardingPage() {
           <p className="text-body-sm text-content-muted mt-1">{t("subtitleDefault")}</p>
         </div>
 
+        <div className="text-center">
+          <a href="/signout" className="text-caption text-content-destructive hover:underline">
+            {t("signOut")}
+          </a>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="flex flex-col items-center gap-1">
+            <ProfilePhotoUpload onFile={setPhoto} currentUrl={existingPhotoUrl} />
+            {photoValid && <span className="text-status-completed text-caption">✓</span>}
+          </div>
+
           <div className="flex flex-col gap-1">
             <label className="text-label text-content-secondary">
               {t("displayNameLabel")} {nameValid && <span className="text-status-completed">✓</span>}

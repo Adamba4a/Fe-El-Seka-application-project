@@ -120,9 +120,12 @@
         "nameTooShort": "Please enter your name (min 2 characters)",
         "phoneInvalid": "Please enter a valid 11-digit phone number, e.g. 01234567890",
         "dobRequired": "Please enter your date of birth",
+        "photoRequired": "Please upload a profile photo",
         "underage": "You must be at least 18 years old to use Triplyy.",
-        "submissionFailed": "Submission failed. Please try again."
-      }
+        "submissionFailed": "Submission failed. Please try again.",
+        "loadFailed": "Couldn't load your profile. Please try again."
+      },
+      "signOut": "Sign out"
     },
     "verifyId": {
       "title": "Verify your identity",
