@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { BottomSheet } from "@/components";
+import { AddressSearchPage } from "@/components/rides/AddressSearchPage";
 import type { Location, Coordinates } from "@fe-el-seka/shared";
 
 const RideMap = dynamic(
@@ -27,6 +28,7 @@ export default function BookRidePage() {
   const [dropoff, setDropoff] = useState<Location | undefined>();
   const [selecting, setSelecting] = useState<Selecting>(null);
   const [sheetOpen, setSheetOpen] = useState(true);
+  const [pickerMode, setPickerMode] = useState<"search" | "map">("search");
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -63,11 +65,13 @@ export default function BookRidePage() {
   const handleRequestPickupMap = () => {
     setSheetOpen(false);
     setSelecting("pickup");
+    setPickerMode("search");
   };
 
   const handleRequestDropoffMap = () => {
     setSheetOpen(false);
     setSelecting("dropoff");
+    setPickerMode("search");
   };
 
   const handleConfirm = () => {
@@ -85,6 +89,7 @@ export default function BookRidePage() {
   const handleBackToForm = () => {
     setSheetOpen(true);
     setSelecting(null);
+    setPickerMode("search");
   };
 
   return (
@@ -93,19 +98,32 @@ export default function BookRidePage() {
         <RideMap onPinDrop={handlePinDrop} fullScreen />
       </div>
 
-      {!sheetOpen && (
+      {!sheetOpen && !(selecting && pickerMode === "search") && (
         <div className="fixed top-4 left-4 right-4 z-40 bg-surface-card border border-border-default rounded-xl px-4 py-3 space-y-1.5 shadow-sm">
-          <p className="text-label text-content-primary">
-            {selecting === "pickup"
-              ? t("tapMapToSetPickup")
-              : selecting === "dropoff"
-                ? t("tapMapToSetDropoff")
-                : t("tapMapToExplore")}
-          </p>
+          {selecting ? (
+            <>
+              <p className="text-label text-content-primary">
+                {selecting === "pickup" ? t("tapMapToSetPickup") : t("tapMapToSetDropoff")}
+              </p>
+              <button type="button" onClick={() => setPickerMode("search")} className="text-body-sm text-brand-primary">
+                {t("searchInstead")}
+              </button>
+            </>
+          ) : (
+            <p className="text-label text-content-primary">{t("tapMapToExplore")}</p>
+          )}
           <button type="button" onClick={handleBackToForm} className="text-body-sm text-brand-primary">
             {t("backToForm")}
           </button>
         </div>
+      )}
+
+      {selecting && pickerMode === "search" && (
+        <AddressSearchPage
+          onSelect={handlePinDrop}
+          onClose={handleBackToForm}
+          onUseMap={() => setPickerMode("map")}
+        />
       )}
 
       <BottomSheet isOpen={sheetOpen} onClose={() => setSheetOpen(false)} maxHeightPercent={60}>

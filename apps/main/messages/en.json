@@ -334,6 +334,7 @@
       "confirm": "Confirm",
       "tapMapToSetPickup": "📍 Tap map to set pickup",
       "tapMapToSetDropoff": "📍 Tap map to set dropoff",
+      "searchInstead": "🔍 Search address instead",
       "tapMapToExplore": "Tap map to explore or open the form",
       "backToForm": "← Back to form"
     },
