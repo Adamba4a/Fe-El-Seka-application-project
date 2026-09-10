@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { RideSearchForm, type SearchLocation } from "@/components/bookings/RideSearchForm";
 import { RideCard, type RideCandidate } from "@/components/bookings/RideCard";
 import { FeaturedRidesSection } from "@/components/bookings/FeaturedRidesSection";
+import { AddressSearchPage } from "@/components/rides/AddressSearchPage";
 import { BottomSheet } from "@/components";
 import { env } from "@/lib/env";
 import { fetchFeaturedRides, type FeaturedRide } from "@/lib/api/search";
@@ -90,6 +91,7 @@ export default function SearchPage() {
   const [destination, setDestination] = useState<Location | undefined>();
   const [destinationBbox, setDestinationBbox] = useState<SearchBbox | null>(null);
   const [selecting, setSelecting] = useState<"origin" | "destination" | null>(null);
+  const [pickerMode, setPickerMode] = useState<"search" | "map">("search");
 
   // Restore the last search's results when returning here (e.g. via the ride
   // detail page's "back to results" button) — otherwise this page's state is
@@ -150,17 +152,20 @@ export default function SearchPage() {
   const handleRequestOriginMap = () => {
     setSheetOpen(false);
     setSelecting("origin");
+    setPickerMode("search");
   };
 
   const handleRequestDestinationMap = () => {
     setSheetOpen(false);
     setSelecting("destination");
     setDestinationBbox(null);
+    setPickerMode("search");
   };
 
   const handleBackToForm = () => {
     setSheetOpen(true);
     setSelecting(null);
+    setPickerMode("search");
   };
 
   const handleSearch = async (
@@ -264,7 +269,7 @@ export default function SearchPage() {
       </div>
 
       {/* Overlay — always visible when sheet is closed so the user can always return */}
-      {!sheetOpen && (
+      {!sheetOpen && pickerMode === "map" && (
         <div className="fixed top-16 left-4 right-4 z-30 bg-surface-card border border-border-default rounded-xl px-4 py-3 space-y-1.5 shadow-sm">
           {selecting ? (
             <>
@@ -274,6 +279,9 @@ export default function SearchPage() {
               {origin && selecting === "destination" && (
                 <p className="text-caption text-content-muted truncate">{t("originPrefix")} {origin.address}</p>
               )}
+              <button type="button" onClick={() => setPickerMode("search")} className="text-body-sm text-brand-primary">
+                {t("searchInstead")}
+              </button>
             </>
           ) : (
             <p className="text-label text-content-primary">{t("tapMapToExplore")}</p>
@@ -282,6 +290,14 @@ export default function SearchPage() {
             {t("backToForm")}
           </button>
         </div>
+      )}
+
+      {selecting && pickerMode === "search" && (
+        <AddressSearchPage
+          onSelect={handlePinDrop}
+          onClose={handleBackToForm}
+          onUseMap={() => setPickerMode("map")}
+        />
       )}
 
       {/* BottomSheet containing the search form / results */}

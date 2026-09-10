@@ -10,6 +10,7 @@ import { createRecurringDefinition } from "@/lib/api/recurring-rides";
 import { getMyVehicle } from "@/lib/api/vehicles";
 import { getMyGroups } from "@/lib/api/groups";
 import { RideForm } from "@/components/rides/RideForm";
+import { AddressSearchPage } from "@/components/rides/AddressSearchPage";
 import { BottomSheet } from "@/components";
 import { VerificationRequiredModal } from "@/components/verification/VerificationRequiredModal";
 import { formatCurrency } from "@fe-el-seka/shared";
@@ -43,6 +44,7 @@ export default function NewRidePage() {
   const [origin, setOrigin] = useState<Location | undefined>();
   const [destination, setDestination] = useState<Location | undefined>();
   const [selecting, setSelecting] = useState<"origin" | "destination" | null>(null);
+  const [pickerMode, setPickerMode] = useState<"search" | "map">("search");
 
   useEffect(() => {
     const checkVehicle = async () => {
@@ -81,16 +83,19 @@ export default function NewRidePage() {
   const handleRequestOriginMap = () => {
     setSheetOpen(false);
     setSelecting("origin");
+    setPickerMode("search");
   };
 
   const handleRequestDestinationMap = () => {
     setSheetOpen(false);
     setSelecting("destination");
+    setPickerMode("search");
   };
 
   const handleBackToForm = () => {
     setSheetOpen(true);
     setSelecting(null);
+    setPickerMode("search");
   };
 
   const handleSubmit = async (payload: CreateRidePayload) => {
@@ -182,7 +187,7 @@ export default function NewRidePage() {
       </div>
 
       {/* Overlay — always visible when sheet is closed so the user can always return */}
-      {!sheetOpen && (
+      {!sheetOpen && pickerMode === "map" && (
         <div className="fixed top-16 left-4 right-4 z-30 bg-surface-card border border-border-default rounded-xl px-4 py-3 space-y-1.5 shadow-sm">
           {selecting ? (
             <>
@@ -192,6 +197,9 @@ export default function NewRidePage() {
               {origin && selecting === "destination" && (
                 <p className="text-caption text-content-muted truncate">{t("originPrefix")} {origin.address}</p>
               )}
+              <button type="button" onClick={() => setPickerMode("search")} className="text-body-sm text-brand-primary">
+                {t("searchInstead")}
+              </button>
             </>
           ) : (
             <p className="text-label text-content-primary">{t("tapMapToExplore")}</p>
@@ -200,6 +208,14 @@ export default function NewRidePage() {
             {t("backToForm")}
           </button>
         </div>
+      )}
+
+      {selecting && pickerMode === "search" && (
+        <AddressSearchPage
+          onSelect={handlePinDrop}
+          onClose={handleBackToForm}
+          onUseMap={() => setPickerMode("map")}
+        />
       )}
 
       {/* BottomSheet containing the ride creation form */}
