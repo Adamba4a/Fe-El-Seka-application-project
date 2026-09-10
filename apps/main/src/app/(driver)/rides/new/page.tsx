@@ -183,7 +183,7 @@ export default function NewRidePage() {
 
       {/* Overlay — always visible when sheet is closed so the user can always return */}
       {!sheetOpen && (
-        <div className="fixed top-4 left-4 right-4 z-30 bg-surface-card border border-border-default rounded-xl px-4 py-3 space-y-1.5 shadow-sm">
+        <div className="fixed top-16 left-4 right-4 z-30 bg-surface-card border border-border-default rounded-xl px-4 py-3 space-y-1.5 shadow-sm">
           {selecting ? (
             <>
               <p className="text-label text-content-primary">

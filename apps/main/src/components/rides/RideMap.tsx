@@ -112,7 +112,12 @@ export function RideMap({ label, initialCoordinates, onPinDrop, fullScreen = fal
               autocomplete.getPlace().formatted_address ??
               `${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}`;
             setAddress(addr);
-            onPinDropRef.current(position, addr);
+
+            // Delay the actual commit (shared with handleMapClick's debounce)
+            // so a map tap right after picking a search result still has a
+            // window to override the pin before the parent advances fields.
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+            debounceRef.current = setTimeout(() => onPinDropRef.current(position, addr), 300);
           });
         }
       })

@@ -89,7 +89,7 @@ export default function BookRidePage() {
       </div>
 
       {!sheetOpen && selecting && (
-        <div className="fixed top-4 left-4 right-4 z-30 bg-surface-card border border-border-default rounded-xl px-4 py-3 shadow-sm">
+        <div className="fixed top-16 left-4 right-4 z-30 bg-surface-card border border-border-default rounded-xl px-4 py-3 shadow-sm">
           <p className="text-label text-content-primary">
             {selecting === "pickup" ? t("tapMapToSetPickup") : t("tapMapToSetDropoff")}
           </p>
