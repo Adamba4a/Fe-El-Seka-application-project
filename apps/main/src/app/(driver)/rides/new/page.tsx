@@ -189,7 +189,7 @@ export default function NewRidePage() {
       {/* Overlay — always visible when sheet is closed and the search page isn't covering
           the screen, so the user can never get stranded on a bare map with no way back */}
       {!sheetOpen && !(selecting && pickerMode === "search") && (
-        <div className="fixed top-16 left-4 right-4 z-30 bg-surface-card border border-border-default rounded-xl px-4 py-3 space-y-1.5 shadow-sm">
+        <div className="fixed top-4 left-4 right-4 z-40 bg-surface-card border border-border-default rounded-xl px-4 py-3 space-y-1.5 shadow-sm">
           {selecting ? (
             <>
               <p className="text-label text-content-primary">
