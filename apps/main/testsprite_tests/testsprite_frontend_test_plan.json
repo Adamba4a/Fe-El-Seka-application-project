@@ -1,0 +1,1908 @@
+[
+  {
+    "id": "TC001",
+    "title": "Verify an organization email to unlock the app",
+    "description": "This verifies that a signed-in user can request and confirm organization email verification and then proceed into the app.",
+    "category": "Org Email Verification",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /verify-org-email"
+      },
+      {
+        "type": "action",
+        "description": "Enter an organization email address"
+      },
+      {
+        "type": "action",
+        "description": "Request a verification code"
+      },
+      {
+        "type": "action",
+        "description": "Enter the received OTP code"
+      },
+      {
+        "type": "action",
+        "description": "Confirm verification"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user can continue into the app"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Sign in with email and password",
+    "description": "This verifies that a registered user can sign in with email and password and reach the authenticated dashboard.",
+    "category": "Login and Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user lands on the dashboard"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Verify OTP sign-in code",
+    "description": "This verifies that a user can complete OTP-based sign-in by entering a valid code and reaching the authenticated app.",
+    "category": "OTP Verification",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /otp"
+      },
+      {
+        "type": "action",
+        "description": "Enter the 6-digit code"
+      },
+      {
+        "type": "action",
+        "description": "Submit verification"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the authenticated next page is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Set a new password during onboarding",
+    "description": "This verifies that a newly signed-up user can create and save a local password and continue the onboarding flow.",
+    "category": "Set Password",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /set-password"
+      },
+      {
+        "type": "action",
+        "description": "Fill a new password into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Fill the same password into the confirm password field"
+      },
+      {
+        "type": "action",
+        "description": "Save the password"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user continues to the next onboarding step"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "View the dashboard for the assigned role",
+    "description": "This test verifies that a signed-in and verified user lands on the correct dashboard content for their role.",
+    "category": "Role-Aware Dashboard",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the role-specific dashboard content is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify shortcuts to the main app sections are available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Sign out from account settings",
+    "description": "Verifies that a signed-in user can sign out from account settings and return to the login screen.",
+    "category": "Account Settings",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /settings/profile"
+      },
+      {
+        "type": "action",
+        "description": "Sign out of the account"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the login screen is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is no longer signed in"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "Choose a driver role during signup",
+    "description": "This verifies that a newly authenticated user can select the driver role and continue to the next onboarding step.",
+    "category": "Signup Role Selection",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /role-select"
+      },
+      {
+        "type": "action",
+        "description": "Select the Driver role"
+      },
+      {
+        "type": "action",
+        "description": "Continue to the next onboarding step"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the next onboarding page is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "Return to the login screen when signing out",
+    "description": "This verifies that an authenticated user can sign out and is returned to the login page.",
+    "category": "Sign Out",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /signout"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the login screen is shown"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC009",
+    "title": "Choose a passenger role during signup",
+    "description": "This verifies that a newly authenticated user can select the passenger role and continue to the next onboarding step.",
+    "category": "Signup Role Selection",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /role-select"
+      },
+      {
+        "type": "action",
+        "description": "Select the Passenger role"
+      },
+      {
+        "type": "action",
+        "description": "Continue to the next onboarding step"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the next onboarding page is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC010",
+    "title": "Complete profile onboarding",
+    "description": "This test verifies that a newly signed-in user can save their profile details and continue to the next onboarding step.",
+    "category": "Profile Onboarding",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /profile"
+      },
+      {
+        "type": "action",
+        "description": "Fill display name with a valid name"
+      },
+      {
+        "type": "action",
+        "description": "Fill phone number with a valid 11-digit local number"
+      },
+      {
+        "type": "action",
+        "description": "Fill date of birth with a valid date"
+      },
+      {
+        "type": "action",
+        "description": "Save the profile"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify profile onboarding continues to the next step"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC011",
+    "title": "Request an OTP sign-in code",
+    "description": "This verifies that a user can request an OTP code from the sign-in page and is taken to the OTP verification page.",
+    "category": "Login and Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Request an OTP code instead of a password"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the OTP request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the OTP verification page is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC012",
+    "title": "Prevent access to the sign-out route after the session ends",
+    "description": "This verifies that once the user signs out, authenticated app content is no longer accessible.",
+    "category": "Sign Out",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /signout"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the login screen is shown"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC013",
+    "title": "Register a driver vehicle",
+    "description": "This test verifies that a driver can register the vehicle needed for posting rides and continue onboarding successfully.",
+    "category": "Driver Vehicle Registration",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /driver/register-vehicle"
+      },
+      {
+        "type": "action",
+        "description": "Fill make with a valid vehicle make"
+      },
+      {
+        "type": "action",
+        "description": "Fill model with a valid vehicle model"
+      },
+      {
+        "type": "action",
+        "description": "Fill plate number with a valid plate number"
+      },
+      {
+        "type": "action",
+        "description": "Fill color with a valid vehicle color"
+      },
+      {
+        "type": "action",
+        "description": "Fill seat count with a valid seat count"
+      },
+      {
+        "type": "action",
+        "description": "Register the vehicle"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the onboarding flow continues after vehicle registration"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC014",
+    "title": "Reject invalid sign-in credentials",
+    "description": "This verifies that invalid password entry is blocked and an authentication error is shown on the sign-in page.",
+    "category": "Login and Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with fake-password"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign-in form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an authentication error message is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC015",
+    "title": "Book a ride with selected seats",
+    "description": "This test verifies that a passenger can review a ride, choose seats, see the computed fare, and confirm a booking.",
+    "category": "Ride Detail and Booking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to a ride detail page"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid number of seats"
+      },
+      {
+        "type": "action",
+        "description": "Continue to booking confirmation"
+      },
+      {
+        "type": "action",
+        "description": "Confirm the booking"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a booking confirmation is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the booking appears in the user's bookings"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC016",
+    "title": "Create a new ride",
+    "description": "A driver can create a ride with route pins, departure time, seats, and fare and then see it saved.",
+    "category": "Driver Ride Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the driver ride list"
+      },
+      {
+        "type": "action",
+        "description": "Click the action to start creating a new ride"
+      },
+      {
+        "type": "action",
+        "description": "Pin the origin on the map"
+      },
+      {
+        "type": "action",
+        "description": "Pin the destination on the map"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid departure time"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid number of available seats"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the fare field with a valid amount"
+      },
+      {
+        "type": "action",
+        "description": "Submit the ride form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new ride is displayed in the ride list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC017",
+    "title": "Handle an invalid OTP code",
+    "description": "This verifies that an invalid or expired OTP code is rejected and an error message is shown.",
+    "category": "OTP Verification",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /otp"
+      },
+      {
+        "type": "action",
+        "description": "Enter an invalid 6-digit code"
+      },
+      {
+        "type": "action",
+        "description": "Submit verification"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an OTP error message is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC018",
+    "title": "Start and complete a ride",
+    "description": "A driver can start an active ride and then complete it from the ride management page.",
+    "category": "Driver Ride Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the driver ride list"
+      },
+      {
+        "type": "action",
+        "description": "Open a ride management view"
+      },
+      {
+        "type": "action",
+        "description": "Start the ride"
+      },
+      {
+        "type": "action",
+        "description": "Complete the ride"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the ride is marked as completed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC019",
+    "title": "Review and respond to passenger bookings",
+    "description": "A driver can review pending bookings for a ride and confirm or reject a passenger booking.",
+    "category": "Driver Ride Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the driver ride list"
+      },
+      {
+        "type": "action",
+        "description": "Open the bookings view for a ride"
+      },
+      {
+        "type": "action",
+        "description": "Confirm a passenger booking"
+      },
+      {
+        "type": "action",
+        "description": "Reject a passenger booking"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify booking review actions are reflected in the pending bookings list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC020",
+    "title": "Request a new OTP code",
+    "description": "This verifies that a user can request another OTP code from the verification page and stay in the OTP flow.",
+    "category": "OTP Verification",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /otp"
+      },
+      {
+        "type": "action",
+        "description": "Request a new code"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a resend confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC021",
+    "title": "View featured rides and open a ride detail",
+    "description": "This test verifies that a passenger can browse featured rides from search and open a ride to inspect its details.",
+    "category": "Passenger Ride Search",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /search"
+      },
+      {
+        "type": "action",
+        "description": "Click a featured ride card"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify ride details are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the ride information is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC022",
+    "title": "View loyalty balance and history",
+    "description": "A passenger can open the loyalty page and see their points balance and transaction history.",
+    "category": "Passenger Loyalty",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Click the loyalty navigation link"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the points balance is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify transaction history is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC023",
+    "title": "View driver ride list",
+    "description": "A driver can open the ride management area and see their posted rides listed.",
+    "category": "Driver Ride Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the driver ride list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify posted rides are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC024",
+    "title": "Redeem wallet cash-back",
+    "description": "This verifies a driver can enter a redeem amount and complete a cash-back redemption from the wallet.",
+    "category": "Wallet Cash-Back Redemption",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /wallet/cash-back/redeem"
+      },
+      {
+        "type": "action",
+        "description": "Fill a redeem amount into the amount field"
+      },
+      {
+        "type": "action",
+        "description": "Confirm the redemption"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a redemption confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC025",
+    "title": "Search for matching rides by route",
+    "description": "This test verifies that a passenger can enter origin and destination, submit a ride search, and see matching ride candidates.",
+    "category": "Passenger Ride Search",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /search"
+      },
+      {
+        "type": "action",
+        "description": "Fill origin and destination fields with valid route values"
+      },
+      {
+        "type": "action",
+        "description": "Submit the search"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify matching ride candidates are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC026",
+    "title": "Complete sponsored group domain verification during join",
+    "description": "Verifies that a user joining a sponsored group can complete the domain verification prompt and finish membership successfully.",
+    "category": "Groups",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /groups/join/[inviteToken]"
+      },
+      {
+        "type": "action",
+        "description": "Enter the required domain verification code"
+      },
+      {
+        "type": "action",
+        "description": "Complete the group join flow"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the sponsored group membership is completed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is accepted into the group"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC027",
+    "title": "Cancel a ride",
+    "description": "A driver can cancel a ride from the ride management page and see it move to a canceled state.",
+    "category": "Driver Ride Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the driver ride list"
+      },
+      {
+        "type": "action",
+        "description": "Open a ride management view"
+      },
+      {
+        "type": "action",
+        "description": "Cancel the ride"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the ride is marked as canceled"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC028",
+    "title": "Submit wallet top-up request",
+    "description": "This verifies a driver can review top-up limits, enter an amount, attach proof, and submit a top-up request.",
+    "category": "Wallet Top-Up",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /wallet/topup"
+      },
+      {
+        "type": "action",
+        "description": "Review the top-up limits and settings"
+      },
+      {
+        "type": "action",
+        "description": "Fill a valid top-up amount into the amount field"
+      },
+      {
+        "type": "action",
+        "description": "Upload a payment proof file"
+      },
+      {
+        "type": "action",
+        "description": "Submit the top-up request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a top-up submission confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC029",
+    "title": "Review live tracking for an active ride",
+    "description": "This test verifies that a passenger can open the tracking view for an active ride and see the live trip map.",
+    "category": "Ride Detail and Booking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to an active ride tracking page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the live tracking map is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify active ride information is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC030",
+    "title": "Join a group using an invite link",
+    "description": "Verifies that a user can join a group through an invite link and complete membership from the join flow.",
+    "category": "Groups",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /groups/join/[inviteToken]"
+      },
+      {
+        "type": "action",
+        "description": "Join the group from the invite link"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the group membership is completed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is shown as a member of the group"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC031",
+    "title": "Redeem a loyalty reward",
+    "description": "A passenger can select a redeemable reward and complete the redemption flow successfully.",
+    "category": "Passenger Loyalty",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Click the loyalty navigation link"
+      },
+      {
+        "type": "action",
+        "description": "Choose a redeemable reward from the catalog"
+      },
+      {
+        "type": "action",
+        "description": "Redeem the selected reward"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a redemption confirmation is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the points balance is updated"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC032",
+    "title": "Edit an existing ride",
+    "description": "A driver can update a posted ride within the allowed edit window and see the changes saved.",
+    "category": "Driver Ride Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the driver ride list"
+      },
+      {
+        "type": "action",
+        "description": "Open a posted ride for editing"
+      },
+      {
+        "type": "action",
+        "description": "Change one ride detail"
+      },
+      {
+        "type": "action",
+        "description": "Save the ride changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated ride details are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC033",
+    "title": "Submit wallet withdrawal request",
+    "description": "This verifies a driver can enter withdrawal details and submit a wallet withdrawal request.",
+    "category": "Wallet Withdrawal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /wallet/withdraw"
+      },
+      {
+        "type": "action",
+        "description": "Fill a valid withdrawal amount into the amount field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the payout details field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the withdrawal request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a withdrawal submission confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC034",
+    "title": "View passenger bookings by status",
+    "description": "This test verifies that a passenger can open their bookings page and review bookings grouped by status.",
+    "category": "Passenger Bookings",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /bookings"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify bookings are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify booking status information is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC035",
+    "title": "Report a counterpart from a completed booking",
+    "description": "A user can submit a report for a completed booking and see the report confirmation.",
+    "category": "Ratings and Reports",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Open a completed booking rating page"
+      },
+      {
+        "type": "action",
+        "description": "Submit a report against the counterpart"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a report confirmation is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC036",
+    "title": "Create a new group and view its details",
+    "description": "Verifies that a user can create a new open-membership group and land on the newly created group detail page.",
+    "category": "Groups",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /groups/create"
+      },
+      {
+        "type": "action",
+        "description": "Enter valid group details"
+      },
+      {
+        "type": "action",
+        "description": "Create the group"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new group detail page is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the group appears as the created group"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC037",
+    "title": "Submit a rating after a completed booking",
+    "description": "A user can rate a completed booking and submit an optional comment successfully.",
+    "category": "Ratings and Reports",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Open a completed booking rating page"
+      },
+      {
+        "type": "action",
+        "description": "Select a star rating"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the comment field with Great ride and smooth communication"
+      },
+      {
+        "type": "action",
+        "description": "Submit the rating"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a rating confirmation is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC038",
+    "title": "Create a recurring ride pattern",
+    "description": "A driver can create a recurring ride pattern by selecting weekdays and a departure time and then saving it.",
+    "category": "Recurring Rides",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open recurring rides"
+      },
+      {
+        "type": "action",
+        "description": "Select days of the week for the pattern"
+      },
+      {
+        "type": "action",
+        "description": "Select a valid departure time"
+      },
+      {
+        "type": "action",
+        "description": "Submit the recurring ride pattern"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the recurring ride pattern is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC039",
+    "title": "Cancel an existing booking",
+    "description": "This test verifies that a passenger can open a booking detail and cancel the booking from the detail view.",
+    "category": "Passenger Bookings",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the bookings page"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing booking detail"
+      },
+      {
+        "type": "action",
+        "description": "Cancel the booking"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the booking status updates to cancelled"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the booking is no longer active"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC040",
+    "title": "Add seats to an existing booking",
+    "description": "This test verifies that a passenger can open a booking detail and add additional seats to it.",
+    "category": "Passenger Bookings",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the bookings page"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing booking detail"
+      },
+      {
+        "type": "action",
+        "description": "Add seats to the booking"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the booking shows the updated seat count"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a booking update confirmation is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC041",
+    "title": "Browse groups and open a group detail page",
+    "description": "Verifies that a user can browse public groups from the groups page and open a group to view its details, members, and rides.",
+    "category": "Groups",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /groups"
+      },
+      {
+        "type": "action",
+        "description": "Open a public group from the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the group detail page is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify group members and rides are shown"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC042",
+    "title": "Edit profile information",
+    "description": "This test verifies that a signed-in user can update their profile details and see the changes reflected in the profile settings page.",
+    "category": "Profile Onboarding",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /settings/profile"
+      },
+      {
+        "type": "action",
+        "description": "Update the display name with a valid new name"
+      },
+      {
+        "type": "action",
+        "description": "Update the phone number with a valid 11-digit local number"
+      },
+      {
+        "type": "action",
+        "description": "Save the profile changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated profile details are displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC043",
+    "title": "Browse redeemable loyalty rewards",
+    "description": "A passenger can open the loyalty page and browse the redemption catalog of available rewards.",
+    "category": "Passenger Loyalty",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Click the loyalty navigation link"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the redemption catalog is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC044",
+    "title": "View and end a recurring ride series",
+    "description": "A driver can open a recurring ride series, review its generated instances, and end the series.",
+    "category": "Recurring Rides",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open recurring rides"
+      },
+      {
+        "type": "action",
+        "description": "Open an existing recurring ride series"
+      },
+      {
+        "type": "action",
+        "description": "End the recurring series"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the recurring series is shown as inactive"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC045",
+    "title": "Review wallet top-up history",
+    "description": "This verifies a driver can open top-up history and see previously submitted top-up requests and their status.",
+    "category": "Wallet Top-Up",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /wallet/topup/history"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify top-up request history is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify request status information is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC046",
+    "title": "Show an error for an invalid organization email code",
+    "description": "This verifies that an incorrect organization verification code is rejected and the user remains unverified.",
+    "category": "Org Email Verification",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /verify-org-email"
+      },
+      {
+        "type": "action",
+        "description": "Enter an organization email address"
+      },
+      {
+        "type": "action",
+        "description": "Request a verification code"
+      },
+      {
+        "type": "action",
+        "description": "Enter an invalid OTP code"
+      },
+      {
+        "type": "action",
+        "description": "Confirm verification"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a verification code error is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC047",
+    "title": "Generate an invite link for a group",
+    "description": "Verifies that a group owner can generate an invite link from the group detail page and see the link available for sharing.",
+    "category": "Groups",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /groups"
+      },
+      {
+        "type": "action",
+        "description": "Open a group that the user owns"
+      },
+      {
+        "type": "action",
+        "description": "Generate an invite link"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an invite link is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the group remains open for sharing"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC048",
+    "title": "Review wallet withdrawal history",
+    "description": "This verifies a driver can open withdrawal history and see previously submitted withdrawal requests and their status.",
+    "category": "Wallet Withdrawal",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /wallet/withdraw/history"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify withdrawal history is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify withdrawal status information is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC049",
+    "title": "Keep password confirmation from mismatching",
+    "description": "This verifies that mismatched password entries are blocked and the user stays on the password setup screen.",
+    "category": "Set Password",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /set-password"
+      },
+      {
+        "type": "action",
+        "description": "Fill a new password into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Fill a different password into the confirm password field"
+      },
+      {
+        "type": "action",
+        "description": "Save the password"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a password confirmation validation error is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC050",
+    "title": "Edit profile details successfully",
+    "description": "Verifies that a user can update their display name and phone number in account settings and see the saved profile information reflected afterward.",
+    "category": "Account Settings",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /settings/profile"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the display name field with a new valid name"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the phone number field with a new valid phone number"
+      },
+      {
+        "type": "action",
+        "description": "Save the profile changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated profile information is shown"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the changes are persisted in the settings view"
+      }
+    ],
+    "priority": "Medium"
+  }
+]
