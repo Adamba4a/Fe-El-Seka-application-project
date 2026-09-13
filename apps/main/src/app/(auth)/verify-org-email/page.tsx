@@ -28,6 +28,12 @@ export default function VerifyOrgEmailPage() {
         <p className="text-body-sm text-content-muted">{t("subheading")}</p>
       </div>
 
+      <div className="text-center">
+        <a href="/signout" className="text-caption text-content-destructive hover:underline">
+          {t("signOut")}
+        </a>
+      </div>
+
       {token && (
         <OrgAccessVerifyForm token={token} onSuccess={() => router.push("/")} />
       )}

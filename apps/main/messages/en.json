@@ -943,6 +943,7 @@
       "sending": "Sending…",
       "otpTitle": "Check your email",
       "otpSubtitle": "We sent a 6-digit code to <strong>{email}</strong>",
+      "signOut": "Sign out",
       "errors": {
         "invalidEmail": "Enter a valid email address",
         "blocklistedDomain": "Please use your work or school email, not a personal email address.",
