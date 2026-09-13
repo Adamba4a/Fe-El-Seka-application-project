@@ -63,6 +63,7 @@ from app.services.pricing_service import init_pricing_config, pricing_config_ref
 from app.services.ranking_config_service import init_ranking_config, ranking_config_refresh_loop
 from app.services.recurring_ride_service import recurring_ride_generation_loop
 from app.services.retraining_scheduler_service import retraining_scheduler_loop
+from app.services.ride_service import ride_timeout_sweep_loop
 
 logging.basicConfig(
     level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO),
@@ -97,9 +98,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     retraining_scheduler_task = asyncio.create_task(retraining_scheduler_loop())
     model_monitoring_task = asyncio.create_task(model_monitoring_loop())
     recurring_generation_task = asyncio.create_task(recurring_ride_generation_loop())
+    ride_timeout_sweep_task = asyncio.create_task(ride_timeout_sweep_loop())
     location_history_retention_task = asyncio.create_task(location_history_retention_loop())
     yield
     location_history_retention_task.cancel()
+    ride_timeout_sweep_task.cancel()
     recurring_generation_task.cancel()
     model_monitoring_task.cancel()
     retraining_scheduler_task.cancel()

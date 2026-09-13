@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import uuid
@@ -838,7 +839,11 @@ async def cancel_ride(
 # Start ride
 # ─────────────────────────────────────────────────────────────────────────────
 
-async def start_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideResponse:
+async def start_ride(
+    ride_id: uuid.UUID,
+    driver_id: uuid.UUID,
+    system_started_at: Optional[datetime] = None,
+) -> RideResponse:
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -847,45 +852,62 @@ async def start_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideResponse:
             if ride["status"] != "scheduled":
                 raise RideServiceError("ride_not_editable", "Only scheduled rides can be started.", 409)
 
-            dep = ride["departure_datetime"]
-            if dep.tzinfo is None:
-                dep = dep.replace(tzinfo=timezone.utc)
-            if _now() < dep:
-                raise RideServiceError(
-                    "start_too_early",
-                    "You can only start this ride at or after its scheduled departure time.",
-                    409,
-                )
+            if system_started_at is None:
+                dep = ride["departure_datetime"]
+                if dep.tzinfo is None:
+                    dep = dep.replace(tzinfo=timezone.utc)
+                if _now() < dep:
+                    raise RideServiceError(
+                        "start_too_early",
+                        "You can only start this ride at or after its scheduled departure time.",
+                        409,
+                    )
 
-            row = await conn.fetchrow(
-                f"""
-                UPDATE rides SET status = 'in_progress', started_at = now(), updated_at = now()
-                WHERE id = $1 RETURNING {_RIDE_COLS}
-                """,
-                ride_id,
-            )
+            if system_started_at is not None:
+                row = await conn.fetchrow(
+                    f"""
+                    UPDATE rides SET status = 'in_progress', started_at = $2, updated_at = now()
+                    WHERE id = $1 AND status = 'scheduled' RETURNING {_RIDE_COLS}
+                    """,
+                    ride_id, system_started_at,
+                )
+            else:
+                row = await conn.fetchrow(
+                    f"""
+                    UPDATE rides SET status = 'in_progress', started_at = now(), updated_at = now()
+                    WHERE id = $1 AND status = 'scheduled' RETURNING {_RIDE_COLS}
+                    """,
+                    ride_id,
+                )
+            if row is None:
+                raise RideServiceError("ride_not_editable", "Only scheduled rides can be started.", 409)
+
             await conn.execute(
                 "INSERT INTO ride_history_logs (ride_id, actor_id, action) VALUES ($1, $2, 'started')",
                 ride_id, driver_id,
             )
 
-            confirmed_bookings = await conn.fetch(
-                "SELECT id, passenger_id FROM bookings WHERE ride_id = $1 AND status = 'confirmed'",
-                ride_id,
-            )
-            for b in confirmed_bookings:
-                await conn.execute(
-                    """
-                    INSERT INTO notification_events (recipient_user_id, event_type, payload)
-                    VALUES ($1, 'ride_started', $2)
-                    """,
-                    b["passenger_id"],
-                    {
-                        "ride_id": str(ride_id),
-                        "booking_id": str(b["id"]),
-                        "deep_link": f"/(passenger)/rides/{ride_id}/tracking",
-                    },
+            # A system-backfilled start (the sweep finalizing a never-started ride) is
+            # immediately followed by complete_ride() — sending "ride started" here would
+            # misleadingly tell passengers a trip was underway when it never happened.
+            if system_started_at is None:
+                confirmed_bookings = await conn.fetch(
+                    "SELECT id, passenger_id FROM bookings WHERE ride_id = $1 AND status = 'confirmed'",
+                    ride_id,
                 )
+                for b in confirmed_bookings:
+                    await conn.execute(
+                        """
+                        INSERT INTO notification_events (recipient_user_id, event_type, payload)
+                        VALUES ($1, 'ride_started', $2)
+                        """,
+                        b["passenger_id"],
+                        {
+                            "ride_id": str(ride_id),
+                            "booking_id": str(b["id"]),
+                            "deep_link": f"/(passenger)/rides/{ride_id}/tracking",
+                        },
+                    )
 
             # Requests the driver never acted on can't be confirmed once the ride
             # is underway — expire them now instead of leaving them stuck "pending".
@@ -904,7 +926,11 @@ async def start_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideResponse:
 # Complete ride
 # ─────────────────────────────────────────────────────────────────────────────
 
-async def complete_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideResponse:
+async def complete_ride(
+    ride_id: uuid.UUID,
+    driver_id: uuid.UUID,
+    completion_source: str = "driver",
+) -> RideResponse:
     pool = get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -915,11 +941,14 @@ async def complete_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideRespons
 
             row = await conn.fetchrow(
                 f"""
-                UPDATE rides SET status = 'completed', completed_at = now(), updated_at = now()
-                WHERE id = $1 RETURNING {_RIDE_COLS}
+                UPDATE rides SET status = 'completed', completed_at = now(), updated_at = now(),
+                    completion_source = $2
+                WHERE id = $1 AND status = 'in_progress' RETURNING {_RIDE_COLS}
                 """,
-                ride_id,
+                ride_id, completion_source,
             )
+            if row is None:
+                raise RideServiceError("ride_not_editable", "Only in-progress rides can be completed.", 409)
             await conn.execute(
                 "INSERT INTO ride_history_logs (ride_id, actor_id, action) VALUES ($1, $2, 'completed')",
                 ride_id, driver_id,
@@ -960,3 +989,63 @@ async def complete_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideRespons
                 )
 
     return _to_response(dict(row))
+
+
+async def sweep_stale_rides() -> int:
+    """Auto-finalize rides a driver never started or never completed (spec 031).
+
+    Never-started rides are backfilled through start_ride() (started_at =
+    departure_datetime) before complete_ride() so both paths converge on the
+    same consequence pipeline. Each ride is processed in its own try/except
+    so one failure (e.g. a concurrent driver action already changed its
+    status) doesn't block the rest of the sweep tick (NFR-003).
+    """
+    pool = get_pool()
+    completed = 0
+
+    async with pool.acquire() as conn:
+        never_started = await conn.fetch(
+            """
+            SELECT id, driver_id, departure_datetime FROM rides
+            WHERE status = 'scheduled' AND departure_datetime < now() - interval '2 hours'
+            """
+        )
+    for row in never_started:
+        try:
+            await start_ride(row["id"], row["driver_id"], system_started_at=row["departure_datetime"])
+            await complete_ride(row["id"], row["driver_id"], completion_source="system")
+            completed += 1
+        except Exception:
+            logger.exception("sweep_stale_rides: never-started ride_id=%s failed", row["id"])
+
+    async with pool.acquire() as conn:
+        overdue_in_progress = await conn.fetch(
+            """
+            SELECT id, driver_id FROM rides
+            WHERE status = 'in_progress'
+              AND started_at < now() - GREATEST(
+                  interval '2 hours',
+                  (COALESCE(route_duration_minutes, 0) * 2) * interval '1 minute'
+              )
+            """
+        )
+    for row in overdue_in_progress:
+        try:
+            await complete_ride(row["id"], row["driver_id"], completion_source="system")
+            completed += 1
+        except Exception:
+            logger.exception("sweep_stale_rides: in-progress ride_id=%s failed", row["id"])
+
+    return completed
+
+
+async def ride_timeout_sweep_loop() -> None:
+    """Background task: auto-finalize stale rides every 10 minutes."""
+    while True:
+        try:
+            completed = await sweep_stale_rides()
+            if completed:
+                logger.info("ride_timeout_sweep_loop completed=%d", completed)
+        except Exception as exc:
+            logger.error("Ride timeout sweep loop error: %s", exc)
+        await asyncio.sleep(600)
