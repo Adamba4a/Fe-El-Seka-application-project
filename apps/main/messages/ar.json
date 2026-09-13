@@ -673,7 +673,9 @@
       "viewProfile": "عرض الملف الشخصي",
       "seats": "مقاعد",
       "pickupDropoffMapTitle": "نقطة الصعود والنزول لـ {name}",
-      "recurringSeriesLink": "عرض كل أيام هذه السلسلة"
+      "recurringSeriesLink": "عرض كل أيام هذه السلسلة",
+      "viewAllOnMap": "عرض الجميع على الخريطة",
+      "allPassengersMapTitle": "نقاط الصعود والنزول لجميع الركاب"
     }
   },
   "settings": {

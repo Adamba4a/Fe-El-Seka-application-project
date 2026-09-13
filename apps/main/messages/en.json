@@ -673,7 +673,9 @@
       "viewProfile": "View Profile",
       "seats": "seats",
       "pickupDropoffMapTitle": "{name}'s pickup & dropoff",
-      "recurringSeriesLink": "View all days in this series"
+      "recurringSeriesLink": "View all days in this series",
+      "viewAllOnMap": "View all on map",
+      "allPassengersMapTitle": "All passengers' pickup & dropoff points"
     }
   },
   "settings": {

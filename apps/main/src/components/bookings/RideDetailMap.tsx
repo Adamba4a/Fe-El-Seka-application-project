@@ -9,13 +9,29 @@ export interface LatLng {
   lng: number;
 }
 
+export interface PassengerPoint {
+  id: string;
+  label: string; // passenger display name, shown in the marker info window
+  boardingPoint: LatLng;
+  alightingPoint: LatLng;
+}
+
 interface RideDetailMapProps {
   routeGeometry: object | null;   // GeoJSON LineString from the API
   boardingPoint: LatLng | null;
   alightingPoint: LatLng | null;
   origin: LatLng;
   destination: LatLng;
+  // When provided (non-empty), all passengers are plotted together instead of
+  // the single boardingPoint/alightingPoint pair above — used by driver views
+  // that need to see every booked passenger's pickup/dropoff on one map.
+  passengers?: PassengerPoint[];
 }
+
+const PASSENGER_COLORS = [
+  "#2563eb", "#dc2626", "#16a34a", "#d97706", "#9333ea",
+  "#0891b2", "#db2777", "#65a30d", "#ea580c", "#4f46e5",
+];
 
 interface GeoJsonLineString {
   type: "LineString";
@@ -50,12 +66,17 @@ function circlePinOptions(color: string): google.maps.Symbol {
   };
 }
 
+function pinLabel(text: string): google.maps.MarkerLabel {
+  return { text, color: "#fff", fontSize: "9px", fontWeight: "700" };
+}
+
 export function RideDetailMap({
   routeGeometry,
   boardingPoint,
   alightingPoint,
   origin,
   destination,
+  passengers,
 }: RideDetailMapProps) {
   const t = useTranslations("map");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -96,46 +117,39 @@ export function RideDetailMap({
         bounds.extend(origin);
         bounds.extend(destination);
 
-        if (boardingPoint) {
-          new google.maps.Polyline({
-            ...dashedLineOptions([origin, boardingPoint]),
+        const addPin = (position: LatLng, color: string, label: string, infoText: string) => {
+          const marker = new google.maps.Marker({
+            position,
             map,
+            icon: circlePinOptions(color),
+            label: pinLabel(label),
           });
+          const info = new google.maps.InfoWindow({ content: infoText, disableAutoPan: true });
+          marker.addListener("mouseover", () => info.open(map, marker));
+          marker.addListener("mouseout", () => info.close());
+          bounds.extend(position);
+        };
 
-          const boardingMarker = new google.maps.Marker({
-            position: boardingPoint,
-            map,
-            icon: circlePinOptions("#16a34a"),
-          });
-          const boardingInfo = new google.maps.InfoWindow({
-            content: t("boarding"),
-            disableAutoPan: true,
-          });
-          boardingMarker.addListener("mouseover", () => boardingInfo.open(map, boardingMarker));
-          boardingMarker.addListener("mouseout", () => boardingInfo.close());
+        if (passengers && passengers.length > 0) {
+          passengers.forEach((passenger, i) => {
+            const color = PASSENGER_COLORS[i % PASSENGER_COLORS.length];
 
-          bounds.extend(boardingPoint);
-        }
+            new google.maps.Polyline({ ...dashedLineOptions([origin, passenger.boardingPoint]), map });
+            addPin(passenger.boardingPoint, color, "B", `${passenger.label} — ${t("boarding")}`);
 
-        if (alightingPoint) {
-          new google.maps.Polyline({
-            ...dashedLineOptions([alightingPoint, destination]),
-            map,
+            new google.maps.Polyline({ ...dashedLineOptions([passenger.alightingPoint, destination]), map });
+            addPin(passenger.alightingPoint, color, "D", `${passenger.label} — ${t("alighting")}`);
           });
+        } else {
+          if (boardingPoint) {
+            new google.maps.Polyline({ ...dashedLineOptions([origin, boardingPoint]), map });
+            addPin(boardingPoint, "#16a34a", "B", t("boarding"));
+          }
 
-          const alightingMarker = new google.maps.Marker({
-            position: alightingPoint,
-            map,
-            icon: circlePinOptions("#dc2626"),
-          });
-          const alightingInfo = new google.maps.InfoWindow({
-            content: t("alighting"),
-            disableAutoPan: true,
-          });
-          alightingMarker.addListener("mouseover", () => alightingInfo.open(map, alightingMarker));
-          alightingMarker.addListener("mouseout", () => alightingInfo.close());
-
-          bounds.extend(alightingPoint);
+          if (alightingPoint) {
+            new google.maps.Polyline({ ...dashedLineOptions([alightingPoint, destination]), map });
+            addPin(alightingPoint, "#dc2626", "D", t("alighting"));
+          }
         }
 
         map.fitBounds(bounds, { top: 24, right: 24, bottom: 24, left: 24 });

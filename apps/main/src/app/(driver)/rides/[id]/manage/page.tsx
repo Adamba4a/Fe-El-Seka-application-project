@@ -40,14 +40,23 @@ function formatDateTime(iso: string, locale: Locale) {
   }).format(new Date(iso));
 }
 
+interface ConfirmedPassenger {
+  id: string;
+  label: string;
+  boardingPoint: { lat: number; lng: number };
+  alightingPoint: { lat: number; lng: number };
+}
+
 export default function RideManagePage() {
   const t = useTranslations("driver.manage");
   const tEditRide = useTranslations("driver.editRide");
+  const tNav = useTranslations("nav");
   const locale = useLocale() as Locale;
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [ride, setRide] = useState<Ride | null>(null);
   const [history, setHistory] = useState<RideHistoryEntry[]>([]);
+  const [passengers, setPassengers] = useState<ConfirmedPassenger[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,6 +77,27 @@ export default function RideManagePage() {
         const detail = await getRide(session.access_token, id);
         setRide(detail.ride);
         setHistory(detail.history);
+
+        try {
+          const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+          const res = await fetch(`${base}/api/v1/rides/${id}/bookings`, {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const confirmed = (data.bookings ?? []).filter((b: any) => b.status === "confirmed");
+            setPassengers(
+              confirmed.map((b: any) => ({
+                id: b.booking_id,
+                label: b.passenger?.display_name ?? tNav("defaultPassengerName"),
+                boardingPoint: b.boarding_point,
+                alightingPoint: b.alighting_point,
+              }))
+            );
+          }
+        } catch {
+          // Non-critical — the overview map just falls back to showing the route alone.
+        }
       } catch (err: any) {
         setError(err?.detail?.message ?? err?.message ?? tEditRide("loadFailed"));
       } finally {
@@ -227,6 +257,7 @@ export default function RideManagePage() {
           alightingPoint={null}
           origin={ride.origin.coordinates}
           destination={ride.destination.coordinates}
+          passengers={passengers}
         />
 
         <div className="grid grid-cols-3 gap-4 pt-2 border-t border-border-default">

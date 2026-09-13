@@ -96,6 +96,7 @@ export default function DriverRideBookingsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [ride, setRide] = useState<Ride | null>(null);
   const [mapBooking, setMapBooking] = useState<DriverBooking | null>(null);
+  const [showAllOnMap, setShowAllOnMap] = useState(false);
   const [verifyModalOpen, setVerifyModalOpen] = useState(false);
 
   useEffect(() => {
@@ -315,9 +316,20 @@ export default function DriverRideBookingsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-medium text-content-secondary uppercase tracking-wide">
-          {t("confirmedPassengers", { count: confirmed.length })}
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-content-secondary uppercase tracking-wide">
+            {t("confirmedPassengers", { count: confirmed.length })}
+          </h2>
+          {ride && confirmed.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowAllOnMap(true)}
+              className="text-xs font-medium text-dash-primary hover:opacity-80"
+            >
+              {t("viewAllOnMap")}
+            </button>
+          )}
+        </div>
         {confirmed.length === 0 ? (
           <div className="rounded-2xl bg-surface-bg p-6 text-center">
             <p className="text-sm text-content-muted">{t("noConfirmed")}</p>
@@ -413,6 +425,29 @@ export default function DriverRideBookingsPage() {
               alightingPoint={mapBooking.alighting_point}
               origin={ride.origin.coordinates}
               destination={ride.destination.coordinates}
+            />
+          </div>
+        )}
+      </BottomSheet>
+
+      <BottomSheet isOpen={showAllOnMap} onClose={() => setShowAllOnMap(false)}>
+        {showAllOnMap && ride && (
+          <div className="space-y-3 pt-1">
+            <h2 className="text-base font-semibold text-content-primary">
+              {t("allPassengersMapTitle")}
+            </h2>
+            <RideDetailMap
+              routeGeometry={ride.route_geometry}
+              boardingPoint={null}
+              alightingPoint={null}
+              origin={ride.origin.coordinates}
+              destination={ride.destination.coordinates}
+              passengers={confirmed.map((b) => ({
+                id: b.booking_id,
+                label: b.passenger.display_name ?? tNav("defaultPassengerName"),
+                boardingPoint: b.boarding_point,
+                alightingPoint: b.alighting_point,
+              }))}
             />
           </div>
         )}

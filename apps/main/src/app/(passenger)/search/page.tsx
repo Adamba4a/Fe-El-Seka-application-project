@@ -136,7 +136,8 @@ export default function SearchPage() {
     const loc: Location = { coordinates: coords, address };
     if (selecting === "origin") {
       setOrigin(loc);
-      setSelecting("destination"); // Auto-advance to destination
+      setSelecting(null);
+      setSheetOpen(true); // Return to form — each pick is its own step, not chained
     } else if (selecting === "destination") {
       setDestination(loc);
       setSelecting(null);
