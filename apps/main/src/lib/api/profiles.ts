@@ -2,6 +2,21 @@ import type { Profile, ProfileSetup, ProfileUpdate, PublicProfile } from "@fe-el
 import { env } from "../env";
 
 const base = env.apiUrl;
+const NETWORK_RETRY_DELAY_MS = 400;
+
+// A dropped response can happen after an idempotent profile write has already
+// reached the API. Retrying once prevents onboarding from showing a generic
+// browser "Failed to fetch" error and safely overwrites the same profile data
+// (and the deterministic profile-photo object path).
+async function fetchProfileWrite(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (error) {
+    if (!(error instanceof TypeError)) throw error;
+    await new Promise((resolve) => setTimeout(resolve, NETWORK_RETRY_DELAY_MS));
+    return fetch(url, init);
+  }
+}
 
 function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
@@ -37,7 +52,7 @@ export async function getMe(token: string): Promise<Profile> {
 }
 
 export async function updateMe(token: string, data: ProfileUpdate): Promise<Profile> {
-  const res = await fetch(`${base}/api/profiles/me`, {
+  const res = await fetchProfileWrite(`${base}/api/profiles/me`, {
     method: "PUT",
     headers: authHeaders(token),
     body: JSON.stringify(data),
@@ -57,7 +72,7 @@ export async function getPublicProfile(token: string, userId: string): Promise<P
 export async function uploadPhoto(token: string, file: File): Promise<{ profile_photo_url: string }> {
   const form = new FormData();
   form.append("photo", file);
-  const res = await fetch(`${base}/api/profiles/me/photo`, {
+  const res = await fetchProfileWrite(`${base}/api/profiles/me/photo`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: form,

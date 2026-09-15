@@ -143,6 +143,38 @@ class TestUpdateProfileMinimumAge:
         assert payload == {"date_of_birth": dob.isoformat()}
         assert result["date_of_birth"] == dob.isoformat()
 
+
+class _FakeUploadFile:
+    content_type = "image/jpeg"
+
+    async def read(self):
+        return b"image-bytes"
+
+
+class TestUploadProfilePhoto:
+    @pytest.mark.asyncio
+    async def test_persists_uploaded_photo_without_generating_a_signed_url(self, monkeypatch):
+        fake = _FakeSupabase(_base_row())
+        uploads: list[tuple] = []
+        monkeypatch.setattr(svc, "_supabase", lambda: fake)
+        monkeypatch.setattr(
+            svc.storage_service,
+            "upload_file",
+            lambda *args: uploads.append(args),
+        )
+
+        result = await svc.upload_profile_photo("user-1", _FakeUploadFile())
+
+        assert uploads == [
+            ("profile-photos", "user-1/profile.jpg", b"image-bytes", "image/jpeg")
+        ]
+        assert fake._table.captured_updates == [
+            ({"profile_photo_path": "user-1/profile.jpg"}, {"id": "user-1"})
+        ]
+        assert result == {"profile_photo_url": None}
+
+
+class TestUpdateProfileMinimumAgeBoundaries:
     def test_rejects_date_of_birth_under_minimum_age(self, monkeypatch):
         fake = _FakeSupabase(_base_row())
         monkeypatch.setattr(svc, "_supabase", lambda: fake)

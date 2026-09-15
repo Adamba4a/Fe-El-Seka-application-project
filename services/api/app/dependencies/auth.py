@@ -93,8 +93,11 @@ async def get_current_user(
         )
 
     sb = _supabase()
-    profile_resp = (
-        sb.table("profiles").select("*").eq("id", user_id).single().execute()
+    # supabase-py is synchronous. Authentication runs before every protected
+    # route, including profile-photo uploads, so do not block this worker's
+    # event loop while it waits for Supabase.
+    profile_resp = await asyncio.to_thread(
+        lambda: sb.table("profiles").select("*").eq("id", user_id).single().execute()
     )
     if not profile_resp.data:
         raise HTTPException(

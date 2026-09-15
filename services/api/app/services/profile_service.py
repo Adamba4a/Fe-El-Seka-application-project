@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import uuid
 from datetime import date
 
@@ -10,6 +12,7 @@ from app.services import storage_service
 _ALLOWED_PHOTO_TYPES = {"image/jpeg", "image/png"}
 _MAX_PHOTO_BYTES = 5 * 1024 * 1024  # 5 MB
 MIN_SIGNUP_AGE_YEARS = 18
+logger = logging.getLogger(__name__)
 
 
 def _calculate_age(dob: date) -> int:
@@ -112,18 +115,39 @@ async def upload_profile_photo(user_id: str, file: UploadFile) -> dict:
 
     ext = "jpg" if file.content_type == "image/jpeg" else "png"
     path = f"{user_id}/profile.{ext}"
-    storage_service.upload_file("profile-photos", path, data, file.content_type)
+    # boto3 and supabase-py are synchronous clients. This endpoint is async,
+    # so running either client directly here blocks the worker's event loop
+    # while the browser is waiting for the upload response. Under a slow R2
+    # connection that can make the write succeed but the client lose the
+    # response, surfacing as a misleading browser-level "Failed to fetch".
+    # Keep the network work off the event loop, as verification uploads do.
+    try:
+        await asyncio.to_thread(
+            storage_service.upload_file, "profile-photos", path, data, file.content_type
+        )
+        sb = await asyncio.to_thread(_supabase)
+        await asyncio.to_thread(
+            lambda: (
+                sb.table("profiles")
+                .update({"profile_photo_path": path})
+                .eq("id", user_id)
+                .execute()
+            )
+        )
+    except Exception as exc:
+        logger.exception("profile photo upload failed for user_id=%s", user_id)
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "error": "profile_photo_upload_failed",
+                "message": "Could not save the photo. Please try again.",
+            },
+        ) from exc
 
-    sb = _supabase()
-    (
-        sb.table("profiles")
-        .update({"profile_photo_path": path})
-        .eq("id", user_id)
-        .execute()
-    )
-
-    signed_url = storage_service.generate_signed_url("profile-photos", path)
-    return {"profile_photo_url": signed_url}
+    # The client does not use this URL during onboarding. Avoid a second R2
+    # round-trip just to build a response; subsequent profile reads create the
+    # signed URL when it is actually needed.
+    return {"profile_photo_url": None}
 
 
 async def get_public_profile(conn, user_id: uuid.UUID, caller_id: uuid.UUID) -> dict:
