@@ -125,6 +125,22 @@ async def upload_profile_photo(user_id: str, file: UploadFile) -> dict:
         await asyncio.to_thread(
             storage_service.upload_file, "profile-photos", path, data, file.content_type
         )
+    except Exception as exc:
+        logger.exception(
+            "profile photo R2 upload failed for user_id=%s error_type=%s error=%s",
+            user_id,
+            type(exc).__name__,
+            exc,
+        )
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "error": "profile_photo_upload_failed",
+                "message": "Could not save the photo. Please try again.",
+            },
+        ) from exc
+
+    try:
         sb = await asyncio.to_thread(_supabase)
         await asyncio.to_thread(
             lambda: (
@@ -135,7 +151,12 @@ async def upload_profile_photo(user_id: str, file: UploadFile) -> dict:
             )
         )
     except Exception as exc:
-        logger.exception("profile photo upload failed for user_id=%s", user_id)
+        logger.exception(
+            "profile photo database update failed for user_id=%s error_type=%s error=%s",
+            user_id,
+            type(exc).__name__,
+            exc,
+        )
         raise HTTPException(
             status_code=502,
             detail={
