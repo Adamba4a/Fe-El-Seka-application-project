@@ -3,6 +3,14 @@ from typing import Annotated
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+# The public app is reachable through both the apex domain and www.  Keep
+# these in the API allowlist even when Bunny supplies CORS_ORIGINS, because an
+# environment value otherwise replaces the field default entirely.
+_PLATFORM_CORS_ORIGINS = (
+    "https://triplyy.net",
+    "https://www.triplyy.net",
+)
+
 
 class Settings(BaseSettings):
     database_url: str
@@ -14,16 +22,24 @@ class Settings(BaseSettings):
     cors_origins: Annotated[list[str], NoDecode] = [
         "http://localhost:3000",
         "http://localhost:3001",
+        *_PLATFORM_CORS_ORIGINS,
     ]
 
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_cors_origins(cls, v: object) -> object:
         # Allows CORS_ORIGINS=https://a.com,https://b.com in .env.prod instead
-        # of requiring JSON-array syntax.
+        # of requiring JSON-array syntax. Always retain the two canonical
+        # Triplyy origins: Pydantic replaces the default when this setting is
+        # provided, which previously left https://www.triplyy.net unable to
+        # complete the browser's signup preflight.
         if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",") if origin.strip()]
-        return v
+            origins = [origin.strip() for origin in v.split(",") if origin.strip()]
+        elif isinstance(v, list):
+            origins = v
+        else:
+            return v
+        return list(dict.fromkeys([*origins, *_PLATFORM_CORS_ORIGINS]))
     # Used to build user-facing links (e.g. group invite links) from the API,
     # which has no other notion of the frontend's own origin.
     frontend_base_url: str = "http://localhost:3000"
