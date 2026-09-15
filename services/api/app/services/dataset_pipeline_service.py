@@ -89,7 +89,9 @@ _JOIN_QUERY = """
     LEFT JOIN public.bookings bk ON bk.ride_id = me.candidate_ride_id AND bk.passenger_id = me.passenger_id
     LEFT JOIN public.ratings rt ON rt.booking_id = bk.id AND rt.rater_role = 'passenger'
     GROUP BY
-        me.id, ss.id, r.id, p_pass.verification_status, p_drv.verification_status
+        me.id, ss.id, r.id,
+        p_pass.verification_status, p_drv.verification_status,
+        p_pass.training_data_valid_from, p_drv.training_data_valid_from
 """
 
 # Allowlist of columns persisted to the Parquet dataset (FR-004 anonymization) —

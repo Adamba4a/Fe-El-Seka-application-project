@@ -263,6 +263,14 @@ class _FakePool:
         return _FakeAcquireCtx(self._conn)
 
 
+class TestJoinQuery:
+    def test_groups_by_profile_training_data_cutoffs(self):
+        group_by_clause = svc._JOIN_QUERY.split("GROUP BY", maxsplit=1)[1]
+
+        assert "p_pass.training_data_valid_from" in group_by_clause
+        assert "p_drv.training_data_valid_from" in group_by_clause
+
+
 @pytest.mark.asyncio
 class TestGenerateDatasetSnapshot:
     async def test_upload_failure_prevents_dataset_snapshots_insert(self, monkeypatch):
