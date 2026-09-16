@@ -20,6 +20,17 @@ Start at 10/25/50 virtual users. Increase `PEAK_VUS` only after the previous run
 
 Never run this against production until you have an approved test window. If production testing is approved, use an isolated test account and a low initial peak (10 VUs), watch Bunny and Supabase dashboards continuously, and stop on the first threshold breach.
 
+### Windows fallback
+
+If k6 is not available, Node 20+ can run the same read-only endpoints at a deliberately lower 1 → 5 → 10 virtual-user ramp. It requires the same explicit production opt-in and token, stops after either a 500 ms p95 or a 1% failure rate, and runs each stage for 30 seconds by default.
+
+```powershell
+$env:BASE_URL = "https://triplyy.net"
+$env:TEST_PASSENGER_TOKEN = "token for a dedicated test passenger"
+$env:ALLOW_PRODUCTION = "true"
+node performance/node/low-volume-read-only.mjs
+```
+
 ## Scaling order
 
 1. Identify the bottleneck using p95 by route and database pool occupancy. A full pool means requests are waiting for Supabase; slow search routes can instead indicate OSRM or AI.
