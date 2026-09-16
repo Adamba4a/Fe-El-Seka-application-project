@@ -2,6 +2,7 @@ import type { Locale } from "@fe-el-seka/shared";
 import type { AbstractIntlMessages } from "next-intl";
 import { locales } from "./config";
 import bundledEnMessages from "../../../messages/en.json";
+import bundledArMessages from "../../../messages/ar.json";
 
 const _REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -11,11 +12,15 @@ type MessageCatalog = {
   messages: AbstractIntlMessages;
 };
 
-const _bundledFallback: MessageCatalog = {
-  locale: "en",
-  version: "bundled",
-  messages: bundledEnMessages,
-};
+function bundledFallback(locale: Locale): MessageCatalog {
+  return {
+    locale,
+    version: "bundled",
+    messages: locale === "ar"
+      ? _deepMergeMessages(bundledEnMessages, bundledArMessages)
+      : bundledEnMessages,
+  };
+}
 
 const _cache = new Map<Locale, MessageCatalog>();
 let _initPromise: Promise<void> | null = null;
@@ -80,10 +85,9 @@ async function _loadAll(): Promise<void> {
   const anyLoaded = fetched.some((catalog) => catalog !== null);
 
   if (!anyLoaded) {
-    // Storage unreachable — degrade to the bundled English catalog for every
-    // locale rather than fail to render (see contracts/message-catalog.md).
+    // Storage unreachable: retain each locale instead of silently switching to English.
     for (const locale of locales) {
-      _cache.set(locale, { ..._bundledFallback, locale });
+      _cache.set(locale, bundledFallback(locale));
     }
     return;
   }
@@ -92,11 +96,11 @@ async function _loadAll(): Promise<void> {
     const locale = locales[i];
     if (catalog) {
       // Backfill any key missing from this locale's catalog with the
-      // bundled English value instead of leaving it absent (FR-011).
-      const messages = _deepMergeMessages(bundledEnMessages, catalog.messages);
+      // bundled locale value instead of leaving it absent (FR-011).
+      const messages = _deepMergeMessages(bundledFallback(locale).messages, catalog.messages);
       _cache.set(locale, { ...catalog, messages });
     } else if (!_cache.has(locale)) {
-      _cache.set(locale, { ..._bundledFallback, locale });
+      _cache.set(locale, bundledFallback(locale));
     }
   });
 }
@@ -130,5 +134,5 @@ async function _ensureLoaded(): Promise<void> {
 
 export async function getMessages(locale: Locale): Promise<AbstractIntlMessages> {
   await _ensureLoaded();
-  return _cache.get(locale)?.messages ?? _bundledFallback.messages;
+  return _cache.get(locale)?.messages ?? bundledFallback(locale).messages;
 }

@@ -128,7 +128,7 @@ async def _send_email(to: str, subject: str, html: str) -> None:
         await _send_via_mailpit(to, subject, html)
     else:
         resend.api_key = settings.resend_api_key
-        resend.Emails.send({
+        await asyncio.to_thread(resend.Emails.send, {
             "from": _FROM_ADDRESS,
             "to": to,
             "subject": subject,

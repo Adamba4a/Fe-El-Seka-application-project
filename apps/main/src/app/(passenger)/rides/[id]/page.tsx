@@ -812,7 +812,7 @@ export default function PassengerRideDetailPage() {
                   : "border-border-default bg-surface-card"
               }`}
             >
-              <span className="font-medium text-amber-700">Premium Pickup</span>
+              <span className="font-medium text-amber-700">{t("premiumPickup")}</span>
               <span className="text-amber-600">+{formatCurrency(ctx.premium_pickup_fee ?? 0, locale)}</span>
             </button>
           )}
@@ -832,7 +832,7 @@ export default function PassengerRideDetailPage() {
                   : "border-border-default bg-surface-card"
               }`}
             >
-              <span className="font-medium text-amber-700">Premium Dropoff</span>
+              <span className="font-medium text-amber-700">{t("premiumDropoff")}</span>
               <span className="text-amber-600">+{formatCurrency(ctx.premium_dropoff_fee ?? 0, locale)}</span>
             </button>
           )}

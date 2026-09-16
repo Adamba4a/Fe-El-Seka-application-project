@@ -1272,5 +1272,22 @@
   },
   "ratingBadge": {
     "new": "New"
+  },
+  "support": {
+    "trigger": "Have a problem?",
+    "title": "Contact support",
+    "close": "Close",
+    "intro": "Tell us what went wrong. Our team can contact you at the email below.",
+    "email": "Your email",
+    "description": "What is the problem?",
+    "hint": "10–5,000 characters. Please do not include passwords, payment details or identity documents.",
+    "send": "Send problem",
+    "sending": "Sending…",
+    "success": "Your problem has been sent to our support team. Thank you for letting us know.",
+    "invalidEmail": "Enter a valid email address.",
+    "invalidDescription": "Describe the problem using 10–5,000 characters.",
+    "invalidForm": "Check your email and problem description, then try again.",
+    "rateLimited": "You have sent several reports recently. Please try again in an hour.",
+    "failed": "We could not confirm your submission. Your message is still here; please try again."
   }
 }

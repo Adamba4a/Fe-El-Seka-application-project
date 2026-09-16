@@ -37,6 +37,8 @@ from app.api.rides.recurring_router import router as recurring_rides_router
 from app.api.rides.router import router as rides_router
 from app.api.routes.router import router as routes_router
 from app.api.search.router import router as search_router
+from app.api.support import admin_router as admin_support_router
+from app.api.support import router as support_router
 from app.api.users.router import router as users_router
 from app.api.vehicles.router import router as vehicles_router
 from app.api.verification.router import router as verification_router
@@ -64,6 +66,7 @@ from app.services.ranking_config_service import init_ranking_config, ranking_con
 from app.services.recurring_ride_service import recurring_ride_generation_loop
 from app.services.retraining_scheduler_service import retraining_scheduler_loop
 from app.services.ride_service import ride_timeout_sweep_loop
+from app.services.support_service import support_email_loop
 
 logging.basicConfig(
     level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO),
@@ -87,6 +90,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.ai_http_client = await ai_client_module.init(settings.ai_service_url)
     app.state.ai_verify_http_client = await ai_client_module.init_verify(settings.ai_service_url)
     email_task = asyncio.create_task(email_retry_loop())
+    support_task = asyncio.create_task(support_email_loop())
     expiry_task = asyncio.create_task(booking_expiry_loop())
     pricing_task = asyncio.create_task(pricing_config_refresh_loop())
     ranking_task = asyncio.create_task(ranking_config_refresh_loop())
@@ -115,6 +119,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     pricing_task.cancel()
     expiry_task.cancel()
     email_task.cancel()
+    support_task.cancel()
     await ai_client_module.close()
     await ai_client_module.close_verify()
     app.state.ai_http_client = None
@@ -206,6 +211,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 
 
 app.include_router(health_router)
+app.include_router(support_router, prefix="/api/support", tags=["support"])
+app.include_router(admin_support_router, prefix="/api/admin/support", tags=["admin"])
 app.include_router(health_router, prefix="/api")
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(profiles_router, prefix="/api/profiles", tags=["profiles"])

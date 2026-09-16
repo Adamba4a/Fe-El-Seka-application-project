@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/users", label: "Users" },
   { href: "/verification", label: "Verification" },
   { href: "/moderation", label: "Moderation" },
+  { href: "/support", label: "Support" },
   { href: "/financial", label: "Financial" },
   { href: "/wallet-topup", label: "Wallet Top-Ups" },
   { href: "/sponsored-groups", label: "Sponsored Groups" },

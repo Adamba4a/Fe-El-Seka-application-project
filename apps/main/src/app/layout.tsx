@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 import { directionForLocale, isLocale } from "@/lib/i18n/config";
+import { SupportWidget } from "@/components/support/SupportWidget";
 
 export const metadata: Metadata = {
   title: "Triplyy",
@@ -23,6 +24,7 @@ export default async function RootLayout({
       <body>
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
+          <SupportWidget />
         </NextIntlClientProvider>
       </body>
     </html>

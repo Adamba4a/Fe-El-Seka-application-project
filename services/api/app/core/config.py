@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     # which has no other notion of the frontend's own origin.
     frontend_base_url: str = "http://localhost:3000"
     resend_api_key: str = ""
+    support_email: str = "triplyy.info@gmail.com"
     webhook_secret: str = ""
     smtp_host: str = "127.0.0.1"
     smtp_port: int = 54325
