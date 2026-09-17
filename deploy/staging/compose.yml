@@ -1,0 +1,47 @@
+services:
+  api:
+    image: ghcr.io/adamba4a/fe-el-seka-api:staging
+    restart: unless-stopped
+    env_file: ${STAGING_ENV_FILE:-.env}
+    networks: [triplyy-staging]
+
+  ai:
+    image: ghcr.io/adamba4a/fe-el-seka-ai:staging
+    restart: unless-stopped
+    env_file: ${STAGING_ENV_FILE:-.env}
+    networks: [triplyy-staging]
+
+  main:
+    image: ghcr.io/adamba4a/fe-el-seka-main:staging
+    restart: unless-stopped
+    env_file: ${STAGING_ENV_FILE:-.env}
+    networks: [triplyy-staging]
+
+  osrm:
+    image: ghcr.io/adamba4a/fe-el-seka-osrm:latest
+    restart: unless-stopped
+    networks: [triplyy-staging]
+
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    environment:
+      STAGING_DOMAIN: ${STAGING_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [triplyy-staging]
+    depends_on: [api, ai, main]
+
+networks:
+  triplyy-staging:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:

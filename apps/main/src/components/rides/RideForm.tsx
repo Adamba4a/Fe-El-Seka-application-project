@@ -39,6 +39,7 @@ interface RideFormProps {
     notes?: string;
     price_per_seat?: string;
     fair_price_per_seat?: string;
+    is_women_only?: boolean;
   };
   maxSeats?: number;
   loading?: boolean;
@@ -75,6 +76,12 @@ export function RideForm({
   const [totalSeats, setTotalSeats] = useState(initialValues?.total_seats ?? 1);
   const [notes, setNotes] = useState(initialValues?.notes ?? "");
   const [groupId, setGroupId] = useState("");
+  const [womenOnly, setWomenOnly] = useState(initialValues?.is_women_only ?? false);
+  const [journeyType, setJourneyType] = useState<"one_way" | "round_trip">("one_way");
+  const [returnDepartureRaw, setReturnDepartureRaw] = useState("");
+  const [returnRecurringTime, setReturnRecurringTime] = useState("");
+  const [returnSeats, setReturnSeats] = useState(1);
+  const [returnPrice, setReturnPrice] = useState<number | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const [isRecurring, setIsRecurring] = useState(false);
@@ -128,6 +135,7 @@ export function RideForm({
       departureRaw !== toDatetimeLocal(initialValues?.departure_datetime) ||
       totalSeats !== (initialValues?.total_seats ?? 1) ||
       notes.trim() !== (initialValues?.notes ?? "").trim() ||
+      womenOnly !== (initialValues?.is_women_only ?? false) ||
       selectedPrice !== (initialValues?.price_per_seat ? Number(initialValues.price_per_seat) : null);
     onDirtyChange(isDirty);
   }, [mode, destination, departureRaw, totalSeats, notes, selectedPrice]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -162,6 +170,11 @@ export function RideForm({
     }
     if (totalSeats < 1 || totalSeats > maxSeats)
       return t("errors.seatsRange", { maxSeats });
+    if (journeyType === "round_trip") {
+      const returnTime = mode === "create" && isRecurring ? returnRecurringTime : returnDepartureRaw;
+      if (!returnTime || (mode === "create" && !isRecurring && new Date(returnDepartureRaw) <= new Date(departureRaw))) return t("errors.returnDepartureInvalid");
+      if (returnSeats < 1 || returnSeats > maxSeats || returnPrice === null) return t("errors.returnDetailsInvalid");
+    }
     if (mode === "create" && (fairPrice === null || selectedPrice === null))
       return t("errors.fareEstimatePending");
     return null;
@@ -186,6 +199,13 @@ export function RideForm({
         total_seats: totalSeats,
         price_per_seat: selectedPrice!,
         notes: notes.trim() || undefined,
+        is_women_only: womenOnly,
+        journey_type: journeyType,
+        ...(journeyType === "round_trip" ? {
+          return_departure_time: localTimeToUtcTime(returnRecurringTime),
+          return_total_seats: returnSeats,
+          return_price_per_seat: returnPrice!,
+        } : {}),
       });
       return;
     }
@@ -201,6 +221,13 @@ export function RideForm({
         notes: notes.trim() || undefined,
         final_price_per_seat: selectedPrice!,
         group_id: groupId || undefined,
+        is_women_only: womenOnly,
+        journey_type: journeyType,
+        ...(journeyType === "round_trip" ? {
+          return_departure_datetime: new Date(returnDepartureRaw).toISOString(),
+          return_total_seats: returnSeats,
+          return_final_price_per_seat: returnPrice!,
+        } : {}),
       } as CreateRidePayload);
     } else {
       const payload: EditRidePayload = {};
@@ -211,6 +238,7 @@ export function RideForm({
       const initialPrice = initialValues?.price_per_seat ? Number(initialValues.price_per_seat) : null;
       if (selectedPrice !== null && selectedPrice !== initialPrice)
         payload.final_price_per_seat = selectedPrice;
+      if (womenOnly !== (initialValues?.is_women_only ?? false)) payload.is_women_only = womenOnly;
       onSubmit(payload);
     }
   };
@@ -322,6 +350,18 @@ export function RideForm({
             />
           </button>
         </div>
+      )}
+
+      {mode === "create" && (
+        <div className="space-y-3 rounded-xl bg-surface-bg p-3">
+          <label className="flex items-center justify-between text-label text-content-primary"><span>{t("womenOnlyLabel")}</span><input type="checkbox" checked={womenOnly} onChange={(e) => setWomenOnly(e.target.checked)} /></label>
+          <label className="block text-label text-content-secondary">{t("journeyTypeLabel")}<select value={journeyType} onChange={(e) => setJourneyType(e.target.value as "one_way" | "round_trip")} className={inputClass}><option value="one_way">{t("oneWay")}</option><option value="round_trip">{t("roundTrip")}</option></select></label>
+          {journeyType === "round_trip" && <div className="grid grid-cols-3 gap-2"><input aria-label={t("returnDepartureLabel")} type={isRecurring ? "time" : "datetime-local"} value={isRecurring ? returnRecurringTime : returnDepartureRaw} onChange={(e) => isRecurring ? setReturnRecurringTime(e.target.value) : setReturnDepartureRaw(e.target.value)} className={inputClass} /><input aria-label={t("returnSeatsLabel")} type="number" min={1} max={maxSeats} value={returnSeats} onChange={(e) => setReturnSeats(Number(e.target.value))} className={inputClass} /><input aria-label={t("returnPriceLabel")} type="number" min={1} value={returnPrice ?? ""} onChange={(e) => setReturnPrice(Number(e.target.value))} className={inputClass} /></div>}
+        </div>
+      )}
+
+      {mode === "edit" && (
+        <label className="flex items-center justify-between rounded-xl bg-surface-bg p-3 text-label text-content-primary"><span>{t("womenOnlyLabel")}</span><input type="checkbox" checked={womenOnly} onChange={(e) => setWomenOnly(e.target.checked)} /></label>
       )}
 
       {mode === "create" && isRecurring ? (

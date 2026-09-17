@@ -1,6 +1,7 @@
 export type Role = "passenger" | "driver" | "admin";
 
 export type Locale = "en" | "ar";
+export type Gender = "woman" | "man";
 
 export type VerificationStatus =
   | "unverified"
@@ -23,6 +24,7 @@ export interface Profile {
   created_at: string;
   language_preference: Locale | null;
   date_of_birth: string | null;
+  gender: Gender | null;
   org_verified_at: string | null;
   org_verified_domain: string | null;
 }
@@ -56,4 +58,5 @@ export interface ProfileUpdate {
   language_preference?: Locale;
   phone_number?: string;
   date_of_birth?: string;
+  gender?: Gender;
 }

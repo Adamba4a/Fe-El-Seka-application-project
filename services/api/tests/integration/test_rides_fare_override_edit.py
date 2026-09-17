@@ -67,6 +67,7 @@ class _FakeConn:
         self.update_args: tuple | None = None
         self.update_query: str | None = None
         self.execute_calls: list[tuple[str, tuple]] = []
+        self.sibling_row = None
 
     async def execute(self, query, *args):
         self.execute_calls.append((query.strip(), args))
@@ -77,6 +78,8 @@ class _FakeConn:
 
     async def fetchrow(self, query, *args):
         q = query.strip()
+        if "FROM rides WHERE round_trip_group_id" in q:
+            return self.sibling_row
         if q.startswith("SELECT") and "FROM rides WHERE id = $1" in q:
             return self._ride_row
         if q.startswith("UPDATE rides"):
@@ -172,6 +175,26 @@ class TestDirectPriceEdit:
                 final_price_per_seat=100.0,
             )
         assert exc_info.value.code == "price_out_of_band"
+
+
+class TestRoundTripChronology:
+    async def test_edit_rejects_outbound_moved_after_return(self, monkeypatch):
+        outbound = _ride_row(round_trip_group_id=uuid.uuid4(), trip_leg="outbound")
+        conn = _FakeConn(outbound)
+        conn.sibling_row = {
+            "id": uuid.uuid4(), "trip_leg": "return",
+            "departure_datetime": outbound["departure_datetime"] + timedelta(hours=2),
+        }
+        monkeypatch.setattr(ride_service, "get_pool", lambda: _FakePool(conn))
+
+        with pytest.raises(ride_service.RideServiceError) as exc_info:
+            await ride_service.edit_ride(
+                outbound["id"], outbound["driver_id"],
+                EditRideRequest(departure_datetime=outbound["departure_datetime"] + timedelta(hours=3)),
+            )
+
+        assert exc_info.value.code == "return_departure_invalid"
+        assert conn.update_args is None
 
 
 class TestSeatCountRebanding:

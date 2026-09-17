@@ -1,0 +1,21 @@
+{
+  email {$ACME_EMAIL}
+}
+
+{$STAGING_DOMAIN:staging.triplyy.net} {
+  encode zstd gzip
+
+  @api path /api/* /internal/*
+  handle @api {
+    reverse_proxy api:8000
+  }
+
+  @ai path /ai/*
+  handle @ai {
+    reverse_proxy ai:8000
+  }
+
+  handle {
+    reverse_proxy main:3000
+  }
+}

@@ -15,11 +15,29 @@ from app.models.recurring_ride import (
     RecurringRideDefinitionResponse,
     RecurringRideDefinitionUpdateRequest,
     RecurringRideDefinitionUpdateResponse,
+    RecurringOccurrenceOverrideRequest,
 )
 from app.services import recurring_ride_service
 from app.services.recurring_ride_service import RecurringRideServiceError
 
 router = APIRouter()
+
+
+@router.patch("/{definition_id}/occurrences/{occurrence_date}")
+async def override_recurring_occurrence(
+    definition_id: uuid.UUID,
+    occurrence_date: str,
+    payload: RecurringOccurrenceOverrideRequest,
+    profile: dict = Depends(get_current_driver),
+):
+    driver_id = uuid.UUID(str(profile["id"]))
+    try:
+        return await recurring_ride_service.override_round_trip_occurrence(
+            driver_id, definition_id, occurrence_date, payload.outbound_departure_datetime,
+            payload.return_departure_datetime,
+        )
+    except RecurringRideServiceError as exc:
+        return _service_error_response(exc)
 
 
 def _service_error_response(exc: RecurringRideServiceError) -> JSONResponse:

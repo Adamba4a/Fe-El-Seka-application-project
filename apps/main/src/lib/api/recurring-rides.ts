@@ -5,6 +5,8 @@ import type {
   RecurringRideDefinitionListResponse,
   RecurringRideDefinitionDetailResponse,
   RecurringRideDefinitionUpdateResponse,
+  RecurringOccurrenceOverridePayload,
+  Ride,
 } from "@fe-el-seka/shared";
 import { env } from "../env";
 
@@ -126,6 +128,23 @@ export async function endRecurringDefinition(
   const res = await fetch(`${base}/api/v1/rides/recurring/${id}/end`, {
     method: "POST",
     headers: authHeaders(token),
+  });
+  const json = await res.json();
+  if (!res.ok) throw unwrapError(json);
+  return json;
+}
+
+/** Move both legs of one unbooked recurring round-trip occurrence together. */
+export async function overrideRecurringOccurrence(
+  token: string,
+  definitionId: string,
+  occurrenceDate: string,
+  data: RecurringOccurrenceOverridePayload
+): Promise<{ outbound_ride: Ride; return_ride: Ride }> {
+  const res = await fetch(`${base}/api/v1/rides/recurring/${definitionId}/occurrences/${occurrenceDate}`, {
+    method: "PATCH",
+    headers: authHeaders(token),
+    body: JSON.stringify(data),
   });
   const json = await res.json();
   if (!res.ok) throw unwrapError(json);

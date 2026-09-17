@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Optional
@@ -24,6 +25,22 @@ from app.models.ride import (
 from app.services.pricing_service import calculate_fare, calculate_max_price
 
 logger = logging.getLogger(__name__)
+
+
+class _ConnectionPoolProxy:
+    """Lets create_ride participate in a caller-owned transaction.
+
+    The existing service deliberately opens a transaction for standalone
+    creates.  For a round trip the router supplies one connection; asyncpg
+    nests the service transactions as savepoints, while the outer transaction
+    remains responsible for committing or rolling back both legs together.
+    """
+    def __init__(self, conn):
+        self._conn = conn
+
+    @asynccontextmanager
+    async def acquire(self):
+        yield self._conn
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Custom exceptions
@@ -55,7 +72,7 @@ _RIDE_COLS = """
     fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp, price_source,
     started_at, completed_at,
     ST_AsGeoJSON(route_geometry) AS route_geometry_geojson,
-    group_id, recurring_ride_definition_id
+    group_id, recurring_ride_definition_id, is_women_only, round_trip_group_id, trip_leg
 """
 
 
@@ -149,6 +166,9 @@ def _to_response(row: dict) -> RideResponse:
         group_id=row["group_id"],
         group_name=row.get("group_name"),
         recurring_ride_definition_id=row.get("recurring_ride_definition_id"),
+        is_women_only=row.get("is_women_only", False),
+        round_trip_group_id=row.get("round_trip_group_id"),
+        trip_leg=row.get("trip_leg", "one_way"),
     )
 
 
@@ -185,6 +205,9 @@ async def create_ride(
     safety_margin_egp: float,
     fair_price_per_seat: float,
     final_price_per_seat: Optional[float] = None,
+    round_trip_group_id: Optional[uuid.UUID] = None,
+    trip_leg: str = "one_way",
+    conn=None,
 ) -> RideResponse:
     olat = payload.origin.coordinates.lat
     olng = payload.origin.coordinates.lng
@@ -228,9 +251,17 @@ async def create_ride(
             f"Price must be between {fair_price_dec:.2f} and {max_price_dec:.2f} EGP per seat.",
         )
 
-    pool = get_pool()
+    pool = _ConnectionPoolProxy(conn) if conn is not None else get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
+            if payload.is_women_only:
+                driver_gender = await conn.fetchval("SELECT gender FROM profiles WHERE id = $1", driver_id)
+                if driver_gender != "woman":
+                    raise RideServiceError(
+                        "women_only_driver_required",
+                        "Only women drivers can post women-only rides.",
+                        403,
+                    )
             # Advisory lock: prevents concurrent same-driver rides bypassing overlap check
             await conn.execute("SELECT pg_advisory_xact_lock(hashtext($1))", str(driver_id))
 
@@ -241,10 +272,11 @@ async def create_ride(
                   AND status IN ('scheduled', 'in_progress')
                   AND departure_datetime >= $2
                   AND departure_datetime <= $3
+                  AND (round_trip_group_id IS DISTINCT FROM $4)
                 """,
                 driver_id,
                 dep - timedelta(hours=2),
-                dep + timedelta(hours=2),
+                dep + timedelta(hours=2), round_trip_group_id,
             )
             if conflict:
                 raise RideServiceError(
@@ -349,14 +381,14 @@ async def create_ride(
                     notes, status,
                     route_geometry, route_distance_km, route_duration_minutes,
                     fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp, price_source,
-                    group_id
+                    group_id, is_women_only, round_trip_group_id, trip_leg
                 ) VALUES (
                     $1, $2,
                     ST_GeomFromText($3, 4326)::geography, $4,
                     ST_GeomFromText($5, 4326)::geography, $6,
                     $7, $8, 0, $9, $10, $11, 'scheduled',
                     ST_SetSRID(ST_GeomFromGeoJSON($12), 4326), $13, $14, $15, $16, $17, $18, 'system',
-                    $19
+                    $19, $20, $21, $22
                 )
                 RETURNING {_RIDE_COLS}
                 """,
@@ -367,7 +399,7 @@ async def create_ride(
                 json.dumps(route_geometry_geojson),
                 route_distance_km, route_duration_minutes,
                 fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp,
-                payload.group_id,
+                payload.group_id, payload.is_women_only, round_trip_group_id, trip_leg,
             )
 
             await conn.execute(
@@ -520,6 +552,15 @@ async def edit_ride(
         async with conn.transaction():
             ride = await _fetch_own_ride(conn, ride_id, driver_id)
 
+            if payload.is_women_only is True:
+                driver_gender = await conn.fetchval("SELECT gender FROM profiles WHERE id = $1", driver_id)
+                if driver_gender != "woman":
+                    raise RideServiceError(
+                        "women_only_driver_required",
+                        "Only women drivers can post women-only rides.",
+                        403,
+                    )
+
             if ride["status"] != "scheduled":
                 raise RideServiceError("ride_not_editable", "Only scheduled rides can be edited.", 409)
 
@@ -552,6 +593,18 @@ async def edit_ride(
                     raise RideServiceError(
                         "ride_departure_too_far", "Rides can only be scheduled up to 7 days in advance."
                     )
+                if ride.get("round_trip_group_id") is not None:
+                    sibling = await conn.fetchrow(
+                        "SELECT id, trip_leg, departure_datetime FROM rides WHERE round_trip_group_id = $1 AND id <> $2 FOR UPDATE",
+                        ride["round_trip_group_id"], ride_id,
+                    )
+                    if sibling is not None:
+                        outbound = dep if ride["trip_leg"] == "outbound" else sibling["departure_datetime"]
+                        returning = dep if ride["trip_leg"] == "return" else sibling["departure_datetime"]
+                        if returning <= outbound:
+                            raise RideServiceError(
+                                "return_departure_invalid", "Return departure must be after outbound departure.", 422
+                            )
                 if dep != ride["departure_datetime"]:
                     changed_fields["departure_datetime"] = {
                         "before": ride["departure_datetime"].isoformat(),
@@ -577,6 +630,12 @@ async def edit_ride(
                     f"destination_coordinates = ST_GeomFromText({add_param(f'POINT({dlng} {dlat})')}, 4326)::geography"
                 )
                 sets.append(f"destination_address = {add_param(payload.destination.address)}")
+
+            if payload.is_women_only is not None and payload.is_women_only != ride["is_women_only"]:
+                changed_fields["is_women_only"] = {
+                    "before": ride["is_women_only"], "after": payload.is_women_only,
+                }
+                sets.append(f"is_women_only = {add_param(payload.is_women_only)}")
 
             seats_changed = False
             if payload.total_seats is not None:

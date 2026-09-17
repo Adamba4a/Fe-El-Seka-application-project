@@ -12,7 +12,7 @@ export default async function Home() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, display_name, verification_status, org_verified_at")
+    .select("role, display_name, verification_status, org_verified_at, gender")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -21,6 +21,7 @@ export default async function Home() {
   // "New User" is the placeholder set at role-select, before the user has
   // submitted their real name/phone/date of birth — signup isn't complete yet.
   if (profile.display_name === "New User") redirect("/profile");
+  if (!profile.gender) redirect("/profile");
 
   if (profile.verification_status === "suspended") {
     return <SuspendedScreen />;

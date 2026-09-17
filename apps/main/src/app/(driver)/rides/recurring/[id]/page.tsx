@@ -9,6 +9,7 @@ import {
   getRecurringDefinition,
   editRecurringDefinition,
   endRecurringDefinition,
+  overrideRecurringOccurrence,
   localTimeToUtcTime,
   utcTimeToLocalTime,
 } from "@/lib/api/recurring-rides";
@@ -44,6 +45,11 @@ export default function RecurringRideDetailPage() {
   const [isEndConfirmOpen, setIsEndConfirmOpen] = useState(false);
   const [ending, setEnding] = useState(false);
   const [endError, setEndError] = useState<string | null>(null);
+  const [overrideRide, setOverrideRide] = useState<Ride | null>(null);
+  const [overrideOutbound, setOverrideOutbound] = useState("");
+  const [overrideReturn, setOverrideReturn] = useState("");
+  const [overrideError, setOverrideError] = useState<string | null>(null);
+  const [overriding, setOverriding] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -113,6 +119,42 @@ export default function RecurringRideDetailPage() {
       setEndError(err?.message ?? t("endSeriesFailed"));
     } finally {
       setEnding(false);
+    }
+  };
+
+  const toLocalInput = (iso: string) => {
+    const value = new Date(iso);
+    value.setMinutes(value.getMinutes() - value.getTimezoneOffset());
+    return value.toISOString().slice(0, 16);
+  };
+
+  const openOverride = (outbound: Ride) => {
+    const sibling = instances.find((ride) => ride.round_trip_group_id === outbound.round_trip_group_id && ride.trip_leg === "return");
+    if (!sibling) return;
+    setOverrideRide(outbound);
+    setOverrideOutbound(toLocalInput(outbound.departure_datetime));
+    setOverrideReturn(toLocalInput(sibling.departure_datetime));
+    setOverrideError(null);
+  };
+
+  const saveOverride = async () => {
+    if (!overrideRide || !overrideOutbound || !overrideReturn) return;
+    setOverriding(true);
+    setOverrideError(null);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { router.push("/login"); return; }
+      await overrideRecurringOccurrence(session.access_token, id, overrideRide.departure_datetime.slice(0, 10), {
+        outbound_departure_datetime: new Date(overrideOutbound).toISOString(),
+        return_departure_datetime: new Date(overrideReturn).toISOString(),
+      });
+      setOverrideRide(null);
+      await load();
+    } catch (err: any) {
+      setOverrideError(err?.message ?? "Unable to update this occurrence.");
+    } finally {
+      setOverriding(false);
     }
   };
 
@@ -215,6 +257,21 @@ export default function RecurringRideDetailPage() {
                 {definition.weekdays.map((d) => t(`weekdayShort.${fromIsoWeekday(d)}`)).join(", ")}
               </p>
             </div>
+
+            {(definition.is_women_only || definition.journey_type === "round_trip") && (
+              <div className="flex flex-wrap gap-2">
+                {definition.is_women_only && <span className="rounded-full bg-pink-100 px-2 py-1 text-xs font-medium text-pink-700">{t("womenOnly")}</span>}
+                {definition.journey_type === "round_trip" && <span className="rounded-full bg-brand-primary/10 px-2 py-1 text-xs font-medium text-brand-primary">{t("roundTrip")}</span>}
+              </div>
+            )}
+
+            {definition.journey_type === "round_trip" && definition.return_departure_time && (
+              <div className="grid grid-cols-3 gap-3 rounded-xl bg-surface-bg p-3 text-center">
+                <div><p className="font-semibold text-content-primary">{utcTimeToLocalTime(definition.return_departure_time.substring(0, 5))}</p><p className="text-caption text-content-muted">{t("returnTimeLabel")}</p></div>
+                <div><p className="font-semibold text-content-primary">{definition.return_total_seats}</p><p className="text-caption text-content-muted">{t("returnSeatsLabel")}</p></div>
+                <div><p className="font-semibold text-content-primary">{formatCurrency(Number(definition.return_price_per_seat), locale)}</p><p className="text-caption text-content-muted">{t("returnPriceLabel")}</p></div>
+              </div>
+            )}
 
             {definition.notes && (
               <p className="text-body-sm text-content-secondary bg-surface-bg rounded-xl px-3 py-2">
@@ -337,11 +394,29 @@ export default function RecurringRideDetailPage() {
         ) : (
           <div className="space-y-3">
             {instances.map((ride) => (
-              <RideCard key={ride.id} ride={ride} href={`/rides/${ride.id}/bookings`} />
+              <div key={ride.id} className="space-y-2">
+                <RideCard ride={ride} href={`/rides/${ride.id}/bookings`} />
+                {definition.journey_type === "round_trip" && ride.trip_leg === "outbound" && (
+                  <button type="button" onClick={() => openOverride(ride)} className="text-xs font-medium text-dash-primary">
+                    Adjust this date's outbound and return times
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         )}
       </div>
+
+      <BottomSheet isOpen={overrideRide !== null} onClose={() => setOverrideRide(null)}>
+        <div className="space-y-4">
+          <h2 className="text-h3 text-content-primary">Adjust this occurrence</h2>
+          <p className="text-body-sm text-content-muted">Both legs are changed together. This is unavailable once either leg has a booking or is close to departure.</p>
+          <label className="block text-label text-content-secondary">Outbound<input type="datetime-local" value={overrideOutbound} onChange={(e) => setOverrideOutbound(e.target.value)} className="mt-1 w-full border border-border-default rounded-xl px-3 py-2" /></label>
+          <label className="block text-label text-content-secondary">Return<input type="datetime-local" value={overrideReturn} onChange={(e) => setOverrideReturn(e.target.value)} className="mt-1 w-full border border-border-default rounded-xl px-3 py-2" /></label>
+          {overrideError && <p className="text-caption text-content-destructive">{overrideError}</p>}
+          <button type="button" onClick={saveOverride} disabled={overriding} className="w-full py-3 bg-dash-primary text-content-inverse rounded-xl font-medium disabled:opacity-50">{overriding ? "Saving…" : "Save times"}</button>
+        </div>
+      </BottomSheet>
 
       <BottomSheet isOpen={isEndConfirmOpen} onClose={() => setIsEndConfirmOpen(false)}>
         <div className="space-y-4">

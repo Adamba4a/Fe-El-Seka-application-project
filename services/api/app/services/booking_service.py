@@ -95,7 +95,7 @@ async def create_booking(
             """
             SELECT id, status, departure_datetime, price_per_seat, booked_seats, total_seats, driver_id, group_id,
                    fuel_cost_egp, distance_fee_egp, safety_margin_egp, fair_price_per_seat,
-                   vehicle_id, recurring_ride_definition_id
+                   vehicle_id, recurring_ride_definition_id, is_women_only
             FROM rides WHERE id = $1 FOR UPDATE
             """,
             ride_id,
@@ -108,6 +108,17 @@ async def create_booking(
                 status_code=403,
                 detail={"error": "cannot_book_own_ride", "message": "You cannot book a seat on your own ride"},
             )
+
+        if ride["is_women_only"]:
+            passenger_gender = await conn.fetchval("SELECT gender FROM profiles WHERE id = $1", passenger_id)
+            if passenger_gender != "woman":
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "error": "women_only_ride",
+                        "message": "This ride is available only to women passengers.",
+                    },
+                )
 
         if ride["status"] != "scheduled":
             raise HTTPException(

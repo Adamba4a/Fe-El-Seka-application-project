@@ -61,6 +61,11 @@ class _FakeConn:
             return self._ride_row
         raise AssertionError(f"Unmatched fetchrow query: {query}")
 
+    async def fetchval(self, query, *args):
+        if "SELECT gender FROM profiles" in query:
+            return "man"
+        raise AssertionError(f"Unmatched scalar query: {query}")
+
     def transaction(self):
         return _FakeTransactionCtx()
 
@@ -154,6 +159,24 @@ class TestCreateRideDefaultsToFairPrice:
         assert conn.insert_ride_args[8] == 50.0
         assert conn.insert_ride_args[9] == 50.0
         assert ride.price_per_seat == ride.fair_price_per_seat == "50.00"
+
+
+class TestWomenOnlyRideCreation:
+    async def test_man_driver_cannot_create_women_only_ride(self, monkeypatch):
+        conn = _FakeConn(_ride_row())
+        monkeypatch.setattr(ride_service, "get_pool", lambda: _FakePool(conn))
+
+        with pytest.raises(ride_service.RideServiceError) as exc_info:
+            await ride_service.create_ride(
+                driver_id=uuid.uuid4(), vehicle_id=uuid.uuid4(), vehicle_seat_count=4,
+                payload=_payload(is_women_only=True), route_geometry_geojson={"type": "LineString", "coordinates": []},
+                route_distance_km=10.0, route_duration_minutes=20, fuel_cost_egp=17.0,
+                platform_commission_egp=3.4, distance_fee_egp=3.0, safety_margin_egp=5.0,
+                fair_price_per_seat=50.0,
+            )
+
+        assert exc_info.value.code == "women_only_driver_required"
+        assert conn.insert_ride_args is None
 
 
 class TestCreateRideWithDriverChosenPrice:

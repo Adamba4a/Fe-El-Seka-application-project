@@ -64,6 +64,7 @@ _DEFINITION_COLS = """
     ST_Y(destination_coordinates::geometry) AS dest_lat,
     ST_X(destination_coordinates::geometry) AS dest_lng,
     departure_time, weekdays, total_seats, price_per_seat, notes, status,
+    journey_type, is_women_only, return_departure_time, return_total_seats, return_price_per_seat,
     created_at, updated_at
 """
 
@@ -92,6 +93,11 @@ def _to_definition_response(
         created_at=row["created_at"],
         updated_at=row["updated_at"],
         upcoming_instance_count=upcoming_instance_count,
+        journey_type=row.get("journey_type", "one_way"),
+        is_women_only=row.get("is_women_only", False),
+        return_departure_time=row.get("return_departure_time"),
+        return_total_seats=row.get("return_total_seats"),
+        return_price_per_seat=str(row["return_price_per_seat"]) if row.get("return_price_per_seat") is not None else None,
     )
 
 
@@ -145,21 +151,37 @@ async def create_definition(
         )
     if payload.price_per_seat <= 0:
         raise RecurringRideServiceError("price_invalid", "Price per seat must be greater than zero.", 400)
+    if payload.journey_type not in ("one_way", "round_trip"):
+        raise RecurringRideServiceError("journey_type_invalid", "Journey type must be one_way or round_trip.", 400)
+    if payload.journey_type == "round_trip":
+        if not payload.return_departure_time or not payload.return_total_seats or not payload.return_price_per_seat:
+            raise RecurringRideServiceError("return_details_required", "Return time, seats, and price are required.", 400)
+        if payload.return_departure_time <= payload.departure_time:
+            raise RecurringRideServiceError("return_departure_invalid", "Return time must be after outbound time.", 400)
+        if payload.return_total_seats > vehicle_seat_count or payload.return_price_per_seat <= 0:
+            raise RecurringRideServiceError("return_details_invalid", "Return seats or price are invalid.", 400)
 
     pool = get_pool()
     async with pool.acquire() as conn:
+        if payload.is_women_only:
+            gender = await conn.fetchval("SELECT gender FROM profiles WHERE id = $1", driver_id)
+            if gender != "woman":
+                raise RecurringRideServiceError(
+                    "women_only_driver_required", "Only women drivers can post women-only rides.", 403
+                )
         row = await conn.fetchrow(
             f"""
             INSERT INTO recurring_ride_definitions (
                 driver_id, vehicle_id,
                 origin_coordinates, origin_address,
                 destination_coordinates, destination_address,
-                departure_time, weekdays, total_seats, price_per_seat, notes
+                departure_time, weekdays, total_seats, price_per_seat, notes,
+                journey_type, is_women_only, return_departure_time, return_total_seats, return_price_per_seat
             ) VALUES (
                 $1, $2,
                 ST_GeomFromText($3, 4326)::geography, $4,
                 ST_GeomFromText($5, 4326)::geography, $6,
-                $7, $8, $9, $10, $11
+                $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
             )
             RETURNING {_DEFINITION_COLS}
             """,
@@ -167,7 +189,9 @@ async def create_definition(
             f"POINT({olng} {olat})", payload.origin.address,
             f"POINT({dlng} {dlat})", payload.destination.address,
             payload.departure_time, sorted(set(payload.weekdays)), payload.total_seats,
-            Decimal(str(payload.price_per_seat)), payload.notes,
+            Decimal(str(payload.price_per_seat)), payload.notes, payload.journey_type, payload.is_women_only,
+            payload.return_departure_time, payload.return_total_seats,
+            Decimal(str(payload.return_price_per_seat)) if payload.return_price_per_seat is not None else None,
         )
 
     return _to_definition_response(dict(row), upcoming_instance_count=0)
@@ -189,7 +213,8 @@ async def list_definitions(driver_id: uuid.UUID) -> RecurringRideDefinitionListR
         if ids:
             count_rows = await conn.fetch(
                 """
-                SELECT recurring_ride_definition_id AS id, COUNT(*) AS cnt
+                SELECT recurring_ride_definition_id AS id,
+                       COUNT(DISTINCT public.utc_date(departure_datetime)) AS cnt
                 FROM rides
                 WHERE recurring_ride_definition_id = ANY($1::uuid[])
                   AND status = 'scheduled'
@@ -216,7 +241,7 @@ async def get_definition(
 
         upcoming_count = await conn.fetchval(
             """
-            SELECT count(*) FROM rides
+            SELECT count(DISTINCT public.utc_date(departure_datetime)) FROM rides
             WHERE recurring_ride_definition_id = $1
               AND status = 'scheduled'
               AND departure_datetime > now()
@@ -281,6 +306,12 @@ async def edit_definition(
                     "This recurring ride has ended and can no longer be edited.",
                     403,
                 )
+            if payload.is_women_only is True:
+                gender = await conn.fetchval("SELECT gender FROM profiles WHERE id = $1", driver_id)
+                if gender != "woman":
+                    raise RecurringRideServiceError(
+                        "women_only_driver_required", "Only women drivers can post women-only rides.", 403
+                    )
 
             vehicle = await conn.fetchrow(
                 "SELECT seat_count FROM vehicles WHERE id = $1", definition["vehicle_id"]
@@ -311,6 +342,36 @@ async def edit_definition(
             )
             if payload.price_per_seat is not None and new_price <= 0:
                 raise RecurringRideServiceError("price_invalid", "Price per seat must be greater than zero.", 400)
+
+            new_journey_type = payload.journey_type if payload.journey_type is not None else definition["journey_type"]
+            if new_journey_type not in ("one_way", "round_trip"):
+                raise RecurringRideServiceError("journey_type_invalid", "Journey type must be one_way or round_trip.", 400)
+            # Pydantic tracks explicitly supplied nulls, which lets a driver
+            # intentionally clear the return schedule when changing back to one-way.
+            supplied = payload.model_fields_set
+            new_return_time = payload.return_departure_time if "return_departure_time" in supplied else definition["return_departure_time"]
+            new_return_seats = payload.return_total_seats if "return_total_seats" in supplied else definition["return_total_seats"]
+            new_return_price = payload.return_price_per_seat if "return_price_per_seat" in supplied else definition["return_price_per_seat"]
+            if new_journey_type == "round_trip":
+                if not new_return_time or not new_return_seats or new_return_price is None:
+                    raise RecurringRideServiceError("return_details_required", "Return time, seats, and price are required.", 400)
+                new_return_price = Decimal(str(new_return_price))
+                effective_departure = payload.departure_time or definition["departure_time"]
+                if new_return_time <= effective_departure or new_return_seats < 1 or new_return_seats > vehicle["seat_count"] or new_return_price <= 0:
+                    raise RecurringRideServiceError("return_details_invalid", "Return schedule, seats, or price are invalid.", 400)
+            else:
+                new_return_time = new_return_seats = new_return_price = None
+
+            if payload.journey_type is not None and payload.journey_type != definition["journey_type"]:
+                generated_exists = await conn.fetchval(
+                    "SELECT 1 FROM rides WHERE recurring_ride_definition_id = $1 LIMIT 1", definition_id
+                )
+                if generated_exists:
+                    raise RecurringRideServiceError(
+                        "journey_type_not_editable",
+                        "End this series and create a new one to change between one-way and round-trip.",
+                        409,
+                    )
 
             route_changed = payload.origin is not None or payload.destination is not None
             new_origin_lat = payload.origin.coordinates.lat if payload.origin else definition["origin_lat"]
@@ -345,6 +406,16 @@ async def edit_definition(
                 sets.append(f"price_per_seat = {add_param(new_price)}")
             if payload.notes is not None:
                 sets.append(f"notes = {add_param(payload.notes)}")
+            if payload.is_women_only is not None:
+                sets.append(f"is_women_only = {add_param(payload.is_women_only)}")
+            if payload.journey_type is not None:
+                sets.append(f"journey_type = {add_param(new_journey_type)}")
+            if "return_departure_time" in supplied or payload.journey_type is not None:
+                sets.append(f"return_departure_time = {add_param(new_return_time)}")
+            if "return_total_seats" in supplied or payload.journey_type is not None:
+                sets.append(f"return_total_seats = {add_param(new_return_seats)}")
+            if "return_price_per_seat" in supplied or payload.journey_type is not None:
+                sets.append(f"return_price_per_seat = {add_param(new_return_price)}")
 
             if sets:
                 sets.append("updated_at = now()")
@@ -381,12 +452,16 @@ async def edit_definition(
             now = _now()
             for inst in target_rows:
                 inst = dict(inst)
+                is_return_leg = inst["trip_leg"] == "return"
+                leg_total_seats = new_return_seats if is_return_leg else new_total_seats
+                leg_price = new_return_price if is_return_leg else new_price
                 new_dep = inst["departure_datetime"]
-                if payload.departure_time is not None:
+                if (payload.return_departure_time is not None if is_return_leg else payload.departure_time is not None):
                     inst_dep = inst["departure_datetime"]
                     if inst_dep.tzinfo is None:
                         inst_dep = inst_dep.replace(tzinfo=timezone.utc)
-                    new_dep = datetime.combine(inst_dep.date(), payload.departure_time, tzinfo=timezone.utc)
+                    leg_time = new_return_time if is_return_leg else (payload.departure_time or definition["departure_time"])
+                    new_dep = datetime.combine(inst_dep.date(), leg_time, tzinfo=timezone.utc)
                     if new_dep <= now:
                         # Would move this instance's departure into the past — leave it untouched.
                         continue
@@ -402,9 +477,16 @@ async def edit_definition(
 
                 if route_changed:
                     try:
+                        route_origin = (
+                            GeoPoint(lat=new_dest_lat, lng=new_dest_lng)
+                            if is_return_leg else GeoPoint(lat=new_origin_lat, lng=new_origin_lng)
+                        )
+                        route_destination = (
+                            GeoPoint(lat=new_origin_lat, lng=new_origin_lng)
+                            if is_return_leg else GeoPoint(lat=new_dest_lat, lng=new_dest_lng)
+                        )
                         route = await route_service.calculate_route(
-                            GeoPoint(lat=new_origin_lat, lng=new_origin_lng),
-                            GeoPoint(lat=new_dest_lat, lng=new_dest_lng),
+                            route_origin, route_destination,
                         )
                     except RouteServiceUnavailableError:
                         logger.warning(
@@ -419,7 +501,7 @@ async def edit_definition(
                     route_geometry_geojson = route.geojson_linestring
                     route_distance_km = route.distance_km
                     route_duration_minutes = route.duration_minutes
-                    fare = calculate_fare(route.distance_km, new_total_seats)
+                    fare = calculate_fare(route.distance_km, leg_total_seats)
                     fuel_cost_egp = fare.fuel_cost_egp
                     platform_commission_egp = fare.platform_commission_egp
                     distance_fee_egp = fare.distance_fee_egp
@@ -434,25 +516,38 @@ async def edit_definition(
                     "safety_margin_egp = $12", "updated_at = now()",
                 ]
                 inst_params: list = [
-                    inst["id"], new_dep, new_total_seats, new_price,
+                    inst["id"], new_dep, leg_total_seats, leg_price,
                     updated["notes"], Decimal(str(fair_price_per_seat)), route_distance_km,
                     route_duration_minutes, fuel_cost_egp, platform_commission_egp,
                     distance_fee_egp, safety_margin_egp,
                 ]
+                if payload.is_women_only is not None:
+                    inst_sets.append(f"is_women_only = ${len(inst_params) + 1}")
+                    inst_params.append(payload.is_women_only)
+
                 if route_changed and route_geometry_geojson is not None:
+                    # A return leg always reverses the definition's endpoints.
+                    route_origin_point = (
+                        f"POINT({new_dest_lng} {new_dest_lat})" if is_return_leg
+                        else f"POINT({new_origin_lng} {new_origin_lat})"
+                    )
+                    route_destination_point = (
+                        f"POINT({new_origin_lng} {new_origin_lat})" if is_return_leg
+                        else f"POINT({new_dest_lng} {new_dest_lat})"
+                    )
+                    route_origin_address = new_dest_address if is_return_leg else new_origin_address
+                    route_destination_address = new_origin_address if is_return_leg else new_dest_address
+                    start = len(inst_params) + 1
                     inst_sets += [
-                        "route_geometry = ST_SetSRID(ST_GeomFromGeoJSON($13), 4326)",
-                        "origin_coordinates = ST_GeomFromText($14, 4326)::geography",
-                        "origin_address = $15",
-                        "destination_coordinates = ST_GeomFromText($16, 4326)::geography",
-                        "destination_address = $17",
+                        f"route_geometry = ST_SetSRID(ST_GeomFromGeoJSON(${start}), 4326)",
+                        f"origin_coordinates = ST_GeomFromText(${start + 1}, 4326)::geography",
+                        f"origin_address = ${start + 2}",
+                        f"destination_coordinates = ST_GeomFromText(${start + 3}, 4326)::geography",
+                        f"destination_address = ${start + 4}",
                     ]
                     inst_params += [
                         json.dumps(route_geometry_geojson),
-                        f"POINT({new_origin_lng} {new_origin_lat})",
-                        new_origin_address,
-                        f"POINT({new_dest_lng} {new_dest_lat})",
-                        new_dest_address,
+                        route_origin_point, route_origin_address, route_destination_point, route_destination_address,
                     ]
 
                 # NOTE: does not sync the instance's CommissionReservation the way
@@ -478,6 +573,58 @@ async def edit_definition(
 # ─────────────────────────────────────────────────────────────────────────────
 # End definition (T018) — FR-008
 # ─────────────────────────────────────────────────────────────────────────────
+
+async def override_round_trip_occurrence(driver_id: uuid.UUID, definition_id: uuid.UUID, occurrence_date: str, outbound: datetime, returning: datetime) -> dict:
+    try:
+        selected_date = date.fromisoformat(occurrence_date)
+    except ValueError:
+        raise RecurringRideServiceError("occurrence_date_invalid", "Occurrence date must be YYYY-MM-DD.", 422)
+    if outbound.tzinfo is None:
+        outbound = outbound.replace(tzinfo=timezone.utc)
+    if returning.tzinfo is None:
+        returning = returning.replace(tzinfo=timezone.utc)
+    if outbound.date() != selected_date or returning.date() != selected_date:
+        raise RecurringRideServiceError("occurrence_date_invalid", "Both times must belong to the selected occurrence date.", 422)
+    if returning <= outbound:
+        raise RecurringRideServiceError("return_departure_invalid", "Return must depart after outbound.", 422)
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            definition = await _fetch_own_definition(conn, definition_id, driver_id)
+            if definition.get("journey_type") != "round_trip":
+                raise RecurringRideServiceError("not_round_trip", "This recurring ride is not a round trip.", 409)
+            rows = await conn.fetch(
+                """SELECT id, trip_leg, booked_seats, departure_datetime FROM rides
+                   WHERE recurring_ride_definition_id=$1 AND public.utc_date(departure_datetime)=$2
+                   FOR UPDATE""", definition_id, selected_date)
+            by_leg = {r["trip_leg"]: r for r in rows}
+            if set(by_leg) != {"outbound", "return"}:
+                raise RecurringRideServiceError("occurrence_not_found", "Round-trip occurrence not found.", 404)
+            now = _now()
+            if any(r["booked_seats"] > 0 or r["departure_datetime"] - now < timedelta(hours=_EDIT_CUTOFF_HOURS) for r in rows):
+                raise RecurringRideServiceError("edit_window_closed", "Both legs must be unbooked and outside the edit cutoff.", 409)
+            pair_ids = [by_leg["outbound"]["id"], by_leg["return"]["id"]]
+            for departure in (outbound, returning):
+                conflict = await conn.fetchval(
+                    """SELECT 1 FROM rides WHERE driver_id = $1 AND id <> ALL($2::uuid[])
+                       AND status IN ('scheduled', 'in_progress')
+                       AND departure_datetime BETWEEN $3 AND $4 LIMIT 1""",
+                    driver_id, pair_ids, departure - timedelta(hours=2), departure + timedelta(hours=2),
+                )
+                if conflict:
+                    raise RecurringRideServiceError("ride_time_conflict", "This change conflicts with another ride within two hours.", 409)
+            outbound_row = await conn.fetchrow(
+                f"UPDATE rides SET departure_datetime=$2, updated_at=now() WHERE id=$1 RETURNING {ride_service._RIDE_COLS}",
+                by_leg["outbound"]["id"], outbound,
+            )
+            return_row = await conn.fetchrow(
+                f"UPDATE rides SET departure_datetime=$2, updated_at=now() WHERE id=$1 RETURNING {ride_service._RIDE_COLS}",
+                by_leg["return"]["id"], returning,
+            )
+            for ride_id in pair_ids:
+                await conn.execute("INSERT INTO ride_history_logs (ride_id, actor_id, action) VALUES ($1, $2, 'edited')", ride_id, driver_id)
+            return {"outbound_ride": ride_service._to_response(dict(outbound_row)).model_dump(mode="json"), "return_ride": ride_service._to_response(dict(return_row)).model_dump(mode="json")}
+
 
 async def end_definition(
     driver_id: uuid.UUID, definition_id: uuid.UUID
@@ -569,6 +716,22 @@ async def _generate_one_instance(definition: dict, dep: datetime) -> bool:
     fair_price_dec = Decimal(str(fare.per_seat_price_egp))
     price_per_seat = Decimal(str(definition["price_per_seat"]))
 
+    return_route = return_fare = return_dep = None
+    if definition.get("journey_type") == "round_trip":
+        return_dep = datetime.combine(dep.date(), definition["return_departure_time"], tzinfo=timezone.utc)
+        try:
+            return_route = await route_service.calculate_route(
+                GeoPoint(lat=definition["dest_lat"], lng=definition["dest_lng"]),
+                GeoPoint(lat=definition["origin_lat"], lng=definition["origin_lng"]),
+            )
+        except RouteServiceUnavailableError:
+            logger.warning("recurring generation: return OSRM unavailable definition_id=%s", definition["id"])
+            return False
+        if not return_route.is_routable:
+            logger.warning("recurring generation: unroutable return definition_id=%s", definition["id"])
+            return False
+        return_fare = calculate_fare(return_route.distance_km, definition["return_total_seats"])
+
     async with pool.acquire() as conn:
         async with conn.transaction():
             # Same advisory lock create_ride() takes — serializes against a
@@ -604,8 +767,19 @@ async def _generate_one_instance(definition: dict, dep: datetime) -> bool:
             max_commission = (per_seat_commission * definition["total_seats"]).quantize(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
+            return_max_commission = Decimal("0")
+            if return_fare is not None:
+                return_price = Decimal(str(definition["return_price_per_seat"]))
+                return_per_seat_commission, _, _ = compute_per_seat_commission(
+                    Decimal(str(return_fare.fuel_cost_egp)), Decimal(str(return_fare.distance_fee_egp)),
+                    Decimal(str(return_fare.safety_margin_egp)), return_price,
+                    Decimal(str(return_fare.per_seat_price_egp)),
+                )
+                return_max_commission = (return_per_seat_commission * definition["return_total_seats"]).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
             wallet = await wallet_service.get_wallet_with_lock(conn, driver_id)
-            if not check_available_balance(wallet, max_commission):
+            if not check_available_balance(wallet, max_commission + return_max_commission):
                 logger.warning(
                     "recurring generation: insufficient wallet balance definition_id=%s driver_id=%s",
                     definition["id"], driver_id,
@@ -622,16 +796,16 @@ async def _generate_one_instance(definition: dict, dep: datetime) -> bool:
                     notes, status,
                     route_geometry, route_distance_km, route_duration_minutes,
                     fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp, price_source,
-                    recurring_ride_definition_id
+                    recurring_ride_definition_id, is_women_only, round_trip_group_id, trip_leg
                 ) VALUES (
                     $1, $2,
                     ST_GeomFromText($3, 4326)::geography, $4,
                     ST_GeomFromText($5, 4326)::geography, $6,
                     $7, $8, 0, $9, $10, $11, 'scheduled',
                     ST_SetSRID(ST_GeomFromGeoJSON($12), 4326), $13, $14, $15, $16, $17, $18, 'system',
-                    $19
+                    $19, $20, $21, $22
                 )
-                ON CONFLICT (recurring_ride_definition_id, public.utc_date(departure_datetime))
+                ON CONFLICT (recurring_ride_definition_id, public.utc_date(departure_datetime), trip_leg)
                     WHERE recurring_ride_definition_id IS NOT NULL
                     DO NOTHING
                 RETURNING id
@@ -643,7 +817,9 @@ async def _generate_one_instance(definition: dict, dep: datetime) -> bool:
                 json.dumps(route.geojson_linestring),
                 route.distance_km, route.duration_minutes,
                 fare.fuel_cost_egp, fare.platform_commission_egp, fare.distance_fee_egp, fare.safety_margin_egp,
-                definition["id"],
+                definition["id"], definition.get("is_women_only", False),
+                (pair_id := uuid.uuid4()) if return_route is not None else None,
+                "outbound" if return_route is not None else "one_way",
             )
             if row is None:
                 # Idempotency backstop (NFR-001) — another tick already created this
@@ -655,6 +831,34 @@ async def _generate_one_instance(definition: dict, dep: datetime) -> bool:
                 row["id"], driver_id,
             )
             await create_reservation(conn, wallet["id"], driver_id, row["id"], max_commission)
+
+            if return_route is not None and return_fare is not None and return_dep is not None:
+                return_row = await conn.fetchrow(
+                    """
+                    INSERT INTO rides (
+                        driver_id, vehicle_id, origin_coordinates, origin_address,
+                        destination_coordinates, destination_address, departure_datetime,
+                        total_seats, booked_seats, price_per_seat, fair_price_per_seat, notes, status,
+                        route_geometry, route_distance_km, route_duration_minutes, fuel_cost_egp,
+                        platform_commission_egp, distance_fee_egp, safety_margin_egp, price_source,
+                        recurring_ride_definition_id, is_women_only, round_trip_group_id, trip_leg
+                    ) VALUES (
+                        $1,$2,ST_GeomFromText($3,4326)::geography,$4,ST_GeomFromText($5,4326)::geography,$6,$7,
+                        $8,0,$9,$10,$11,'scheduled',ST_SetSRID(ST_GeomFromGeoJSON($12),4326),$13,$14,$15,$16,$17,$18,'system',
+                        $19,$20,$21,'return'
+                    ) RETURNING id
+                    """,
+                    driver_id, definition["vehicle_id"],
+                    f"POINT({definition['dest_lng']} {definition['dest_lat']})", definition["destination_address"],
+                    f"POINT({definition['origin_lng']} {definition['origin_lat']})", definition["origin_address"],
+                    return_dep, definition["return_total_seats"], Decimal(str(definition["return_price_per_seat"])),
+                    Decimal(str(return_fare.per_seat_price_egp)), definition["notes"], json.dumps(return_route.geojson_linestring),
+                    return_route.distance_km, return_route.duration_minutes, return_fare.fuel_cost_egp,
+                    return_fare.platform_commission_egp, return_fare.distance_fee_egp, return_fare.safety_margin_egp,
+                    definition["id"], definition.get("is_women_only", False), pair_id,
+                )
+                await conn.execute("INSERT INTO ride_history_logs (ride_id, actor_id, action) VALUES ($1, $2, 'created')", return_row["id"], driver_id)
+                await create_reservation(conn, wallet["id"], driver_id, return_row["id"], return_max_commission)
 
     return True
 
@@ -683,6 +887,8 @@ async def generate_upcoming_instances() -> int:
                 ST_Y(rd.destination_coordinates::geometry) AS dest_lat,
                 ST_X(rd.destination_coordinates::geometry) AS dest_lng,
                 rd.departure_time, rd.weekdays, rd.total_seats, rd.price_per_seat, rd.notes, rd.status,
+                rd.journey_type, rd.is_women_only, rd.return_departure_time,
+                rd.return_total_seats, rd.return_price_per_seat,
                 rd.created_at, rd.updated_at
             FROM recurring_ride_definitions rd
             JOIN profiles p ON p.id = rd.driver_id

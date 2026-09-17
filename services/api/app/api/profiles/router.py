@@ -89,6 +89,7 @@ def update_profile(
         body.language_preference,
         body.phone_number,
         body.date_of_birth,
+        body.gender,
     )
 
 

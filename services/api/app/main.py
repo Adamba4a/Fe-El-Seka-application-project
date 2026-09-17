@@ -26,6 +26,7 @@ from app.api.bookings.router import router as bookings_router
 from app.api.geocode.router import router as geocode_router
 from app.api.groups.router import router as groups_router
 from app.api.health import router as health_router
+from app.api.internal.metrics_router import router as metrics_router
 from app.api.internal.revocation_router import router as internal_router
 from app.api.internal.route_intelligence_router import router as route_intelligence_router
 from app.api.loyalty.loyalty_router import router as loyalty_router
@@ -47,6 +48,7 @@ from app.api.wallet_topup.router import router as wallet_topup_router
 from app.api.wallet_withdrawals.router import router as wallet_withdrawals_router
 from app.core.config import settings
 from app.core.database import close_pool, create_pool
+from app.core.request_metrics import request_metrics
 from app.services import ai_client as ai_client_module
 from app.services.booking_service import booking_expiry_loop
 from app.services.continuous_learning_config_service import (
@@ -156,6 +158,29 @@ async def maintenance_gate(request: Request, call_next):
     return await call_next(request)
 
 
+@app.middleware("http")
+async def collect_request_metrics(request: Request, call_next):
+    # The metrics response is itself an observation tool. Excluding it avoids
+    # monitoring traffic altering the latency/error values it reports.
+    if request.url.path == "/api/internal/metrics":
+        return await call_next(request)
+    request_metrics.begin()
+    started_at = asyncio.get_running_loop().time()
+    try:
+        response = await call_next(request)
+    except BaseException:
+        request_metrics.abandon()
+        raise
+    route = request.scope.get("route")
+    request_metrics.record(
+        getattr(route, "path", request.url.path),
+        request.method,
+        response.status_code,
+        (asyncio.get_running_loop().time() - started_at) * 1_000,
+    )
+    return response
+
+
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc: Exception) -> JSONResponse:
     # A status-code handler intercepts every HTTPException(404, ...) before the
@@ -202,7 +227,10 @@ async def validation_handler(request: Request, exc: RequestValidationError) -> J
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logging.getLogger(__name__).error(
         "Unhandled exception on %s %s: %s",
-        request.method, request.url.path, exc, exc_info=True,
+        request.method,
+        request.url.path,
+        exc,
+        exc_info=True,
     )
     return JSONResponse(
         status_code=500,
@@ -211,6 +239,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 
 
 app.include_router(health_router)
+app.include_router(metrics_router, prefix="/api/internal", tags=["internal"])
 app.include_router(support_router, prefix="/api/support", tags=["support"])
 app.include_router(admin_support_router, prefix="/api/admin/support", tags=["admin"])
 app.include_router(health_router, prefix="/api")

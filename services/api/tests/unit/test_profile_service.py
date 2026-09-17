@@ -6,7 +6,7 @@ import pytest
 from fastapi import HTTPException
 from pydantic import ValidationError
 
-from app.models.profile import ProfileUpdate
+from app.models.profile import ProfileUpdate, PublicProfileResponse
 from app.services import profile_service as svc
 
 # ── ProfileUpdate.phone_number: format validation (Spec 020, FR-002/FR-011) ──
@@ -42,6 +42,12 @@ class TestProfileUpdatePhoneNumberValidation:
 
     def test_strips_surrounding_whitespace(self):
         assert ProfileUpdate(phone_number="  +201234567890  ").phone_number == "+201234567890"
+
+    def test_gender_accepts_only_supported_private_values(self):
+        assert ProfileUpdate(gender="woman").gender == "woman"
+        assert ProfileUpdate(gender="man").gender == "man"
+        with pytest.raises(ValidationError):
+            ProfileUpdate(gender="other")
 
 
 # ── update_profile: phone_number persistence ─────────────────────────────────
@@ -126,6 +132,21 @@ class TestUpdateProfilePersistsPhoneNumber:
         payload, _ = fake._table.captured_updates[0]
         assert payload == {"display_name": "New Name"}
         assert "phone_number" not in payload
+
+    def test_persists_private_gender_without_changing_public_profile_fields(self, monkeypatch):
+        fake = _FakeSupabase(_base_row())
+        monkeypatch.setattr(svc, "_supabase", lambda: fake)
+
+        result = svc.update_profile("user-1", None, gender="woman")
+
+        payload, _ = fake._table.captured_updates[0]
+        assert payload == {"gender": "woman"}
+        assert result["gender"] == "woman"
+
+
+def test_public_profile_contract_never_includes_gender():
+    """Gender is deliberately private even when a profile row contains it."""
+    assert "gender" not in PublicProfileResponse.model_fields
 
 
 # ── update_profile: date_of_birth minimum-age gate (Spec 021, FR-002/FR-017) ─
