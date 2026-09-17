@@ -1,7 +1,10 @@
 import type { Profile, ProfileSetup, ProfileUpdate, PublicProfile } from "@fe-el-seka/shared";
 import { env } from "../env";
 
-const base = env.apiUrl;
+// Profile setup and onboarding are the first authenticated browser requests.
+// Send them through the Next.js same-origin proxy so they are not exposed to a
+// cross-origin preflight/edge-proxy failure between the app and FastAPI.
+const base = typeof window === "undefined" ? env.serverApiUrl : "/api-proxy";
 const NETWORK_RETRY_DELAY_MS = 400;
 
 // A dropped response can happen after an idempotent profile write has already
