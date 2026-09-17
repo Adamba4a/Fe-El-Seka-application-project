@@ -13,7 +13,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, display_name, verification_status, org_verified_at")
+    .select("role, display_name, verification_status, org_verified_at, gender")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -22,6 +22,7 @@ export default async function DashboardPage() {
   // signup, and this page must not skip straight to full app access.
   if (!profile) redirect("/role-select");
   if (profile.display_name === "New User") redirect("/profile");
+  if (!profile.gender) redirect("/profile");
 
   // Org-email access gate (Spec 025): catches direct navigation to
   // /dashboard, not just the initial landing route.

@@ -113,6 +113,10 @@
       "phoneLabel": "رقم الهاتف *",
       "phonePlaceholder": "01234567890",
       "dateOfBirthLabel": "تاريخ الميلاد *",
+      "genderLabel": "النوع *",
+      "genderPlaceholder": "اختر النوع",
+      "genderWoman": "امرأة",
+      "genderMan": "رجل",
       "submit": "إرسال",
       "submitting": "جارٍ الإرسال…",
       "loading": "جارٍ التحميل…",
@@ -120,6 +124,7 @@
         "nameTooShort": "يرجى إدخال اسمك (حرفان على الأقل)",
         "phoneInvalid": "يرجى إدخال رقم هاتف صحيح مكوّن من 11 رقمًا، مثل 01234567890",
         "dobRequired": "يرجى إدخال تاريخ ميلادك",
+        "genderRequired": "يرجى اختيار النوع",
         "photoRequired": "يرجى تحميل صورة شخصية",
         "underage": "يجب أن يكون عمرك 18 عامًا على الأقل لاستخدام Triplyy.",
         "submissionFailed": "فشل الإرسال. يرجى المحاولة مرة أخرى.",
@@ -613,6 +618,11 @@
       "weekdaysLabel": "تتكرر في",
       "seatsLabel": "المقاعد",
       "priceLabel": "السعر لكل مقعد",
+      "womenOnly": "للسيدات فقط",
+      "roundTrip": "ذهاب وعودة",
+      "returnTimeLabel": "وقت العودة",
+      "returnSeatsLabel": "مقاعد العودة",
+      "returnPriceLabel": "سعر العودة",
       "notesLabel": "ملاحظات",
       "editButton": "تعديل",
       "cancelEdit": "إلغاء",
@@ -1077,6 +1087,9 @@
     "groupRide": "مجموعة: {name}",
     "recurringBadge": "رحلة متكررة",
     "recurringDatesAvailable": "{count} تواريخ متاحة"
+    ,"womenOnly": "للسيدات فقط"
+    ,"outbound": "ذهاب"
+    ,"return": "عودة"
   },
   "matchScoreBadge": {
     "matchPercent": "تطابق {score}%"
@@ -1162,6 +1175,13 @@
     },
     "postingRecurringRide": "جارٍ إعداد الرحلة المتكررة…",
     "postRecurringRide": "إنشاء رحلة متكررة",
+    "womenOnlyLabel": "للسيدات فقط",
+    "journeyTypeLabel": "نوع الرحلة",
+    "oneWay": "ذهاب فقط",
+    "roundTrip": "ذهاب وعودة",
+    "returnDepartureLabel": "موعد العودة",
+    "returnSeatsLabel": "مقاعد العودة",
+    "returnPriceLabel": "سعر العودة",
     "errors": {
       "originRequired": "يرجى تحديد نقطة انطلاق على الخريطة.",
       "destinationRequired": "يرجى تحديد وجهة على الخريطة.",
@@ -1174,6 +1194,8 @@
       "fareEstimatePending": "يرجى الانتظار حتى يكتمل حساب السعر.",
       "recurringTimeRequired": "يرجى اختيار وقت الانطلاق.",
       "recurringWeekdaysRequired": "يرجى اختيار يوم واحد على الأقل من أيام الأسبوع."
+      ,"returnDepartureInvalid": "اختر وقت عودة بعد وقت الانطلاق."
+      ,"returnDetailsInvalid": "أدخل مقاعد وسعر عودة صالحين."
     }
   },
   "driverDashboard": {

@@ -124,24 +124,51 @@ async def create_ride(
             },
         )
 
+    if payload.journey_type not in ("one_way", "round_trip"):
+        raise HTTPException(status_code=422, detail={"error": "journey_type_invalid", "message": "Journey type must be one_way or round_trip."})
+    if payload.journey_type == "round_trip":
+        if not payload.return_departure_datetime or not payload.return_total_seats or payload.return_final_price_per_seat is None:
+            raise HTTPException(status_code=422, detail={"error": "return_details_required", "message": "Return departure, seats, and price are required for a round trip."})
+        if payload.return_departure_datetime <= payload.departure_datetime:
+            raise HTTPException(status_code=422, detail={"error": "return_departure_invalid", "message": "Return departure must be after outbound departure."})
+
+        # Calculate *both* routes before any database write.  This avoids the
+        # particularly bad partial-create case where an unroutable return leg
+        # left a bookable outbound ride behind.
+        try:
+            reverse_route = await route_service.calculate_route(destination, origin)
+        except RouteServiceUnavailableError:
+            raise HTTPException(status_code=503, detail={"error": "route_intelligence_unavailable", "message": "Route intelligence temporarily unavailable. Please try again shortly."})
+        if not reverse_route.is_routable:
+            raise HTTPException(status_code=422, detail={"error": "return_unroutable", "message": "No route found for the return journey."})
+        reverse_fare = calculate_fare(reverse_route.distance_km, payload.return_total_seats)
+
     fare = calculate_fare(route.distance_km, payload.total_seats)
 
     try:
-        ride = await ride_service.create_ride(
-            driver_id=driver_id,
-            vehicle_id=uuid.UUID(str(vehicle["id"])),
-            vehicle_seat_count=vehicle["seat_count"],
-            payload=payload,
-            route_geometry_geojson=route.geojson_linestring,
-            route_distance_km=route.distance_km,
-            route_duration_minutes=route.duration_minutes,
-            fuel_cost_egp=fare.fuel_cost_egp,
-            platform_commission_egp=fare.platform_commission_egp,
-            distance_fee_egp=fare.distance_fee_egp,
-            safety_margin_egp=fare.safety_margin_egp,
-            fair_price_per_seat=fare.per_seat_price_egp,
-            final_price_per_seat=payload.final_price_per_seat,
-        )
+        import uuid as _uuid
+        pair_id = _uuid.uuid4() if payload.journey_type == "round_trip" else None
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                ride = await ride_service.create_ride(
+                    driver_id=driver_id, vehicle_id=uuid.UUID(str(vehicle["id"])), vehicle_seat_count=vehicle["seat_count"] , payload=payload,
+                    route_geometry_geojson=route.geojson_linestring, route_distance_km=route.distance_km, route_duration_minutes=route.duration_minutes,
+                    fuel_cost_egp=fare.fuel_cost_egp, platform_commission_egp=fare.platform_commission_egp, distance_fee_egp=fare.distance_fee_egp,
+                    safety_margin_egp=fare.safety_margin_egp, fair_price_per_seat=fare.per_seat_price_egp,
+                    final_price_per_seat=payload.final_price_per_seat, round_trip_group_id=pair_id,
+                    trip_leg="outbound" if pair_id else "one_way", conn=conn,
+                )
+                return_ride = None
+                if pair_id:
+                    return_payload = payload.model_copy(update={"origin": payload.destination, "destination": payload.origin, "departure_datetime": payload.return_departure_datetime, "total_seats": payload.return_total_seats, "final_price_per_seat": payload.return_final_price_per_seat})
+                    return_ride = await ride_service.create_ride(
+                        driver_id=driver_id, vehicle_id=uuid.UUID(str(vehicle["id"])), vehicle_seat_count=vehicle["seat_count"], payload=return_payload,
+                        route_geometry_geojson=reverse_route.geojson_linestring, route_distance_km=reverse_route.distance_km, route_duration_minutes=reverse_route.duration_minutes,
+                        fuel_cost_egp=reverse_fare.fuel_cost_egp, platform_commission_egp=reverse_fare.platform_commission_egp, distance_fee_egp=reverse_fare.distance_fee_egp,
+                        safety_margin_egp=reverse_fare.safety_margin_egp, fair_price_per_seat=reverse_fare.per_seat_price_egp,
+                        final_price_per_seat=payload.return_final_price_per_seat, round_trip_group_id=pair_id, trip_leg="return", conn=conn,
+                    )
     except RideServiceError as exc:
         return _service_error_response(exc)
 
@@ -152,7 +179,10 @@ async def create_ride(
         device_id=request.headers.get("x-device-id"),
         ip_address=request.client.host if request.client else None,
     )
-    return {"ride": ride.model_dump(mode="json")}
+    result = {"ride": ride.model_dump(mode="json"), "outbound_ride": ride.model_dump(mode="json")}
+    if return_ride:
+        result["return_ride"] = return_ride.model_dump(mode="json")
+    return result
 
 
 # ─────────────────────────────────────────────────────────────────────────────

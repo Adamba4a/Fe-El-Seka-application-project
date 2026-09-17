@@ -25,6 +25,7 @@ class ProfileUpdate(BaseModel):
     language_preference: Literal["en", "ar"] | None = None
     phone_number: str | None = None
     date_of_birth: date | None = None
+    gender: Literal["woman", "man"] | None = None
 
     @field_validator("display_name")
     @classmethod
@@ -70,6 +71,7 @@ class ProfileResponse(BaseModel):
     created_at: str
     language_preference: str | None = None
     date_of_birth: str | None = None
+    gender: Literal["woman", "man"] | None = None
     org_verified_at: str | None = None
     org_verified_domain: str | None = None
 

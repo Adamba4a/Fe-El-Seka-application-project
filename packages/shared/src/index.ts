@@ -25,6 +25,7 @@ export type {
   RecurringRideDefinitionListResponse,
   RecurringRideDefinitionDetailResponse,
   RecurringRideDefinitionUpdateResponse,
+  RecurringOccurrenceOverridePayload,
 } from "./types/rides";
 export { formatPhone, formatDate, formatCurrency, computeNetEarningsPerSeat, FARE_SPLIT_SEATS } from "./utils";
 

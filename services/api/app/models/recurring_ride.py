@@ -18,6 +18,11 @@ class RecurringRideDefinitionCreateRequest(BaseModel):
     total_seats: int
     price_per_seat: float
     notes: Optional[str] = None
+    journey_type: str = "one_way"
+    is_women_only: bool = False
+    return_departure_time: Optional[time] = None
+    return_total_seats: Optional[int] = None
+    return_price_per_seat: Optional[float] = None
 
 
 class RecurringRideDefinitionUpdateRequest(BaseModel):
@@ -28,6 +33,11 @@ class RecurringRideDefinitionUpdateRequest(BaseModel):
     total_seats: Optional[int] = None
     price_per_seat: Optional[float] = None
     notes: Optional[str] = None
+    journey_type: Optional[str] = None
+    is_women_only: Optional[bool] = None
+    return_departure_time: Optional[time] = None
+    return_total_seats: Optional[int] = None
+    return_price_per_seat: Optional[float] = None
 
 
 class RecurringRideDefinitionResponse(BaseModel):
@@ -45,6 +55,11 @@ class RecurringRideDefinitionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     upcoming_instance_count: Optional[int] = None
+    journey_type: str = "one_way"
+    is_women_only: bool = False
+    return_departure_time: Optional[time] = None
+    return_total_seats: Optional[int] = None
+    return_price_per_seat: Optional[str] = None
 
 
 class RecurringRideDefinitionListResponse(BaseModel):
@@ -59,3 +74,8 @@ class RecurringRideDefinitionDetailResponse(BaseModel):
 class RecurringRideDefinitionUpdateResponse(BaseModel):
     definition: RecurringRideDefinitionResponse
     updated_instance_count: int
+
+
+class RecurringOccurrenceOverrideRequest(BaseModel):
+    outbound_departure_datetime: datetime
+    return_departure_datetime: datetime

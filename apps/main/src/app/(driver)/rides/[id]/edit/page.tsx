@@ -108,6 +108,7 @@ export default function EditRidePage() {
           notes: ride.notes ?? "",
           price_per_seat: ride.price_per_seat,
           fair_price_per_seat: ride.fair_price_per_seat,
+          is_women_only: ride.is_women_only,
         }}
         loading={loading}
         error={submitError}

@@ -1,4 +1,5 @@
 export type RideStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
+export type RideTripLeg = "one_way" | "outbound" | "return";
 export type RideAction = "created" | "edited" | "cancelled" | "started" | "completed";
 
 export interface Coordinates {
@@ -36,6 +37,9 @@ export interface Ride {
   group_id: string | null;
   group_name?: string | null;
   recurring_ride_definition_id: string | null;
+  is_women_only: boolean;
+  round_trip_group_id: string | null;
+  trip_leg: RideTripLeg;
 }
 
 export interface RideHistoryEntry {
@@ -55,6 +59,11 @@ export interface CreateRidePayload {
   notes?: string;
   final_price_per_seat?: number;
   group_id?: string;
+  is_women_only?: boolean;
+  journey_type?: "one_way" | "round_trip";
+  return_departure_datetime?: string;
+  return_total_seats?: number;
+  return_final_price_per_seat?: number;
 }
 
 export interface EditRidePayload {
@@ -63,6 +72,7 @@ export interface EditRidePayload {
   total_seats?: number;
   notes?: string;
   final_price_per_seat?: number;
+  is_women_only?: boolean;
 }
 
 export interface CancelRidePayload {
@@ -98,6 +108,11 @@ export interface RecurringRideDefinition {
   created_at: string;
   updated_at: string;
   upcoming_instance_count?: number | null;
+  journey_type: "one_way" | "round_trip";
+  is_women_only: boolean;
+  return_departure_time: string | null;
+  return_total_seats: number | null;
+  return_price_per_seat: string | null;
 }
 
 export interface CreateRecurringRideDefinitionPayload {
@@ -109,6 +124,11 @@ export interface CreateRecurringRideDefinitionPayload {
   total_seats: number;
   price_per_seat: number;
   notes?: string;
+  journey_type?: "one_way" | "round_trip";
+  is_women_only?: boolean;
+  return_departure_time?: string;
+  return_total_seats?: number;
+  return_price_per_seat?: number;
 }
 
 export interface EditRecurringRideDefinitionPayload {
@@ -119,6 +139,16 @@ export interface EditRecurringRideDefinitionPayload {
   total_seats?: number;
   price_per_seat?: number;
   notes?: string;
+  journey_type?: "one_way" | "round_trip";
+  is_women_only?: boolean;
+  return_departure_time?: string;
+  return_total_seats?: number;
+  return_price_per_seat?: number;
+}
+
+export interface RecurringOccurrenceOverridePayload {
+  outbound_departure_datetime: string;
+  return_departure_datetime: string;
 }
 
 export interface RecurringRideDefinitionListResponse {

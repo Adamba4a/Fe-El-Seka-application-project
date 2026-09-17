@@ -25,6 +25,11 @@ class CreateRideRequest(BaseModel):
     notes: Optional[str] = None
     final_price_per_seat: Optional[float] = None
     group_id: Optional[UUID] = None
+    is_women_only: bool = False
+    journey_type: str = "one_way"
+    return_departure_datetime: Optional[datetime] = None
+    return_total_seats: Optional[int] = None
+    return_final_price_per_seat: Optional[float] = None
 
 
 class EditRideRequest(BaseModel):
@@ -33,6 +38,7 @@ class EditRideRequest(BaseModel):
     total_seats: Optional[int] = None
     notes: Optional[str] = None
     final_price_per_seat: Optional[float] = None
+    is_women_only: Optional[bool] = None
 
 
 class CancelRideRequest(BaseModel):
@@ -84,6 +90,9 @@ class RideResponse(BaseModel):
     group_id: Optional[UUID] = None
     group_name: Optional[str] = None
     recurring_ride_definition_id: Optional[UUID] = None
+    is_women_only: bool = False
+    round_trip_group_id: Optional[UUID] = None
+    trip_leg: str = "one_way"
 
 
 class RideDetailResponse(BaseModel):

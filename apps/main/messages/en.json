@@ -113,6 +113,10 @@
       "phoneLabel": "Phone number *",
       "phonePlaceholder": "01234567890",
       "dateOfBirthLabel": "Date of birth *",
+      "genderLabel": "Gender *",
+      "genderPlaceholder": "Select gender",
+      "genderWoman": "Woman",
+      "genderMan": "Man",
       "submit": "Submit",
       "submitting": "Submitting…",
       "loading": "Loading…",
@@ -120,6 +124,7 @@
         "nameTooShort": "Please enter your name (min 2 characters)",
         "phoneInvalid": "Please enter a valid 11-digit phone number, e.g. 01234567890",
         "dobRequired": "Please enter your date of birth",
+        "genderRequired": "Please select your gender",
         "photoRequired": "Please upload a profile photo",
         "underage": "You must be at least 18 years old to use Triplyy.",
         "submissionFailed": "Submission failed. Please try again.",
@@ -613,6 +618,11 @@
       "weekdaysLabel": "Repeats on",
       "seatsLabel": "Seats",
       "priceLabel": "Price per seat",
+      "womenOnly": "Women only",
+      "roundTrip": "Round trip",
+      "returnTimeLabel": "Return time",
+      "returnSeatsLabel": "Return seats",
+      "returnPriceLabel": "Return price",
       "notesLabel": "Notes",
       "editButton": "Edit",
       "cancelEdit": "Cancel",
@@ -1077,6 +1087,9 @@
     "groupRide": "Group: {name}",
     "recurringBadge": "Recurring Ride",
     "recurringDatesAvailable": "{count} dates available"
+    ,"womenOnly": "Women only"
+    ,"outbound": "Outbound"
+    ,"return": "Return"
   },
   "matchScoreBadge": {
     "matchPercent": "{score}% match"
@@ -1162,6 +1175,13 @@
     },
     "postingRecurringRide": "Setting up recurring ride…",
     "postRecurringRide": "Create Recurring Ride",
+    "womenOnlyLabel": "Women only",
+    "journeyTypeLabel": "Journey type",
+    "oneWay": "One way",
+    "roundTrip": "Round trip",
+    "returnDepartureLabel": "Return departure",
+    "returnSeatsLabel": "Return seats",
+    "returnPriceLabel": "Return price",
     "errors": {
       "originRequired": "Please select an origin on the map.",
       "destinationRequired": "Please select a destination on the map.",
@@ -1174,6 +1194,8 @@
       "fareEstimatePending": "Please wait for the price to finish calculating.",
       "recurringTimeRequired": "Please choose a departure time.",
       "recurringWeekdaysRequired": "Please select at least one day of the week."
+      ,"returnDepartureInvalid": "Choose a return time after departure."
+      ,"returnDetailsInvalid": "Enter valid return seats and price."
     }
   },
   "driverDashboard": {

@@ -26,6 +26,7 @@ export default function ProfileOnboardingPage() {
   const [displayName, setDisplayName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
+  const [gender, setGender] = useState<"woman" | "man" | "">("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
 
@@ -48,6 +49,7 @@ export default function ProfileOnboardingPage() {
         setDisplayName(savedName);
         setPhoneNumber((profile.phone_number ?? "").replace(/^\+2/, ""));
         setDateOfBirth(profile.date_of_birth ?? "");
+        setGender(profile.gender ?? "");
         setExistingPhotoUrl(profile.profile_photo_url ?? null);
         setInitializing(false);
       } catch (err: unknown) {
@@ -63,6 +65,7 @@ export default function ProfileOnboardingPage() {
   const nameValid = displayName.trim().length >= 2;
   const phoneValid = LOCAL_PHONE_RE.test(phoneNumber.trim());
   const dobValid = dateOfBirth.trim().length > 0;
+  const genderValid = gender !== "";
   const photoValid = !!photo || !!existingPhotoUrl;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,6 +80,10 @@ export default function ProfileOnboardingPage() {
     }
     if (!dateOfBirth.trim()) {
       setError(t("errors.dobRequired"));
+      return;
+    }
+    if (!gender) {
+      setError(t("errors.genderRequired"));
       return;
     }
     if (!photoValid) {
@@ -97,6 +104,7 @@ export default function ProfileOnboardingPage() {
         display_name: displayName.trim(),
         phone_number: `+2${phoneNumber.trim()}`,
         date_of_birth: dateOfBirth,
+        gender,
       });
       router.push(role === "driver" ? "/" : "/dashboard");
     } catch (err: unknown) {
@@ -151,6 +159,21 @@ export default function ProfileOnboardingPage() {
               className="px-3 py-2 border border-border-default rounded-md text-body-sm outline-none focus:border-border-focus transition-colors"
               maxLength={50}
             />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-label text-content-secondary">
+              {t("genderLabel")} {genderValid && <span className="text-status-completed">✓</span>}
+            </label>
+            <select
+              value={gender}
+              onChange={(e) => setGender(e.target.value as "woman" | "man" | "")}
+              className="px-3 py-2 border border-border-default rounded-md text-body-sm outline-none focus:border-border-focus transition-colors"
+            >
+              <option value="">{t("genderPlaceholder")}</option>
+              <option value="woman">{t("genderWoman")}</option>
+              <option value="man">{t("genderMan")}</option>
+            </select>
           </div>
 
           <div className="flex flex-col gap-1">

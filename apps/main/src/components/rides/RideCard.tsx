@@ -17,6 +17,7 @@ function formatDate(iso: string, locale: Locale) {
 
 export function RideCard({ ride, href }: { ride: Ride; href?: string }) {
   const t = useTranslations("driver.rides");
+  const cardT = useTranslations("rideCard");
   const locale = useLocale() as Locale;
   return (
     <Link href={href ?? `/rides/${ride.id}/manage`} className="block">
@@ -34,6 +35,13 @@ export function RideCard({ ride, href }: { ride: Ride; href?: string }) {
           <span className="inline-flex items-center gap-1 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-medium px-2 py-0.5 w-fit">
             {t("sponsoredByGroup", { groupName: ride.group_name })}
           </span>
+        )}
+
+        {(ride.is_women_only || ride.trip_leg !== "one_way") && (
+          <div className="flex gap-1.5 text-xs font-medium">
+            {ride.is_women_only && <span className="rounded-full bg-pink-100 px-2 py-0.5 text-pink-700">{cardT("womenOnly")}</span>}
+            {ride.trip_leg !== "one_way" && <span className="rounded-full bg-brand-primary/10 px-2 py-0.5 text-brand-primary">{ride.trip_leg === "outbound" ? cardT("outbound") : cardT("return")}</span>}
+          </div>
         )}
 
         <div className="flex items-center justify-between text-xs text-content-muted">

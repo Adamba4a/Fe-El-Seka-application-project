@@ -33,6 +33,9 @@ class _RoutedFakeConn:
     async def fetchrow(self, query, *args):
         return self._resolve(self._fetchrow_rules, query)
 
+    async def fetchval(self, query, *args):
+        raise AssertionError(f"Unexpected scalar query (booking should have stopped first): {query}")
+
     def transaction(self):
         return _FakeTransactionCtx()
 
@@ -47,6 +50,7 @@ def _ride_row(**overrides):
         "total_seats": 4,
         "driver_id": uuid.uuid4(),
         "group_id": None,
+        "is_women_only": False,
     }
     row.update(overrides)
     return row
@@ -98,3 +102,26 @@ class TestCreateBookingSelfBookingGuard:
             )
 
         assert exc_info.value.status_code == 404
+
+
+class TestCreateBookingWomenOnlyGuard:
+    async def test_non_woman_is_rejected_before_any_booking_mutation(self):
+        passenger_id = uuid.uuid4()
+        conn = _RoutedFakeConn(
+            fetchrow_rules=[("FROM rides WHERE id", _ride_row(is_women_only=True))]
+        )
+        conn.fetchval = lambda query, *args: _async_value("man")
+
+        with pytest.raises(HTTPException) as exc_info:
+            await booking_service.create_booking(
+                conn, ride_id=uuid.uuid4(), passenger_id=passenger_id,
+                boarding_lat=30.0, boarding_lng=31.0, alighting_lat=30.1, alighting_lng=31.1,
+                premium_pickup=False, premium_dropoff=False, premium_pickup_fee=None, premium_dropoff_fee=None,
+            )
+
+        assert exc_info.value.status_code == 403
+        assert exc_info.value.detail["error"] == "women_only_ride"
+
+
+async def _async_value(value):
+    return value
