@@ -14,8 +14,44 @@ async function fetchProfileWrite(url: string, init: RequestInit): Promise<Respon
   } catch (error) {
     if (!(error instanceof TypeError)) throw error;
     await new Promise((resolve) => setTimeout(resolve, NETWORK_RETRY_DELAY_MS));
-    return fetch(url, init);
+    try {
+      return await fetch(url, init);
+    } catch (retryError) {
+      if (!(retryError instanceof TypeError)) throw retryError;
+      // Never expose a browser implementation detail such as "Failed to
+      // fetch" as the signup result. It gives the person no indication that
+      // the save can simply be retried, and it masks the fact that the first
+      // idempotent write may already have succeeded.
+      throw {
+        error: "network_error",
+        message: "We couldn't reach the server. Please check your connection and try again.",
+      };
+    }
   }
+}
+
+// The authentication endpoint's `is_new_user` value can be stale if a prior
+// setup request reached the API but its response was lost. The profile record
+// itself is the source of truth for where an authenticated person belongs.
+// If the API is temporarily unreachable, retain the auth response as a safe
+// fallback so a genuine first-time user can still enter onboarding.
+export async function hasProfile(token: string): Promise<boolean | null> {
+  try {
+    const res = await fetch(`${base}/api/profiles/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) return true;
+    if (res.status === 404) return false;
+  } catch {
+    // The caller will use the sign-in response as a fallback.
+  }
+  return null;
+}
+
+export async function signedInRedirect(token: string, isNewUser: boolean): Promise<"/" | "/role-select"> {
+  const profileExists = await hasProfile(token);
+  if (profileExists !== null) return profileExists ? "/" : "/role-select";
+  return isNewUser ? "/role-select" : "/";
 }
 
 function authHeaders(token: string) {
@@ -26,11 +62,15 @@ function authHeaders(token: string) {
 // a "detail" key ({"detail": {"error": ..., "message": ...}}) — unwrap it so
 // callers can check err.error / err.message directly.
 async function parseErrorResponse(res: Response): Promise<{ error?: string; message?: string }> {
-  const body = await res.json();
-  if (body && typeof body === "object" && body.detail && typeof body.detail === "object") {
-    return body.detail;
+  try {
+    const body = await res.json();
+    if (body && typeof body === "object" && body.detail && typeof body.detail === "object") {
+      return body.detail;
+    }
+    return body;
+  } catch {
+    return { message: `Server error (${res.status}). Please try again.` };
   }
-  return body;
 }
 
 export async function setupProfile(token: string, data: ProfileSetup): Promise<Profile> {
@@ -52,11 +92,36 @@ export async function getMe(token: string): Promise<Profile> {
 }
 
 export async function updateMe(token: string, data: ProfileUpdate): Promise<Profile> {
-  const res = await fetchProfileWrite(`${base}/api/profiles/me`, {
-    method: "PUT",
-    headers: authHeaders(token),
-    body: JSON.stringify(data),
-  });
+  let res: Response;
+  try {
+    res = await fetchProfileWrite(`${base}/api/profiles/me`, {
+      method: "PUT",
+      headers: authHeaders(token),
+      body: JSON.stringify(data),
+    });
+  } catch (error) {
+    const networkError = error as { error?: string };
+    if (networkError.error !== "network_error") throw error;
+
+    // A proxy may drop the response after the update has reached the API.
+    // Confirming the persisted fields makes this idempotent onboarding write
+    // complete instead of asking the user to submit the same form again.
+    try {
+      const saved = await getMe(token);
+      const dateMatches = !data.date_of_birth || saved.date_of_birth === data.date_of_birth;
+      if (
+        (!data.display_name || saved.display_name === data.display_name) &&
+        (!data.phone_number || saved.phone_number === data.phone_number) &&
+        dateMatches &&
+        (!data.gender || saved.gender === data.gender)
+      ) {
+        return saved;
+      }
+    } catch {
+      // Surface the original connection error when persistence cannot be confirmed.
+    }
+    throw error;
+  }
   if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
 }

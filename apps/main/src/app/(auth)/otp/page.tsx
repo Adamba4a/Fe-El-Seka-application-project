@@ -5,6 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { useTranslations } from "next-intl";
 import { OtpInput } from "@/components/auth/OtpInput";
 import { verifyOtp, requestOtp } from "@/lib/api/auth";
+import { signedInRedirect } from "@/lib/api/profiles";
 
 export default function OtpPage() {
   const t = useTranslations("auth.otp");
@@ -25,7 +26,10 @@ export default function OtpPage() {
     setError("");
     try {
       const session = await verifyOtp(email, otp);
-      const redirectTo = session.user.is_new_user ? "/role-select" : "/";
+      const redirectTo = await signedInRedirect(
+        session.access_token,
+        session.user.is_new_user
+      );
 
       // Set the Supabase session in browser cookies so the middleware can
       // read it on the next navigation. The fixed cookieOptions.name keeps

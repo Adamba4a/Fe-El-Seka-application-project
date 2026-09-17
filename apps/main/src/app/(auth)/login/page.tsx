@@ -7,6 +7,7 @@ import { requestOtp, signInWithPassword } from "@/lib/api/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
 import { LanguageToggle } from "@/components/layout/LanguageToggle";
+import { signedInRedirect } from "@/lib/api/profiles";
 
 function GoogleIcon() {
   return (
@@ -115,7 +116,9 @@ export default function LoginPage() {
         return;
       }
 
-      window.location.replace(session.user.is_new_user ? "/role-select" : "/");
+      window.location.replace(
+        await signedInRedirect(session.access_token, session.user.is_new_user)
+      );
     } catch (err: unknown) {
       const e = err as { error?: string; message?: string };
       if (e?.error === "invalid_credentials") {
