@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { RoleSelector } from "@/components/auth/RoleSelector";
-import { setupProfile } from "@/lib/api/profiles";
+import { hasProfile, setupProfile } from "@/lib/api/profiles";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
 
@@ -14,6 +14,20 @@ export default function RoleSelectPage() {
   const [role, setRole] = useState<"passenger" | "driver" | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // A stale auth response or a manually revisited onboarding URL must never
+  // make a completed account choose its role again.
+  useEffect(() => {
+    const recoverExistingProfile = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      if (await hasProfile(session.access_token)) {
+        router.replace("/");
+      }
+    };
+    void recoverExistingProfile();
+  }, [router]);
 
   const handleContinue = async () => {
     if (!role) return;

@@ -33,11 +33,11 @@ async function fetchProfileWrite(url: string, init: RequestInit): Promise<Respon
   }
 }
 
-// The authentication endpoint's `is_new_user` value can be stale if a prior
-// setup request reached the API but its response was lost. The profile record
-// itself is the source of truth for where an authenticated person belongs.
-// If the API is temporarily unreachable, retain the auth response as a safe
-// fallback so a genuine first-time user can still enter onboarding.
+// The profile record is the source of truth for where an authenticated person
+// belongs. Auth metadata can say "new" after a profile write whose response
+// was lost. When the lookup itself is unavailable, go to the app shell: its
+// server-side profile check can still send a genuine first-time account to
+// onboarding, while an existing account is never asked to choose a role again.
 export async function hasProfile(token: string): Promise<boolean | null> {
   try {
     const res = await fetch(`${base}/api/profiles/me`, {
@@ -51,10 +51,9 @@ export async function hasProfile(token: string): Promise<boolean | null> {
   return null;
 }
 
-export async function signedInRedirect(token: string, isNewUser: boolean): Promise<"/" | "/role-select"> {
+export async function signedInRedirect(token: string, _isNewUser: boolean): Promise<"/" | "/role-select"> {
   const profileExists = await hasProfile(token);
-  if (profileExists !== null) return profileExists ? "/" : "/role-select";
-  return isNewUser ? "/role-select" : "/";
+  return profileExists === false ? "/role-select" : "/";
 }
 
 function authHeaders(token: string) {
