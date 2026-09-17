@@ -72,7 +72,7 @@ export default function SponsoredGroupsPage() {
     refreshGroups();
   }, []);
 
-  function useGroupId(groupId: string) {
+  function selectGroupId(groupId: string) {
     setDomainsGroupId(groupId);
     setFundsGroupId(groupId);
     setContactGroupId(groupId);
@@ -367,7 +367,7 @@ export default function SponsoredGroupsPage() {
                     <td className="py-2 space-x-3 whitespace-nowrap">
                       <button
                         type="button"
-                        onClick={() => useGroupId(g.id)}
+                        onClick={() => selectGroupId(g.id)}
                         className="text-blue-600 hover:underline"
                       >
                         Use ID

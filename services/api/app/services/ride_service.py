@@ -35,6 +35,7 @@ class _ConnectionPoolProxy:
     nests the service transactions as savepoints, while the outer transaction
     remains responsible for committing or rolling back both legs together.
     """
+
     def __init__(self, conn):
         self._conn = conn
 
@@ -42,9 +43,11 @@ class _ConnectionPoolProxy:
     async def acquire(self):
         yield self._conn
 
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Custom exceptions
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class RideServiceError(Exception):
     def __init__(self, code: str, message: str, status_code: int = 400):
@@ -109,7 +112,8 @@ async def is_driver_vehicle_eligible(conn, driver_id: uuid.UUID, vehicle_id: uui
             JOIN vehicles v ON v.id = $2 AND v.driver_id = $1
             WHERE p.id = $1 AND p.org_verified_at IS NOT NULL AND v.is_active = true
             """,
-            driver_id, vehicle_id,
+            driver_id,
+            vehicle_id,
         )
     )
 
@@ -139,30 +143,20 @@ def _to_response(row: dict) -> RideResponse:
         notes=row["notes"],
         created_at=row["created_at"],
         updated_at=row["updated_at"],
-        route_distance_km=(
-            float(row["route_distance_km"]) if row["route_distance_km"] is not None else None
-        ),
+        route_distance_km=(float(row["route_distance_km"]) if row["route_distance_km"] is not None else None),
         route_duration_minutes=(
             int(row["route_duration_minutes"]) if row["route_duration_minutes"] is not None else None
         ),
-        fuel_cost_egp=(
-            float(row["fuel_cost_egp"]) if row["fuel_cost_egp"] is not None else None
-        ),
+        fuel_cost_egp=(float(row["fuel_cost_egp"]) if row["fuel_cost_egp"] is not None else None),
         platform_commission_egp=(
             float(row["platform_commission_egp"]) if row["platform_commission_egp"] is not None else None
         ),
-        distance_fee_egp=(
-            float(row["distance_fee_egp"]) if row["distance_fee_egp"] is not None else None
-        ),
-        safety_margin_egp=(
-            float(row["safety_margin_egp"]) if row["safety_margin_egp"] is not None else None
-        ),
+        distance_fee_egp=(float(row["distance_fee_egp"]) if row["distance_fee_egp"] is not None else None),
+        safety_margin_egp=(float(row["safety_margin_egp"]) if row["safety_margin_egp"] is not None else None),
         price_source=row["price_source"],
         started_at=row["started_at"],
         completed_at=row["completed_at"],
-        route_geometry=(
-            json.loads(row["route_geometry_geojson"]) if row["route_geometry_geojson"] else None
-        ),
+        route_geometry=(json.loads(row["route_geometry_geojson"]) if row["route_geometry_geojson"] else None),
         group_id=row["group_id"],
         group_name=row.get("group_name"),
         recurring_ride_definition_id=row.get("recurring_ride_definition_id"),
@@ -189,6 +183,7 @@ async def _fetch_own_ride(conn, ride_id: uuid.UUID, driver_id: uuid.UUID) -> dic
 # ─────────────────────────────────────────────────────────────────────────────
 # Create ride
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 async def create_ride(
     driver_id: uuid.UUID,
@@ -233,19 +228,21 @@ async def create_ride(
         )
 
     fair_price_dec = Decimal(str(fair_price_per_seat))
-    price_per_seat = (
-        Decimal(str(final_price_per_seat)) if final_price_per_seat is not None else fair_price_dec
-    )
+    price_per_seat = Decimal(str(final_price_per_seat)) if final_price_per_seat is not None else fair_price_dec
     max_price_dec = Decimal(str(calculate_max_price(fair_price_per_seat)))
     if price_per_seat < fair_price_dec or price_per_seat > max_price_dec:
-        logger.warning(json.dumps({
-            "event": "price_override_rejected",
-            "context": "create_ride",
-            "driver_id": str(driver_id),
-            "fair_price_per_seat": str(fair_price_dec),
-            "max_price_per_seat": str(max_price_dec),
-            "requested_price_per_seat": str(price_per_seat),
-        }))
+        logger.warning(
+            json.dumps(
+                {
+                    "event": "price_override_rejected",
+                    "context": "create_ride",
+                    "driver_id": str(driver_id),
+                    "fair_price_per_seat": str(fair_price_dec),
+                    "max_price_per_seat": str(max_price_dec),
+                    "requested_price_per_seat": str(price_per_seat),
+                }
+            )
+        )
         raise RideServiceError(
             "price_out_of_band",
             f"Price must be between {fair_price_dec:.2f} and {max_price_dec:.2f} EGP per seat.",
@@ -276,7 +273,8 @@ async def create_ride(
                 """,
                 driver_id,
                 dep - timedelta(hours=2),
-                dep + timedelta(hours=2), round_trip_group_id,
+                dep + timedelta(hours=2),
+                round_trip_group_id,
             )
             if conflict:
                 raise RideServiceError(
@@ -294,7 +292,8 @@ async def create_ride(
                     JOIN groups g ON g.id = gm.group_id
                     WHERE gm.group_id = $1 AND gm.user_id = $2
                     """,
-                    payload.group_id, driver_id,
+                    payload.group_id,
+                    driver_id,
                 )
                 if group_row is None:
                     raise RideServiceError(
@@ -392,19 +391,34 @@ async def create_ride(
                 )
                 RETURNING {_RIDE_COLS}
                 """,
-                driver_id, vehicle_id,
-                f"POINT({olng} {olat})", payload.origin.address,
-                f"POINT({dlng} {dlat})", payload.destination.address,
-                dep, payload.total_seats, price_per_seat, fair_price_dec, payload.notes,
+                driver_id,
+                vehicle_id,
+                f"POINT({olng} {olat})",
+                payload.origin.address,
+                f"POINT({dlng} {dlat})",
+                payload.destination.address,
+                dep,
+                payload.total_seats,
+                price_per_seat,
+                fair_price_dec,
+                payload.notes,
                 json.dumps(route_geometry_geojson),
-                route_distance_km, route_duration_minutes,
-                fuel_cost_egp, platform_commission_egp, distance_fee_egp, safety_margin_egp,
-                payload.group_id, payload.is_women_only, round_trip_group_id, trip_leg,
+                route_distance_km,
+                route_duration_minutes,
+                fuel_cost_egp,
+                platform_commission_egp,
+                distance_fee_egp,
+                safety_margin_egp,
+                payload.group_id,
+                payload.is_women_only,
+                round_trip_group_id,
+                trip_leg,
             )
 
             await conn.execute(
                 "INSERT INTO ride_history_logs (ride_id, actor_id, action) VALUES ($1, $2, 'created')",
-                row["id"], driver_id,
+                row["id"],
+                driver_id,
             )
 
             if not is_sponsored_group:
@@ -447,9 +461,7 @@ async def list_rides(
         group_ids = {r["group_id"] for r in rows if r["group_id"] is not None}
         group_names: dict = {}
         if group_ids:
-            group_rows = await conn.fetch(
-                "SELECT id, name FROM groups WHERE id = ANY($1::uuid[])", list(group_ids)
-            )
+            group_rows = await conn.fetch("SELECT id, name FROM groups WHERE id = ANY($1::uuid[])", list(group_ids))
             group_names = {g["id"]: g["name"] for g in group_rows}
 
     ride_dicts = []
@@ -469,6 +481,7 @@ async def list_rides(
 # ─────────────────────────────────────────────────────────────────────────────
 # List featured rides (passenger-facing, spec 022)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 async def list_featured_rides() -> FeaturedRidesResponse:
     pool = get_pool()
@@ -507,6 +520,7 @@ async def list_featured_rides() -> FeaturedRidesResponse:
 # Get ride detail
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 async def get_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideDetailResponse:
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -541,6 +555,7 @@ async def get_ride(ride_id: uuid.UUID, driver_id: uuid.UUID) -> RideDetailRespon
 # ─────────────────────────────────────────────────────────────────────────────
 # Edit ride
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 async def edit_ride(
     ride_id: uuid.UUID,
@@ -595,8 +610,10 @@ async def edit_ride(
                     )
                 if ride.get("round_trip_group_id") is not None:
                     sibling = await conn.fetchrow(
-                        "SELECT id, trip_leg, departure_datetime FROM rides WHERE round_trip_group_id = $1 AND id <> $2 FOR UPDATE",
-                        ride["round_trip_group_id"], ride_id,
+                        "SELECT id, trip_leg, departure_datetime FROM rides "
+                        "WHERE round_trip_group_id = $1 AND id <> $2 FOR UPDATE",
+                        ride["round_trip_group_id"],
+                        ride_id,
                     )
                     if sibling is not None:
                         outbound = dep if ride["trip_leg"] == "outbound" else sibling["departure_datetime"]
@@ -633,7 +650,8 @@ async def edit_ride(
 
             if payload.is_women_only is not None and payload.is_women_only != ride["is_women_only"]:
                 changed_fields["is_women_only"] = {
-                    "before": ride["is_women_only"], "after": payload.is_women_only,
+                    "before": ride["is_women_only"],
+                    "after": payload.is_women_only,
                 }
                 sets.append(f"is_women_only = {add_param(payload.is_women_only)}")
 
@@ -676,15 +694,19 @@ async def edit_ride(
             if payload.final_price_per_seat is not None:
                 new_price = Decimal(str(payload.final_price_per_seat))
                 if new_price < fair_price or new_price > max_price:
-                    logger.warning(json.dumps({
-                        "event": "price_override_rejected",
-                        "context": "edit_ride",
-                        "ride_id": str(ride_id),
-                        "driver_id": str(driver_id),
-                        "fair_price_per_seat": str(fair_price),
-                        "max_price_per_seat": str(max_price),
-                        "requested_price_per_seat": str(new_price),
-                    }))
+                    logger.warning(
+                        json.dumps(
+                            {
+                                "event": "price_override_rejected",
+                                "context": "edit_ride",
+                                "ride_id": str(ride_id),
+                                "driver_id": str(driver_id),
+                                "fair_price_per_seat": str(fair_price),
+                                "max_price_per_seat": str(max_price),
+                                "requested_price_per_seat": str(new_price),
+                            }
+                        )
+                    )
                     raise RideServiceError(
                         "price_out_of_band",
                         f"Price must be between {fair_price:.2f} and {max_price:.2f} EGP per seat.",
@@ -733,9 +755,7 @@ async def edit_ride(
                     safety_margin = Decimal(str(new_fare.safety_margin_egp))
                 else:
                     fuel_cost = (
-                        Decimal(str(ride["fuel_cost_egp"]))
-                        if ride.get("fuel_cost_egp") is not None
-                        else Decimal("0")
+                        Decimal(str(ride["fuel_cost_egp"])) if ride.get("fuel_cost_egp") is not None else Decimal("0")
                     )
                     distance_fee = (
                         Decimal(str(ride["distance_fee_egp"]))
@@ -783,9 +803,7 @@ async def edit_ride(
                             },
                         )
                     if existing_reservation is not None:
-                        await update_reservation(
-                            conn, wallet["id"], driver_id, ride_id, new_max_commission, delta
-                        )
+                        await update_reservation(conn, wallet["id"], driver_id, ride_id, new_max_commission, delta)
                     else:
                         await create_reservation(conn, wallet["id"], driver_id, ride_id, new_max_commission)
 
@@ -806,7 +824,9 @@ async def edit_ride(
                         INSERT INTO ride_history_logs (ride_id, actor_id, action, changed_fields)
                         VALUES ($1, $2, 'edited', $3)
                         """,
-                        ride_id, driver_id, changed_fields,
+                        ride_id,
+                        driver_id,
+                        changed_fields,
                     )
             else:
                 row = await conn.fetchrow(
@@ -820,6 +840,7 @@ async def edit_ride(
 # ─────────────────────────────────────────────────────────────────────────────
 # Cancel ride
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 async def cancel_ride(
     ride_id: uuid.UUID,
@@ -855,13 +876,17 @@ async def cancel_ride(
                 WHERE id = $1
                 RETURNING {_RIDE_COLS}
                 """,
-                ride_id, reason.strip(), cancellation_source,
+                ride_id,
+                reason.strip(),
+                cancellation_source,
             )
 
             log_actor = actor_id if actor_id is not None else driver_id
             await conn.execute(
                 "INSERT INTO ride_history_logs (ride_id, actor_id, action, reason) VALUES ($1, $2, 'cancelled', $3)",
-                ride_id, log_actor, reason.strip(),
+                ride_id,
+                log_actor,
+                reason.strip(),
             )
 
             # Capture confirmed passengers before cascade changes their status
@@ -871,9 +896,11 @@ async def cancel_ride(
             )
 
             from app.services.booking_service import cancel_all_bookings_for_ride
+
             await cancel_all_bookings_for_ride(conn, ride_id)
 
             from app.services.commission_service import release_reservation
+
             await release_reservation(conn, ride_id, driver_id)
 
             dep = row["departure_datetime"]
@@ -897,6 +924,7 @@ async def cancel_ride(
 # ─────────────────────────────────────────────────────────────────────────────
 # Start ride
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 async def start_ride(
     ride_id: uuid.UUID,
@@ -928,7 +956,8 @@ async def start_ride(
                     UPDATE rides SET status = 'in_progress', started_at = $2, updated_at = now()
                     WHERE id = $1 AND status = 'scheduled' RETURNING {_RIDE_COLS}
                     """,
-                    ride_id, system_started_at,
+                    ride_id,
+                    system_started_at,
                 )
             else:
                 row = await conn.fetchrow(
@@ -943,7 +972,8 @@ async def start_ride(
 
             await conn.execute(
                 "INSERT INTO ride_history_logs (ride_id, actor_id, action) VALUES ($1, $2, 'started')",
-                ride_id, driver_id,
+                ride_id,
+                driver_id,
             )
 
             # A system-backfilled start (the sweep finalizing a never-started ride) is
@@ -971,6 +1001,7 @@ async def start_ride(
             # Requests the driver never acted on can't be confirmed once the ride
             # is underway — expire them now instead of leaving them stuck "pending".
             from app.services.booking_service import expire_one_pending_booking
+
             still_pending = await conn.fetch(
                 "SELECT id FROM bookings WHERE ride_id = $1 AND status = 'pending'",
                 ride_id,
@@ -984,6 +1015,7 @@ async def start_ride(
 # ─────────────────────────────────────────────────────────────────────────────
 # Complete ride
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 async def complete_ride(
     ride_id: uuid.UUID,
@@ -1004,13 +1036,15 @@ async def complete_ride(
                     completion_source = $2
                 WHERE id = $1 AND status = 'in_progress' RETURNING {_RIDE_COLS}
                 """,
-                ride_id, completion_source,
+                ride_id,
+                completion_source,
             )
             if row is None:
                 raise RideServiceError("ride_not_editable", "Only in-progress rides can be completed.", 409)
             await conn.execute(
                 "INSERT INTO ride_history_logs (ride_id, actor_id, action) VALUES ($1, $2, 'completed')",
-                ride_id, driver_id,
+                ride_id,
+                driver_id,
             )
 
             # Capture confirmed bookings before cascade transitions them to completed.
@@ -1027,9 +1061,11 @@ async def complete_ride(
             cash_bookings = [b for b in confirmed_bookings if b["payment_source"] == "CASH"]
 
             from app.services.booking_service import complete_ride_bookings
+
             await complete_ride_bookings(conn, ride_id)
 
             from app.services.commission_service import deduct_commission, release_reservation
+
             await deduct_commission(conn, dict(ride), [dict(b) for b in cash_bookings])
             await release_reservation(conn, ride_id, driver_id)
 

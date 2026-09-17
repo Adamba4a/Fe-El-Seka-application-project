@@ -9,7 +9,11 @@ from typing import AsyncIterator
 from app.utils.period import get_trend_granularity
 
 _LEDGER_TYPES = (
-    "COMMISSION_DEBIT", "CASH_BACK_CREDIT", "POINTS_DISCOUNT_REIMBURSEMENT", "ADMIN_CREDIT", "ADMIN_DEBIT",
+    "COMMISSION_DEBIT",
+    "CASH_BACK_CREDIT",
+    "POINTS_DISCOUNT_REIMBURSEMENT",
+    "ADMIN_CREDIT",
+    "ADMIN_DEBIT",
 )
 
 
@@ -152,7 +156,9 @@ async def get_report(conn, start: date, end: date) -> dict:
         {
             "group_id": str(r["group_id"]),
             "group_name": r["group_name"],
-            "commission_egp": str(Decimal(str(r["gross_commission_egp"])) - Decimal(str(r["distance_fee_passthrough"]))),
+            "commission_egp": str(
+                Decimal(str(r["gross_commission_egp"])) - Decimal(str(r["distance_fee_passthrough"]))
+            ),
             "rides": r["rides"],
         }
         for r in sponsored_commission_by_group_rows
@@ -189,10 +195,7 @@ async def get_report(conn, start: date, end: date) -> dict:
         bucket_ends,
     )
     values_by_label = {r["bucket_label"]: Decimal(str(r["value"])) for r in trend_rows}
-    points = [
-        {"date": label, "value": str(values_by_label.get(label, Decimal("0")))}
-        for label in bucket_labels
-    ]
+    points = [{"date": label, "value": str(values_by_label.get(label, Decimal("0")))} for label in bucket_labels]
 
     return {
         "range": {"start": start.isoformat(), "end": end.isoformat()},
@@ -256,9 +259,15 @@ async def stream_report_csv(conn, start: date, end: date) -> AsyncIterator[str]:
     report = await get_report(conn, start, end)
 
     yield _csv_row(
-        "start", "end", "commission_collected_egp", "sponsored_commission_collected_egp",
-        "distance_fee_passthrough_egp", "points_discount_reimbursement_egp",
-        "admin_credits_egp", "admin_debits_egp", "net_revenue_egp",
+        "start",
+        "end",
+        "commission_collected_egp",
+        "sponsored_commission_collected_egp",
+        "distance_fee_passthrough_egp",
+        "points_discount_reimbursement_egp",
+        "admin_credits_egp",
+        "admin_debits_egp",
+        "net_revenue_egp",
     )
     yield _csv_row(
         report["range"]["start"],

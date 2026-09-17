@@ -398,7 +398,7 @@ export default function RecurringRideDetailPage() {
                 <RideCard ride={ride} href={`/rides/${ride.id}/bookings`} />
                 {definition.journey_type === "round_trip" && ride.trip_leg === "outbound" && (
                   <button type="button" onClick={() => openOverride(ride)} className="text-xs font-medium text-dash-primary">
-                    Adjust this date's outbound and return times
+                    Adjust this date&apos;s outbound and return times
                   </button>
                 )}
               </div>

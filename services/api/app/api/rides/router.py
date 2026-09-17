@@ -52,6 +52,7 @@ router = APIRouter()
 # Internal helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 async def _get_active_vehicle(driver_id: uuid.UUID) -> dict:
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -80,6 +81,7 @@ def _service_error_response(exc: RideServiceError) -> JSONResponse:
 # ─────────────────────────────────────────────────────────────────────────────
 # POST /api/v1/rides
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_ride(
@@ -125,12 +127,31 @@ async def create_ride(
         )
 
     if payload.journey_type not in ("one_way", "round_trip"):
-        raise HTTPException(status_code=422, detail={"error": "journey_type_invalid", "message": "Journey type must be one_way or round_trip."})
+        raise HTTPException(
+            status_code=422,
+            detail={"error": "journey_type_invalid", "message": "Journey type must be one_way or round_trip."},
+        )
     if payload.journey_type == "round_trip":
-        if not payload.return_departure_datetime or not payload.return_total_seats or payload.return_final_price_per_seat is None:
-            raise HTTPException(status_code=422, detail={"error": "return_details_required", "message": "Return departure, seats, and price are required for a round trip."})
+        if (
+            not payload.return_departure_datetime
+            or not payload.return_total_seats
+            or payload.return_final_price_per_seat is None
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "return_details_required",
+                    "message": "Return departure, seats, and price are required for a round trip.",
+                },
+            )
         if payload.return_departure_datetime <= payload.departure_datetime:
-            raise HTTPException(status_code=422, detail={"error": "return_departure_invalid", "message": "Return departure must be after outbound departure."})
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "return_departure_invalid",
+                    "message": "Return departure must be after outbound departure.",
+                },
+            )
 
         # Calculate *both* routes before any database write.  This avoids the
         # particularly bad partial-create case where an unroutable return leg
@@ -138,36 +159,75 @@ async def create_ride(
         try:
             reverse_route = await route_service.calculate_route(destination, origin)
         except RouteServiceUnavailableError:
-            raise HTTPException(status_code=503, detail={"error": "route_intelligence_unavailable", "message": "Route intelligence temporarily unavailable. Please try again shortly."})
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "error": "route_intelligence_unavailable",
+                    "message": "Route intelligence temporarily unavailable. Please try again shortly.",
+                },
+            )
         if not reverse_route.is_routable:
-            raise HTTPException(status_code=422, detail={"error": "return_unroutable", "message": "No route found for the return journey."})
+            raise HTTPException(
+                status_code=422,
+                detail={"error": "return_unroutable", "message": "No route found for the return journey."},
+            )
         reverse_fare = calculate_fare(reverse_route.distance_km, payload.return_total_seats)
 
     fare = calculate_fare(route.distance_km, payload.total_seats)
 
     try:
         import uuid as _uuid
+
         pair_id = _uuid.uuid4() if payload.journey_type == "round_trip" else None
         pool = get_pool()
         async with pool.acquire() as conn:
             async with conn.transaction():
                 ride = await ride_service.create_ride(
-                    driver_id=driver_id, vehicle_id=uuid.UUID(str(vehicle["id"])), vehicle_seat_count=vehicle["seat_count"] , payload=payload,
-                    route_geometry_geojson=route.geojson_linestring, route_distance_km=route.distance_km, route_duration_minutes=route.duration_minutes,
-                    fuel_cost_egp=fare.fuel_cost_egp, platform_commission_egp=fare.platform_commission_egp, distance_fee_egp=fare.distance_fee_egp,
-                    safety_margin_egp=fare.safety_margin_egp, fair_price_per_seat=fare.per_seat_price_egp,
-                    final_price_per_seat=payload.final_price_per_seat, round_trip_group_id=pair_id,
-                    trip_leg="outbound" if pair_id else "one_way", conn=conn,
+                    driver_id=driver_id,
+                    vehicle_id=uuid.UUID(str(vehicle["id"])),
+                    vehicle_seat_count=vehicle["seat_count"],
+                    payload=payload,
+                    route_geometry_geojson=route.geojson_linestring,
+                    route_distance_km=route.distance_km,
+                    route_duration_minutes=route.duration_minutes,
+                    fuel_cost_egp=fare.fuel_cost_egp,
+                    platform_commission_egp=fare.platform_commission_egp,
+                    distance_fee_egp=fare.distance_fee_egp,
+                    safety_margin_egp=fare.safety_margin_egp,
+                    fair_price_per_seat=fare.per_seat_price_egp,
+                    final_price_per_seat=payload.final_price_per_seat,
+                    round_trip_group_id=pair_id,
+                    trip_leg="outbound" if pair_id else "one_way",
+                    conn=conn,
                 )
                 return_ride = None
                 if pair_id:
-                    return_payload = payload.model_copy(update={"origin": payload.destination, "destination": payload.origin, "departure_datetime": payload.return_departure_datetime, "total_seats": payload.return_total_seats, "final_price_per_seat": payload.return_final_price_per_seat})
+                    return_payload = payload.model_copy(
+                        update={
+                            "origin": payload.destination,
+                            "destination": payload.origin,
+                            "departure_datetime": payload.return_departure_datetime,
+                            "total_seats": payload.return_total_seats,
+                            "final_price_per_seat": payload.return_final_price_per_seat,
+                        }
+                    )
                     return_ride = await ride_service.create_ride(
-                        driver_id=driver_id, vehicle_id=uuid.UUID(str(vehicle["id"])), vehicle_seat_count=vehicle["seat_count"], payload=return_payload,
-                        route_geometry_geojson=reverse_route.geojson_linestring, route_distance_km=reverse_route.distance_km, route_duration_minutes=reverse_route.duration_minutes,
-                        fuel_cost_egp=reverse_fare.fuel_cost_egp, platform_commission_egp=reverse_fare.platform_commission_egp, distance_fee_egp=reverse_fare.distance_fee_egp,
-                        safety_margin_egp=reverse_fare.safety_margin_egp, fair_price_per_seat=reverse_fare.per_seat_price_egp,
-                        final_price_per_seat=payload.return_final_price_per_seat, round_trip_group_id=pair_id, trip_leg="return", conn=conn,
+                        driver_id=driver_id,
+                        vehicle_id=uuid.UUID(str(vehicle["id"])),
+                        vehicle_seat_count=vehicle["seat_count"],
+                        payload=return_payload,
+                        route_geometry_geojson=reverse_route.geojson_linestring,
+                        route_distance_km=reverse_route.distance_km,
+                        route_duration_minutes=reverse_route.duration_minutes,
+                        fuel_cost_egp=reverse_fare.fuel_cost_egp,
+                        platform_commission_egp=reverse_fare.platform_commission_egp,
+                        distance_fee_egp=reverse_fare.distance_fee_egp,
+                        safety_margin_egp=reverse_fare.safety_margin_egp,
+                        fair_price_per_seat=reverse_fare.per_seat_price_egp,
+                        final_price_per_seat=payload.return_final_price_per_seat,
+                        round_trip_group_id=pair_id,
+                        trip_leg="return",
+                        conn=conn,
                     )
     except RideServiceError as exc:
         return _service_error_response(exc)
@@ -189,6 +249,7 @@ async def create_ride(
 # GET /api/v1/rides
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @router.get("")
 async def list_rides(
     status_filter: Optional[str] = Query(None, alias="status"),
@@ -209,6 +270,7 @@ async def list_rides(
 # ─────────────────────────────────────────────────────────────────────────────
 # GET /api/v1/rides/pending-bookings-count
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.get("/pending-bookings-count")
 async def get_pending_bookings_count(
@@ -235,6 +297,7 @@ async def get_pending_bookings_count(
 # Declared before /{ride_id} so FastAPI doesn't match "featured" as a ride_id
 # path param (same reason /pending-bookings-count is declared first).
 
+
 @router.get("/featured")
 async def get_featured_rides(
     _user: dict = Depends(get_current_user),
@@ -246,6 +309,7 @@ async def get_featured_rides(
 # ─────────────────────────────────────────────────────────────────────────────
 # GET /api/v1/rides/{ride_id}
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.get("/{ride_id}")
 async def get_ride(
@@ -263,6 +327,7 @@ async def get_ride(
 # ─────────────────────────────────────────────────────────────────────────────
 # PATCH /api/v1/rides/{ride_id}
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.patch("/{ride_id}")
 async def edit_ride(
@@ -285,6 +350,7 @@ async def edit_ride(
 # ─────────────────────────────────────────────────────────────────────────────
 # POST /api/v1/rides/{ride_id}/location  (T027)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _location_error_response(exc: LocationServiceError) -> JSONResponse:
     return JSONResponse(
@@ -317,7 +383,10 @@ async def update_driver_location(
         except LocationServiceError as exc:
             logger.warning(
                 "POST /rides/%s/location | driver_id=%s | error=%s | duration_ms=%.1f",
-                ride_id, driver_id, exc.code, (time.monotonic() - t0) * 1000,
+                ride_id,
+                driver_id,
+                exc.code,
+                (time.monotonic() - t0) * 1000,
             )
             return _location_error_response(exc)
     asyncio.create_task(
@@ -331,7 +400,11 @@ async def update_driver_location(
     )
     logger.info(
         "POST /rides/%s/location | driver_id=%s lat=%.5f lng=%.5f bearing=%s | duration_ms=%.1f",
-        ride_id, driver_id, payload.lat, payload.lng, payload.bearing,
+        ride_id,
+        driver_id,
+        payload.lat,
+        payload.lng,
+        payload.bearing,
         (time.monotonic() - t0) * 1000,
     )
     return {
@@ -344,6 +417,7 @@ async def update_driver_location(
 # ─────────────────────────────────────────────────────────────────────────────
 # GET /api/v1/rides/{ride_id}/location  (T027)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.get("/{ride_id}/location")
 async def get_driver_location(
@@ -363,12 +437,19 @@ async def get_driver_location(
         except LocationServiceError as exc:
             logger.warning(
                 "GET /rides/%s/location | caller_id=%s | error=%s | duration_ms=%.1f",
-                ride_id, caller_id, exc.code, (time.monotonic() - t0) * 1000,
+                ride_id,
+                caller_id,
+                exc.code,
+                (time.monotonic() - t0) * 1000,
             )
             return _location_error_response(exc)
     logger.info(
         "GET /rides/%s/location | caller_id=%s | lat=%.5f lng=%.5f | duration_ms=%.1f",
-        ride_id, caller_id, result.lat, result.lng, (time.monotonic() - t0) * 1000,
+        ride_id,
+        caller_id,
+        result.lat,
+        result.lng,
+        (time.monotonic() - t0) * 1000,
     )
     return {
         "ride_id": str(result.ride_id),
@@ -383,6 +464,7 @@ async def get_driver_location(
 # ─────────────────────────────────────────────────────────────────────────────
 # POST /api/v1/rides/{ride_id}/cancel
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.post("/{ride_id}/cancel")
 async def cancel_ride(
@@ -413,6 +495,7 @@ async def cancel_ride(
 # POST /api/v1/rides/{ride_id}/start
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @router.post("/{ride_id}/start")
 async def start_ride(
     ride_id: uuid.UUID,
@@ -432,6 +515,7 @@ async def start_ride(
 # Lightweight, passenger-facing ride summary that needs no origin/destination —
 # powers the dashboard "tap a nearby ride card" preview, before the passenger
 # has picked a pickup/dropoff (that's what passenger-detail is for).
+
 
 @router.get("/{ride_id}/preview")
 async def get_ride_preview(
@@ -468,7 +552,8 @@ async def get_ride_preview(
             SELECT id, status, seats FROM bookings
             WHERE ride_id = $1 AND passenger_id = $2 AND status IN ('pending', 'confirmed')
             """,
-            ride_id, caller_id,
+            ride_id,
+            caller_id,
         )
 
     if row is None:
@@ -487,45 +572,47 @@ async def get_ride_preview(
 
     route_geojson = json.loads(ride["route_geometry_geojson"]) if ride["route_geometry_geojson"] else None
 
-    return JSONResponse({
-        "ride": {
-            "id": str(ride["id"]),
-            "status": ride["status"],
-            "driver": {
-                "id": str(ride["driver_id"]),
-                "display_name": ride["display_name"],
-                "avatar_url": storage_service.generate_signed_url(
-                    "profile-photos", ride["avatar_url"]
+    return JSONResponse(
+        {
+            "ride": {
+                "id": str(ride["id"]),
+                "status": ride["status"],
+                "driver": {
+                    "id": str(ride["driver_id"]),
+                    "display_name": ride["display_name"],
+                    "avatar_url": storage_service.generate_signed_url("profile-photos", ride["avatar_url"]),
+                    "is_verified": ride["verification_status"] == "verified",
+                    "rating_avg": float(ride["rating_avg"]) if ride["rating_avg"] is not None else None,
+                    "rating_count": ride["rating_count"],
+                },
+                "departure_datetime": ride["departure_datetime"].isoformat(),
+                "available_seats": ride["available_seats"],
+                "per_seat_price": f"{float(ride['price_per_seat']):.2f}",
+                "origin_address": ride["origin_address"],
+                "destination_address": ride["destination_address"],
+                "origin": {"lat": ride["origin_lat"], "lng": ride["origin_lng"]},
+                "destination": {"lat": ride["destination_lat"], "lng": ride["destination_lng"]},
+                "route_geometry": route_geojson,
+                "route_distance_km": float(ride["route_distance_km"] or 0),
+                "route_duration_minutes": ride["route_duration_minutes"],
+                "recurring_ride_definition_id": (
+                    str(ride["recurring_ride_definition_id"]) if ride["recurring_ride_definition_id"] else None
                 ),
-                "is_verified": ride["verification_status"] == "verified",
-                "rating_avg": float(ride["rating_avg"]) if ride["rating_avg"] is not None else None,
-                "rating_count": ride["rating_count"],
+                "recurring_weekdays": ride["recurring_weekdays"],
             },
-            "departure_datetime": ride["departure_datetime"].isoformat(),
-            "available_seats": ride["available_seats"],
-            "per_seat_price": f"{float(ride['price_per_seat']):.2f}",
-            "origin_address": ride["origin_address"],
-            "destination_address": ride["destination_address"],
-            "origin": {"lat": ride["origin_lat"], "lng": ride["origin_lng"]},
-            "destination": {"lat": ride["destination_lat"], "lng": ride["destination_lng"]},
-            "route_geometry": route_geojson,
-            "route_distance_km": float(ride["route_distance_km"] or 0),
-            "route_duration_minutes": ride["route_duration_minutes"],
-            "recurring_ride_definition_id": (
-                str(ride["recurring_ride_definition_id"]) if ride["recurring_ride_definition_id"] else None
+            "existing_booking": (
+                {"booking_id": str(existing["id"]), "status": existing["status"], "seats": existing["seats"]}
+                if existing
+                else None
             ),
-            "recurring_weekdays": ride["recurring_weekdays"],
-        },
-        "existing_booking": (
-            {"booking_id": str(existing["id"]), "status": existing["status"], "seats": existing["seats"]}
-            if existing else None
-        ),
-    })
+        }
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # GET /api/v1/rides/{ride_id}/passenger-detail
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _parse_wkt_point(wkt: str) -> tuple[float, float]:
     """Parse 'POINT(lng lat)' WKT → (lng, lat)."""
@@ -577,7 +664,8 @@ async def get_ride_passenger_detail(
             SELECT id, status, seats FROM bookings
             WHERE ride_id = $1 AND passenger_id = $2 AND status IN ('pending', 'confirmed')
             """,
-            ride_id, caller_id,
+            ride_id,
+            caller_id,
         )
 
     if row is None:
@@ -607,12 +695,10 @@ async def get_ride_passenger_detail(
     dest_wkt = f"POINT({destination_lng} {destination_lat})"
 
     # Compute boarding/alighting nearest points and passenger route in parallel
-    (pickup_walk_m, pickup_nearest_wkt), (dropoff_walk_m, dropoff_nearest_wkt), passenger_route = (
-        await asyncio.gather(
-            route_service.calculate_walk_distance(origin_wkt, ride["route_geometry_wkt"]),
-            route_service.calculate_walk_distance(dest_wkt, ride["route_geometry_wkt"]),
-            route_service.calculate_route(passenger_origin, passenger_destination),
-        )
+    (pickup_walk_m, pickup_nearest_wkt), (dropoff_walk_m, dropoff_nearest_wkt), passenger_route = await asyncio.gather(
+        route_service.calculate_walk_distance(origin_wkt, ride["route_geometry_wkt"]),
+        route_service.calculate_walk_distance(dest_wkt, ride["route_geometry_wkt"]),
+        route_service.calculate_route(passenger_origin, passenger_destination),
     )
 
     config = get_pricing_config()
@@ -673,63 +759,69 @@ async def get_ride_passenger_detail(
             if scored:
                 match_score_pct = scored[0].match_score_pct
         except Exception as exc:
-            logger.warning(json.dumps({
-                "event": "passenger_detail_match_score_failed",
-                "ride_id": str(ride_id),
-                "error": str(exc),
-            }))
+            logger.warning(
+                json.dumps(
+                    {
+                        "event": "passenger_detail_match_score_failed",
+                        "ride_id": str(ride_id),
+                        "error": str(exc),
+                    }
+                )
+            )
 
-    return JSONResponse({
-        "ride": {
-            "id": str(ride["id"]),
-            "status": ride["status"],
-            "driver": {
-                "id": str(ride["driver_id"]),
-                "display_name": ride["display_name"],
-                "avatar_url": storage_service.generate_signed_url(
-                    "profile-photos", ride["avatar_url"]
+    return JSONResponse(
+        {
+            "ride": {
+                "id": str(ride["id"]),
+                "status": ride["status"],
+                "driver": {
+                    "id": str(ride["driver_id"]),
+                    "display_name": ride["display_name"],
+                    "avatar_url": storage_service.generate_signed_url("profile-photos", ride["avatar_url"]),
+                    "is_verified": ride["verification_status"] == "verified",
+                    "rating_avg": float(ride["rating_avg"]) if ride["rating_avg"] is not None else None,
+                    "rating_count": ride["rating_count"],
+                },
+                "departure_datetime": ride["departure_datetime"].isoformat(),
+                "available_seats": ride["available_seats"],
+                "per_seat_price": f"{float(ride['price_per_seat']):.2f}",
+                "fuel_cost_egp": float(ride["fuel_cost_egp"]) if ride["fuel_cost_egp"] is not None else None,
+                "route_geometry": route_geojson,
+                "route_distance_km": float(ride["route_distance_km"] or 0),
+                "route_duration_minutes": duration_min,
+                "is_sponsored": ride["is_sponsored"],
+                "group_id": str(ride["group_id"]) if ride["group_id"] else None,
+                "group_name": ride["group_name"],
+                "recurring_ride_definition_id": (
+                    str(ride["recurring_ride_definition_id"]) if ride["recurring_ride_definition_id"] else None
                 ),
-                "is_verified": ride["verification_status"] == "verified",
-                "rating_avg": float(ride["rating_avg"]) if ride["rating_avg"] is not None else None,
-                "rating_count": ride["rating_count"],
+                "recurring_weekdays": ride["recurring_weekdays"],
             },
-            "departure_datetime": ride["departure_datetime"].isoformat(),
-            "available_seats": ride["available_seats"],
-            "per_seat_price": f"{float(ride['price_per_seat']):.2f}",
-            "fuel_cost_egp": float(ride["fuel_cost_egp"]) if ride["fuel_cost_egp"] is not None else None,
-            "route_geometry": route_geojson,
-            "route_distance_km": float(ride["route_distance_km"] or 0),
-            "route_duration_minutes": duration_min,
-            "is_sponsored": ride["is_sponsored"],
-            "group_id": str(ride["group_id"]) if ride["group_id"] else None,
-            "group_name": ride["group_name"],
-            "recurring_ride_definition_id": (
-                str(ride["recurring_ride_definition_id"]) if ride["recurring_ride_definition_id"] else None
+            "passenger_context": {
+                "boarding_point": {"lat": pickup_lat_val, "lng": pickup_lng_val},
+                "alighting_point": {"lat": dropoff_lat_val, "lng": dropoff_lng_val},
+                "pickup_walk_meters": round(compat.pickup_walk_m),
+                "dropoff_walk_meters": round(compat.dropoff_walk_m),
+                "estimated_travel_minutes": estimated_travel_minutes,
+                "premium_pickup_available": compat.premium_pickup_available,
+                "premium_pickup_fee": compat.premium_pickup_fee_egp,
+                "premium_dropoff_available": compat.premium_dropoff_available,
+                "premium_dropoff_fee": compat.premium_dropoff_fee_egp,
+            },
+            "match_score_pct": match_score_pct,
+            "existing_booking": (
+                {"booking_id": str(existing["id"]), "status": existing["status"], "seats": existing["seats"]}
+                if existing
+                else None
             ),
-            "recurring_weekdays": ride["recurring_weekdays"],
-        },
-        "passenger_context": {
-            "boarding_point": {"lat": pickup_lat_val, "lng": pickup_lng_val},
-            "alighting_point": {"lat": dropoff_lat_val, "lng": dropoff_lng_val},
-            "pickup_walk_meters": round(compat.pickup_walk_m),
-            "dropoff_walk_meters": round(compat.dropoff_walk_m),
-            "estimated_travel_minutes": estimated_travel_minutes,
-            "premium_pickup_available": compat.premium_pickup_available,
-            "premium_pickup_fee": compat.premium_pickup_fee_egp,
-            "premium_dropoff_available": compat.premium_dropoff_available,
-            "premium_dropoff_fee": compat.premium_dropoff_fee_egp,
-        },
-        "match_score_pct": match_score_pct,
-        "existing_booking": (
-            {"booking_id": str(existing["id"]), "status": existing["status"], "seats": existing["seats"]}
-            if existing else None
-        ),
-    })
+        }
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # GET /api/v1/rides/{ride_id}/recurring-instances
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.get("/{ride_id}/recurring-instances")
 async def get_ride_recurring_instances(
@@ -744,9 +836,7 @@ async def get_ride_recurring_instances(
     caller_id = uuid.UUID(str(_user["id"]))
     pool = get_pool()
     async with pool.acquire() as conn:
-        definition_id = await conn.fetchval(
-            "SELECT recurring_ride_definition_id FROM rides WHERE id = $1", ride_id
-        )
+        definition_id = await conn.fetchval("SELECT recurring_ride_definition_id FROM rides WHERE id = $1", ride_id)
         if definition_id is None:
             return JSONResponse({"instances": []})
 
@@ -777,34 +867,40 @@ async def get_ride_recurring_instances(
               AND u.week_bucket = (SELECT min(week_bucket) FROM upcoming)
             ORDER BY u.departure_datetime ASC
             """,
-            definition_id, caller_id, ride_id,
+            definition_id,
+            caller_id,
+            ride_id,
         )
 
-    return JSONResponse({
-        "instances": [
-            {
-                "ride_id": str(r["id"]),
-                "departure_datetime": r["departure_datetime"].isoformat(),
-                "available_seats": r["available_seats"],
-                "total_seats": r["total_seats"],
-                "per_seat_price": f"{float(r['price_per_seat']):.2f}",
-                "existing_booking": (
-                    {
-                        "booking_id": str(r["booking_id"]),
-                        "status": r["booking_status"],
-                        "seats": r["booking_seats"],
-                    }
-                    if r["booking_id"] else None
-                ),
-            }
-            for r in rows
-        ]
-    })
+    return JSONResponse(
+        {
+            "instances": [
+                {
+                    "ride_id": str(r["id"]),
+                    "departure_datetime": r["departure_datetime"].isoformat(),
+                    "available_seats": r["available_seats"],
+                    "total_seats": r["total_seats"],
+                    "per_seat_price": f"{float(r['price_per_seat']):.2f}",
+                    "existing_booking": (
+                        {
+                            "booking_id": str(r["booking_id"]),
+                            "status": r["booking_status"],
+                            "seats": r["booking_seats"],
+                        }
+                        if r["booking_id"]
+                        else None
+                    ),
+                }
+                for r in rows
+            ]
+        }
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # POST /api/v1/rides/{ride_id}/complete
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.post("/{ride_id}/complete")
 async def complete_ride(
@@ -822,6 +918,7 @@ async def complete_ride(
 # ─────────────────────────────────────────────────────────────────────────────
 # GET /api/v1/rides/{ride_id}/bookings  (T026)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.get("/{ride_id}/bookings")
 async def list_ride_bookings(
@@ -876,9 +973,7 @@ async def list_ride_bookings(
             passenger_id=r["passenger_id"],
             passenger={
                 "display_name": r["passenger_display_name"],
-                "avatar_url": storage_service.generate_signed_url(
-                    "profile-photos", r["passenger_avatar_url"]
-                ),
+                "avatar_url": storage_service.generate_signed_url("profile-photos", r["passenger_avatar_url"]),
                 "rating_avg": float(r["passenger_rating_avg"]) if r["passenger_rating_avg"] is not None else None,
                 "rating_count": r["passenger_rating_count"],
             },
@@ -910,6 +1005,7 @@ async def list_ride_bookings(
 # POST /api/v1/rides/{ride_id}/bookings/{booking_id}/confirm  (T027)
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @router.post("/{ride_id}/bookings/{booking_id}/confirm")
 async def confirm_booking(
     ride_id: uuid.UUID,
@@ -930,6 +1026,7 @@ async def confirm_booking(
 # ─────────────────────────────────────────────────────────────────────────────
 # POST /api/v1/rides/{ride_id}/bookings/{booking_id}/reject  (T028)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.post("/{ride_id}/bookings/{booking_id}/reject")
 async def reject_booking(
@@ -955,6 +1052,7 @@ async def reject_booking(
 # POST /api/v1/rides/{ride_id}/bookings/{booking_id}/cancel  (T034)
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @router.post("/{ride_id}/bookings/{booking_id}/cancel")
 async def cancel_booking_driver(
     ride_id: uuid.UUID,
@@ -967,9 +1065,7 @@ async def cancel_booking_driver(
     pool = get_pool()
     async with pool.acquire() as conn:
         await booking_service._assert_ride_owner(conn, ride_id, driver_id)
-        result = await booking_service.cancel_booking(
-            conn, booking_id, driver_id, "driver", reason
-        )
+        result = await booking_service.cancel_booking(conn, booking_id, driver_id, "driver", reason)
     return {
         "booking_id": str(result["id"]),
         "status": result["status"],
@@ -977,4 +1073,3 @@ async def cancel_booking_driver(
         "late_cancellation": result["late_cancellation"],
         "cancelled_at": result["cancelled_at"].isoformat(),
     }
-

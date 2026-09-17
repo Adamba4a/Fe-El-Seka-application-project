@@ -113,7 +113,10 @@ _NOTIFICATION_TEMPLATES: dict[str, dict[str, tuple[str, str]]] = {
         "ar": ("تم صرف المكافأة", "تم صرف طلب استبدال نقاط الولاء الخاص بك."),
     },
     "loyalty_redemption_rejected": {
-        "en": ("Redemption Not Approved", "Your loyalty points redemption was not approved. Your points were refunded."),
+        "en": (
+            "Redemption Not Approved",
+            "Your loyalty points redemption was not approved. Your points were refunded.",
+        ),
         "ar": ("لم تتم الموافقة على الاستبدال", "لم تتم الموافقة على استبدال نقاط الولاء الخاص بك. تم رد نقاطك."),
     },
     "loyalty_threshold_reached": {
@@ -137,8 +140,18 @@ _WEEKDAY_NAMES: dict[str, list[str]] = {
 _MONTH_NAMES: dict[str, list[str]] = {
     "en": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
     "ar": [
-        "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
-        "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
+        "يناير",
+        "فبراير",
+        "مارس",
+        "أبريل",
+        "مايو",
+        "يونيو",
+        "يوليو",
+        "أغسطس",
+        "سبتمبر",
+        "أكتوبر",
+        "نوفمبر",
+        "ديسمبر",
     ],
 }
 
@@ -161,9 +174,7 @@ def _format_day_label(iso_datetime: str | None, locale: str) -> str:
     return f"{weekday}, {month} {dt.day}"
 
 
-def _select_template(
-    event_type: str, locale: str | None, data_payload: dict | None = None
-) -> tuple[str, str]:
+def _select_template(event_type: str, locale: str | None, data_payload: dict | None = None) -> tuple[str, str]:
     """Resolve (title, body) for an event_type/locale pair, defaulting to English.
 
     For "booking_received", appends the ride's day (from data_payload's
@@ -183,12 +194,14 @@ def _select_template(
 
 
 # FCM error codes that mark a token as permanently invalid (should be deregistered)
-_INVALID_TOKEN_CODES = frozenset({
-    "registration-token-not-registered",
-    "invalid-registration-token",
-    "messaging/registration-token-not-registered",
-    "messaging/invalid-registration-token",
-})
+_INVALID_TOKEN_CODES = frozenset(
+    {
+        "registration-token-not-registered",
+        "invalid-registration-token",
+        "messaging/registration-token-not-registered",
+        "messaging/invalid-registration-token",
+    }
+)
 
 
 async def initialize_fcm() -> None:
@@ -259,8 +272,7 @@ async def send_push_notifications(
     invalid_ids = [
         token_to_id[tokens[i]]
         for i, result in enumerate(response.responses)
-        if not result.success
-        and getattr(result.exception, "code", None) in _INVALID_TOKEN_CODES
+        if not result.success and getattr(result.exception, "code", None) in _INVALID_TOKEN_CODES
     ]
     if invalid_ids:
         await conn.execute(
