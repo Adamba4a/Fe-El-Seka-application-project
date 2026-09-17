@@ -30,6 +30,7 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
       NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ci-placeholder-google-maps-key
       SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
       R2_APP_CONTENT_PUBLIC_URL: https://ci-placeholder.r2.dev
     steps:

@@ -62,6 +62,7 @@ def _ride_row(**overrides) -> dict:
         "available_seats": 2,
         "price_per_seat": "65.00",
         "fair_price_per_seat": "50.00",
+        "net_commission_egp": "0.00",
         "notes": None,
         "cancellation_reason": None,
         "cancellation_source": None,

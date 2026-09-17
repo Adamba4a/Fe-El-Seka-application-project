@@ -27,9 +27,11 @@ COPY pipelines/ /app/pipelines/
 # Face-match model weights are gitignored (large binaries) -- fetch them from
 # the OpenCV Zoo at build time instead of vendoring in the repo.
 RUN mkdir -p /app/app/models/weights && \
-    curl -fsSL -o /app/app/models/weights/face_detection_yunet_2023mar.onnx \
+    curl --fail --location --silent --show-error --http1.1 --retry 5 --retry-all-errors \
+        --retry-delay 2 -o /app/app/models/weights/face_detection_yunet_2023mar.onnx \
         https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx && \
-    curl -fsSL -o /app/app/models/weights/face_recognition_sface_2021dec.onnx \
+    curl --fail --location --silent --show-error --http1.1 --retry 5 --retry-all-errors \
+        --retry-delay 2 -o /app/app/models/weights/face_recognition_sface_2021dec.onnx \
         https://github.com/opencv/opencv_zoo/raw/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx
 
 ENV PATH="/app/.venv/bin:$PATH"
