@@ -202,7 +202,7 @@ function RecurringDayPicker({
                   >
                     {selected ? "✓" : ""}
                   </span>
-                  <span className="font-medium text-content-primary">{formatDayLabel(inst.departure_datetime, locale)}</span>
+                  <span className="font-medium text-content-primary">{formatDeparture(inst.departure_datetime, locale)}</span>
                 </span>
                 <span className="text-xs text-content-muted">
                   {alreadyBooked
@@ -241,11 +241,11 @@ function RecurringDayPicker({
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" onClick={() => onRoundTripChange(inst.ride_id, false)} className={`rounded-lg border px-2 py-2 text-left text-xs ${!extraRoundTrips[inst.ride_id] ? "border-brand-primary bg-white text-content-primary" : "border-border-default text-content-muted"}`}>
                         <span className="block font-semibold">{t("goingOnly")}</span>
-                        {formatCurrency(Number(inst.per_seat_price), locale)}
+                        {formatCurrency(Number(inst.per_seat_price), locale)} · {formatDeparture(inst.departure_datetime, locale)}
                       </button>
                       <button type="button" onClick={() => onRoundTripChange(inst.ride_id, true)} disabled={inst.paired_available_seats === 0} className={`rounded-lg border px-2 py-2 text-left text-xs disabled:opacity-50 ${extraRoundTrips[inst.ride_id] ? "border-brand-primary bg-white text-content-primary" : "border-border-default text-content-muted"}`}>
                         <span className="block font-semibold">{t("goingAndComing")}</span>
-                        {formatCurrency(Number(inst.per_seat_price) + Number(inst.paired_per_seat_price), locale)}
+                        {formatCurrency(Number(inst.per_seat_price) + Number(inst.paired_per_seat_price), locale)} · {inst.paired_departure_datetime ? formatDeparture(inst.paired_departure_datetime, locale) : ""}
                       </button>
                     </div>
                   )}
@@ -1047,7 +1047,7 @@ export default function PassengerRideDetailPage() {
 
           <div className="border-t border-border-default pt-3 space-y-1 text-sm">
             <div className="flex justify-between text-content-secondary">
-              <span>{formatDayLabel(ride.departure_datetime, locale)}</span>
+              <span>{returningRide ? `${formatDeparture(ride.departure_datetime, locale)} → ${formatDeparture(returningRide.departure_datetime, locale)}` : formatDeparture(ride.departure_datetime, locale)}</span>
               <span className="font-medium text-content-primary">
                 {t("seatsCount", { count: clampedSeatCount })} · {formatCurrency((Number(ride.per_seat_price) + (returningRide ? Number(returningRide.per_seat_price) : 0)) * clampedSeatCount + premiumFee, locale)}
               </span>
@@ -1058,7 +1058,7 @@ export default function PassengerRideDetailPage() {
                 if (!inst) return null;
                 return (
                   <div key={rideId} className="flex justify-between text-content-secondary">
-                    <span>{formatDayLabel(inst.departure_datetime, locale)}</span>
+                    <span>{extraRoundTrips[rideId] && inst.paired_departure_datetime ? `${formatDeparture(inst.departure_datetime, locale)} → ${formatDeparture(inst.paired_departure_datetime, locale)}` : formatDeparture(inst.departure_datetime, locale)}</span>
                     <span className="font-medium text-content-primary">
                       {t("seatsCount", { count: seats })} · {formatCurrency((parseFloat(inst.per_seat_price) + (extraRoundTrips[rideId] ? parseFloat(inst.paired_per_seat_price ?? "0") : 0)) * seats + premiumFee, locale)}
                     </span>
