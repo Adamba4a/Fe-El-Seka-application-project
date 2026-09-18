@@ -66,7 +66,7 @@ export default function ProfileOnboardingPage() {
   const phoneValid = LOCAL_PHONE_RE.test(phoneNumber.trim());
   const dobValid = dateOfBirth.trim().length > 0;
   const genderValid = gender !== "";
-  const photoValid = !!photo || !!existingPhotoUrl;
+  const hasPhoto = !!photo || !!existingPhotoUrl;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,11 +86,6 @@ export default function ProfileOnboardingPage() {
       setError(t("errors.genderRequired"));
       return;
     }
-    if (!photoValid) {
-      setError(t("errors.photoRequired"));
-      return;
-    }
-
     setSubmitting(true);
     setError("");
 
@@ -99,13 +94,16 @@ export default function ProfileOnboardingPage() {
     if (!session) { router.replace("/login"); return; }
 
     try {
-      if (photo) await uploadPhoto(session.access_token, photo);
+      // Persist the profile fields first. A photo is optional at signup, and
+      // an R2/upload interruption must never strand an otherwise completed
+      // account with the temporary "New User" display name.
       await updateMe(session.access_token, {
         display_name: displayName.trim(),
         phone_number: `+2${phoneNumber.trim()}`,
         date_of_birth: dateOfBirth,
         gender,
       });
+      if (photo) await uploadPhoto(session.access_token, photo);
       router.push(role === "driver" ? "/" : "/dashboard");
     } catch (err: unknown) {
       const e = err as { error?: string; message?: string };
@@ -144,7 +142,7 @@ export default function ProfileOnboardingPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="flex flex-col items-center gap-1">
             <ProfilePhotoUpload onFile={setPhoto} currentUrl={existingPhotoUrl} />
-            {photoValid && <span className="text-status-completed text-caption">✓</span>}
+            {hasPhoto && <span className="text-status-completed text-caption">✓</span>}
           </div>
 
           <div className="flex flex-col gap-1">
