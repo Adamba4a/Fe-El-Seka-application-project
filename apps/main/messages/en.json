@@ -688,12 +688,12 @@
       "backToMyRides": "← Back to My Rides"
     },
     "bookings": {
-      "heading": "Booking Requests",
+      "heading": "Ride Passengers",
       "pendingRequests": "Pending Requests ({count})",
-      "confirmedPassengers": "Confirmed Passengers ({count})",
+      "confirmedPassengers": "Passengers ({count})",
       "completed": "Completed ({count})",
       "noPending": "No pending booking requests",
-      "noConfirmed": "No confirmed passengers yet",
+      "noConfirmed": "No passengers have booked this ride yet",
       "rejectReasonPrompt": "Reason for rejection (optional):",
       "cancelReasonPrompt": "Reason for cancellation (optional):",
       "confirmFailed": "Failed to confirm booking",

@@ -688,12 +688,12 @@
       "backToMyRides": "← العودة إلى رحلاتي"
     },
     "bookings": {
-      "heading": "طلبات الحجز",
+      "heading": "ركاب الرحلة",
       "pendingRequests": "الطلبات المعلّقة ({count})",
-      "confirmedPassengers": "الركاب المؤكدون ({count})",
+      "confirmedPassengers": "الركاب ({count})",
       "completed": "مكتملة ({count})",
       "noPending": "لا توجد طلبات حجز معلّقة",
-      "noConfirmed": "لا يوجد ركاب مؤكدون بعد",
+      "noConfirmed": "لم يحجز أي راكب هذه الرحلة بعد",
       "rejectReasonPrompt": "سبب الرفض (اختياري):",
       "cancelReasonPrompt": "سبب الإلغاء (اختياري):",
       "confirmFailed": "فشل تأكيد الحجز",

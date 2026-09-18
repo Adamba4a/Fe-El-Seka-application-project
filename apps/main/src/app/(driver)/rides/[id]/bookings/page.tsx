@@ -8,7 +8,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { BookingCard } from "@/components/bookings/BookingCard";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { RatingBadge } from "@/components/ui/RatingBadge";
-import { VerificationRequiredModal } from "@/components/verification/VerificationRequiredModal";
 import { createClient } from "@/lib/supabase/client";
 import { getRide } from "@/lib/api/rides";
 import { useBookingStatus } from "@/lib/hooks/useBookingStatus";
@@ -97,7 +96,6 @@ export default function DriverRideBookingsPage() {
   const [ride, setRide] = useState<Ride | null>(null);
   const [mapBooking, setMapBooking] = useState<DriverBooking | null>(null);
   const [showAllOnMap, setShowAllOnMap] = useState(false);
-  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -138,76 +136,6 @@ export default function DriverRideBookingsPage() {
     fetchBookings();
   }, [lastEvent, fetchBookings]);
 
-  async function handleConfirm(bookingId: string) {
-    setActionLoading(bookingId);
-    try {
-      await apiFetch(`/api/v1/rides/${rideId}/bookings/${bookingId}/confirm`, {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
-      setBookings((prev) =>
-        prev.map((b) =>
-          b.booking_id === bookingId ? { ...b, status: "confirmed" } : b
-        )
-      );
-    } catch (e: any) {
-      if (e?.error === "verification_required") {
-        setVerifyModalOpen(true);
-      } else {
-        alert(e?.message ?? t("confirmFailed"));
-      }
-    } finally {
-      setActionLoading(null);
-    }
-  }
-
-  async function handleReject(bookingId: string) {
-    const promptResult = window.prompt(t("rejectReasonPrompt"));
-    const reason = promptResult ?? undefined;
-    setActionLoading(bookingId);
-    try {
-      const result = await apiFetch(
-        `/api/v1/rides/${rideId}/bookings/${bookingId}/reject`,
-        {
-          method: "POST",
-          body: JSON.stringify({ reason: reason ?? null }),
-        }
-      );
-      if (result.fallback_applied) {
-        // Premium pickup declined but booking kept as confirmed; subtract pickup fee from total
-        setBookings((prev) =>
-          prev.map((b) =>
-            b.booking_id === bookingId
-              ? {
-                  ...b,
-                  status: "confirmed",
-                  premium_pickup_requested: false,
-                  premium_pickup_fee: null,
-                  total_price: (
-                    Number(b.total_price) - Number(b.premium_pickup_fee || 0)
-                  ).toFixed(2),
-                }
-              : b
-          )
-        );
-      } else {
-        setBookings((prev) =>
-          prev.map((b) =>
-            b.booking_id === bookingId ? { ...b, status: "cancelled" } : b
-          )
-        );
-      }
-    } catch (e: any) {
-      if (e?.error === "verification_required") {
-        setVerifyModalOpen(true);
-      } else {
-        alert(e?.message ?? t("rejectFailed"));
-      }
-    } finally {
-      setActionLoading(null);
-    }
-  }
-
   async function handleCancel(bookingId: string) {
     const promptResult = window.prompt(t("cancelReasonPrompt"));
     if (promptResult === null) return; // user dismissed dialog
@@ -232,7 +160,6 @@ export default function DriverRideBookingsPage() {
     }
   }
 
-  const pending = bookings.filter((b) => b.status === "pending");
   const confirmed = bookings.filter((b) => b.status === "confirmed");
   const completed = bookings.filter((b) => b.status === "completed");
 
@@ -290,30 +217,6 @@ export default function DriverRideBookingsPage() {
           )}
         </div>
       )}
-
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium text-content-secondary uppercase tracking-wide">
-          {t("pendingRequests", { count: pending.length })}
-        </h2>
-        {pending.length === 0 ? (
-          <div className="rounded-2xl bg-surface-bg p-6 text-center">
-            <p className="text-sm text-content-muted">{t("noPending")}</p>
-          </div>
-        ) : (
-          pending.map((booking) => (
-            <BookingCard
-              key={booking.booking_id}
-              variant="driver"
-              booking={booking}
-              onConfirm={() => handleConfirm(booking.booking_id)}
-              onReject={() => handleReject(booking.booking_id)}
-              onViewMap={ride ? () => setMapBooking(booking) : undefined}
-              actionLoading={actionLoading === booking.booking_id}
-              viewProfileHref={`/users/${booking.passenger_id}`}
-            />
-          ))
-        )}
-      </section>
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
@@ -453,11 +356,6 @@ export default function DriverRideBookingsPage() {
         )}
       </BottomSheet>
 
-      <VerificationRequiredModal
-        isOpen={verifyModalOpen}
-        onClose={() => setVerifyModalOpen(false)}
-        role="driver"
-      />
     </div>
   );
 }

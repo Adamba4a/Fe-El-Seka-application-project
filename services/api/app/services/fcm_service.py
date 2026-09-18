@@ -19,8 +19,8 @@ _app: Optional[firebase_admin.App] = None
 
 _NOTIFICATION_TEMPLATES: dict[str, dict[str, tuple[str, str]]] = {
     "booking_received": {
-        "en": ("New Booking Request", "A passenger wants to join your ride."),
-        "ar": ("طلب حجز جديد", "يريد أحد الركاب الانضمام إلى رحلتك."),
+        "en": ("New Passenger Booked", "A passenger has joined your ride."),
+        "ar": ("راكب جديد حجز", "انضم راكب إلى رحلتك."),
     },
     "booking_reminder": {
         "en": (

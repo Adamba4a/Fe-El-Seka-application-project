@@ -68,7 +68,13 @@ def _build_email_content(notification_type: str, ride_id: uuid.UUID, payload: di
     if notification_type == "booking_confirmed":
         return (
             "Your booking is confirmed",
-            f"<p>Good news — your booking for ride <code>{ride_id}</code> has been confirmed by the driver.</p>",
+            f"<p>Good news — your booking for ride <code>{ride_id}</code> is confirmed.</p>",
+        )
+    if notification_type == "booking_received":
+        return (
+            "New passenger booked",
+            f"<p>A passenger has booked a seat on your ride <code>{ride_id}</code>. "
+            "You can manage passengers in the app if needed.</p>",
         )
     if notification_type == "booking_rejected":
         return (

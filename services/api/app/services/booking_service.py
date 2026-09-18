@@ -86,7 +86,7 @@ async def create_booking(
     loyalty_redemption_catalog_entry_id: Optional[uuid.UUID] = None,
     points_to_redeem: Optional[int] = None,
 ) -> dict:
-    """Atomically reserve `seats` seats and create a pending booking. Must be called with a pool conn."""
+    """Atomically reserve `seats` seats and create a confirmed booking. Must be called with a pool conn."""
     from app.services import loyalty_service
 
     async with conn.transaction():
@@ -177,11 +177,9 @@ async def create_booking(
                     },
                 )
 
-        # Spec 026 (redesigned 2026-08-31): a sponsored-group booking only settles —
-        # debits the group's funded balance and credits the driver — once the driver
-        # actually CONFIRMS it (see confirm_booking). At creation time we only mark
-        # the booking as SPONSORED and enforce the 1-seat cap; no money moves yet, so
-        # a later rejection never has to reverse anything (see reject_booking).
+        # Sponsored bookings settle immediately because every successful booking is
+        # automatically confirmed. A driver can still cancel a passenger afterwards;
+        # cancel_booking reverses the sponsored settlement in that case.
         # Redesign: since group membership is now open to everyone (no domain gate at
         # join time), only a member who has separately domain-verified their
         # eligibility for THIS sponsored group (group_memberships.domain_verification_id)
@@ -284,16 +282,16 @@ async def create_booking(
                     passenger_pickup_point, passenger_dropoff_point,
                     premium_pickup_requested, premium_dropoff_requested,
                     premium_pickup_fee, premium_dropoff_fee, payment_source,
-                    points_redeemed, points_discount_egp
+                    points_redeemed, points_discount_egp, status, confirmed_at
                 ) VALUES (
                     $1, $2, $3, $4, $5,
                     ST_SetSRID(ST_MakePoint($6, $7), 4326),
                     ST_SetSRID(ST_MakePoint($8, $9), 4326),
-                    $10, $11, $12, $13, $14, $15, $16
+                    $10, $11, $12, $13, $14, $15, $16, 'confirmed', now()
                 ) RETURNING id, status, per_seat_price, total_price, seats,
                            premium_pickup_requested, premium_dropoff_requested,
                            premium_pickup_fee, premium_dropoff_fee, points_redeemed,
-                           points_discount_egp, created_at
+                           points_discount_egp, created_at, confirmed_at
                 """,
                 ride_id, passenger_id, per_seat, total, seats,
                 boarding_lng, boarding_lat,      # MakePoint(lng, lat)
@@ -317,6 +315,22 @@ async def create_booking(
         booking = dict(row)
         booking_id = booking["id"]
 
+        if payment_source == "SPONSORED":
+            await _settle_sponsored_booking(
+                conn,
+                booking_id=booking_id,
+                ride_id=ride_id,
+                driver_id=ride["driver_id"],
+                passenger_id=passenger_id,
+                group_id=ride["group_id"],
+                per_seat_price=per_seat,
+                seats=seats,
+                fuel_cost_egp=ride["fuel_cost_egp"],
+                distance_fee_egp=ride["distance_fee_egp"],
+                safety_margin_egp=ride["safety_margin_egp"],
+                fair_price_per_seat=ride["fair_price_per_seat"],
+            )
+
         if loyalty_redemption is not None:
             await loyalty_service.attach_booking_to_redemption(
                 conn, loyalty_redemption["redemption_request_id"], booking_id
@@ -330,22 +344,22 @@ async def create_booking(
         booking["points_redemption"] = points_redemption
 
         # 5. Audit log
-        await _insert_audit_log(conn, booking_id, "created", passenger_id, "passenger", None, "pending")
+        await _insert_audit_log(conn, booking_id, "created", passenger_id, "passenger", None, "confirmed")
         await match_logging_service.record_outcome(
-            conn, ride_id, passenger_id, "requested", {"booking_id": str(booking_id)},
+            conn, ride_id, passenger_id, "accepted", {"booking_id": str(booking_id), "automatic": True},
         )
 
         # 6. Notifications
         driver_id = ride["driver_id"]
         await enqueue_booking_notification(
             conn,
-            "booking_created",
+            "booking_confirmed",
             passenger_id,
             {"ride_id": str(ride_id), "booking_id": str(booking_id)},
         )
         await enqueue_booking_notification(
             conn,
-            "booking_requested",
+            "booking_received",
             driver_id,
             {"ride_id": str(ride_id), "booking_id": str(booking_id)},
         )
@@ -787,12 +801,10 @@ async def cancel_booking(
             )
         late_cancellation = time_until_dep < timedelta(hours=2)
 
-        # Spec 026 (redesigned 2026-08-31): a sponsored booking now only settles once
-        # CONFIRMED (see confirm_booking / _settle_sponsored_booking) — a still-pending
-        # sponsored booking never touched the group's money, so cancelling it needs no
-        # reversal at all. Only reverse a booking that was actually confirmed, using the
-        # price the passenger locked in (per_seat_price), which is exactly what was
-        # credited at settlement time — not the ride's current (possibly since-edited) price.
+        # Sponsored bookings settle immediately at automatic confirmation. Reverse a
+        # confirmed booking using the price the passenger locked in (per_seat_price),
+        # which is exactly what was credited at settlement time — not the ride's
+        # current (possibly since-edited) price.
         if row["payment_source"] == "SPONSORED" and row["status"] == "confirmed":
             from app.services import loyalty_service, wallet_service
             from app.services.commission_service import compute_per_seat_commission
