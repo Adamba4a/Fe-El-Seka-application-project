@@ -897,6 +897,7 @@ async def get_ride_recurring_instances(
                   )
             )
             SELECT u.id, u.departure_datetime, u.available_seats, u.total_seats, u.price_per_seat,
+                   u.paired_ride_id, u.paired_per_seat_price, u.paired_available_seats,
                    b.id AS booking_id, b.status AS booking_status, b.seats AS booking_seats
             FROM upcoming u
             LEFT JOIN bookings b
