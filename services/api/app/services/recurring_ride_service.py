@@ -25,7 +25,7 @@ from app.services.commission_service import (
     compute_per_seat_commission,
     create_reservation,
 )
-from app.services.pricing_service import calculate_fare
+from app.services.pricing_service import calculate_fare, calculate_max_price
 from app.services.route_service import RouteServiceUnavailableError
 
 logger = logging.getLogger(__name__)
@@ -794,6 +794,13 @@ async def _generate_one_instance(definition: dict, dep: datetime) -> bool:
     fare = calculate_fare(route.distance_km, definition["total_seats"])
     fair_price_dec = Decimal(str(fare.per_seat_price_egp))
     price_per_seat = Decimal(str(definition["price_per_seat"]))
+    max_price_dec = Decimal(str(calculate_max_price(fare.per_seat_price_egp)))
+    if price_per_seat < fair_price_dec or price_per_seat > max_price_dec:
+        logger.warning(
+            "recurring generation: outbound price outside calculated range definition_id=%s",
+            definition["id"],
+        )
+        return False
 
     return_route = return_fare = return_dep = None
     if definition.get("journey_type") == "round_trip":
@@ -810,6 +817,15 @@ async def _generate_one_instance(definition: dict, dep: datetime) -> bool:
             logger.warning("recurring generation: unroutable return definition_id=%s", definition["id"])
             return False
         return_fare = calculate_fare(return_route.distance_km, definition["return_total_seats"])
+        return_price = Decimal(str(definition["return_price_per_seat"]))
+        return_fair_price = Decimal(str(return_fare.per_seat_price_egp))
+        return_max_price = Decimal(str(calculate_max_price(return_fare.per_seat_price_egp)))
+        if return_price < return_fair_price or return_price > return_max_price:
+            logger.warning(
+                "recurring generation: return price outside calculated range definition_id=%s",
+                definition["id"],
+            )
+            return False
 
     async with pool.acquire() as conn:
         async with conn.transaction():

@@ -81,7 +81,11 @@ export function RideForm({
   const [returnDepartureRaw, setReturnDepartureRaw] = useState("");
   const [returnRecurringTime, setReturnRecurringTime] = useState("");
   const [returnSeats, setReturnSeats] = useState(1);
-  const [returnPrice, setReturnPrice] = useState<number | null>(null);
+  const [returnFairPrice, setReturnFairPrice] = useState<number | null>(null);
+  const [returnMaxPrice, setReturnMaxPrice] = useState<number | null>(null);
+  const [returnSelectedPrice, setReturnSelectedPrice] = useState<number | null>(null);
+  const [returnFareLoading, setReturnFareLoading] = useState(false);
+  const [returnFareError, setReturnFareError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const [isRecurring, setIsRecurring] = useState(false);
@@ -128,6 +132,35 @@ export function RideForm({
     return () => { cancelled = true; };
   }, [mode, origin, destination]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // A return leg has its own direction and may have a different seat count,
+  // so it receives its own calculated base/max range. The driver can only
+  // select within that range; they must never type an arbitrary return price.
+  useEffect(() => {
+    if (mode !== "create" || journeyType !== "round_trip" || !origin || !destination) {
+      setReturnFairPrice(null);
+      setReturnMaxPrice(null);
+      setReturnSelectedPrice(null);
+      return;
+    }
+    let cancelled = false;
+    setReturnFareLoading(true);
+    setReturnFareError(null);
+    getFareEstimate(destination.coordinates, origin.coordinates, returnSeats)
+      .then((estimate) => {
+        if (cancelled) return;
+        setReturnFairPrice(estimate.per_seat_price_egp);
+        setReturnMaxPrice(estimate.max_price_per_seat_egp);
+        setReturnSelectedPrice(estimate.per_seat_price_egp);
+      })
+      .catch(() => {
+        if (!cancelled) setReturnFareError(t("errors.fareEstimateFailed"));
+      })
+      .finally(() => {
+        if (!cancelled) setReturnFareLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [mode, journeyType, origin, destination, returnSeats, t]);
+
   // Dirty-field detection for edit mode
   useEffect(() => {
     if (mode !== "edit" || !onDirtyChange) return;
@@ -173,7 +206,11 @@ export function RideForm({
     if (journeyType === "round_trip") {
       const returnTime = mode === "create" && isRecurring ? returnRecurringTime : returnDepartureRaw;
       if (!returnTime || (mode === "create" && !isRecurring && new Date(returnDepartureRaw) <= new Date(departureRaw))) return t("errors.returnDepartureInvalid");
-      if (returnSeats < 1 || returnSeats > maxSeats || returnPrice === null) return t("errors.returnDetailsInvalid");
+      if (
+        returnSeats < 1 || returnSeats > maxSeats || returnSelectedPrice === null ||
+        returnFairPrice === null || returnMaxPrice === null ||
+        returnSelectedPrice < returnFairPrice || returnSelectedPrice > returnMaxPrice
+      ) return t("errors.returnDetailsInvalid");
     }
     if (mode === "create" && (fairPrice === null || selectedPrice === null))
       return t("errors.fareEstimatePending");
@@ -204,7 +241,7 @@ export function RideForm({
         ...(journeyType === "round_trip" ? {
           return_departure_time: localTimeToUtcTime(returnRecurringTime),
           return_total_seats: returnSeats,
-          return_price_per_seat: returnPrice!,
+          return_price_per_seat: returnSelectedPrice!,
         } : {}),
       });
       return;
@@ -226,7 +263,7 @@ export function RideForm({
         ...(journeyType === "round_trip" ? {
           return_departure_datetime: new Date(returnDepartureRaw).toISOString(),
           return_total_seats: returnSeats,
-          return_final_price_per_seat: returnPrice!,
+          return_final_price_per_seat: returnSelectedPrice!,
         } : {}),
       } as CreateRidePayload);
     } else {
@@ -354,9 +391,47 @@ export function RideForm({
 
       {mode === "create" && (
         <div className="space-y-3 rounded-xl bg-surface-bg p-3">
-          <label className="flex items-center justify-between text-label text-content-primary"><span>{t("womenOnlyLabel")}</span><input type="checkbox" checked={womenOnly} onChange={(e) => setWomenOnly(e.target.checked)} /></label>
-          <label className="block text-label text-content-secondary">{t("journeyTypeLabel")}<select value={journeyType} onChange={(e) => setJourneyType(e.target.value as "one_way" | "round_trip")} className={inputClass}><option value="one_way">{t("oneWay")}</option><option value="round_trip">{t("roundTrip")}</option></select></label>
-          {journeyType === "round_trip" && <div className="grid grid-cols-3 gap-2"><input aria-label={t("returnDepartureLabel")} type={isRecurring ? "time" : "datetime-local"} value={isRecurring ? returnRecurringTime : returnDepartureRaw} onChange={(e) => isRecurring ? setReturnRecurringTime(e.target.value) : setReturnDepartureRaw(e.target.value)} className={inputClass} /><input aria-label={t("returnSeatsLabel")} type="number" min={1} max={maxSeats} value={returnSeats} onChange={(e) => setReturnSeats(Number(e.target.value))} className={inputClass} /><input aria-label={t("returnPriceLabel")} type="number" min={1} value={returnPrice ?? ""} onChange={(e) => setReturnPrice(Number(e.target.value))} className={inputClass} /></div>}
+          <label className="flex items-center justify-between text-label text-content-primary">
+            <span>{t("womenOnlyLabel")}</span>
+            <input type="checkbox" checked={womenOnly} onChange={(e) => setWomenOnly(e.target.checked)} />
+          </label>
+          <div className="space-y-1">
+            <label htmlFor="journey-type" className="block text-label text-content-secondary">{t("journeyTypeLabel")}</label>
+            <select id="journey-type" value={journeyType} onChange={(e) => setJourneyType(e.target.value as "one_way" | "round_trip")} className={inputClass}>
+              <option value="one_way">{t("oneWay")}</option>
+              <option value="round_trip">{t("roundTrip")}</option>
+            </select>
+          </div>
+          {journeyType === "round_trip" && (
+            <section className="space-y-4 rounded-xl border border-border-default bg-white p-4">
+              <h3 className="text-label text-content-primary">{t("returnJourneyHeading")}</h3>
+              <p className="text-caption text-content-muted">{t("returnJourneyHint")}</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <label htmlFor="return-departure" className="block text-label text-content-secondary">{t("returnDepartureLabel")}</label>
+                  <input id="return-departure" type={isRecurring ? "time" : "datetime-local"} value={isRecurring ? returnRecurringTime : returnDepartureRaw} onChange={(e) => isRecurring ? setReturnRecurringTime(e.target.value) : setReturnDepartureRaw(e.target.value)} className={inputClass} />
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="return-seats" className="block text-label text-content-secondary">{t("returnSeatsLabel", { maxSeats })}</label>
+                  <input id="return-seats" type="number" min={1} max={maxSeats} value={returnSeats} onChange={(e) => setReturnSeats(Number(e.target.value))} className={inputClass} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-label text-content-secondary">{t("returnPriceLabel")}</label>
+                {returnFareLoading && <p className="text-body-sm text-content-muted flex items-center gap-2"><Spinner /> {t("priceEstimating")}</p>}
+                {returnFareError && <p className="text-body-sm text-content-destructive">{returnFareError}</p>}
+                {returnFairPrice !== null && returnMaxPrice !== null && returnSelectedPrice !== null && (
+                  <div className="rounded-xl bg-surface-bg px-3 py-3 space-y-2">
+                    <div className="flex items-center justify-between text-caption text-content-muted"><span>{t("fairPriceLabel")}</span><span>{formatCurrency(returnFairPrice, locale)}</span></div>
+                    {returnFairPrice < returnMaxPrice && <input type="range" min={returnFairPrice} max={returnMaxPrice} step={1} value={returnSelectedPrice} onChange={(e) => setReturnSelectedPrice(Number(e.target.value))} className="w-full accent-dash-primary" />}
+                    <div className="flex items-center justify-between"><span className="text-label text-content-primary">{t("selectedPriceLabel")}</span><span className="text-heading-sm text-content-primary font-medium">{formatCurrency(returnSelectedPrice, locale)}</span></div>
+                    <div className="flex items-center justify-between text-caption text-content-muted"><span>{t("maxPriceLabel")}</span><span>{formatCurrency(returnMaxPrice, locale)}</span></div>
+                  </div>
+                )}
+                <p className="text-caption text-content-muted">{t("returnPriceHint")}</p>
+              </div>
+            </section>
+          )}
         </div>
       )}
 
