@@ -854,9 +854,12 @@ async def get_ride_recurring_instances(
         if definition_id is None:
             return JSONResponse({"instances": []})
 
-        # Offer all generated *other dates* in the rolling window. Return legs
-        # are deliberately excluded: a passenger viewing Monday's outbound ride
-        # must not see Monday's return leg presented as another bookable day.
+        # The generator maintains a two-week buffer, but passengers can book
+        # only the active week's remaining dates.  When its last departure has
+        # passed, the earliest future occurrence moves the visible window to
+        # the next week. Return legs are deliberately excluded: a passenger
+        # viewing Monday's outbound ride must not see Monday's return leg as
+        # another bookable day.
         rows = await conn.fetch(
             f"""
             WITH current_ride AS (
@@ -871,6 +874,15 @@ async def get_ride_recurring_instances(
                   AND r.departure_datetime > now()
                   AND r.trip_leg IN ('one_way', 'outbound')
                   AND {recurring_instance_visibility_sql("r")}
+                  AND date_trunc('week', r.departure_datetime AT TIME ZONE 'Africa/Cairo') = (
+                      SELECT date_trunc('week', MIN(candidate.departure_datetime) AT TIME ZONE 'Africa/Cairo')
+                      FROM rides candidate
+                      WHERE candidate.recurring_ride_definition_id = $1
+                        AND candidate.status = 'scheduled'
+                        AND candidate.departure_datetime > now()
+                        AND candidate.trip_leg IN ('one_way', 'outbound')
+                        AND {recurring_instance_visibility_sql("candidate")}
+                  )
             )
             SELECT u.id, u.departure_datetime, u.available_seats, u.total_seats, u.price_per_seat,
                    b.id AS booking_id, b.status AS booking_status, b.seats AS booking_seats
