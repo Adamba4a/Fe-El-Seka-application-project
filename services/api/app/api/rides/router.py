@@ -879,7 +879,11 @@ async def get_ride_recurring_instances(
                        (SELECT sibling.available_seats FROM rides sibling
                         WHERE sibling.round_trip_group_id = r.round_trip_group_id
                           AND sibling.trip_leg = 'return'
-                        LIMIT 1) AS paired_available_seats
+                        LIMIT 1) AS paired_available_seats,
+                       (SELECT sibling.departure_datetime FROM rides sibling
+                        WHERE sibling.round_trip_group_id = r.round_trip_group_id
+                          AND sibling.trip_leg = 'return'
+                        LIMIT 1) AS paired_departure_datetime
                 FROM rides r
                 WHERE r.recurring_ride_definition_id = $1
                   AND r.status = 'scheduled'
@@ -897,7 +901,7 @@ async def get_ride_recurring_instances(
                   )
             )
             SELECT u.id, u.departure_datetime, u.available_seats, u.total_seats, u.price_per_seat,
-                   u.paired_ride_id, u.paired_per_seat_price, u.paired_available_seats,
+                   u.paired_ride_id, u.paired_per_seat_price, u.paired_available_seats, u.paired_departure_datetime,
                    b.id AS booking_id, b.status AS booking_status, b.seats AS booking_seats
             FROM upcoming u
             LEFT JOIN bookings b
@@ -925,6 +929,10 @@ async def get_ride_recurring_instances(
                         if r["paired_per_seat_price"] is not None else None
                     ),
                     "paired_available_seats": r["paired_available_seats"],
+                    "paired_departure_datetime": (
+                        r["paired_departure_datetime"].isoformat()
+                        if r["paired_departure_datetime"] else None
+                    ),
                     "existing_booking": (
                         {
                             "booking_id": str(r["booking_id"]),
