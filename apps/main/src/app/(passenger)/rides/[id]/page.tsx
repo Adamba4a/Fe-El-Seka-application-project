@@ -148,16 +148,20 @@ function RecurringDayPicker({
   instances,
   currentRideId,
   extraSeats,
+  extraRoundTrips,
   onToggle,
   onSeatsChange,
+  onRoundTripChange,
   locale,
   t,
 }: {
   instances: RecurringInstanceOption[];
   currentRideId: string;
   extraSeats: Record<string, number>;
+  extraRoundTrips: Record<string, boolean>;
   onToggle: (instance: RecurringInstanceOption) => void;
   onSeatsChange: (rideId: string, seats: number) => void;
+  onRoundTripChange: (rideId: string, goingAndComing: boolean) => void;
   locale: Locale;
   t: ReturnType<typeof useTranslations>;
 }) {
@@ -174,7 +178,7 @@ function RecurringDayPicker({
           const full = inst.available_seats === 0;
           const disabled = alreadyBooked || full;
           const selected = inst.ride_id in extraSeats;
-          const maxSeats = Math.min(inst.available_seats, 8);
+          const maxSeats = Math.min(inst.available_seats, inst.paired_available_seats ?? 8, 8);
           const seats = extraSeats[inst.ride_id] ?? 1;
 
           return (
@@ -210,9 +214,10 @@ function RecurringDayPicker({
               </button>
 
               {selected && !disabled && (
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-border-default/60">
-                  <span className="text-xs text-content-secondary">{t("numberOfSeats")}</span>
-                  <div className="flex items-center gap-2">
+                <div className="mt-2 space-y-2 border-t border-border-default/60 pt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-content-secondary">{t("numberOfSeats")}</span>
+                    <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => onSeatsChange(inst.ride_id, Math.max(1, seats - 1))}
@@ -230,7 +235,20 @@ function RecurringDayPicker({
                     >
                       +
                     </button>
+                    </div>
                   </div>
+                  {inst.paired_ride_id && inst.paired_per_seat_price && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => onRoundTripChange(inst.ride_id, false)} className={`rounded-lg border px-2 py-2 text-left text-xs ${!extraRoundTrips[inst.ride_id] ? "border-brand-primary bg-white text-content-primary" : "border-border-default text-content-muted"}`}>
+                        <span className="block font-semibold">{t("goingOnly")}</span>
+                        {formatCurrency(Number(inst.per_seat_price), locale)}
+                      </button>
+                      <button type="button" onClick={() => onRoundTripChange(inst.ride_id, true)} disabled={inst.paired_available_seats === 0} className={`rounded-lg border px-2 py-2 text-left text-xs disabled:opacity-50 ${extraRoundTrips[inst.ride_id] ? "border-brand-primary bg-white text-content-primary" : "border-border-default text-content-muted"}`}>
+                        <span className="block font-semibold">{t("goingAndComing")}</span>
+                        {formatCurrency(Number(inst.per_seat_price) + Number(inst.paired_per_seat_price), locale)}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -272,6 +290,7 @@ export default function PassengerRideDetailPage() {
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [siblingInstances, setSiblingInstances] = useState<RecurringInstanceOption[]>([]);
   const [extraSeats, setExtraSeats] = useState<Record<string, number>>({});
+  const [extraRoundTrips, setExtraRoundTrips] = useState<Record<string, boolean>>({});
   const [loyaltyBalance, setLoyaltyBalance] = useState<number | null>(null);
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
   const [tripChoice, setTripChoice] = useState<TripChoice>("going_only");
@@ -548,7 +567,7 @@ export default function PassengerRideDetailPage() {
   const extraTotal = Object.entries(extraSeats).reduce((sum, [rideId, seats]) => {
     const inst = siblingInstances.find((i) => i.ride_id === rideId);
     if (!inst) return sum;
-    const extraReturnFare = tripChoice === "going_and_coming" && inst.paired_per_seat_price
+    const extraReturnFare = extraRoundTrips[rideId] && inst.paired_per_seat_price
       ? parseFloat(inst.paired_per_seat_price) * seats : 0;
     return sum + parseFloat(inst.per_seat_price) * seats + premiumFee + extraReturnFare;
   }, 0);
@@ -571,19 +590,30 @@ export default function PassengerRideDetailPage() {
   };
 
   const toggleExtraDay = (inst: RecurringInstanceOption) => {
+    const wasSelected = inst.ride_id in extraSeats;
     setExtraSeats((prev) => {
       const next = { ...prev };
-      if (inst.ride_id in next) {
+      if (wasSelected) {
         delete next[inst.ride_id];
       } else {
         next[inst.ride_id] = Math.min(1, Math.max(1, Math.min(inst.available_seats, 8)));
       }
       return next;
     });
+    if (wasSelected) {
+      setExtraRoundTrips((roundTrips) => {
+        const nextRoundTrips = { ...roundTrips };
+        delete nextRoundTrips[inst.ride_id];
+        return nextRoundTrips;
+      });
+    }
   };
 
   const setExtraDaySeats = (rideId: string, seats: number) => {
     setExtraSeats((prev) => ({ ...prev, [rideId]: seats }));
+  };
+  const setExtraDayRoundTrip = (rideId: string, goingAndComing: boolean) => {
+    setExtraRoundTrips((prev) => ({ ...prev, [rideId]: goingAndComing }));
   };
 
   const confirmBooking = async () => {
@@ -676,7 +706,7 @@ export default function PassengerRideDetailPage() {
           loyaltyRedemptionCatalogEntryId: null as string | null,
           pointsToRedeem: null as number | null,
           },
-          ...(tripChoice === "going_and_coming" && instance?.paired_ride_id ? [{
+          ...(extraRoundTrips[rideId] && instance?.paired_ride_id ? [{
             rideId: instance.paired_ride_id,
             seats,
             bookingContext: returnContext,
@@ -818,8 +848,10 @@ export default function PassengerRideDetailPage() {
           instances={siblingInstances}
           currentRideId={ride.id}
           extraSeats={extraSeats}
+          extraRoundTrips={extraRoundTrips}
           onToggle={toggleExtraDay}
           onSeatsChange={setExtraDaySeats}
+          onRoundTripChange={setExtraDayRoundTrip}
           locale={locale}
           t={t}
         />
@@ -1017,7 +1049,7 @@ export default function PassengerRideDetailPage() {
             <div className="flex justify-between text-content-secondary">
               <span>{formatDayLabel(ride.departure_datetime, locale)}</span>
               <span className="font-medium text-content-primary">
-                {t("seatsCount", { count: clampedSeatCount })} · {formatCurrency(Number(ride.per_seat_price) * clampedSeatCount + premiumFee, locale)}
+                {t("seatsCount", { count: clampedSeatCount })} · {formatCurrency((Number(ride.per_seat_price) + (returningRide ? Number(returningRide.per_seat_price) : 0)) * clampedSeatCount + premiumFee, locale)}
               </span>
             </div>
             {selectedExtraCount > 0 &&
@@ -1028,7 +1060,7 @@ export default function PassengerRideDetailPage() {
                   <div key={rideId} className="flex justify-between text-content-secondary">
                     <span>{formatDayLabel(inst.departure_datetime, locale)}</span>
                     <span className="font-medium text-content-primary">
-                      {t("seatsCount", { count: seats })} · {formatCurrency((parseFloat(inst.per_seat_price) + (tripChoice === "going_and_coming" ? parseFloat(inst.paired_per_seat_price ?? "0") : 0)) * seats + premiumFee, locale)}
+                      {t("seatsCount", { count: seats })} · {formatCurrency((parseFloat(inst.per_seat_price) + (extraRoundTrips[rideId] ? parseFloat(inst.paired_per_seat_price ?? "0") : 0)) * seats + premiumFee, locale)}
                     </span>
                   </div>
                 );
