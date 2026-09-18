@@ -22,6 +22,14 @@ import { getFareEstimate } from "@/lib/api/pricing";
 
 const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const;
 
+function mondayOfWeek(iso: string): number {
+  const date = new Date(iso);
+  const monday = new Date(date);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  return monday.getTime();
+}
+
 export default function RecurringRideDetailPage() {
   const t = useTranslations("driver.recurring");
   const locale = useLocale() as Locale;
@@ -206,8 +214,14 @@ export default function RecurringRideDetailPage() {
   }
 
   const inputClass = "w-full border border-border-default rounded-xl px-3 py-2 text-body-sm outline-none focus:border-border-focus transition-colors";
+  // The API retains a two-week generation buffer. Show just the earliest
+  // future calendar week here, then naturally switch once that week is over.
+  const firstVisibleWeek = instances.length ? mondayOfWeek(instances[0].departure_datetime) : null;
+  const visibleInstances = firstVisibleWeek === null
+    ? []
+    : instances.filter((ride) => mondayOfWeek(ride.departure_datetime) === firstVisibleWeek);
   const occurrenceGroups = Object.values(
-    instances.reduce<Record<string, Ride[]>>((groups, ride) => {
+    visibleInstances.reduce<Record<string, Ride[]>>((groups, ride) => {
       const key = ride.round_trip_group_id ?? ride.id;
       (groups[key] ??= []).push(ride);
       return groups;
