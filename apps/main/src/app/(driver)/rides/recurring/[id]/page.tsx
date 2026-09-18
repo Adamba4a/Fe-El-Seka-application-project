@@ -38,6 +38,7 @@ export default function RecurringRideDetailPage() {
 
   const [definition, setDefinition] = useState<RecurringRideDefinition | null>(null);
   const [instances, setInstances] = useState<Ride[]>([]);
+  const [missingWeeklyOccurrences, setMissingWeeklyOccurrences] = useState(0);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -74,6 +75,7 @@ export default function RecurringRideDetailPage() {
       const res = await getRecurringDefinition(session.access_token, id);
       setDefinition(res.definition);
       setInstances(res.instances);
+      setMissingWeeklyOccurrences(res.missing_weekly_occurrences);
       setEditTime(utcTimeToLocalTime(res.definition.departure_time.substring(0, 5)));
       setEditWeekdays(res.definition.weekdays.map(fromIsoWeekday));
       setEditSeats(res.definition.total_seats);
@@ -440,6 +442,11 @@ export default function RecurringRideDetailPage() {
 
       <div className="bg-surface-card border border-border-default rounded-2xl p-5 space-y-4">
         <h2 className="font-semibold text-content-primary">{t("instancesHeading")}</h2>
+        {missingWeeklyOccurrences > 0 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            {t("insufficientBalanceForOccurrences", { count: missingWeeklyOccurrences })}
+          </div>
+        )}
         {instances.length > 0 && (
           <p className="text-caption text-content-muted">{t("instancesHint")}</p>
         )}

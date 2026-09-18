@@ -158,6 +158,7 @@ export interface RecurringRideDefinitionListResponse {
 export interface RecurringRideDefinitionDetailResponse {
   definition: RecurringRideDefinition;
   instances: Ride[];
+  missing_weekly_occurrences: number;
 }
 
 export interface RecurringRideDefinitionUpdateResponse {

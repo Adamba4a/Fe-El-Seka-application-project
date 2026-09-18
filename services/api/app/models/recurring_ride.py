@@ -69,6 +69,7 @@ class RecurringRideDefinitionListResponse(BaseModel):
 class RecurringRideDefinitionDetailResponse(BaseModel):
     definition: RecurringRideDefinitionResponse
     instances: list[RideResponse]
+    missing_weekly_occurrences: int = 0
 
 
 class RecurringRideDefinitionUpdateResponse(BaseModel):

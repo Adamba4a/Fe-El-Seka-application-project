@@ -277,9 +277,22 @@ async def get_definition(driver_id: uuid.UUID, definition_id: uuid.UUID) -> Recu
             definition_id,
         )
 
+    now = _now()
+    days_until_sunday = 7 - now.isoweekday()
+    expected_dates = {
+        (now.date() + timedelta(days=offset))
+        for offset in range(days_until_sunday + 1)
+        if (now.date() + timedelta(days=offset)).isoweekday() in definition["weekdays"]
+        and datetime.combine(
+            now.date() + timedelta(days=offset), definition["departure_time"], tzinfo=timezone.utc
+        ) > now
+    }
+    generated_dates = {row["departure_datetime"].date() for row in instance_rows}
+
     return RecurringRideDefinitionDetailResponse(
         definition=_to_definition_response(definition, upcoming_instance_count=upcoming_count or 0),
         instances=[ride_service._to_response(dict(r)) for r in instance_rows],
+        missing_weekly_occurrences=len(expected_dates - generated_dates),
     )
 
 

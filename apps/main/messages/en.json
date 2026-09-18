@@ -637,6 +637,7 @@
       "saveFailed": "Failed to save changes.",
       "editSuccessPrefix": "Updated {count} upcoming ride(s).",
       "instancesHeading": "Upcoming Rides",
+      "insufficientBalanceForOccurrences": "Your driver wallet does not have enough available balance to reserve commission for {count} remaining ride(s) this week. Add funds to generate them.",
       "instancesHint": "Each date groups its going and coming rides together. Use its adjustment button to change that date's times.",
       "noInstancesYet": "No upcoming ride this week.",
       "fareEstimateFailed": "Could not calculate the price range for this route.",
