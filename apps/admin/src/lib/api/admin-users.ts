@@ -12,8 +12,9 @@ export interface UserListItem {
   display_name: string;
   email: string;
   role: UserRole;
-  verification_status: VerificationStatus;
   created_at: string;
+  org_verified_at: string | null;
+  org_verified_domain: string | null;
 }
 
 export interface UserListResponse {
@@ -25,7 +26,6 @@ export interface UserListResponse {
 export interface UserListParams {
   q?: string;
   role?: UserRole;
-  status?: VerificationStatus;
   page?: number;
 }
 
@@ -78,6 +78,8 @@ export interface UserDetail {
     display_name: string;
     email: string;
     phone_number: string | null;
+    date_of_birth: string | null;
+    gender: "woman" | "man" | null;
     role: UserRole;
     verification_status: VerificationStatus;
     created_at: string;
@@ -109,7 +111,6 @@ export async function list(token: string, params: UserListParams = {}): Promise<
   const search = new URLSearchParams({ page: String(params.page ?? 1), limit: "20" });
   if (params.q) search.set("q", params.q);
   if (params.role) search.set("role", params.role);
-  if (params.status) search.set("status", params.status);
   const res = await fetch(`${base}/api/admin/users/?${search}`, {
     headers: { Authorization: `Bearer ${token}` },
   });

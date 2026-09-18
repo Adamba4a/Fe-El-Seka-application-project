@@ -67,7 +67,7 @@ def list_users(
     resp = (
         _filtered(
             sb.table("profiles").select(
-                "id, display_name, email, role, verification_status, created_at"
+                "id, display_name, email, role, created_at, org_verified_at, org_verified_domain"
             )
         )
         .order("created_at", desc=True)
@@ -81,8 +81,9 @@ def list_users(
             "display_name": row.get("display_name") or "",
             "email": row.get("email") or "",
             "role": row["role"],
-            "verification_status": row["verification_status"],
             "created_at": str(row["created_at"]),
+            "org_verified_at": str(row["org_verified_at"]) if row.get("org_verified_at") else None,
+            "org_verified_domain": row.get("org_verified_domain"),
         }
         for row in (resp.data or [])
     ]
@@ -99,7 +100,8 @@ def get_user_detail(
         sb.table("profiles")
         .select(
             "id, display_name, email, role, verification_status, created_at,"
-            " phone_number, profile_photo_path, org_verified_at, org_verified_domain"
+            " phone_number, profile_photo_path, date_of_birth, gender,"
+            " org_verified_at, org_verified_domain"
         )
         .eq("id", user_id)
         .maybe_single()
@@ -117,6 +119,8 @@ def get_user_detail(
             "display_name": row.get("display_name") or "",
             "email": row.get("email") or "",
             "phone_number": row.get("phone_number"),
+            "date_of_birth": str(row["date_of_birth"]) if row.get("date_of_birth") else None,
+            "gender": row.get("gender"),
             "role": role,
             "verification_status": row["verification_status"],
             "created_at": str(row["created_at"]),

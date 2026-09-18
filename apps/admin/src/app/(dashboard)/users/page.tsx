@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createAdminBrowserClient } from "@/lib/supabase/browser-client";
-import { list, type UserListItem, type UserRole, type VerificationStatus } from "@/lib/api/admin-users";
+import { list, type UserListItem, type UserRole } from "@/lib/api/admin-users";
 
 const sb = createAdminBrowserClient();
 
@@ -14,21 +14,11 @@ const ROLES: { value: UserRole | ""; label: string }[] = [
   { value: "admin", label: "Admin" },
 ];
 
-const STATUSES: { value: VerificationStatus | ""; label: string }[] = [
-  { value: "", label: "All statuses" },
-  { value: "unverified", label: "Unverified" },
-  { value: "pending_review", label: "Pending review" },
-  { value: "verified", label: "Verified" },
-  { value: "rejected", label: "Rejected" },
-  { value: "suspended", label: "Suspended" },
-];
-
 const PAGE_SIZE = 20;
 
 export default function UsersPage() {
   const [q, setQ] = useState("");
   const [role, setRole] = useState<UserRole | "">("");
-  const [status, setStatus] = useState<VerificationStatus | "">("");
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<UserListItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -46,7 +36,6 @@ export default function UsersPage() {
         const res = await list(token, {
           q: q.trim() || undefined,
           role: role || undefined,
-          status: status || undefined,
           page,
         });
         if (!cancelled) {
@@ -63,7 +52,7 @@ export default function UsersPage() {
       cancelled = true;
       clearTimeout(timeout);
     };
-  }, [q, role, status, page]);
+  }, [q, role, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -96,18 +85,6 @@ export default function UsersPage() {
             <option key={r.value} value={r.value}>{r.label}</option>
           ))}
         </select>
-        <select
-          value={status}
-          onChange={(e) => {
-            setPage(1);
-            setStatus(e.target.value as VerificationStatus | "");
-          }}
-          className="border rounded px-3 py-1.5 text-sm"
-        >
-          {STATUSES.map((s) => (
-            <option key={s.value} value={s.value}>{s.label}</option>
-          ))}
-        </select>
       </div>
 
       {error && <p className="text-red-600 text-sm">{error}</p>}
@@ -118,7 +95,7 @@ export default function UsersPage() {
             <th className="py-2 pr-4 font-medium">Name</th>
             <th className="py-2 pr-4 font-medium">Email</th>
             <th className="py-2 pr-4 font-medium">Role</th>
-            <th className="py-2 pr-4 font-medium">Status</th>
+            <th className="py-2 pr-4 font-medium">Org verified</th>
             <th className="py-2 font-medium">Actions</th>
           </tr>
         </thead>
@@ -129,13 +106,15 @@ export default function UsersPage() {
               <td className="py-2 pr-4 text-gray-600">{u.email}</td>
               <td className="py-2 pr-4 capitalize">{u.role}</td>
               <td className="py-2 pr-4">
-                <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${
-                  u.verification_status === "verified" ? "bg-green-100 text-green-700" :
-                  u.verification_status === "suspended" ? "bg-red-100 text-red-700" :
-                  "bg-yellow-100 text-yellow-700"
-                }`}>
-                  {u.verification_status.replace(/_/g, " ")}
-                </span>
+                {u.org_verified_at ? (
+                  <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                    Yes{u.org_verified_domain ? ` — ${u.org_verified_domain}` : ""}
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                    No
+                  </span>
+                )}
               </td>
               <td className="py-2 flex gap-2">
                 <Link href={`/users/${u.user_id}`} className="text-blue-600 hover:underline">

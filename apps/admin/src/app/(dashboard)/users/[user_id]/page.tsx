@@ -80,18 +80,10 @@ export default function UserDetailPage({ params }: { params: { user_id: string }
             <dt className="text-gray-500">Name</dt><dd>{profile.display_name || "—"}</dd>
             <dt className="text-gray-500">Email</dt><dd>{profile.email}</dd>
             <dt className="text-gray-500">Phone</dt><dd>{profile.phone_number ?? "—"}</dd>
+            <dt className="text-gray-500">Date of birth</dt><dd>{profile.date_of_birth ?? "—"}</dd>
+            <dt className="text-gray-500">Gender</dt><dd>{profile.gender ? profile.gender[0].toUpperCase() + profile.gender.slice(1) : "—"}</dd>
             <dt className="text-gray-500">Role</dt><dd className="capitalize">{profile.role}</dd>
-            <dt className="text-gray-500">Status</dt>
-            <dd>
-              <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${
-                profile.verification_status === "verified" ? "bg-green-100 text-green-700" :
-                profile.verification_status === "suspended" ? "bg-red-100 text-red-700" :
-                "bg-yellow-100 text-yellow-700"
-              }`}>
-                {profile.verification_status.replace(/_/g, " ")}
-              </span>
-            </dd>
-            <dt className="text-gray-500">Org access</dt>
+            <dt className="text-gray-500">Org verified</dt>
             <dd>
               {profile.org_verified_at ? (
                 <>
