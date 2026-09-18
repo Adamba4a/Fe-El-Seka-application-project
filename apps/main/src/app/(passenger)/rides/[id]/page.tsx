@@ -67,6 +67,9 @@ interface RideDetail {
   group_name: string | null;
   recurring_ride_definition_id: string | null;
   recurring_weekdays: number[] | null;
+  round_trip_group_id: string | null;
+  trip_leg: "one_way" | "outbound" | "return";
+  paired_ride_id: string | null;
 }
 
 interface DetailResponse {
@@ -93,9 +96,13 @@ interface PreviewRide {
   existing_booking: ExistingBooking | null;
   recurring_ride_definition_id: string | null;
   recurring_weekdays: number[] | null;
+  round_trip_group_id: string | null;
+  trip_leg: "one_way" | "outbound" | "return";
+  paired_ride_id: string | null;
 }
 
 type PremiumOption = "standard" | "premium_pickup" | "premium_dropoff" | "premium_both";
+type TripChoice = "going_only" | "going_and_coming";
 
 function RecurringSeriesNote({
   definitionId,
@@ -268,6 +275,8 @@ export default function PassengerRideDetailPage() {
   const [extraSeats, setExtraSeats] = useState<Record<string, number>>({});
   const [loyaltyBalance, setLoyaltyBalance] = useState<number | null>(null);
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
+  const [tripChoice, setTripChoice] = useState<TripChoice>("going_only");
+  const [pairedDetail, setPairedDetail] = useState<DetailResponse | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -330,6 +339,28 @@ export default function PassengerRideDetailPage() {
     }
     loadSiblings();
   }, [id, detail?.ride.recurring_ride_definition_id]);
+
+  useEffect(() => {
+    async function loadPairedRide() {
+      if (!detail?.ride.paired_ride_id) { setPairedDetail(null); return; }
+      try {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const params = new URLSearchParams({
+          origin_lat: String(destLat), origin_lng: String(destLng),
+          destination_lat: String(originLat), destination_lng: String(originLng),
+        });
+        const res = await fetch(`${env.apiUrl}/api/v1/rides/${detail.ride.paired_ride_id}/passenger-detail?${params}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (res.ok) setPairedDetail(await res.json());
+      } catch {
+        setPairedDetail(null);
+      }
+    }
+    void loadPairedRide();
+  }, [detail?.ride.paired_ride_id, originLat, originLng, destLat, destLng]);
 
   useEffect(() => {
     async function loadLoyalty() {
@@ -512,14 +543,16 @@ export default function PassengerRideDetailPage() {
     return 0;
   })();
 
-  const maxSeats = ride.is_sponsored ? 1 : Math.min(ride.available_seats, 8);
+  const returningRide = tripChoice === "going_and_coming" ? pairedDetail?.ride : null;
+  const maxSeats = ride.is_sponsored ? 1 : Math.min(ride.available_seats, returningRide?.available_seats ?? 8, 8);
   const clampedSeatCount = Math.max(1, Math.min(seatCount, maxSeats || 1));
   const extraTotal = Object.entries(extraSeats).reduce((sum, [rideId, seats]) => {
     const inst = siblingInstances.find((i) => i.ride_id === rideId);
     if (!inst) return sum;
     return sum + parseFloat(inst.per_seat_price) * seats + premiumFee;
   }, 0);
-  const totalPriceBeforePoints = parseFloat(ride.per_seat_price) * clampedSeatCount + premiumFee + extraTotal;
+  const returnFare = returningRide ? parseFloat(returningRide.per_seat_price) * clampedSeatCount : 0;
+  const totalPriceBeforePoints = parseFloat(ride.per_seat_price) * clampedSeatCount + premiumFee + returnFare + extraTotal;
   const maxPointsDiscountEgp = Math.min(
     ((ride.fuel_cost_egp ?? 0) / FARE_SPLIT_SEATS) * clampedSeatCount,
     totalPriceBeforePoints
@@ -570,6 +603,8 @@ export default function PassengerRideDetailPage() {
       const postBooking = async (
         rideId: string,
         seats: number,
+        bookingContext: PassengerContext,
+        includePremium: boolean,
         loyaltyRedemptionCatalogEntryId: string | null,
         pointsToRedeemForTarget: number | null
       ): Promise<{ res: Response; json: { booking_id?: string; detail?: unknown; error?: string; message?: string } }> => {
@@ -583,12 +618,12 @@ export default function PassengerRideDetailPage() {
           },
           body: JSON.stringify({
             ride_id: rideId,
-            boarding_point: ctx.boarding_point,
-            alighting_point: ctx.alighting_point,
-            premium_pickup_requested: premiumOption === "premium_pickup" || premiumOption === "premium_both",
-            premium_dropoff_requested: premiumOption === "premium_dropoff" || premiumOption === "premium_both",
-            premium_pickup_fee: pickupFee,
-            premium_dropoff_fee: dropoffFee,
+            boarding_point: bookingContext.boarding_point,
+            alighting_point: bookingContext.alighting_point,
+            premium_pickup_requested: includePremium && (premiumOption === "premium_pickup" || premiumOption === "premium_both"),
+            premium_dropoff_requested: includePremium && (premiumOption === "premium_dropoff" || premiumOption === "premium_both"),
+            premium_pickup_fee: includePremium ? pickupFee : null,
+            premium_dropoff_fee: includePremium ? dropoffFee : null,
             seats,
             loyalty_redemption_catalog_entry_id: loyaltyRedemptionCatalogEntryId,
             points_to_redeem: pointsToRedeemForTarget,
@@ -600,17 +635,29 @@ export default function PassengerRideDetailPage() {
 
       // Points redemption only applies to the single main-day booking — not
       // to extra recurring days, which are separate bookings on separate rides.
-      const extraDayCount = Object.keys(extraSeats).length;
+      const extraDayCount = Object.keys(extraSeats).length + (tripChoice === "going_and_coming" ? 1 : 0);
       const targets = [
         {
           rideId: detail.ride.id,
           seats: clampedSeatCount,
+          bookingContext: ctx,
+          includePremium: true,
           loyaltyRedemptionCatalogEntryId: null as string | null,
           pointsToRedeem: extraDayCount === 0 && clampedPointsToRedeem > 0 ? clampedPointsToRedeem : null,
         },
+        ...(tripChoice === "going_and_coming" && pairedDetail ? [{
+          rideId: pairedDetail.ride.id,
+          seats: clampedSeatCount,
+          bookingContext: pairedDetail.passenger_context,
+          includePremium: false,
+          loyaltyRedemptionCatalogEntryId: null as string | null,
+          pointsToRedeem: null as number | null,
+        }] : []),
         ...Object.entries(extraSeats).map(([rideId, seats]) => ({
           rideId,
           seats,
+          bookingContext: ctx,
+          includePremium: true,
           loyaltyRedemptionCatalogEntryId: null as string | null,
           pointsToRedeem: null as number | null,
         })),
@@ -619,7 +666,7 @@ export default function PassengerRideDetailPage() {
       const outcomes: Awaited<ReturnType<typeof postBooking>>[] = [];
       for (const target of targets) {
         outcomes.push(
-          await postBooking(target.rideId, target.seats, target.loyaltyRedemptionCatalogEntryId, target.pointsToRedeem)
+          await postBooking(target.rideId, target.seats, target.bookingContext, target.includePremium, target.loyaltyRedemptionCatalogEntryId, target.pointsToRedeem)
         );
       }
 
@@ -725,6 +772,25 @@ export default function PassengerRideDetailPage() {
         weekdays={ride.recurring_weekdays}
         t={t}
       />
+
+      {ride.round_trip_group_id && ride.trip_leg === "outbound" && (
+        <section className="space-y-3 rounded-xl border border-brand-primary/30 bg-brand-primary/5 p-4">
+          <div>
+            <h2 className="text-sm font-semibold text-content-primary">{t("goingAndComingHeading")}</h2>
+            <p className="mt-1 text-xs text-content-muted">{t("goingAndComingHint")}</p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button type="button" onClick={() => setTripChoice("going_only")} className={`rounded-xl border p-3 text-left text-sm ${tripChoice === "going_only" ? "border-brand-primary bg-white" : "border-border-default bg-surface-card"}`}>
+              <span className="block font-semibold text-content-primary">{t("goingOnly")}</span>
+              <span className="text-xs text-content-muted">{formatCurrency(Number(ride.per_seat_price), locale)}</span>
+            </button>
+            <button type="button" disabled={!pairedDetail || !!pairedDetail.existing_booking || pairedDetail.ride.available_seats === 0} onClick={() => setTripChoice("going_and_coming")} className={`rounded-xl border p-3 text-left text-sm disabled:cursor-not-allowed disabled:opacity-50 ${tripChoice === "going_and_coming" ? "border-brand-primary bg-white" : "border-border-default bg-surface-card"}`}>
+              <span className="block font-semibold text-content-primary">{t("goingAndComing")}</span>
+              <span className="text-xs text-content-muted">{pairedDetail ? t("returnRideSummary", { time: formatDeparture(pairedDetail.ride.departure_datetime, locale), price: formatCurrency(Number(pairedDetail.ride.per_seat_price), locale) }) : t("loadingReturnRide")}</span>
+            </button>
+          </div>
+        </section>
+      )}
 
       {ride.recurring_ride_definition_id && !detail.existing_booking && (
         <RecurringDayPicker

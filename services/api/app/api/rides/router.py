@@ -539,7 +539,11 @@ async def get_ride_preview(
                 ST_X(r.destination_coordinates::geometry)  AS destination_lng,
                 p.display_name, p.profile_photo_path AS avatar_url, p.verification_status,
                 p.rating_avg, p.rating_count,
-                r.recurring_ride_definition_id, rd.weekdays AS recurring_weekdays
+                r.recurring_ride_definition_id, rd.weekdays AS recurring_weekdays,
+                r.round_trip_group_id, r.trip_leg,
+                (SELECT sibling.id FROM rides sibling
+                 WHERE sibling.round_trip_group_id = r.round_trip_group_id AND sibling.id <> r.id
+                 LIMIT 1) AS paired_ride_id
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
             LEFT JOIN recurring_ride_definitions rd ON rd.id = r.recurring_ride_definition_id
@@ -599,6 +603,9 @@ async def get_ride_preview(
                     str(ride["recurring_ride_definition_id"]) if ride["recurring_ride_definition_id"] else None
                 ),
                 "recurring_weekdays": ride["recurring_weekdays"],
+                "round_trip_group_id": str(ride["round_trip_group_id"]) if ride["round_trip_group_id"] else None,
+                "trip_leg": ride["trip_leg"],
+                "paired_ride_id": str(ride["paired_ride_id"]) if ride["paired_ride_id"] else None,
             },
             "existing_booking": (
                 {"booking_id": str(existing["id"]), "status": existing["status"], "seats": existing["seats"]}
@@ -650,7 +657,11 @@ async def get_ride_passenger_detail(
                 p.rating_avg, p.rating_count,
                 COALESCE(g.is_sponsored, false) AS is_sponsored,
                 r.group_id, g.name AS group_name,
-                r.recurring_ride_definition_id, rd.weekdays AS recurring_weekdays
+                r.recurring_ride_definition_id, rd.weekdays AS recurring_weekdays,
+                r.round_trip_group_id, r.trip_leg,
+                (SELECT sibling.id FROM rides sibling
+                 WHERE sibling.round_trip_group_id = r.round_trip_group_id AND sibling.id <> r.id
+                 LIMIT 1) AS paired_ride_id
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
             LEFT JOIN groups g ON g.id = r.group_id
@@ -796,6 +807,9 @@ async def get_ride_passenger_detail(
                     str(ride["recurring_ride_definition_id"]) if ride["recurring_ride_definition_id"] else None
                 ),
                 "recurring_weekdays": ride["recurring_weekdays"],
+                "round_trip_group_id": str(ride["round_trip_group_id"]) if ride["round_trip_group_id"] else None,
+                "trip_leg": ride["trip_leg"],
+                "paired_ride_id": str(ride["paired_ride_id"]) if ride["paired_ride_id"] else None,
             },
             "passenger_context": {
                 "boarding_point": {"lat": pickup_lat_val, "lng": pickup_lng_val},
