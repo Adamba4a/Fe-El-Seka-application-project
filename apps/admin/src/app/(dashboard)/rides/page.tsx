@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { createAdminBrowserClient } from "@/lib/supabase/browser-client";
 import { list, featureRide, unfeatureRide, type RideListItem, type RideStatus } from "@/lib/api/admin-rides";
@@ -35,6 +35,7 @@ export default function RidesPage() {
   const [error, setError] = useState("");
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [toggleError, setToggleError] = useState<{ rideId: string; message: string } | null>(null);
+  const [expandedSeries, setExpandedSeries] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,6 +68,13 @@ export default function RidesPage() {
   }, [q, status, date, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const rideGroups = Array.from(items.reduce((groups, ride) => {
+    const key = ride.recurring_ride_definition_id ?? ride.ride_id;
+    const entries = groups.get(key) ?? [];
+    entries.push(ride);
+    groups.set(key, entries);
+    return groups;
+  }, new Map<string, RideListItem[]>()).entries());
 
   async function toggleFeatured(ride: RideListItem) {
     setTogglingId(ride.ride_id);
@@ -162,14 +170,18 @@ export default function RidesPage() {
           </tr>
         </thead>
         <tbody>
-          {items.map((r) => (
-            <tr key={r.ride_id} className="border-b hover:bg-gray-50">
+          {rideGroups.map(([seriesId, series]) => {
+            const r = series[0];
+            const isSeries = !!r.recurring_ride_definition_id;
+            const expanded = expandedSeries === seriesId;
+            return <Fragment key={seriesId}>
+            <tr className="border-b hover:bg-gray-50">
               <td className="py-2 pr-4">
                 {r.origin_address} → {r.destination_address}
               </td>
               <td className="py-2 pr-4">{r.driver_display_name || "—"}</td>
               <td className="py-2 pr-4 text-gray-600">
-                {new Date(r.departure_datetime).toLocaleString()}
+                {isSeries ? `Recurring series · ${series.length} instances` : new Date(r.departure_datetime).toLocaleString()}
               </td>
               <td className="py-2 pr-4">{r.booked_seats}/{r.total_seats}</td>
               <td className="py-2 pr-4">{r.price_per_seat} EGP</td>
@@ -197,12 +209,24 @@ export default function RidesPage() {
                 </div>
               </td>
               <td className="py-2">
-                <Link href={`/rides/${r.ride_id}`} className="text-blue-600 hover:underline">
-                  Detail
-                </Link>
+                <div className="flex gap-2">
+                  {isSeries && <button type="button" onClick={() => setExpandedSeries(expanded ? null : seriesId)} className="text-blue-600 hover:underline">{expanded ? "Hide rides" : "Show rides"}</button>}
+                  <Link href={`/rides/${r.ride_id}`} className="text-blue-600 hover:underline">Detail</Link>
+                </div>
               </td>
             </tr>
-          ))}
+            {isSeries && expanded && series.sort((a, b) => a.departure_datetime.localeCompare(b.departure_datetime)).map((instance) => (
+              <tr key={instance.ride_id} className="border-b bg-gray-50 text-xs text-gray-600">
+                <td className="py-2 pl-6 pr-4" colSpan={2}>{instance.trip_leg === "return" ? "Coming" : "Going"} · {instance.origin_address} → {instance.destination_address}</td>
+                <td className="py-2 pr-4">{new Date(instance.departure_datetime).toLocaleString()}</td>
+                <td className="py-2 pr-4">{instance.booked_seats}/{instance.total_seats}</td>
+                <td className="py-2 pr-4">{instance.price_per_seat} EGP</td>
+                <td colSpan={3}></td>
+                <td className="py-2"><Link href={`/rides/${instance.ride_id}`} className="text-blue-600 hover:underline">Detail</Link></td>
+              </tr>
+            ))}
+            </Fragment>;
+          })}
           {!loading && items.length === 0 && (
             <tr>
               <td colSpan={9} className="py-8 text-center text-gray-400">No rides found</td>

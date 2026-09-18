@@ -7,7 +7,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { MatchScoreBadge } from "@/components/search/MatchScoreBadge";
 import { RatingBadge } from "@/components/ui/RatingBadge";
 import { VerificationRequiredModal } from "@/components/verification/VerificationRequiredModal";
 import Link from "next/link";
@@ -549,7 +548,9 @@ export default function PassengerRideDetailPage() {
   const extraTotal = Object.entries(extraSeats).reduce((sum, [rideId, seats]) => {
     const inst = siblingInstances.find((i) => i.ride_id === rideId);
     if (!inst) return sum;
-    return sum + parseFloat(inst.per_seat_price) * seats + premiumFee;
+    const extraReturnFare = tripChoice === "going_and_coming" && inst.paired_per_seat_price
+      ? parseFloat(inst.paired_per_seat_price) * seats : 0;
+    return sum + parseFloat(inst.per_seat_price) * seats + premiumFee + extraReturnFare;
   }, 0);
   const returnFare = returningRide ? parseFloat(returningRide.per_seat_price) * clampedSeatCount : 0;
   const totalPriceBeforePoints = parseFloat(ride.per_seat_price) * clampedSeatCount + premiumFee + returnFare + extraTotal;
@@ -653,14 +654,38 @@ export default function PassengerRideDetailPage() {
           loyaltyRedemptionCatalogEntryId: null as string | null,
           pointsToRedeem: null as number | null,
         }] : []),
-        ...Object.entries(extraSeats).map(([rideId, seats]) => ({
+        ...Object.entries(extraSeats).flatMap(([rideId, seats]) => {
+          const instance = siblingInstances.find((item) => item.ride_id === rideId);
+          const returnContext: PassengerContext = {
+            boarding_point: ctx.alighting_point,
+            alighting_point: ctx.boarding_point,
+            pickup_walk_meters: ctx.dropoff_walk_meters,
+            dropoff_walk_meters: ctx.pickup_walk_meters,
+            estimated_travel_minutes: ctx.estimated_travel_minutes,
+            premium_pickup_available: false,
+            premium_pickup_fee: null,
+            premium_dropoff_available: false,
+            premium_dropoff_fee: null,
+          };
+          return [
+          {
           rideId,
           seats,
           bookingContext: ctx,
           includePremium: true,
           loyaltyRedemptionCatalogEntryId: null as string | null,
           pointsToRedeem: null as number | null,
-        })),
+          },
+          ...(tripChoice === "going_and_coming" && instance?.paired_ride_id ? [{
+            rideId: instance.paired_ride_id,
+            seats,
+            bookingContext: returnContext,
+            includePremium: false,
+            loyaltyRedemptionCatalogEntryId: null as string | null,
+            pointsToRedeem: null as number | null,
+          }] : []),
+          ];
+        }),
       ];
 
       const outcomes: Awaited<ReturnType<typeof postBooking>>[] = [];
@@ -761,10 +786,6 @@ export default function PassengerRideDetailPage() {
         <span className="inline-block text-xs font-semibold bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">
           {tRideCard("groupRide", { name: ride.group_name })}
         </span>
-      )}
-
-      {detail.match_score_pct !== null && (
-        <MatchScoreBadge score_pct={detail.match_score_pct} />
       )}
 
       <RecurringSeriesNote
@@ -1007,7 +1028,7 @@ export default function PassengerRideDetailPage() {
                   <div key={rideId} className="flex justify-between text-content-secondary">
                     <span>{formatDayLabel(inst.departure_datetime, locale)}</span>
                     <span className="font-medium text-content-primary">
-                      {t("seatsCount", { count: seats })} · {formatCurrency(parseFloat(inst.per_seat_price) * seats + premiumFee, locale)}
+                      {t("seatsCount", { count: seats })} · {formatCurrency((parseFloat(inst.per_seat_price) + (tripChoice === "going_and_coming" ? parseFloat(inst.paired_per_seat_price ?? "0") : 0)) * seats + premiumFee, locale)}
                     </span>
                   </div>
                 );

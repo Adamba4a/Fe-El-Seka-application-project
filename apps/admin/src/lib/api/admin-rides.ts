@@ -19,6 +19,9 @@ export interface RideListItem {
   is_featured: boolean;
   featured_at: string | null;
   featured_by_display_name: string | null;
+  recurring_ride_definition_id: string | null;
+  round_trip_group_id: string | null;
+  trip_leg: "one_way" | "outbound" | "return" | null;
 }
 
 export interface RideListResponse {

@@ -136,6 +136,7 @@ async def list_bookings(
                 b.premium_pickup_fee, b.premium_dropoff_fee,
                 b.created_at, b.confirmed_at, b.cancelled_at,
                 r.departure_datetime, r.origin_address, r.destination_address,
+                r.recurring_ride_definition_id, r.round_trip_group_id, r.trip_leg,
                 p.display_name AS driver_display_name
             FROM bookings b
             JOIN rides r ON r.id = b.ride_id
@@ -165,6 +166,9 @@ async def list_bookings(
             departure_datetime=r["departure_datetime"],
             origin_address=r["origin_address"],
             destination_address=r["destination_address"],
+            recurring_ride_definition_id=r["recurring_ride_definition_id"],
+            round_trip_group_id=r["round_trip_group_id"],
+            trip_leg=r["trip_leg"],
             per_seat_price=f"{float(r['per_seat_price']):.2f}",
             total_price=f"{float(r['total_price']):.2f}",
             seats=r["seats"],

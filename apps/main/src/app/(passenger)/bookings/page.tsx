@@ -25,6 +25,9 @@ interface PassengerBooking {
   created_at: string;
   confirmed_at?: string | null;
   cancelled_at?: string | null;
+  recurring_ride_definition_id?: string | null;
+  round_trip_group_id?: string | null;
+  trip_leg?: "one_way" | "outbound" | "return" | null;
 }
 
 async function apiFetch(path: string) {
@@ -102,6 +105,15 @@ export default function PassengerBookingsPage() {
   }, [fetchBookings]);
 
   const visible = filterByTab(bookings, activeTab);
+  const bookingGroups = Array.from(
+    visible.reduce((groups, booking) => {
+      const key = booking.recurring_ride_definition_id ?? booking.booking_id;
+      const entries = groups.get(key) ?? [];
+      entries.push(booking);
+      groups.set(key, entries);
+      return groups;
+    }, new Map<string, PassengerBooking[]>()).values()
+  );
 
   return (
     <div className="max-w-md mx-auto py-2 space-y-5">
@@ -163,14 +175,20 @@ export default function PassengerBookingsPage() {
 
       {!loading && !error && visible.length > 0 && (
         <div className="space-y-3">
-          {visible.map((booking) => (
-            <BookingCard
-              key={booking.booking_id}
-              variant="passenger"
-              booking={booking}
-              onClick={() => router.push(`/bookings/${booking.booking_id}`)}
-            />
-          ))}
+          {bookingGroups.map((group) => {
+            const isSeries = !!group[0].recurring_ride_definition_id;
+            return (
+              <section key={group[0].recurring_ride_definition_id ?? group[0].booking_id} className={isSeries ? "space-y-2 rounded-2xl border border-dash-border bg-dash-bg p-3" : ""}>
+                {isSeries && <p className="px-1 text-xs font-semibold text-dash-primary">Recurring ride · {group.length} booked rides</p>}
+                {group.sort((a, b) => (a.departure_datetime ?? "").localeCompare(b.departure_datetime ?? "")).map((booking) => (
+                  <div key={booking.booking_id} className="space-y-1">
+                    {booking.trip_leg && booking.trip_leg !== "one_way" && <p className="px-1 text-xs font-medium text-dash-text-muted">{booking.trip_leg === "outbound" ? "Going" : "Coming"}</p>}
+                    <BookingCard variant="passenger" booking={booking} onClick={() => router.push(`/bookings/${booking.booking_id}`)} />
+                  </div>
+                ))}
+              </section>
+            );
+          })}
         </div>
       )}
     </div>

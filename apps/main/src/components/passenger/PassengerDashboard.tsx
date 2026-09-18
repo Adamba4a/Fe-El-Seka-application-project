@@ -93,8 +93,18 @@ export function PassengerDashboard() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setGeoState("granted");
-        getNearbyRides(token, pos.coords.latitude, pos.coords.longitude, 2)
-          .then(setNearby)
+        getNearbyRides(token, pos.coords.latitude, pos.coords.longitude, 5)
+          .then((rides) => {
+            // One representative per recurring series keeps the nearby list
+            // useful instead of repeating the same journey on several dates.
+            const seen = new Set<string>();
+            setNearby(rides.filter((ride) => {
+              const key = ride.recurring_ride_definition_id ?? ride.ride_id;
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            }));
+          })
           .catch(() => {})
           .finally(() => setNearbyLoading(false));
       },

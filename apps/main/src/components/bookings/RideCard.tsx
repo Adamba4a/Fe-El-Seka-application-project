@@ -1,7 +1,6 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { MatchScoreBadge } from "@/components/search/MatchScoreBadge";
 import { RatingBadge } from "@/components/ui/RatingBadge";
 import { formatCurrency } from "@fe-el-seka/shared";
 import type { Locale } from "@fe-el-seka/shared";
@@ -163,10 +162,6 @@ export function RideCard({ candidate, onClick }: RideCardProps) {
               </span>
             )}
           </span>
-        )}
-
-        {candidate.match_score_pct !== null && (
-          <MatchScoreBadge score_pct={candidate.match_score_pct} />
         )}
 
         <OverlapBar pct={candidate.compatibility.overlap_percentage} />

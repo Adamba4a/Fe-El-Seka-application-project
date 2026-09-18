@@ -59,6 +59,7 @@ export interface NearbyRide {
   distance_meters: number;
   group_id: string | null;
   group_name: string | null;
+  recurring_ride_definition_id: string | null;
 }
 
 export async function getNearbyRides(

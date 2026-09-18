@@ -102,6 +102,9 @@ export interface RecurringInstanceOption {
   available_seats: number;
   total_seats: number;
   per_seat_price: string;
+  paired_ride_id: string | null;
+  paired_per_seat_price: string | null;
+  paired_available_seats: number | null;
   existing_booking: { booking_id: string; status: string; seats: number } | null;
 }
 

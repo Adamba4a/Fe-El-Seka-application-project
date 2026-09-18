@@ -64,6 +64,9 @@ class BookingListItem(BaseModel):
     departure_datetime: Optional[datetime]
     origin_address: Optional[str] = None
     destination_address: Optional[str] = None
+    recurring_ride_definition_id: Optional[UUID] = None
+    round_trip_group_id: Optional[UUID] = None
+    trip_leg: Optional[str] = None
     per_seat_price: str
     total_price: str
     seats: int

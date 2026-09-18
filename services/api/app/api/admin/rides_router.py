@@ -118,7 +118,7 @@ async def list_rides(
         rows = await conn.fetch(
             f"""
             SELECT
-                r.id, r.status, r.departure_datetime,
+                r.id, r.status, r.departure_datetime, r.recurring_ride_definition_id, r.round_trip_group_id, r.trip_leg,
                 r.origin_address, r.destination_address,
                 r.total_seats, r.booked_seats, r.available_seats,
                 r.price_per_seat, r.fair_price_per_seat, r.created_at,
@@ -138,6 +138,12 @@ async def list_rides(
     items = [
         {
             "ride_id": str(r["id"]),
+            "recurring_ride_definition_id": (
+                str(r["recurring_ride_definition_id"])
+                if r["recurring_ride_definition_id"] else None
+            ),
+            "round_trip_group_id": str(r["round_trip_group_id"]) if r["round_trip_group_id"] else None,
+            "trip_leg": r["trip_leg"],
             "status": r["status"],
             "departure_datetime": r["departure_datetime"].isoformat(),
             "origin_address": r["origin_address"],

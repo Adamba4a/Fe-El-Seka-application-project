@@ -192,7 +192,7 @@ async def _ai_rank(
 async def nearby_rides(
     lat: float = Query(..., ge=-90, le=90),
     lng: float = Query(..., ge=-180, le=180),
-    limit: int = Query(2, ge=1, le=5),
+    limit: int = Query(3, ge=1, le=5),
     _profile: dict = Depends(get_current_passenger),
     _org_verified: dict = Depends(require_org_verified),
 ) -> JSONResponse:
@@ -213,7 +213,7 @@ async def nearby_rides(
                 ST_Distance(r.origin_coordinates, ST_SetSRID(ST_MakePoint($2, $1), 4326)::geography) AS distance_m,
                 p.display_name, p.profile_photo_path AS avatar_url, p.verification_status,
                 p.rating_avg, p.rating_count,
-                r.group_id, g.name AS group_name
+                r.group_id, g.name AS group_name, r.recurring_ride_definition_id
             FROM rides r
             JOIN profiles p ON p.id = r.driver_id
             LEFT JOIN groups g ON g.id = r.group_id
@@ -251,6 +251,10 @@ async def nearby_rides(
             "distance_meters": round(float(r["distance_m"])),
             "group_id": str(r["group_id"]) if r["group_id"] else None,
             "group_name": r["group_name"],
+            "recurring_ride_definition_id": (
+                str(r["recurring_ride_definition_id"])
+                if r["recurring_ride_definition_id"] else None
+            ),
         }
         for r in rows
     ]

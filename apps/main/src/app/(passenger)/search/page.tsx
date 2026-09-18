@@ -42,8 +42,28 @@ interface StoredSearch {
 function groupRecurringCandidates(candidates: RideCandidate[]): RideCandidate[] {
   const indexByDefinition = new Map<string, number>();
   const grouped: RideCandidate[] = [];
+  // Generated rides are buffered for two weeks, but search presents only the
+  // first future calendar week for each series.
+  const firstWeekByDefinition = new Map<string, number>();
+  for (const c of candidates) {
+    if (!c.recurring_ride_definition_id) continue;
+    const date = new Date(c.departure_datetime);
+    const monday = new Date(date);
+    monday.setHours(0, 0, 0, 0);
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    const week = monday.getTime();
+    const existing = firstWeekByDefinition.get(c.recurring_ride_definition_id);
+    if (existing === undefined || week < existing) firstWeekByDefinition.set(c.recurring_ride_definition_id, week);
+  }
   for (const c of candidates) {
     const defId = c.recurring_ride_definition_id;
+    if (defId) {
+      const date = new Date(c.departure_datetime);
+      const monday = new Date(date);
+      monday.setHours(0, 0, 0, 0);
+      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+      if (monday.getTime() !== firstWeekByDefinition.get(defId)) continue;
+    }
     if (!defId) {
       grouped.push(c);
       continue;
