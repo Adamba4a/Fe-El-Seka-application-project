@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from supabase import create_client
 
@@ -104,12 +104,13 @@ async def upload_photo(
 @router.get("/{user_id}/public", response_model=PublicProfileResponse)
 async def get_public_profile(
     user_id: uuid.UUID,
+    ride_id: uuid.UUID | None = Query(default=None),
     profile: dict = Depends(get_current_user),
 ) -> dict:
     caller_id = uuid.UUID(str(profile["id"]))
     pool = get_pool()
     async with pool.acquire() as conn:
-        return await profile_service.get_public_profile(conn, user_id, caller_id)
+        return await profile_service.get_public_profile(conn, user_id, caller_id, ride_id)
 
 
 @router.get("/{user_id}/rating")

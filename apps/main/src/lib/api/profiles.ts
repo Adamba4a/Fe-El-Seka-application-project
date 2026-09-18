@@ -128,8 +128,9 @@ export async function updateMe(token: string, data: ProfileUpdate): Promise<Prof
   return res.json();
 }
 
-export async function getPublicProfile(token: string, userId: string): Promise<PublicProfile> {
-  const res = await fetch(`${base}/api/profiles/${userId}/public`, {
+export async function getPublicProfile(token: string, userId: string, rideId?: string | null): Promise<PublicProfile> {
+  const query = rideId ? `?ride_id=${encodeURIComponent(rideId)}` : "";
+  const res = await fetch(`${base}/api/profiles/${userId}/public${query}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw await parseErrorResponse(res);

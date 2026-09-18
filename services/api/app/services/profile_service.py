@@ -174,11 +174,17 @@ async def upload_profile_photo(user_id: str, file: UploadFile) -> dict:
     return {"profile_photo_url": None}
 
 
-async def get_public_profile(conn, user_id: uuid.UUID, caller_id: uuid.UUID) -> dict:
+async def get_public_profile(
+    conn,
+    user_id: uuid.UUID,
+    caller_id: uuid.UUID,
+    ride_id: uuid.UUID | None = None,
+) -> dict:
     """Public-facing profile: name, photo, verification, rating, ride history.
 
-    phone_number is included only when the caller shares a confirmed/completed
-    booking with this user — not exposed to arbitrary authenticated users.
+    phone_number is included only when a profile is opened from the exact ride
+    where the caller has a confirmed/completed booking with this user. It is
+    never exposed from search or an arbitrary public-profile URL.
     """
     profile = await conn.fetchrow(
         """
@@ -244,13 +250,14 @@ async def get_public_profile(conn, user_id: uuid.UUID, caller_id: uuid.UUID) -> 
     phone_number = None
     if caller_id == user_id:
         phone_number = profile["phone_number"]
-    else:
+    elif ride_id is not None:
         shared_booking = await conn.fetchval(
             """
             SELECT 1
             FROM bookings b
             JOIN rides r ON r.id = b.ride_id
             WHERE b.status IN ('confirmed', 'completed')
+              AND r.id = $3
               AND (
                 (r.driver_id = $1 AND b.passenger_id = $2)
                 OR (r.driver_id = $2 AND b.passenger_id = $1)
@@ -259,6 +266,7 @@ async def get_public_profile(conn, user_id: uuid.UUID, caller_id: uuid.UUID) -> 
             """,
             user_id,
             caller_id,
+            ride_id,
         )
         if shared_booking:
             phone_number = profile["phone_number"]

@@ -181,8 +181,8 @@ class _FakePublicProfileConnection:
 
 class TestPublicDriverProfilePrivacyAndRideCount:
     @pytest.mark.asyncio
-    async def test_counts_only_completed_rides_with_a_booking_and_hides_phone_without_confirmation(self):
-        conn = _FakePublicProfileConnection(shared_booking=False)
+    async def test_counts_only_completed_rides_with_a_booking_and_hides_phone_without_ride_context(self):
+        conn = _FakePublicProfileConnection(shared_booking=True)
 
         profile = await svc.get_public_profile(conn, conn.profile_id, uuid4())
 
@@ -196,12 +196,13 @@ class TestPublicDriverProfilePrivacyAndRideCount:
     async def test_shows_phone_after_a_shared_confirmed_or_completed_booking(self):
         conn = _FakePublicProfileConnection(shared_booking=True)
 
-        profile = await svc.get_public_profile(conn, conn.profile_id, uuid4())
+        profile = await svc.get_public_profile(conn, conn.profile_id, uuid4(), uuid4())
 
         shared_booking_query = next(
             query for query in conn.fetchval_queries if "b.status IN" in query
         )
         assert "'confirmed', 'completed'" in shared_booking_query
+        assert "AND r.id = $3" in shared_booking_query
         assert profile["phone_number"] == "+201234567890"
 
 

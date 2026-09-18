@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Spinner } from "@/components/ui/Spinner";
 import { RatingBadge } from "@/components/ui/RatingBadge";
@@ -19,7 +19,9 @@ export default function PublicProfilePage() {
   const t = useTranslations("users.publicProfile");
   const locale = useLocale() as Locale;
   const params = useParams<{ userId: string }>();
+  const searchParams = useSearchParams();
   const userId = params.userId;
+  const rideId = searchParams.get("rideId");
   const router = useRouter();
 
   const [profile, setProfile] = useState<PublicProfile | null>(null);
@@ -35,7 +37,7 @@ export default function PublicProfilePage() {
           data: { session },
         } = await supabase.auth.getSession();
         if (!session) throw new Error("Not signed in");
-        setProfile(await getPublicProfile(session.access_token, userId));
+        setProfile(await getPublicProfile(session.access_token, userId, rideId));
 
         const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
         const res = await fetch(`${base}/api/profiles/${userId}/rating`, {
@@ -51,7 +53,7 @@ export default function PublicProfilePage() {
         setLoading(false);
       }
     })();
-  }, [userId]);
+  }, [rideId, userId]);
 
   if (loading) {
     return (

@@ -344,7 +344,7 @@ export default function DriverRideBookingsPage() {
               onCancel={() => handleCancel(booking.booking_id)}
               onViewMap={ride ? () => setMapBooking(booking) : undefined}
               actionLoading={actionLoading === booking.booking_id}
-              viewProfileHref={`/users/${booking.passenger_id}`}
+              viewProfileHref={`/users/${booking.passenger_id}?rideId=${rideId}`}
             />
           ))
         )}
@@ -401,7 +401,7 @@ export default function DriverRideBookingsPage() {
                   {t("rateAndReport")}
                 </Link>
                 <Link
-                  href={`/users/${booking.passenger_id}`}
+                  href={`/users/${booking.passenger_id}?rideId=${rideId}`}
                   className="flex items-center justify-between text-xs font-medium px-3 py-2 rounded-lg bg-surface-card border border-transparent hover:border-border-default text-dash-primary transition-colors"
                 >
                   <span>{t("viewProfile")}</span>

@@ -291,7 +291,7 @@ export default function PassengerBookingDetailPage() {
           </div>
           {(booking.status === "confirmed" || booking.status === "completed") && (
             <Link
-              href={`/users/${booking.driver_id}`}
+              href={`/users/${booking.driver_id}?rideId=${booking.ride_id}`}
               className="block w-full text-center rounded-xl bg-dash-primary px-4 py-2 text-sm font-semibold text-content-inverse hover:opacity-90 transition-opacity"
             >
               {t("viewProfile")}
