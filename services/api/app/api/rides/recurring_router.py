@@ -79,9 +79,16 @@ async def create_recurring_definition(
     vehicle = await _get_own_active_vehicle(driver_id, payload.vehicle_id)
 
     try:
-        return await recurring_ride_service.create_definition(
+        definition = await recurring_ride_service.create_definition(
             driver_id, payload.vehicle_id, vehicle["seat_count"], payload
         )
+        # Seed the rolling window immediately. Previously the definition was
+        # invisible until the ten-minute maintenance loop ran, which made a
+        # newly created recurring ride look broken in local testing and in the
+        # live UI. The generator remains idempotent, so the background loop can
+        # safely continue topping it up afterward.
+        await recurring_ride_service.generate_upcoming_instances()
+        return definition
     except RecurringRideServiceError as exc:
         return _service_error_response(exc)
 
