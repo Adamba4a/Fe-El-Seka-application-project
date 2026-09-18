@@ -55,6 +55,11 @@ def _ride_row(**overrides) -> dict:
         "id": uuid.uuid4(),
         "status": "scheduled",
         "departure_datetime": datetime.now(timezone.utc) + timedelta(hours=3),
+        # The admin list query includes recurring/round-trip metadata in addition
+        # to the markup fields exercised by this fixture.
+        "recurring_ride_definition_id": None,
+        "round_trip_group_id": None,
+        "trip_leg": "one_way",
         "origin_address": "A",
         "destination_address": "B",
         "total_seats": 2,
