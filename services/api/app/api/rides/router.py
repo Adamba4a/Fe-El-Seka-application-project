@@ -855,11 +855,12 @@ async def get_ride_recurring_instances(
             return JSONResponse({"instances": []})
 
         # The generator maintains a two-week buffer, but passengers can book
-        # only the active week's remaining dates.  When its last departure has
-        # passed, the earliest future occurrence moves the visible window to
-        # the next week. Return legs are deliberately excluded: a passenger
-        # viewing Monday's outbound ride must not see Monday's return leg as
-        # another bookable day.
+        # only the remaining dates in the calendar week of the ride they
+        # opened. Return legs are deliberately excluded: a passenger viewing
+        # Monday's outbound ride must not see Monday's return leg as another
+        # bookable day.  Using the selected ride's week is essential for a
+        # direct link to a later instance; it must not show dates from an
+        # unrelated earlier week in the same series.
         rows = await conn.fetch(
             f"""
             WITH current_ride AS (
@@ -891,13 +892,8 @@ async def get_ride_recurring_instances(
                   AND r.trip_leg IN ('one_way', 'outbound')
                   AND {recurring_instance_visibility_sql("r")}
                   AND date_trunc('week', r.departure_datetime AT TIME ZONE 'Africa/Cairo') = (
-                      SELECT date_trunc('week', MIN(candidate.departure_datetime) AT TIME ZONE 'Africa/Cairo')
-                      FROM rides candidate
-                      WHERE candidate.recurring_ride_definition_id = $1
-                        AND candidate.status = 'scheduled'
-                        AND candidate.departure_datetime > now()
-                        AND candidate.trip_leg IN ('one_way', 'outbound')
-                        AND {recurring_instance_visibility_sql("candidate")}
+                      SELECT date_trunc('week', departure_datetime AT TIME ZONE 'Africa/Cairo')
+                      FROM current_ride
                   )
             )
             SELECT u.id, u.departure_datetime, u.available_seats, u.total_seats, u.price_per_seat,

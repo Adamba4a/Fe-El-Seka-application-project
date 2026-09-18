@@ -92,5 +92,7 @@ class TestListFeaturedRides:
         assert "status = 'scheduled'" in query
         assert "departure_datetime > now()" in query
         assert "available_seats > 0" in query
-        assert "ORDER BY departure_datetime ASC" in query
+        assert "DISTINCT ON (COALESCE(featured.recurring_ride_definition_id, featured.id))" in query
+        assert "candidate.recurring_ride_definition_id = featured.recurring_ride_definition_id" in query
+        assert "ORDER BY candidate.departure_datetime ASC" in query
         assert "LIMIT 20" in query

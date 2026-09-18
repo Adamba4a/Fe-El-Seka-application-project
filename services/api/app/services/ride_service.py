@@ -487,15 +487,45 @@ async def list_featured_rides() -> FeaturedRidesResponse:
     pool = get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            """
+            f"""
+            -- Featuring any instance of a recurring series promotes the
+            -- series, not that arbitrary generated date.  Resolve it to the
+            -- earliest bookable occurrence so the detail page starts at the
+            -- first ride and can offer the other days in that same week.
+            WITH featured_series AS (
+                SELECT DISTINCT ON (COALESCE(featured.recurring_ride_definition_id, featured.id))
+                       selected.id, selected.origin_address, selected.destination_address,
+                       selected.departure_datetime, selected.price_per_seat, selected.available_seats
+                FROM rides featured
+                CROSS JOIN LATERAL (
+                    SELECT candidate.id, candidate.origin_address, candidate.destination_address,
+                           candidate.departure_datetime, candidate.price_per_seat, candidate.available_seats
+                    FROM rides candidate
+                    WHERE candidate.status = 'scheduled'
+                      AND candidate.departure_datetime > now()
+                      AND candidate.available_seats > 0
+                      AND candidate.group_id IS NULL
+                      AND {recurring_instance_visibility_sql("candidate")}
+                      AND (
+                          candidate.id = featured.id
+                          OR (
+                              featured.recurring_ride_definition_id IS NOT NULL
+                              AND candidate.recurring_ride_definition_id = featured.recurring_ride_definition_id
+                          )
+                      )
+                    ORDER BY candidate.departure_datetime ASC
+                    LIMIT 1
+                ) selected
+                WHERE featured.is_featured = true
+                  AND featured.status = 'scheduled'
+                  AND featured.departure_datetime > now()
+                  AND featured.available_seats > 0
+                  AND featured.group_id IS NULL
+                ORDER BY COALESCE(featured.recurring_ride_definition_id, featured.id), selected.departure_datetime ASC
+            )
             SELECT id, origin_address, destination_address,
                    departure_datetime, price_per_seat, available_seats
-            FROM rides
-            WHERE is_featured = true
-              AND status = 'scheduled'
-              AND departure_datetime > now()
-              AND available_seats > 0
-              AND group_id IS NULL
+            FROM featured_series
             ORDER BY departure_datetime ASC
             LIMIT 20
             """
