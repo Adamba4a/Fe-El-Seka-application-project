@@ -18,6 +18,7 @@ import { BottomSheet, Spinner } from "@/components";
 import { formatCurrency } from "@fe-el-seka/shared";
 import type { RecurringRideDefinition, Ride, Locale } from "@fe-el-seka/shared";
 import { toIsoWeekday, fromIsoWeekday } from "@/lib/weekdays";
+import { getFareEstimate } from "@/lib/api/pricing";
 
 const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const;
 
@@ -37,6 +38,10 @@ export default function RecurringRideDetailPage() {
   const [editWeekdays, setEditWeekdays] = useState<number[]>([]);
   const [editSeats, setEditSeats] = useState(1);
   const [editPrice, setEditPrice] = useState(0);
+  const [editFairPrice, setEditFairPrice] = useState<number | null>(null);
+  const [editMaxPrice, setEditMaxPrice] = useState<number | null>(null);
+  const [editFareLoading, setEditFareLoading] = useState(false);
+  const [editFareError, setEditFareError] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -78,7 +83,32 @@ export default function RecurringRideDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  useEffect(() => {
+    if (!definition || !isEditing) return;
+    let cancelled = false;
+    setEditFareLoading(true);
+    setEditFareError(null);
+    getFareEstimate(definition.origin.coordinates, definition.destination.coordinates, editSeats)
+      .then((estimate) => {
+        if (cancelled) return;
+        setEditFairPrice(estimate.per_seat_price_egp);
+        setEditMaxPrice(estimate.max_price_per_seat_egp);
+        setEditPrice((price) => Math.min(estimate.max_price_per_seat_egp, Math.max(estimate.per_seat_price_egp, price)));
+      })
+      .catch(() => {
+        if (!cancelled) setEditFareError(t("fareEstimateFailed"));
+      })
+      .finally(() => {
+        if (!cancelled) setEditFareLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [definition, editSeats, isEditing, t]);
+
   const handleSave = async () => {
+    if (editFairPrice === null || editMaxPrice === null || editPrice < editFairPrice || editPrice > editMaxPrice) {
+      setSaveError(t("fareEstimatePending"));
+      return;
+    }
     setSaving(true);
     setSaveError(null);
     setSaveSuccess(null);
@@ -332,14 +362,17 @@ export default function RecurringRideDetailPage() {
 
             <div className="space-y-1">
               <label className="block text-label text-content-secondary">{t("priceLabel")}</label>
-              <input
-                type="number"
-                min={0}
-                step={1}
-                value={editPrice}
-                onChange={(e) => setEditPrice(Number(e.target.value))}
-                className={inputClass}
-              />
+              {editFareLoading && <p className="flex items-center gap-2 text-body-sm text-content-muted"><Spinner /> {t("priceEstimating")}</p>}
+              {editFareError && <p className="text-body-sm text-content-destructive">{editFareError}</p>}
+              {editFairPrice !== null && editMaxPrice !== null && (
+                <div className="space-y-2 rounded-xl bg-surface-bg px-3 py-3">
+                  <div className="flex justify-between text-caption text-content-muted"><span>{t("fairPriceLabel")}</span><span>{formatCurrency(editFairPrice, locale)}</span></div>
+                  {editFairPrice < editMaxPrice && <input type="range" min={editFairPrice} max={editMaxPrice} step={1} value={editPrice} onChange={(e) => setEditPrice(Number(e.target.value))} className="w-full accent-dash-primary" />}
+                  <div className="flex justify-between"><span className="text-label text-content-primary">{t("selectedPriceLabel")}</span><span className="text-heading-sm font-medium text-content-primary">{formatCurrency(editPrice, locale)}</span></div>
+                  <div className="flex justify-between text-caption text-content-muted"><span>{t("maxPriceLabel")}</span><span>{formatCurrency(editMaxPrice, locale)}</span></div>
+                </div>
+              )}
+              <p className="text-caption text-content-muted">{t("priceRangeHint")}</p>
             </div>
 
             <div className="space-y-1">
@@ -397,8 +430,8 @@ export default function RecurringRideDetailPage() {
               <div key={ride.id} className="space-y-2">
                 <RideCard ride={ride} href={`/rides/${ride.id}/bookings`} />
                 {definition.journey_type === "round_trip" && ride.trip_leg === "outbound" && (
-                  <button type="button" onClick={() => openOverride(ride)} className="text-xs font-medium text-dash-primary">
-                    Adjust this date&apos;s outbound and return times
+                  <button type="button" onClick={() => openOverride(ride)} className="w-full rounded-xl border border-brand-primary/30 bg-brand-primary/5 px-3 py-2 text-left text-xs font-medium text-dash-primary">
+                    {t("adjustOccurrenceTimes")}
                   </button>
                 )}
               </div>
@@ -409,12 +442,12 @@ export default function RecurringRideDetailPage() {
 
       <BottomSheet isOpen={overrideRide !== null} onClose={() => setOverrideRide(null)}>
         <div className="space-y-4">
-          <h2 className="text-h3 text-content-primary">Adjust this occurrence</h2>
-          <p className="text-body-sm text-content-muted">Both legs are changed together. This is unavailable once either leg has a booking or is close to departure.</p>
-          <label className="block text-label text-content-secondary">Outbound<input type="datetime-local" value={overrideOutbound} onChange={(e) => setOverrideOutbound(e.target.value)} className="mt-1 w-full border border-border-default rounded-xl px-3 py-2" /></label>
-          <label className="block text-label text-content-secondary">Return<input type="datetime-local" value={overrideReturn} onChange={(e) => setOverrideReturn(e.target.value)} className="mt-1 w-full border border-border-default rounded-xl px-3 py-2" /></label>
+          <h2 className="text-h3 text-content-primary">{t("adjustOccurrenceHeading")}</h2>
+          <p className="text-body-sm text-content-muted">{t("adjustOccurrenceHint")}</p>
+          <label className="block text-label text-content-secondary">{t("outboundTimeLabel")}<input type="datetime-local" value={overrideOutbound} onChange={(e) => setOverrideOutbound(e.target.value)} className="mt-1 w-full border border-border-default rounded-xl px-3 py-2" /></label>
+          <label className="block text-label text-content-secondary">{t("returnTimeLabel")}<input type="datetime-local" value={overrideReturn} onChange={(e) => setOverrideReturn(e.target.value)} className="mt-1 w-full border border-border-default rounded-xl px-3 py-2" /></label>
           {overrideError && <p className="text-caption text-content-destructive">{overrideError}</p>}
-          <button type="button" onClick={saveOverride} disabled={overriding} className="w-full py-3 bg-dash-primary text-content-inverse rounded-xl font-medium disabled:opacity-50">{overriding ? "Saving…" : "Save times"}</button>
+          <button type="button" onClick={saveOverride} disabled={overriding} className="w-full py-3 bg-dash-primary text-content-inverse rounded-xl font-medium disabled:opacity-50">{overriding ? t("savingChanges") : t("saveTimes")}</button>
         </div>
       </BottomSheet>
 

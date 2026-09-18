@@ -261,26 +261,16 @@ async def get_definition(driver_id: uuid.UUID, definition_id: uuid.UUID) -> Recu
             definition_id,
         )
 
-        # Only surface the nearest calendar week (Sun-Sat) of upcoming
-        # instances so the driver isn't shown a wall of near-identical day
-        # cards stretching weeks into the future — mirrors the same
-        # week-bucket rollover used for the passenger-facing day picker.
-        # Once every instance in the current bucket departs, it drops out
-        # of the `upcoming` CTE and the next fetch naturally reveals the
-        # following week's instances.
+        # Show the complete rolling generation window. This gives drivers a
+        # visible control for changing the outbound/return time of any
+        # generated day, rather than hiding next week's editable occurrences.
         instance_rows = await conn.fetch(
             f"""
-            WITH upcoming AS (
-                SELECT {ride_service._RIDE_COLS},
-                       date_trunc('day', departure_datetime)
-                           - (EXTRACT(DOW FROM departure_datetime) * interval '1 day') AS week_bucket
-                FROM rides
-                WHERE recurring_ride_definition_id = $1
-                  AND status = 'scheduled'
-                  AND departure_datetime > now()
-            )
-            SELECT * FROM upcoming
-            WHERE week_bucket = (SELECT min(week_bucket) FROM upcoming)
+            SELECT {ride_service._RIDE_COLS}
+            FROM rides
+            WHERE recurring_ride_definition_id = $1
+              AND status = 'scheduled'
+              AND departure_datetime > now()
             ORDER BY departure_datetime ASC
             """,
             definition_id,
