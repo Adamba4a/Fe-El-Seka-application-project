@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createAdminBrowserClient } from "@/lib/supabase/browser-client";
-import { getDetail, suspend, reinstate, type UserDetail } from "@/lib/api/admin-users";
+import { getDetail, grantAppAccess, suspend, reinstate, type UserDetail } from "@/lib/api/admin-users";
 import { UserActionPanel } from "@/components/users/UserActionPanel";
 
 const sb = createAdminBrowserClient();
@@ -11,6 +11,8 @@ const sb = createAdminBrowserClient();
 export default function UserDetailPage({ params }: { params: { user_id: string } }) {
   const [detail, setDetail] = useState<UserDetail | null>(null);
   const [error, setError] = useState("");
+  const [grantingAccess, setGrantingAccess] = useState(false);
+  const [accessError, setAccessError] = useState("");
 
   async function getToken() {
     const { data } = await sb.auth.getSession();
@@ -41,6 +43,21 @@ export default function UserDetailPage({ params }: { params: { user_id: string }
     const token = await getToken();
     await reinstate(token, userId);
     await load();
+  }
+
+  async function handleGrantAppAccess(userId: string) {
+    if (!confirm("Grant this user access to the app without organization-email verification?")) return;
+    setGrantingAccess(true);
+    setAccessError("");
+    try {
+      const token = await getToken();
+      await grantAppAccess(token, userId);
+      await load();
+    } catch {
+      setAccessError("Could not grant app access. Please try again.");
+    } finally {
+      setGrantingAccess(false);
+    }
   }
 
   if (error) return <main className="p-8 text-red-600">{error}</main>;
@@ -102,10 +119,22 @@ export default function UserDetailPage({ params }: { params: { user_id: string }
                   Not verified
                 </span>
               )}
+              {!profile.org_verified_at && profile.verification_status !== "suspended" && !profile.is_admin_role && (
+                <button
+                  type="button"
+                  onClick={() => handleGrantAppAccess(profile.user_id)}
+                  disabled={grantingAccess}
+                  className="ml-3 px-2 py-1 rounded bg-green-600 text-white text-xs font-medium hover:bg-green-700 disabled:opacity-50"
+                >
+                  {grantingAccess ? "Granting…" : "Grant app access"}
+                </button>
+              )}
             </dd>
             <dt className="text-gray-500">Joined</dt><dd>{new Date(profile.created_at).toLocaleString()}</dd>
           </dl>
         </div>
+
+        {accessError && <p className="text-sm text-red-600">{accessError}</p>}
 
         {profile.role === "driver" && (
           <a

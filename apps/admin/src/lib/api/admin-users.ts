@@ -144,3 +144,15 @@ export async function reinstate(token: string, userId: string): Promise<{ new_st
   if (!res.ok) throw await res.json();
   return res.json();
 }
+
+export async function grantAppAccess(
+  token: string,
+  userId: string
+): Promise<{ org_verified_at: string; org_verified_domain: string; already_granted?: boolean }> {
+  const res = await fetch(`${base}/api/admin/users/${userId}/grant-app-access`, {
+    method: "POST",
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw await res.json();
+  return res.json();
+}

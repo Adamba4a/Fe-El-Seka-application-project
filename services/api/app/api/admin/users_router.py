@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -272,6 +273,58 @@ def get_user_detail(
         }
 
     return result
+
+
+@router.post("/{user_id}/grant-app-access")
+def grant_app_access(
+    user_id: str,
+    profile: dict = Depends(get_current_admin),
+) -> dict:
+    """Manually admit an account that cannot complete org-email verification."""
+    sb = _supabase()
+    response = (
+        sb.table("profiles")
+        .select("role, verification_status, org_verified_at, org_verified_domain")
+        .eq("id", user_id)
+        .maybe_single()
+        .execute()
+    )
+    user = response.data if response else None
+    if not user:
+        raise HTTPException(status_code=404, detail={"error": "not_found", "message": "User not found"})
+    if user["role"] == "admin":
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "forbidden", "message": "Admin accounts do not need manual app access"},
+        )
+    if user["verification_status"] == "suspended":
+        raise HTTPException(
+            status_code=409,
+            detail={"error": "account_suspended", "message": "Reinstate the user before granting access"},
+        )
+
+    if not user.get("org_verified_at"):
+        approved_at = datetime.now(timezone.utc).isoformat()
+        (
+            sb.table("profiles")
+            .update({"org_verified_at": approved_at, "org_verified_domain": "admin-approved"})
+            .eq("id", user_id)
+            .execute()
+        )
+        audit_id = audit_service.append_log(profile["id"], "org_access_granted", user_id)
+        return {
+            "user_id": user_id,
+            "org_verified_at": approved_at,
+            "org_verified_domain": "admin-approved",
+            "audit_log_id": audit_id,
+        }
+
+    return {
+        "user_id": user_id,
+        "org_verified_at": str(user["org_verified_at"]),
+        "org_verified_domain": user.get("org_verified_domain"),
+        "already_granted": True,
+    }
 
 
 @router.post("/{user_id}/suspend")
