@@ -247,6 +247,10 @@ async def list_definitions(driver_id: uuid.UUID) -> RecurringRideDefinitionListR
 
 
 async def get_definition(driver_id: uuid.UUID, definition_id: uuid.UUID) -> RecurringRideDefinitionDetailResponse:
+    # Do not make the driver wait for the ten-minute background sweep. This
+    # also repairs a series created while the worker was unavailable before
+    # rendering its current-week occurrences.
+    await generate_upcoming_instances()
     pool = get_pool()
     async with pool.acquire() as conn:
         definition = await _fetch_own_definition(conn, definition_id, driver_id)
