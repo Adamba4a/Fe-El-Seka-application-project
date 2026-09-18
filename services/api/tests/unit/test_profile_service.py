@@ -193,16 +193,16 @@ class TestPublicDriverProfilePrivacyAndRideCount:
         assert profile["phone_number"] is None
 
     @pytest.mark.asyncio
-    async def test_shows_phone_after_a_shared_confirmed_or_completed_booking(self):
+    async def test_shows_phone_only_during_a_shared_confirmed_active_ride(self):
         conn = _FakePublicProfileConnection(shared_booking=True)
 
         profile = await svc.get_public_profile(conn, conn.profile_id, uuid4(), uuid4())
 
         shared_booking_query = next(
-            query for query in conn.fetchval_queries if "b.status IN" in query
+            query for query in conn.fetchval_queries if "b.status = 'confirmed'" in query
         )
-        assert "'confirmed', 'completed'" in shared_booking_query
         assert "AND r.id = $3" in shared_booking_query
+        assert "r.status IN ('scheduled', 'in_progress')" in shared_booking_query
         assert profile["phone_number"] == "+201234567890"
 
 

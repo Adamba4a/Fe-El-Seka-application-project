@@ -183,8 +183,9 @@ async def get_public_profile(
     """Public-facing profile: name, photo, verification, rating, ride history.
 
     phone_number is included only when a profile is opened from the exact ride
-    where the caller has a confirmed/completed booking with this user. It is
-    never exposed from search or an arbitrary public-profile URL.
+    where the caller has a confirmed booking and the ride is still scheduled
+    or in progress. It disappears after the ride is completed and is never
+    exposed from search or an arbitrary public-profile URL.
     """
     profile = await conn.fetchrow(
         """
@@ -256,8 +257,9 @@ async def get_public_profile(
             SELECT 1
             FROM bookings b
             JOIN rides r ON r.id = b.ride_id
-            WHERE b.status IN ('confirmed', 'completed')
+            WHERE b.status = 'confirmed'
               AND r.id = $3
+              AND r.status IN ('scheduled', 'in_progress')
               AND (
                 (r.driver_id = $1 AND b.passenger_id = $2)
                 OR (r.driver_id = $2 AND b.passenger_id = $1)

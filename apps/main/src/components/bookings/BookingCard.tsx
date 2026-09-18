@@ -61,7 +61,7 @@ interface DriverVariantProps {
   actionLoading?: boolean;
   /** Set false to hide cancel until Phase 7 endpoint is live */
   cancelAvailable?: boolean;
-  /** Links to the passenger's public profile; the backend only exposes their phone number there once the booking is confirmed/completed */
+  /** Links to the passenger's public profile; the backend exposes their phone only during a confirmed, active shared ride. */
   viewProfileHref?: string;
 }
 
