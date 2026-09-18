@@ -251,26 +251,12 @@ async def get_definition(driver_id: uuid.UUID, definition_id: uuid.UUID) -> Recu
     async with pool.acquire() as conn:
         definition = await _fetch_own_definition(conn, definition_id, driver_id)
 
-        # The generator keeps a two-week buffer, but the driver dashboard is
-        # intentionally a one-week view.  Once the final departure in the
-        # currently visible week has passed, MIN(...) naturally moves this
-        # window to the following week.
-        visible_week_sql = """
-            date_trunc('week', departure_datetime AT TIME ZONE 'Africa/Cairo') = (
-                SELECT date_trunc('week', MIN(departure_datetime) AT TIME ZONE 'Africa/Cairo')
-                FROM rides
-                WHERE recurring_ride_definition_id = $1
-                  AND status = 'scheduled'
-                  AND departure_datetime > now()
-            )
-        """
         upcoming_count = await conn.fetchval(
-            f"""
+            """
             SELECT count(DISTINCT public.utc_date(departure_datetime)) FROM rides
             WHERE recurring_ride_definition_id = $1
               AND status = 'scheduled'
               AND departure_datetime > now()
-              AND {visible_week_sql}
             """,
             definition_id,
         )
@@ -282,7 +268,6 @@ async def get_definition(driver_id: uuid.UUID, definition_id: uuid.UUID) -> Recu
             WHERE recurring_ride_definition_id = $1
               AND status = 'scheduled'
               AND departure_datetime > now()
-              AND {visible_week_sql}
             ORDER BY departure_datetime ASC
             """,
             definition_id,
