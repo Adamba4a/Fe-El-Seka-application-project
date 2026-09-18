@@ -20,15 +20,15 @@ export function RideCard({ ride, href }: { ride: Ride; href?: string }) {
   const cardT = useTranslations("rideCard");
   const locale = useLocale() as Locale;
   return (
-    <Link href={href ?? `/rides/${ride.id}/manage`} className="block">
-      <div className="border border-border-default rounded-xl p-4 space-y-3 hover:border-brand-primary transition-colors bg-surface-card">
+    <Link href={href ?? `/rides/${ride.id}/manage`} className="block min-w-0 max-w-full">
+      <div className="min-w-0 overflow-hidden rounded-xl border border-border-default bg-surface-card p-4 space-y-3 transition-colors hover:border-brand-primary">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-content-primary truncate">{ride.origin.address}</p>
             <p className="text-xs text-content-muted mt-0.5">↓</p>
             <p className="text-sm font-medium text-content-primary truncate">{ride.destination.address}</p>
           </div>
-          <RideStatusBadge status={ride.status} />
+          <span className="shrink-0"><RideStatusBadge status={ride.status} /></span>
         </div>
 
         {ride.group_name && (
@@ -44,9 +44,9 @@ export function RideCard({ ride, href }: { ride: Ride; href?: string }) {
           </div>
         )}
 
-        <div className="flex items-center justify-between text-xs text-content-muted">
-          <span>{formatDate(ride.departure_datetime, locale)}</span>
-          <span className="font-medium text-content-secondary">{formatCurrency(Number(ride.price_per_seat), locale)}{t("perSeatSuffix")}</span>
+        <div className="flex min-w-0 items-center justify-between gap-2 text-xs text-content-muted">
+          <span className="min-w-0 truncate">{formatDate(ride.departure_datetime, locale)}</span>
+          <span className="shrink-0 whitespace-nowrap font-medium text-content-secondary">{formatCurrency(Number(ride.price_per_seat), locale)}{t("perSeatSuffix")}</span>
         </div>
 
         <div className="flex items-center gap-2 text-xs text-content-muted">

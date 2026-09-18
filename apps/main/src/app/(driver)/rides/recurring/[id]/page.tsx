@@ -461,11 +461,11 @@ export default function RecurringRideDetailPage() {
                 weekday: "long", month: "short", day: "numeric",
               });
               return (
-                <section key={outbound.round_trip_group_id ?? outbound.id} className="space-y-3 rounded-2xl border border-border-default bg-surface-bg p-3">
+                <section key={outbound.round_trip_group_id ?? outbound.id} className="min-w-0 space-y-3 overflow-hidden rounded-2xl border border-border-default bg-surface-bg p-3">
                   <h3 className="text-body-sm font-semibold text-content-primary">{t("occurrenceHeading", { date: dateLabel })}</h3>
-                  <div className={returning ? "grid gap-3 lg:grid-cols-2" : "space-y-3"}>
-                    <div className="space-y-1.5"><p className="px-1 text-caption font-medium text-content-muted">{t("goingLabel")}</p><RideCard ride={outbound} href={`/rides/${outbound.id}/bookings`} /></div>
-                    {returning && <div className="space-y-1.5"><p className="px-1 text-caption font-medium text-content-muted">{t("comingLabel")}</p><RideCard ride={returning} href={`/rides/${returning.id}/bookings`} /></div>}
+                  <div className={returning ? "grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-2" : "space-y-3"}>
+                    <div className="min-w-0 space-y-1.5"><p className="px-1 text-caption font-medium text-content-muted">{t("goingLabel")}</p><RideCard ride={outbound} href={`/rides/${outbound.id}/bookings`} /></div>
+                    {returning && <div className="min-w-0 space-y-1.5"><p className="px-1 text-caption font-medium text-content-muted">{t("comingLabel")}</p><RideCard ride={returning} href={`/rides/${returning.id}/bookings`} /></div>}
                   </div>
                   {definition.journey_type === "round_trip" && outbound.trip_leg === "outbound" && (
                     <button type="button" onClick={() => openOverride(outbound)} className="w-full rounded-xl border border-brand-primary/30 bg-brand-primary/5 px-3 py-2 text-left text-xs font-medium text-dash-primary">
