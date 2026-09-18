@@ -30,9 +30,6 @@ from app.services.route_service import RouteServiceUnavailableError
 
 logger = logging.getLogger(__name__)
 
-# Rolling generation window (research.md Decision 2): today through day+13.
-_WINDOW_DAYS = 14
-
 # Definition edits only propagate to generated instances that haven't yet
 # entered the same 4-hour pre-departure edit-lockout window as one-off rides
 # (ride_service.edit_ride) — kept in sync so a driver can't use the recurring
@@ -106,6 +103,30 @@ def _to_definition_response(
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _active_week_start(definition: dict, now: datetime) -> date:
+    """Return the Sunday that starts this definition's active booking week.
+
+    A series is available only one week at a time.  Once every configured
+    departure in the current Sunday–Saturday week is in the past, the next
+    week's rides may be generated (subject to the usual per-ride wallet hold).
+    """
+    current_sunday = now.date() - timedelta(days=now.isoweekday() % 7)
+    for weekday in definition["weekdays"]:
+        occurrence_date = current_sunday + timedelta(days=int(weekday) % 7)
+        departure = datetime.combine(occurrence_date, definition["departure_time"], tzinfo=timezone.utc)
+        if departure > now:
+            return current_sunday
+    return current_sunday + timedelta(days=7)
+
+
+def _active_week_dates(definition: dict, now: datetime) -> list[date]:
+    week_start = _active_week_start(definition, now)
+    return [
+        week_start + timedelta(days=int(weekday) % 7)
+        for weekday in sorted(set(definition["weekdays"]), key=lambda weekday: int(weekday) % 7)
+    ]
 
 
 async def _fetch_own_definition(conn, definition_id: uuid.UUID, driver_id: uuid.UUID) -> dict:
@@ -278,14 +299,10 @@ async def get_definition(driver_id: uuid.UUID, definition_id: uuid.UUID) -> Recu
         )
 
     now = _now()
-    days_until_sunday = 7 - now.isoweekday()
     expected_dates = {
-        (now.date() + timedelta(days=offset))
-        for offset in range(days_until_sunday + 1)
-        if (now.date() + timedelta(days=offset)).isoweekday() in definition["weekdays"]
-        and datetime.combine(
-            now.date() + timedelta(days=offset), definition["departure_time"], tzinfo=timezone.utc
-        ) > now
+        occurrence_date
+        for occurrence_date in _active_week_dates(definition, now)
+        if datetime.combine(occurrence_date, definition["departure_time"], tzinfo=timezone.utc) > now
     }
     generated_dates = {row["departure_datetime"].date() for row in instance_rows}
 
@@ -1001,17 +1018,96 @@ async def _generate_one_instance(definition: dict, dep: datetime) -> bool:
     return True
 
 
+async def _cancel_outside_active_week(definition: dict, week_start: date, now: datetime) -> None:
+    """Release unbooked rides that an older two-week generator created early."""
+    week_start_at = datetime.combine(week_start, datetime.min.time(), tzinfo=timezone.utc)
+    week_end_at = week_start_at + timedelta(days=7)
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT r.id
+            FROM rides r
+            WHERE r.recurring_ride_definition_id = $1
+              AND r.status = 'scheduled'
+              AND r.departure_datetime > $2
+              AND (r.departure_datetime < $3 OR r.departure_datetime >= $4)
+              AND NOT EXISTS (
+                  SELECT 1 FROM bookings b WHERE b.ride_id = r.id AND b.status = 'confirmed'
+              )
+            """,
+            definition["id"], now, week_start_at, week_end_at,
+        )
+
+    for row in rows:
+        try:
+            await ride_service.cancel_ride(
+                row["id"], definition["driver_id"],
+                reason="Outside the active recurring-ride week",
+                cancellation_source="system",
+            )
+        except ride_service.RideServiceError:
+            logger.exception(
+                "recurring generation: failed to retire early instance ride_id=%s definition_id=%s",
+                row["id"], definition["id"],
+            )
+
+
+async def _move_feature_to_active_week(definition: dict, week_start: date) -> None:
+    """Keep an admin's featured-series choice on the active representative."""
+    week_start_at = datetime.combine(week_start, datetime.min.time(), tzinfo=timezone.utc)
+    week_end_at = week_start_at + timedelta(days=7)
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        source = await conn.fetchrow(
+            """
+            SELECT featured_at, featured_by
+            FROM rides
+            WHERE recurring_ride_definition_id = $1 AND is_featured = true
+            ORDER BY featured_at DESC NULLS LAST
+            LIMIT 1
+            """,
+            definition["id"],
+        )
+        if source is None:
+            return
+
+        target = await conn.fetchrow(
+            """
+            SELECT id
+            FROM rides
+            WHERE recurring_ride_definition_id = $1
+              AND status = 'scheduled'
+              AND departure_datetime >= $2 AND departure_datetime < $3
+              AND trip_leg IN ('one_way', 'outbound')
+            ORDER BY departure_datetime ASC
+            LIMIT 1
+            """,
+            definition["id"], week_start_at, week_end_at,
+        )
+        if target is None:
+            return
+
+        await conn.execute(
+            """
+            UPDATE rides
+            SET is_featured = (id = $2),
+                featured_at = CASE WHEN id = $2 THEN $3 ELSE featured_at END,
+                featured_by = CASE WHEN id = $2 THEN $4 ELSE featured_by END
+            WHERE (recurring_ride_definition_id = $1 AND is_featured = true)
+               OR id = $2
+            """,
+            definition["id"], target["id"], source["featured_at"], source["featured_by"],
+        )
+
+
 async def generate_upcoming_instances() -> int:
-    """One tick of the rolling 2-week generator (research.md Decision 2).
+    """Generate only one active Sunday–Saturday week for each series.
 
-    Queries every `active` definition whose driver/vehicle are currently
-    eligible (FR-010/FR-012 — org-verified driver, active+owned vehicle),
-    then ensures a `rides` row exists for each selected weekday's next
-    occurrence through day+13. Ineligible definitions are simply skipped —
-    no row mutation needed, since generated-instance visibility for search
-    is computed at query time (T011), not stored.
-
-    Returns the number of newly created instances (for logging/tests).
+    The next week is not posted until every configured departure this week has
+    passed. Each newly generated ride still reserves its own maximum
+    commission, so insufficient wallet balance naturally prevents that next
+    week's rides from appearing.
     """
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -1039,14 +1135,11 @@ async def generate_upcoming_instances() -> int:
 
     created = 0
     now = _now()
-    today = now.date()
     for definition_row in definitions:
         definition = dict(definition_row)
-        weekdays = {int(w) for w in definition["weekdays"]}
-        for offset in range(_WINDOW_DAYS):
-            day: date = today + timedelta(days=offset)
-            if day.isoweekday() not in weekdays:
-                continue
+        week_start = _active_week_start(definition, now)
+        await _cancel_outside_active_week(definition, week_start, now)
+        for day in _active_week_dates(definition, now):
             dep = datetime.combine(day, definition["departure_time"], tzinfo=timezone.utc)
             if dep <= now:
                 continue
@@ -1055,11 +1148,12 @@ async def generate_upcoming_instances() -> int:
                     created += 1
             except Exception:
                 logger.exception("recurring generation failed definition_id=%s date=%s", definition["id"], day)
+        await _move_feature_to_active_week(definition, week_start)
     return created
 
 
 async def recurring_ride_generation_loop() -> None:
-    """Background task: top up the rolling generation window every 10 minutes."""
+    """Background task: maintain each series' single active week every 10 minutes."""
     while True:
         try:
             created = await generate_upcoming_instances()

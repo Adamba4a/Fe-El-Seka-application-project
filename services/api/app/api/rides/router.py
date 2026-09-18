@@ -891,8 +891,13 @@ async def get_ride_recurring_instances(
                   AND r.departure_datetime > now()
                   AND r.trip_leg IN ('one_way', 'outbound')
                   AND {recurring_instance_visibility_sql("r")}
-                  AND date_trunc('week', r.departure_datetime AT TIME ZONE 'Africa/Cairo') = (
-                      SELECT date_trunc('week', departure_datetime AT TIME ZONE 'Africa/Cairo')
+                  AND (
+                      date_trunc('day', r.departure_datetime AT TIME ZONE 'Africa/Cairo')
+                      - EXTRACT(DOW FROM r.departure_datetime AT TIME ZONE 'Africa/Cairo')::integer * INTERVAL '1 day'
+                  ) = (
+                      SELECT
+                          date_trunc('day', departure_datetime AT TIME ZONE 'Africa/Cairo')
+                          - EXTRACT(DOW FROM departure_datetime AT TIME ZONE 'Africa/Cairo')::integer * INTERVAL '1 day'
                       FROM current_ride
                   )
             )
