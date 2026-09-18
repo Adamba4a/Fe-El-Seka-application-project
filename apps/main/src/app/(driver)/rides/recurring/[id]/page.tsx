@@ -206,6 +206,13 @@ export default function RecurringRideDetailPage() {
   }
 
   const inputClass = "w-full border border-border-default rounded-xl px-3 py-2 text-body-sm outline-none focus:border-border-focus transition-colors";
+  const occurrenceGroups = Object.values(
+    instances.reduce<Record<string, Ride[]>>((groups, ride) => {
+      const key = ride.round_trip_group_id ?? ride.id;
+      (groups[key] ??= []).push(ride);
+      return groups;
+    }, {})
+  );
 
   return (
     <div className="space-y-6">
@@ -425,17 +432,28 @@ export default function RecurringRideDetailPage() {
         {instances.length === 0 ? (
           <p className="text-body-sm text-content-muted">{t("noInstancesYet")}</p>
         ) : (
-          <div className="space-y-3">
-            {instances.map((ride) => (
-              <div key={ride.id} className="space-y-2">
-                <RideCard ride={ride} href={`/rides/${ride.id}/bookings`} />
-                {definition.journey_type === "round_trip" && ride.trip_leg === "outbound" && (
-                  <button type="button" onClick={() => openOverride(ride)} className="w-full rounded-xl border border-brand-primary/30 bg-brand-primary/5 px-3 py-2 text-left text-xs font-medium text-dash-primary">
-                    {t("adjustOccurrenceTimes")}
-                  </button>
-                )}
-              </div>
-            ))}
+          <div className="space-y-5">
+            {occurrenceGroups.map((rides) => {
+              const outbound = rides.find((ride) => ride.trip_leg === "outbound") ?? rides[0];
+              const returning = rides.find((ride) => ride.trip_leg === "return");
+              const dateLabel = new Date(outbound.departure_datetime).toLocaleDateString(locale, {
+                weekday: "long", month: "short", day: "numeric",
+              });
+              return (
+                <section key={outbound.round_trip_group_id ?? outbound.id} className="space-y-3 rounded-2xl border border-border-default bg-surface-bg p-3">
+                  <h3 className="text-body-sm font-semibold text-content-primary">{t("occurrenceHeading", { date: dateLabel })}</h3>
+                  <div className={returning ? "grid gap-3 lg:grid-cols-2" : "space-y-3"}>
+                    <div className="space-y-1.5"><p className="px-1 text-caption font-medium text-content-muted">{t("goingLabel")}</p><RideCard ride={outbound} href={`/rides/${outbound.id}/bookings`} /></div>
+                    {returning && <div className="space-y-1.5"><p className="px-1 text-caption font-medium text-content-muted">{t("comingLabel")}</p><RideCard ride={returning} href={`/rides/${returning.id}/bookings`} /></div>}
+                  </div>
+                  {definition.journey_type === "round_trip" && outbound.trip_leg === "outbound" && (
+                    <button type="button" onClick={() => openOverride(outbound)} className="w-full rounded-xl border border-brand-primary/30 bg-brand-primary/5 px-3 py-2 text-left text-xs font-medium text-dash-primary">
+                      {t("adjustOccurrenceTimes")}
+                    </button>
+                  )}
+                </section>
+              );
+            })}
           </div>
         )}
       </div>

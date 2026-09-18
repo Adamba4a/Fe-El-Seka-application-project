@@ -840,22 +840,22 @@ async def get_ride_recurring_instances(
         if definition_id is None:
             return JSONResponse({"instances": []})
 
-        # Only this calendar week's (Sun-Sat) remaining instances are bookable from
-        # the picker — not the whole rolling generation window. Once every instance
-        # in the current week has departed, "now" no longer qualifies them as
-        # upcoming, so the min bucket below naturally advances to next week's
-        # instances on the next fetch — no separate unlock step needed.
+        # Offer all generated *other dates* in the rolling window. Return legs
+        # are deliberately excluded: a passenger viewing Monday's outbound ride
+        # must not see Monday's return leg presented as another bookable day.
         rows = await conn.fetch(
             f"""
-            WITH upcoming AS (
+            WITH current_ride AS (
+                SELECT public.utc_date(departure_datetime) AS departure_date
+                FROM rides WHERE id = $3
+            ), upcoming AS (
                 SELECT r.id, r.departure_datetime, r.available_seats, r.total_seats,
-                       r.price_per_seat,
-                       date_trunc('day', r.departure_datetime)
-                           - (EXTRACT(DOW FROM r.departure_datetime) * interval '1 day') AS week_bucket
+                       r.price_per_seat
                 FROM rides r
                 WHERE r.recurring_ride_definition_id = $1
                   AND r.status = 'scheduled'
                   AND r.departure_datetime > now()
+                  AND r.trip_leg IN ('one_way', 'outbound')
                   AND {recurring_instance_visibility_sql("r")}
             )
             SELECT u.id, u.departure_datetime, u.available_seats, u.total_seats, u.price_per_seat,
@@ -863,8 +863,7 @@ async def get_ride_recurring_instances(
             FROM upcoming u
             LEFT JOIN bookings b
                 ON b.ride_id = u.id AND b.passenger_id = $2 AND b.status IN ('pending', 'confirmed')
-            WHERE u.id != $3
-              AND u.week_bucket = (SELECT min(week_bucket) FROM upcoming)
+            WHERE public.utc_date(u.departure_datetime) <> (SELECT departure_date FROM current_ride)
             ORDER BY u.departure_datetime ASC
             """,
             definition_id,
