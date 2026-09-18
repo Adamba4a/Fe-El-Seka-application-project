@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
@@ -147,6 +148,61 @@ class TestUpdateProfilePersistsPhoneNumber:
 def test_public_profile_contract_never_includes_gender():
     """Gender is deliberately private even when a profile row contains it."""
     assert "gender" not in PublicProfileResponse.model_fields
+
+
+class _FakePublicProfileConnection:
+    def __init__(self, *, shared_booking: bool):
+        self.profile_id = uuid4()
+        self.shared_booking = shared_booking
+        self.fetchval_queries: list[str] = []
+
+    async def fetchrow(self, query, user_id):
+        assert user_id == self.profile_id
+        return {
+            "id": self.profile_id,
+            "display_name": "Driver",
+            "role": "driver",
+            "profile_photo_path": None,
+            "verification_status": "verified",
+            "rating_avg": None,
+            "rating_count": 0,
+            "phone_number": "+201234567890",
+        }
+
+    async def fetchval(self, query, *args):
+        self.fetchval_queries.append(query)
+        if "COUNT(*)" in query:
+            return 1
+        return 1 if self.shared_booking else None
+
+    async def fetch(self, query, user_id):
+        return []
+
+
+class TestPublicDriverProfilePrivacyAndRideCount:
+    @pytest.mark.asyncio
+    async def test_counts_only_completed_rides_with_a_booking_and_hides_phone_without_confirmation(self):
+        conn = _FakePublicProfileConnection(shared_booking=False)
+
+        profile = await svc.get_public_profile(conn, conn.profile_id, uuid4())
+
+        count_query = next(query for query in conn.fetchval_queries if "COUNT(*)" in query)
+        assert "r.status = 'completed'" in count_query
+        assert "EXISTS (SELECT 1 FROM bookings b WHERE b.ride_id = r.id)" in count_query
+        assert profile["total_rides"] == 1
+        assert profile["phone_number"] is None
+
+    @pytest.mark.asyncio
+    async def test_shows_phone_after_a_shared_confirmed_or_completed_booking(self):
+        conn = _FakePublicProfileConnection(shared_booking=True)
+
+        profile = await svc.get_public_profile(conn, conn.profile_id, uuid4())
+
+        shared_booking_query = next(
+            query for query in conn.fetchval_queries if "b.status IN" in query
+        )
+        assert "'confirmed', 'completed'" in shared_booking_query
+        assert profile["phone_number"] == "+201234567890"
 
 
 # ── update_profile: date_of_birth minimum-age gate (Spec 021, FR-002/FR-017) ─

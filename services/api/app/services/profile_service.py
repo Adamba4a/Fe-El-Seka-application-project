@@ -197,15 +197,23 @@ async def get_public_profile(conn, user_id: uuid.UUID, caller_id: uuid.UUID) -> 
 
     if profile["role"] == "driver":
         total_rides = await conn.fetchval(
-            "SELECT COUNT(*) FROM rides WHERE driver_id = $1 AND status = 'completed'",
+            """
+            SELECT COUNT(*)
+            FROM rides r
+            WHERE r.driver_id = $1
+              AND r.status = 'completed'
+              AND EXISTS (SELECT 1 FROM bookings b WHERE b.ride_id = r.id)
+            """,
             user_id,
         )
         recent_rows = await conn.fetch(
             """
             SELECT origin_address, destination_address, departure_datetime
-            FROM rides
-            WHERE driver_id = $1 AND status = 'completed'
-            ORDER BY departure_datetime DESC
+            FROM rides r
+            WHERE r.driver_id = $1
+              AND r.status = 'completed'
+              AND EXISTS (SELECT 1 FROM bookings b WHERE b.ride_id = r.id)
+            ORDER BY r.departure_datetime DESC
             LIMIT 3
             """,
             user_id,
