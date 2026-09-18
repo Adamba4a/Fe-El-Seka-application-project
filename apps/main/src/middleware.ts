@@ -74,7 +74,7 @@ export async function middleware(request: NextRequest) {
   // This must stay directly after createServerClient with no logic in between.
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Enforce a 24h absolute session cap. Supabase's refresh-token rotation has
+  // Enforce a seven-day absolute session cap. Supabase's refresh-token rotation has
   // no built-in max lifetime (it's a sliding 60-day window), so without this
   // an active user is effectively signed in forever.
   if (user) {
@@ -91,7 +91,7 @@ export async function middleware(request: NextRequest) {
 
     if (!Number.isFinite(startedAt)) {
       // First request we've seen this session (fresh login, or an existing
-      // session from before this cap existed) — start the 24h clock now.
+      // session from before this cap existed) — start the seven-day clock now.
       supabaseResponse.cookies.set(SESSION_STARTED_COOKIE, String(Date.now()), {
         path: "/",
         maxAge: SESSION_STARTED_COOKIE_MAX_AGE_SECONDS,
