@@ -51,13 +51,30 @@ def list_users(
 
     sb = _supabase()
 
+    verified_org_user_ids: list[str] = []
+    if q:
+        org_email_matches = (
+            sb.table("domain_verifications")
+            .select("user_id")
+            .ilike("email", f"%{q}%")
+            .not_.is_("verified_at", "null")
+            .execute()
+        )
+        verified_org_user_ids = list({row["user_id"] for row in (org_email_matches.data or [])})
+
     def _filtered(query):
         if role:
             query = query.eq("role", role)
         if status:
             query = query.eq("verification_status", status)
         if q:
-            query = query.or_(f"display_name.ilike.%{q}%,email.ilike.%{q}%")
+            search_filters = [
+                f"display_name.ilike.%{q}%",
+                f"email.ilike.%{q}%",
+            ]
+            if verified_org_user_ids:
+                search_filters.append(f"id.in.({','.join(verified_org_user_ids)})")
+            query = query.or_(",".join(search_filters))
         return query
 
     total = (
