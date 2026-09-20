@@ -19,7 +19,11 @@ if (typeof window === "undefined") {
 export const env = {
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
   supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  apiUrl: process.env.NEXT_PUBLIC_API_URL!,
+  // Browser requests go through the same-origin /api proxy.  Bunny can be
+  // configured with the Next.js container as its origin, in which case a
+  // browser request to the public API URL never reaches nginx/FastAPI.
+  // Keeping the request same-origin also removes a needless CORS dependency.
+  apiUrl: typeof window === "undefined" ? process.env.NEXT_PUBLIC_API_URL! : "",
   // Server-side fetch uses the Docker-internal URL so it can reach the api
   // container directly without going through nginx. Falls back to the public
   // URL in local dev where BACKEND_INTERNAL_URL is not set.
