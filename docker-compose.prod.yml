@@ -25,10 +25,6 @@ services:
     image: ghcr.io/adamba4a/fe-el-seka-main:latest
     restart: always
     env_file: .env.prod
-    environment:
-      # The Next.js API proxy uses the Docker network, so it remains available
-      # when the CDN routes the public domain directly to the frontend.
-      BACKEND_INTERNAL_URL: http://api:8000
     networks:
       - fe-el-seka-prod
     deploy:

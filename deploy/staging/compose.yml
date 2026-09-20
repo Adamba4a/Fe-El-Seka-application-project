@@ -15,8 +15,6 @@ services:
     image: ghcr.io/adamba4a/fe-el-seka-main:staging
     restart: unless-stopped
     env_file: ${STAGING_ENV_FILE:-.env}
-    environment:
-      BACKEND_INTERNAL_URL: http://api:8000
     networks: [triplyy-staging]
 
   osrm:
