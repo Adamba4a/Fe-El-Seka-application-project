@@ -86,6 +86,8 @@ export default function LoginPage() {
       const e = err as { error?: string; message?: string };
       if (e?.error === "otp_rate_limited") {
         setError(t("errors.otpRateLimited"));
+      } else if (e?.error === "network_error") {
+        setError(t("errors.networkError"));
       } else {
         setError(e?.message ?? t("errors.sendCodeFailed"));
       }

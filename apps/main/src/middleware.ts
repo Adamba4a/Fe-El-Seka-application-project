@@ -148,5 +148,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/).*)"],
+  // Proxy routes must remain reachable before authentication: request-otp
+  // and password sign-in are intentionally public endpoints.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/|api-proxy/).*)"],
 };

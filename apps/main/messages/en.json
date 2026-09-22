@@ -47,6 +47,7 @@
       "secureEncryption": "Secure encryption active",
       "errors": {
         "invalidEmail": "Enter a valid email address",
+        "networkError": "We couldn't reach the server. Check your connection and try again.",
         "otpRateLimited": "Too many requests. Please wait 15 minutes before trying again.",
         "sendCodeFailed": "Failed to send code. Please try again.",
         "sessionFailed": "Could not establish session. Please try again.",

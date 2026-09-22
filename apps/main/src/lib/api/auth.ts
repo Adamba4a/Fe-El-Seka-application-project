@@ -2,7 +2,11 @@ import type { SessionResponse } from "@fe-el-seka/shared";
 import { env } from "../env";
 import { getDeviceId } from "../device-id";
 
-const base = env.apiUrl;
+// Public auth happens before a session exists, so a cross-origin call to
+// api.triplyy.net can be rejected by Facebook's in-app webview as a generic
+// "Failed to fetch" error. Browser requests go through this same-origin
+// Next.js proxy; server callers retain the Docker-internal/public API URL.
+const base = typeof window === "undefined" ? env.serverApiUrl : "/api-proxy";
 
 // A non-JSON body (e.g. nginx/proxy HTML error pages) means the request never
 // reached the API — surface a readable message instead of a JSON parse error.
@@ -25,11 +29,19 @@ async function parseErrorResponse(res: Response): Promise<{ error?: string; mess
 }
 
 export async function requestOtp(email: string): Promise<{ message: string; expires_in_seconds: number }> {
-  const res = await fetch(`${base}/api/auth/request-otp`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${base}/api/auth/request-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  } catch (error) {
+    // TypeError is the browser's opaque network/CORS failure. The UI maps it
+    // to localized, actionable copy instead of displaying "Failed to fetch".
+    if (error instanceof TypeError) throw { error: "network_error" };
+    throw error;
+  }
   if (!res.ok) throw await parseErrorResponse(res);
   return res.json();
 }
