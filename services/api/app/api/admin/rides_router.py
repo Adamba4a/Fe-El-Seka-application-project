@@ -166,6 +166,87 @@ async def list_rides(
     return {"total": total, "page": page, "limit": limit, "items": items}
 
 
+@router.get("/series/{definition_id}")
+async def get_recurring_series(
+    definition_id: uuid.UUID,
+    _admin: dict = Depends(get_current_admin),
+) -> dict:
+    """Return the permanent operational record for every occurrence in a series.
+
+    The ordinary ride list is paginated, so grouping its current page cannot
+    reliably expose a recurring series' older occurrences.  This endpoint is
+    intentionally unpaginated: a series is the unit an administrator needs to
+    audit, and it includes cancelled/completed rides and their bookings.
+    """
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rides = await conn.fetch(
+            """
+            SELECT r.id, r.status, r.departure_datetime, r.trip_leg,
+                   r.origin_address, r.destination_address,
+                   r.total_seats, r.booked_seats, r.available_seats,
+                   r.price_per_seat, r.driver_id, p.display_name AS driver_display_name
+            FROM rides r
+            JOIN profiles p ON p.id = r.driver_id
+            WHERE r.recurring_ride_definition_id = $1
+            ORDER BY r.departure_datetime DESC
+            """,
+            definition_id,
+        )
+        if not rides:
+            raise HTTPException(status_code=404, detail={"error": "not_found", "message": "Recurring series not found"})
+
+        ride_ids = [r["id"] for r in rides]
+        booking_rows = await conn.fetch(
+            """
+            SELECT b.id, b.ride_id, b.status, b.seats, b.total_price, b.created_at,
+                   b.passenger_id, p.display_name AS passenger_display_name
+            FROM bookings b
+            JOIN profiles p ON p.id = b.passenger_id
+            WHERE b.ride_id = ANY($1::uuid[])
+            ORDER BY b.created_at ASC
+            """,
+            ride_ids,
+        )
+
+    bookings_by_ride: dict[uuid.UUID, list[dict]] = {}
+    for booking in booking_rows:
+        bookings_by_ride.setdefault(booking["ride_id"], []).append({
+            "booking_id": str(booking["id"]),
+            "status": booking["status"],
+            "seats": booking["seats"],
+            "total_price": str(booking["total_price"]),
+            "created_at": booking["created_at"].isoformat(),
+            "passenger_id": str(booking["passenger_id"]),
+            "passenger_display_name": booking["passenger_display_name"] or "",
+        })
+
+    first = rides[0]
+    return {
+        "definition_id": str(definition_id),
+        "driver": {
+            "driver_id": str(first["driver_id"]),
+            "display_name": first["driver_display_name"] or "",
+        },
+        "occurrences": [
+            {
+                "ride_id": str(ride["id"]),
+                "status": ride["status"],
+                "departure_datetime": ride["departure_datetime"].isoformat(),
+                "trip_leg": ride["trip_leg"],
+                "origin_address": ride["origin_address"],
+                "destination_address": ride["destination_address"],
+                "total_seats": ride["total_seats"],
+                "booked_seats": ride["booked_seats"],
+                "available_seats": ride["available_seats"],
+                "price_per_seat": str(ride["price_per_seat"]),
+                "bookings": bookings_by_ride.get(ride["id"], []),
+            }
+            for ride in rides
+        ],
+    }
+
+
 @router.get("/{ride_id}")
 async def get_ride_detail(
     ride_id: uuid.UUID,

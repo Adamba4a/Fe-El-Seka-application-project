@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createAdminBrowserClient } from "@/lib/supabase/browser-client";
 import { list, featureRide, unfeatureRide, type RideListItem, type RideStatus } from "@/lib/api/admin-rides";
@@ -35,7 +35,6 @@ export default function RidesPage() {
   const [error, setError] = useState("");
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [toggleError, setToggleError] = useState<{ rideId: string; message: string } | null>(null);
-  const [expandedSeries, setExpandedSeries] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -173,9 +172,7 @@ export default function RidesPage() {
           {rideGroups.map(([seriesId, series]) => {
             const r = series[0];
             const isSeries = !!r.recurring_ride_definition_id;
-            const expanded = expandedSeries === seriesId;
-            return <Fragment key={seriesId}>
-            <tr className="border-b hover:bg-gray-50">
+            return <tr key={seriesId} className="border-b hover:bg-gray-50">
               <td className="py-2 pr-4">
                 {r.origin_address} → {r.destination_address}
               </td>
@@ -210,22 +207,11 @@ export default function RidesPage() {
               </td>
               <td className="py-2">
                 <div className="flex gap-2">
-                  {isSeries && <button type="button" onClick={() => setExpandedSeries(expanded ? null : seriesId)} className="text-blue-600 hover:underline">{expanded ? "Hide rides" : "Show rides"}</button>}
+                  {isSeries && <Link href={`/rides/series/${seriesId}`} className="text-blue-600 hover:underline">View series</Link>}
                   <Link href={`/rides/${r.ride_id}`} className="text-blue-600 hover:underline">Detail</Link>
                 </div>
               </td>
-            </tr>
-            {isSeries && expanded && series.sort((a, b) => a.departure_datetime.localeCompare(b.departure_datetime)).map((instance) => (
-              <tr key={instance.ride_id} className="border-b bg-gray-50 text-xs text-gray-600">
-                <td className="py-2 pl-6 pr-4" colSpan={2}>{instance.trip_leg === "return" ? "Coming" : "Going"} · {instance.origin_address} → {instance.destination_address}</td>
-                <td className="py-2 pr-4">{new Date(instance.departure_datetime).toLocaleString()}</td>
-                <td className="py-2 pr-4">{instance.booked_seats}/{instance.total_seats}</td>
-                <td className="py-2 pr-4">{instance.price_per_seat} EGP</td>
-                <td colSpan={3}></td>
-                <td className="py-2"><Link href={`/rides/${instance.ride_id}`} className="text-blue-600 hover:underline">Detail</Link></td>
-              </tr>
-            ))}
-            </Fragment>;
+            </tr>;
           })}
           {!loading && items.length === 0 && (
             <tr>

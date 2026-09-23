@@ -87,6 +87,26 @@ export interface RideDetailResponse {
   bookings: RideBooking[];
 }
 
+export interface RecurringSeriesOccurrence {
+  ride_id: string;
+  status: RideStatus;
+  departure_datetime: string;
+  trip_leg: "one_way" | "outbound" | "return" | null;
+  origin_address: string;
+  destination_address: string;
+  total_seats: number;
+  booked_seats: number;
+  available_seats: number;
+  price_per_seat: string;
+  bookings: RideBooking[];
+}
+
+export interface RecurringSeriesResponse {
+  definition_id: string;
+  driver: { driver_id: string; display_name: string };
+  occurrences: RecurringSeriesOccurrence[];
+}
+
 export async function list(token: string, params: RideListParams = {}): Promise<RideListResponse> {
   const search = new URLSearchParams({ page: String(params.page ?? 1), limit: "20" });
   if (params.status) search.set("status", params.status);
@@ -101,6 +121,14 @@ export async function list(token: string, params: RideListParams = {}): Promise<
 
 export async function getDetail(token: string, rideId: string): Promise<RideDetailResponse> {
   const res = await fetch(`${base}/api/admin/rides/${rideId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw await res.json();
+  return res.json();
+}
+
+export async function getRecurringSeries(token: string, definitionId: string): Promise<RecurringSeriesResponse> {
+  const res = await fetch(`${base}/api/admin/rides/series/${definitionId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw await res.json();
