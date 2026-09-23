@@ -115,8 +115,17 @@ def _active_week_start(definition: dict, now: datetime) -> date:
     current_sunday = now.date() - timedelta(days=now.isoweekday() % 7)
     for weekday in definition["weekdays"]:
         occurrence_date = current_sunday + timedelta(days=int(weekday) % 7)
-        departure = datetime.combine(occurrence_date, definition["departure_time"], tzinfo=timezone.utc)
-        if departure > now:
+        # A round trip is not over when its outbound leg leaves.  Treat its
+        # return departure as the final departure for that occurrence so the
+        # weekly generator cannot advance early and retire the still-upcoming
+        # "coming" ride on the last configured day of the week.
+        final_departure_time = (
+            definition["return_departure_time"]
+            if definition.get("journey_type") == "round_trip" and definition.get("return_departure_time")
+            else definition["departure_time"]
+        )
+        final_departure = datetime.combine(occurrence_date, final_departure_time, tzinfo=timezone.utc)
+        if final_departure > now:
             return current_sunday
     return current_sunday + timedelta(days=7)
 

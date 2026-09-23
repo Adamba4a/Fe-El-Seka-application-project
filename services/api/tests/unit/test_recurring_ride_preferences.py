@@ -7,6 +7,7 @@ import pytest
 
 from app.services.recurring_ride_service import (
     RecurringRideServiceError,
+    _active_week_start,
     override_round_trip_occurrence,
 )
 
@@ -32,3 +33,18 @@ class TestRecurringRoundTripOccurrenceValidation:
             )
 
         assert exc_info.value.code == "occurrence_date_invalid"
+
+
+class TestRecurringWeekRollover:
+    def test_round_trip_stays_in_current_week_until_return_leg_departs(self):
+        definition = {
+            "weekdays": [6],  # Saturday, the last day in the Sunday–Saturday week
+            "departure_time": datetime.strptime("08:00", "%H:%M").time(),
+            "journey_type": "round_trip",
+            "return_departure_time": datetime.strptime("18:00", "%H:%M").time(),
+        }
+
+        # The outbound has departed, but the return ("coming") ride has not.
+        now = datetime(2026, 9, 26, 12, 0, tzinfo=timezone.utc)
+
+        assert _active_week_start(definition, now).isoformat() == "2026-09-20"
